@@ -643,6 +643,18 @@
     </div>
   </div>
 
+  <!-- ============ ADVANCE PAYMENT CONFIRM MODAL ============ -->
+  <div class="modal-overlay" id="advanceConfirmModal">
+    <div class="modal-sheet" style="max-width:420px;">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:10px;">Show advance payment on this bill?</h2>
+      <p class="hint" id="advanceConfirmMsg" style="margin-bottom:16px;font-size:13.5px;"></p>
+      <div class="modal-actions" style="margin-top:0;">
+        <button class="btn btn-outline btn-block" id="advanceConfirmNoBtn">No</button>
+        <button class="btn btn-primary btn-block" id="advanceConfirmYesBtn">Yes</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="editBillModal">
     <div class="modal-sheet">
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Edit <span id="editBillInvoiceNo"></span></h2>
@@ -1297,15 +1309,32 @@
       '<div class="print-copy left"><p class="print-copy-label">Customer Copy</p>' + sourceHtml + '</div>' +
       '<div class="print-copy right"><p class="print-copy-label">Official Copy</p>' + sourceHtml + '</div>';
   }
-  function maybeAskAdvanceAndRerender_(bill, targetId) {
-    const showAdvance = bill.balance > 0.005
-      ? confirm('This bill has ' + money(bill.balance) + ' extra payment (going to the customer\'s wallet). Show this as "Advance Payment" on the bill?')
-      : false;
+  function askShowAdvance_(amount) {
+    return new Promise(function (resolve) {
+      document.getElementById('advanceConfirmMsg').textContent = 'This bill has ' + money(amount) + ' extra payment (going to the customer\'s wallet).';
+      document.getElementById('advanceConfirmModal').classList.add('show');
+      const yesBtn = document.getElementById('advanceConfirmYesBtn');
+      const noBtn = document.getElementById('advanceConfirmNoBtn');
+      function cleanup(result) {
+        document.getElementById('advanceConfirmModal').classList.remove('show');
+        yesBtn.removeEventListener('click', onYes);
+        noBtn.removeEventListener('click', onNo);
+        resolve(result);
+      }
+      function onYes() { cleanup(true); }
+      function onNo() { cleanup(false); }
+      yesBtn.addEventListener('click', onYes);
+      noBtn.addEventListener('click', onNo);
+    });
+  }
+
+  async function maybeAskAdvanceAndRerender_(bill, targetId) {
+    const showAdvance = bill.balance > 0.005 ? await askShowAdvance_(bill.balance) : false;
     if (bill.customerType === 'Retail') renderRetailPrintReceipt(bill, targetId, showAdvance);
     else renderReceipt(bill, targetId, showAdvance);
   }
 
-  function doPrint() { maybeAskAdvanceAndRerender_(lastSavedBill, 'printArea'); preparePrintDuplicate_('printArea'); window.print(); }
+  async function doPrint() { await maybeAskAdvanceAndRerender_(lastSavedBill, 'printArea'); preparePrintDuplicate_('printArea'); window.print(); }
 
   function numberToWordsIndian(num) {
     num = Math.round(Number(num) || 0);
@@ -1435,9 +1464,9 @@
       '<p style="text-align:center;font-size:12px;color:var(--ink-faint);margin-top:14px;">Thank you for shopping with us!</p>';
   }
 
-  function downloadPdf() {
+  async function downloadPdf() {
     if (!lastSavedBill) { showToast('No bill to download.', true); return; }
-    maybeAskAdvanceAndRerender_(lastSavedBill, 'printArea');
+    await maybeAskAdvanceAndRerender_(lastSavedBill, 'printArea');
     showToast('Preparing PDF…');
     const el = document.getElementById('printArea');
     html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' } }).from(el).save();
@@ -1998,20 +2027,22 @@
   }
 
   function hideDetail() { document.getElementById('detailModal').classList.remove('show'); }
-  function getDetailPrintSourceId_() {
+  async function getDetailPrintSourceId_() {
     if (!currentDetailBill) return 'detailArea';
     const targetId = currentDetailBill.customerType === 'Retail' ? 'retailDetailPrintArea' : 'detailArea';
-    maybeAskAdvanceAndRerender_(currentDetailBill, targetId);
+    await maybeAskAdvanceAndRerender_(currentDetailBill, targetId);
     return targetId;
   }
-  function printFromDetail() { preparePrintDuplicate_(getDetailPrintSourceId_()); window.print(); }
-  function downloadPdfFromDetail() {
+  async function printFromDetail() { preparePrintDuplicate_(await getDetailPrintSourceId_()); window.print(); }
+  async function downloadPdfFromDetail() {
+    const sourceId = await getDetailPrintSourceId_();
     showToast('Preparing PDF…');
-    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' } }).from(document.getElementById(getDetailPrintSourceId_())).save();
+    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' } }).from(document.getElementById(sourceId)).save();
   }
-  function shareWhatsappFromDetail() {
+  async function shareWhatsappFromDetail() {
+    const sourceId = await getDetailPrintSourceId_();
     showToast('Preparing PDF…');
-    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' } }).from(document.getElementById(getDetailPrintSourceId_())).save().then(function () {
+    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' } }).from(document.getElementById(sourceId)).save().then(function () {
       let digits = String(currentDetailMobile || '').replace(/\D/g, ''); if (digits.length === 10) digits = '91' + digits;
       const text = buildBillShareText_(currentDetailInvoice, currentDetailShareToken, null);
       const waUrl = digits ? 'https://wa.me/' + digits + '?text=' + encodeURIComponent(text) : 'https://wa.me/?text=' + encodeURIComponent(text);
@@ -2921,9 +2952,9 @@
     return text;
   }
 
-  function shareWhatsapp() {
+  async function shareWhatsapp() {
     if (!lastSavedBill) { showToast('No bill to share.', true); return; }
-    maybeAskAdvanceAndRerender_(lastSavedBill, 'printArea');
+    await maybeAskAdvanceAndRerender_(lastSavedBill, 'printArea');
     showToast('Preparing PDF…');
     const el = document.getElementById('printArea');
     html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' } }).from(el).save().then(function () {
