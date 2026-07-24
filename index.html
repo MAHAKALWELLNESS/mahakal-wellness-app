@@ -1255,6 +1255,7 @@
 
   function proceedFurther() {
     if (!currentDetailBill) return;
+    document.getElementById('detailModal').classList.remove('show');
     renderDeliveryModal(currentDetailBill.items);
     document.getElementById('deliveryModal').classList.add('show');
   }
@@ -1391,8 +1392,10 @@
   function renderRetailPrintReceipt(bill, targetId, showAdvance) {
     const rows = bill.items.map(function (it) {
       const mrp = Number(it.mrp) || 0;
+      const sp = Number(it.sp) || 0;
       return '<tr><td>' + escapeHtml(it.name) + '</td><td class="num">' + trimNum(it.qty) + '</td>' +
-        '<td class="num">' + money(mrp) + '</td><td class="num">' + money(it.qty * mrp) + '</td></tr>';
+        '<td class="num">' + money(mrp) + '</td><td class="num">' + money(it.qty * mrp) + '</td>' +
+        '<td class="num">' + trimNum(it.qty * sp) + '</td></tr>';
     }).join('');
     const dateStr = new Date(bill.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -1407,10 +1410,11 @@
       '<div class="receipt-meta"><span>Bill No: <strong>' + bill.invoiceNo + '</strong></span><span>' + dateStr + '</span></div>' +
       (bill.customerName || bill.mobile ? '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;">' +
         escapeHtml(bill.customerName || 'Customer') + (bill.mobile ? ' · ' + escapeHtml(bill.mobile) : '') + '</p>' : '') +
-      '<table class="receipt-table"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">MRP</th><th class="num">Amount</th></tr></thead>' +
+      '<table class="receipt-table"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">MRP</th><th class="num">Amount</th><th class="num">SP</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table>' +
       '<div class="receipt-total-row"><span>Qty</span><span>' + trimNum(bill.totalQty) + '</span></div>' +
       '<div class="receipt-total-row"><span>Total MRP</span><span>' + money(bill.totalMrp) + '</span></div>' +
+      '<div class="receipt-total-row"><span>Total SP</span><span>' + trimNum(bill.totalSP) + '</span></div>' +
       '<div class="receipt-total-row"><span>Discount (' + trimNum(bill.discountPercent) + '%)</span><span>' + money(bill.discountAmount) + '</span></div>' +
       '<div class="receipt-total-row grand"><span>Net Amount</span><span>' + money(bill.netAmount) + '</span></div>' +
       '<div class="receipt-total-row"><span>Cash</span><span>' + money(bill.cash) + '</span></div>' +
