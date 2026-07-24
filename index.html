@@ -167,8 +167,8 @@
     @page { size: landscape; margin: 8mm; }
     body *{visibility:hidden;}
     #printDuplicateArea, #printDuplicateArea *{visibility:visible;}
-    #printDuplicateArea{position:absolute; left:0; top:0; width:100%; padding:0; display:flex !important; align-items:stretch; gap:10px; page-break-inside:avoid; break-inside:avoid;}
-    .print-copy{width:calc(50% - 5px); box-sizing:border-box; padding:14px 16px; border-top:1.5px solid #333; border-bottom:1.5px solid #333; page-break-inside:avoid; break-inside:avoid;}
+    #printDuplicateArea{position:absolute; left:0; top:0; width:100%; padding:0; display:flex !important; align-items:stretch; gap:10px;}
+    .print-copy{width:calc(50% - 5px); box-sizing:border-box; padding:14px 16px; border-top:1.5px solid #333; border-bottom:1.5px solid #333;}
     .print-copy.left{border-left:1.5px solid #333; border-right:1.5px dashed #999;}
     .print-copy.right{border-right:1.5px solid #333; border-left:1.5px dashed #999;}
     .print-copy-label{text-align:center; font-size:11px; font-weight:bold; text-transform:uppercase; letter-spacing:1.5px; color:#777; margin:0 0 8px; border-bottom:1px solid #ccc; padding-bottom:6px;}
@@ -181,7 +181,7 @@
 <body>
 
   <div id="printDuplicateArea" style="display:none;"></div>
-  <div id="retailDetailPrintArea" style="display:none;"></div>
+  <div id="retailDetailPrintArea" style="position:absolute; left:-9999px; top:0; width:520px;"></div>
 
   <div class="login-overlay" id="loginOverlay">
     <div class="login-card">
@@ -1469,7 +1469,7 @@
     await maybeAskAdvanceAndRerender_(lastSavedBill, 'printArea');
     showToast('Preparing PDF…');
     const el = document.getElementById('printArea');
-    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' } }).from(el).save();
+    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] } }).from(el).save();
   }
 
   // ---------------- TABS ----------------
@@ -2037,12 +2037,12 @@
   async function downloadPdfFromDetail() {
     const sourceId = await getDetailPrintSourceId_();
     showToast('Preparing PDF…');
-    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' } }).from(document.getElementById(sourceId)).save();
+    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] } }).from(document.getElementById(sourceId)).save();
   }
   async function shareWhatsappFromDetail() {
     const sourceId = await getDetailPrintSourceId_();
     showToast('Preparing PDF…');
-    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' } }).from(document.getElementById(sourceId)).save().then(function () {
+    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] } }).from(document.getElementById(sourceId)).save().then(function () {
       let digits = String(currentDetailMobile || '').replace(/\D/g, ''); if (digits.length === 10) digits = '91' + digits;
       const text = buildBillShareText_(currentDetailInvoice, currentDetailShareToken, null);
       const waUrl = digits ? 'https://wa.me/' + digits + '?text=' + encodeURIComponent(text) : 'https://wa.me/?text=' + encodeURIComponent(text);
@@ -2957,7 +2957,7 @@
     await maybeAskAdvanceAndRerender_(lastSavedBill, 'printArea');
     showToast('Preparing PDF…');
     const el = document.getElementById('printArea');
-    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' } }).from(el).save().then(function () {
+    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] } }).from(el).save().then(function () {
       let digits = String(lastSavedBill.mobile || '').replace(/\D/g, '');
       if (digits.length === 10) digits = '91' + digits;
       const text = buildBillShareText_(lastSavedBill.invoiceNo, lastSavedBill.shareToken, lastSavedBill.totalDP);
