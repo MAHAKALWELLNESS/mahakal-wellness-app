@@ -247,6 +247,7 @@
       <button class="tab" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
       <button class="tab" data-tab="stock" onclick="switchTab('stock')">Purchase</button>
       <button class="tab active" data-tab="bill" onclick="switchTab('bill')">New Bill</button>
+      <button class="tab" data-tab="approval" onclick="switchTab('approval')">Bill Approval</button>
       <button class="tab" data-tab="history" onclick="switchTab('history')">Past Bill</button>
       <button class="tab" data-tab="accounting" onclick="switchTab('accounting')">Accounting</button>
       <button class="tab" data-tab="pending" onclick="switchTab('pending')">Delivery Update</button>
@@ -379,6 +380,12 @@
         <h2>Low stock</h2>
         <div id="lowStockList"><div class="empty-cart">Loading…</div></div>
       </div>
+    </section>
+
+    <!-- ============ BILL APPROVAL TAB ============ -->
+    <section id="tab-approval" class="tab-panel">
+      <div class="card"><p class="section-label">Find a pending bill</p><input type="text" id="approvalSearch" class="search-input" placeholder="Invoice no, name or mobile…" oninput="searchApprovalBills()"></div>
+      <div class="card"><h2>Awaiting approval</h2><div id="approvalList"><div class="empty-cart">Loading…</div></div></div>
     </section>
 
     <!-- ============ PAST BILLS TAB ============ -->
@@ -571,20 +578,14 @@
   <div class="modal-overlay" id="printModal">
     <div class="modal-sheet">
       <div id="printArea"></div>
-      <p class="hint" id="pendingBillHint" style="margin:10px 0;color:var(--gold-600);font-weight:600;">This bill is pending — review it, then Proceed Further to confirm delivery and finalize it.</p>
+      <p class="hint" id="pendingBillHint" style="margin:10px 0;color:var(--gold-600);font-weight:600;">Saved — find this bill under Bill Approval to modify, cancel, or proceed further.</p>
       <div class="modal-actions">
-        <button class="btn btn-outline" onclick="modifyPendingBill()">Modify</button>
-        <button class="btn btn-outline" style="color:var(--danger);border-color:var(--danger);" onclick="cancelPendingBill()">Cancel Bill</button>
+        <button class="btn btn-outline" onclick="closeReceipt()">New Bill</button>
+        <button class="btn btn-primary" onclick="doPrint()">Print</button>
       </div>
       <div class="modal-actions">
-        <button class="btn btn-primary btn-block" onclick="proceedFurther()">Proceed Further</button>
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-outline" onclick="doPrint()">Print</button>
         <button class="btn btn-outline" onclick="downloadPdf()">Download PDF</button>
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-gold btn-block" onclick="shareWhatsapp()">Share on WhatsApp</button>
+        <button class="btn btn-gold" onclick="shareWhatsapp()">Share on WhatsApp</button>
       </div>
     </div>
   </div>
@@ -1244,8 +1245,8 @@
   }
 
   function proceedFurther() {
-    if (!lastSavedBill) return;
-    renderDeliveryModal(lastSavedBill.items);
+    if (!currentDetailBill) return;
+    renderDeliveryModal(currentDetailBill.items);
     document.getElementById('deliveryModal').classList.add('show');
   }
 
@@ -1260,6 +1261,8 @@
   }
 
   async function confirmDeliveryFlow() {
+    if (!currentDetailBill) return;
+    const invoiceNo = currentDetailBill.invoiceNo;
     const rows = document.querySelectorAll('#deliveryItemsList .cart-item');
     const items = Array.from(rows).map(function (row) {
       const input = row.querySelector('.deliveredInput');
@@ -1269,11 +1272,13 @@
       if (delivered > totalQty) delivered = totalQty;
       return { code: row.dataset.code, delivered_qty: delivered };
     });
-    const { error } = await sb.rpc('confirm_delivery', { p_invoice_no: lastSavedBill.invoiceNo, p_items: items });
+    const { error } = await sb.rpc('confirm_delivery', { p_invoice_no: invoiceNo, p_items: items });
     if (error) { showToast('Could not confirm delivery: ' + error.message, true); return; }
-    showToast('Bill ' + lastSavedBill.invoiceNo + ' finalized.');
+    showToast('Bill ' + invoiceNo + ' finalized.');
     document.getElementById('deliveryModal').classList.remove('show');
-    closeReceipt();
+    hideDetail();
+    searchApprovalBills();
+    searchHistory();
   }
 
   function preparePrintDuplicate_(sourceId) {
@@ -1341,7 +1346,7 @@
       '<div class="receipt-total-row"><span>Total SP</span><span>' + trimNum(bill.totalSP) + '</span></div>' +
       '<div class="receipt-total-row"><span>Cash</span><span>' + money(bill.cash) + '</span></div>' +
       '<div class="receipt-total-row"><span>Online</span><span>' + money(bill.online) + '</span></div>' +
-      '<div class="receipt-total-row"><span>Balance</span><span>' + (bill.balance < 0 ? 'Due ' + money(-bill.balance) : money(bill.balance)) + '</span></div>' +
+      '<div class="receipt-total-row"><span>Balance</span><span>' + (bill.balance < -0.005 ? 'Due ' + money(-bill.balance) : (bill.balance > 0.005 ? 'Change ' + money(bill.balance) : 'Settled')) + '</span></div>' +
       (bill.customerType === 'Retail' ? '<div style="background:var(--bg);border-radius:8px;padding:10px 12px;margin-top:10px;">' +
         '<p style="font-size:11px;font-weight:700;color:var(--green-800);text-transform:uppercase;margin:0 0 6px;">Retail / MRP Summary</p>' +
         '<div class="receipt-total-row"><span>Total MRP</span><span>' + money(bill.totalMrp) + '</span></div>' +
@@ -1392,7 +1397,7 @@
       '<div class="receipt-total-row grand"><span>Net Amount</span><span>' + money(bill.netAmount) + '</span></div>' +
       '<div class="receipt-total-row"><span>Cash</span><span>' + money(bill.cash) + '</span></div>' +
       '<div class="receipt-total-row"><span>Online</span><span>' + money(bill.online) + '</span></div>' +
-      '<div class="receipt-total-row"><span>Balance</span><span>' + (bill.balance < 0 ? 'Due ' + money(-bill.balance) : money(bill.balance)) + '</span></div>' +
+      '<div class="receipt-total-row"><span>Balance</span><span>' + (bill.balance < -0.005 ? 'Due ' + money(-bill.balance) : (bill.balance > 0.005 ? 'Change ' + money(bill.balance) : 'Settled')) + '</span></div>' +
       '<p style="font-size:11px;color:var(--ink-soft);margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;">Rs. (in words): ' + numberToWordsIndian(bill.netAmount) + '</p>' +
       (bill.salesman ? '<p style="font-size:11.5px;color:var(--ink-faint);margin-top:6px;">Billed by ' + escapeHtml(bill.salesman) + '</p>' : '') +
       '<div style="font-size:10.5px;color:var(--ink-faint);margin-top:14px;line-height:1.7;">' +
@@ -1431,6 +1436,7 @@
     if (name === 'customers') searchCustomersTab();
     if (name === 'stockreport' && !onlineStockLoadedOnce) switchStockSubtab('online');
     if (name === 'wallet') searchWalletCustomers();
+    if (name === 'approval') searchApprovalBills();
   }
 
   function fmtDateInput_(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
@@ -1700,7 +1706,7 @@
     clearTimeout(historySearchDebounce);
     historySearchDebounce = setTimeout(async function () {
       const q = document.getElementById('historySearch').value.trim();
-      let query = sb.from('invoices').select('*').order('invoice_date', { ascending: false }).limit(50);
+      let query = sb.from('invoices').select('*').neq('bill_status', 'Pending').order('invoice_date', { ascending: false }).limit(50);
       if (q) query = query.or('invoice_no.ilike.%' + q + '%,customer_name.ilike.%' + q + '%,mobile.ilike.%' + q + '%');
       const { data, error } = await query;
       if (error) { showToast(error.message, true); return; }
@@ -1731,6 +1737,30 @@
       return '<div class="list-row" data-inv="' + r.invoice_no + '" style="' + (isCancelled ? 'opacity:.6;' : '') + '"><div><div class="result-name">' + r.invoice_no + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div>' +
         '<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;">' + badges + '</div></div>' +
         '<div class="cart-amount"><div class="amt">' + money(r.total_dp) + '</div><div class="pts">' + trimNum(r.total_sp) + ' SP</div></div></div>';
+    }).join('');
+    Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { viewBill(row.dataset.inv, false); }); });
+  }
+
+  let approvalSearchDebounce = null;
+  function searchApprovalBills() {
+    clearTimeout(approvalSearchDebounce);
+    approvalSearchDebounce = setTimeout(async function () {
+      const q = document.getElementById('approvalSearch').value.trim();
+      let query = sb.from('invoices').select('*').eq('bill_status', 'Pending').order('invoice_date', { ascending: false }).limit(50);
+      if (q) query = query.or('invoice_no.ilike.%' + q + '%,customer_name.ilike.%' + q + '%,mobile.ilike.%' + q + '%');
+      const { data, error } = await query;
+      if (error) { showToast(error.message, true); return; }
+      renderApprovalList(data || []);
+    }, 250);
+  }
+
+  function renderApprovalList(rows) {
+    const box = document.getElementById('approvalList');
+    if (!rows.length) { box.innerHTML = '<div class="empty-cart">Nothing awaiting approval — all caught up.</div>'; return; }
+    box.innerHTML = rows.map(function (r) {
+      const dateStr = new Date(r.invoice_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+      return '<div class="list-row" data-inv="' + r.invoice_no + '"><div><div class="result-name">' + r.invoice_no + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div></div>' +
+        '<div style="text-align:right;"><div class="amt">' + money(r.total_dp) + '</div><span class="badge badge-partial">Pending Approval</span></div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { viewBill(row.dataset.inv, false); }); });
   }
@@ -1825,7 +1855,11 @@
       box.innerHTML = '<div class="card" style="margin-top:4px;box-shadow:none;background:var(--danger-100);"><p style="color:var(--danger);font-weight:700;font-size:13px;margin:0;">This bill has been cancelled.</p></div>';
       return;
     }
-    box.innerHTML = '<div class="modal-actions" style="margin-top:8px;"><button class="btn btn-outline btn-block" onclick="openEditBill()">Edit Bill</button><button class="btn btn-outline btn-block" style="color:var(--danger);border-color:var(--danger);" onclick="cancelBillConfirm(\'' + bill.invoiceNo + '\')">Cancel Bill</button></div>';
+    const isPending = bill.billStatus === 'Pending';
+    box.innerHTML =
+      (isPending ? '<div class="card" style="margin-top:4px;box-shadow:none;background:var(--gold-100);"><p style="color:var(--gold-600);font-weight:700;font-size:13px;margin:0;">Awaiting approval — Proceed Further to confirm delivery and finalize this bill.</p></div>' : '') +
+      '<div class="modal-actions" style="margin-top:8px;"><button class="btn btn-outline btn-block" onclick="openEditBill()">Edit Bill</button><button class="btn btn-outline btn-block" style="color:var(--danger);border-color:var(--danger);" onclick="cancelBillConfirm(\'' + bill.invoiceNo + '\')">Cancel Bill</button></div>' +
+      (isPending ? '<div class="modal-actions"><button class="btn btn-primary btn-block" onclick="proceedFurther()">Proceed Further</button></div>' : '');
   }
 
   async function cancelBillConfirm(invoiceNo) {
