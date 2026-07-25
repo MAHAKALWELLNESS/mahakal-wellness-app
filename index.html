@@ -256,8 +256,7 @@
       <button class="tab" data-tab="customers" onclick="switchTab('customers')">Customers</button>
       <button class="tab" data-tab="stockreport" onclick="switchTab('stockreport')">Stock</button>
       <button class="tab" data-tab="wallet" onclick="switchTab('wallet')">Wallet</button>
-      <button class="tab" data-tab="topproducts" onclick="switchTab('topproducts')">Top Products</button>
-      <button class="tab" data-tab="topcustomers" onclick="switchTab('topcustomers')">Top Customers</button>
+      <button class="tab" data-tab="topperformer" onclick="switchTab('topperformer')">Top Performer</button>
       <button class="tab" data-tab="offers" onclick="switchTab('offers')">Offers</button>
       <button class="tab" data-tab="offertracking" onclick="switchTab('offertracking')">Offer Tracking</button>
       <button class="tab" data-tab="broadcast" onclick="switchTab('broadcast')">Broadcast</button>
@@ -560,72 +559,79 @@
     </section>
 
     <!-- ============ TOP PRODUCTS TAB ============ -->
-    <section id="tab-topproducts" class="tab-panel">
+    <!-- ============ TOP PERFORMER TAB ============ -->
+    <section id="tab-topperformer" class="tab-panel">
       <div class="subtabs">
-        <button class="subtab active" data-subtab="offline" onclick="switchTopProductsSubtab('offline')">Offline (Billed)</button>
-        <button class="subtab" data-subtab="online" onclick="switchTopProductsSubtab('online')">Online (Official)</button>
+        <button class="subtab active" data-subtab="product" onclick="switchTopPerformerSubtab('product')">Top Performer Product</button>
+        <button class="subtab" data-subtab="customer" onclick="switchTopPerformerSubtab('customer')">Top Performer Customer</button>
       </div>
-      <div id="tpsub-offline" class="subtab-panel active">
-        <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadTopProductsOffline()">↻ Refresh</button>
-        <div class="card">
-          <p class="section-label">Quick range</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <button class="quickbtn" type="button" onclick="setTopProductsRange('offline','today')">Today</button>
-            <button class="quickbtn" type="button" onclick="setTopProductsRange('offline','week')">This week (Thu–Wed)</button>
-            <button class="quickbtn" type="button" onclick="setTopProductsRange('offline','net')">All-time</button>
-          </div>
-          <div class="field-row"><div class="field"><label>From</label><input type="date" id="tpOfflineFrom"></div><div class="field"><label>To</label><input type="date" id="tpOfflineTo"></div></div>
-          <button class="btn btn-primary btn-block" onclick="loadTopProductsOffline()">Apply filter</button>
-          <h2 style="font-size:14px;margin-top:14px;" id="tpOfflineRangeLabel">All-time</h2>
-        </div>
-        <div class="card">
-          <p class="section-label">Sort by</p>
-          <div style="display:flex;gap:8px;">
-            <button class="subtab active" id="tpOfflineSortQtyBtn" style="flex:1;" onclick="setTopProductsSort('offline','qty')">Qty</button>
-            <button class="subtab" id="tpOfflineSortAmtBtn" style="flex:1;" onclick="setTopProductsSort('offline','amount')">Amount</button>
-          </div>
-        </div>
-        <div class="card"><div id="tpOfflineList"><div class="empty-cart">Loading…</div></div></div>
-      </div>
-      <div id="tpsub-online" class="subtab-panel">
-        <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadTopProductsOnline()">↻ Refresh</button>
-        <div class="card">
-          <p class="section-label">Quick range</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <button class="quickbtn" type="button" onclick="setTopProductsRange('online','today')">Today</button>
-            <button class="quickbtn" type="button" onclick="setTopProductsRange('online','week')">This week (Thu–Wed)</button>
-            <button class="quickbtn" type="button" onclick="setTopProductsRange('online','net')">All-time</button>
-          </div>
-          <div class="field-row"><div class="field"><label>From</label><input type="date" id="tpOnlineFrom"></div><div class="field"><label>To</label><input type="date" id="tpOnlineTo"></div></div>
-          <button class="btn btn-primary btn-block" onclick="loadTopProductsOnline()">Apply filter</button>
-          <h2 style="font-size:14px;margin-top:14px;" id="tpOnlineRangeLabel">All-time</h2>
-        </div>
-        <div class="card">
-          <p class="section-label">Sort by</p>
-          <div style="display:flex;gap:8px;">
-            <button class="subtab active" id="tpOnlineSortQtyBtn" style="flex:1;" onclick="setTopProductsSort('online','qty')">Qty</button>
-            <button class="subtab" id="tpOnlineSortAmtBtn" style="flex:1;" onclick="setTopProductsSort('online','amount')">SP</button>
-          </div>
-        </div>
-        <div class="card"><div id="tpOnlineList"><div class="empty-cart">Loading…</div></div></div>
-      </div>
-    </section>
 
-    <!-- ============ TOP CUSTOMERS TAB ============ -->
-    <section id="tab-topcustomers" class="tab-panel">
-      <div class="card">
-        <p class="section-label">Quick range</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-          <button class="quickbtn" type="button" onclick="setTopCustomersRange('today')">Today</button>
-          <button class="quickbtn" type="button" onclick="setTopCustomersRange('week')">This week (Thu–Wed)</button>
-          <button class="quickbtn" type="button" onclick="setTopCustomersRange('month')">This month</button>
+      <div id="tpfsub-product" class="subtab-panel active">
+        <div class="subtabs">
+          <button class="subtab active" data-subtab="offline" onclick="switchTopProductsSubtab('offline')">Offline (Billed)</button>
+          <button class="subtab" data-subtab="online" onclick="switchTopProductsSubtab('online')">Online (Official)</button>
         </div>
-        <div class="field-row"><div class="field"><label>From</label><input type="date" id="topCustFrom"></div><div class="field"><label>To</label><input type="date" id="topCustTo"></div></div>
-        <button class="btn btn-primary btn-block" onclick="loadTopCustomers()">Apply filter</button>
-        <h2 style="font-size:14px;margin-top:14px;" id="topCustRangeLabel">Today</h2>
+        <div id="tpsub-offline" class="subtab-panel active">
+          <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadTopProductsOffline()">↻ Refresh</button>
+          <div class="card">
+            <p class="section-label">Quick range</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+              <button class="quickbtn" type="button" onclick="setTopProductsRange('offline','today')">Today</button>
+              <button class="quickbtn" type="button" onclick="setTopProductsRange('offline','week')">This week (Thu–Wed)</button>
+              <button class="quickbtn" type="button" onclick="setTopProductsRange('offline','net')">All-time</button>
+            </div>
+            <div class="field-row"><div class="field"><label>From</label><input type="date" id="tpOfflineFrom"></div><div class="field"><label>To</label><input type="date" id="tpOfflineTo"></div></div>
+            <button class="btn btn-primary btn-block" onclick="loadTopProductsOffline()">Apply filter</button>
+            <h2 style="font-size:14px;margin-top:14px;" id="tpOfflineRangeLabel">All-time</h2>
+          </div>
+          <div class="card">
+            <p class="section-label">Sort by</p>
+            <div style="display:flex;gap:8px;">
+              <button class="subtab active" id="tpOfflineSortQtyBtn" style="flex:1;" onclick="setTopProductsSort('offline','qty')">Qty</button>
+              <button class="subtab" id="tpOfflineSortAmtBtn" style="flex:1;" onclick="setTopProductsSort('offline','amount')">Amount</button>
+            </div>
+          </div>
+          <div class="card"><div id="tpOfflineList"><div class="empty-cart">Loading…</div></div></div>
+        </div>
+        <div id="tpsub-online" class="subtab-panel">
+          <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadTopProductsOnline()">↻ Refresh</button>
+          <div class="card">
+            <p class="section-label">Quick range</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+              <button class="quickbtn" type="button" onclick="setTopProductsRange('online','today')">Today</button>
+              <button class="quickbtn" type="button" onclick="setTopProductsRange('online','week')">This week (Thu–Wed)</button>
+              <button class="quickbtn" type="button" onclick="setTopProductsRange('online','net')">All-time</button>
+            </div>
+            <div class="field-row"><div class="field"><label>From</label><input type="date" id="tpOnlineFrom"></div><div class="field"><label>To</label><input type="date" id="tpOnlineTo"></div></div>
+            <button class="btn btn-primary btn-block" onclick="loadTopProductsOnline()">Apply filter</button>
+            <h2 style="font-size:14px;margin-top:14px;" id="tpOnlineRangeLabel">All-time</h2>
+          </div>
+          <div class="card">
+            <p class="section-label">Sort by</p>
+            <div style="display:flex;gap:8px;">
+              <button class="subtab active" id="tpOnlineSortQtyBtn" style="flex:1;" onclick="setTopProductsSort('online','qty')">Qty</button>
+              <button class="subtab" id="tpOnlineSortAmtBtn" style="flex:1;" onclick="setTopProductsSort('online','amount')">SP</button>
+            </div>
+          </div>
+          <div class="card"><div id="tpOnlineList"><div class="empty-cart">Loading…</div></div></div>
+        </div>
       </div>
-      <button class="btn btn-gold btn-block" style="margin-bottom:10px;" onclick="loadTopCustomers()">↻ Refresh</button>
-      <div class="card"><div id="topCustomersList"><div class="empty-cart">Loading…</div></div></div>
+
+      <div id="tpfsub-customer" class="subtab-panel">
+        <div class="card">
+          <p class="section-label">Quick range</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <button class="quickbtn" type="button" onclick="setTopCustomersRange('today')">Today</button>
+            <button class="quickbtn" type="button" onclick="setTopCustomersRange('week')">This week (Thu–Wed)</button>
+            <button class="quickbtn" type="button" onclick="setTopCustomersRange('month')">This month</button>
+          </div>
+          <div class="field-row"><div class="field"><label>From</label><input type="date" id="topCustFrom"></div><div class="field"><label>To</label><input type="date" id="topCustTo"></div></div>
+          <button class="btn btn-primary btn-block" onclick="loadTopCustomers()">Apply filter</button>
+          <h2 style="font-size:14px;margin-top:14px;" id="topCustRangeLabel">Today</h2>
+        </div>
+        <button class="btn btn-gold btn-block" style="margin-bottom:10px;" onclick="loadTopCustomers()">↻ Refresh</button>
+        <div class="card"><div id="topCustomersList"><div class="empty-cart">Loading…</div></div></div>
+      </div>
     </section>
 
     <!-- ============ OFFERS TAB ============ -->
@@ -1775,8 +1781,8 @@
     if (name === 'stockreport' && !onlineStockLoadedOnce) switchStockSubtab('online');
     if (name === 'wallet') searchWalletCustomers();
     if (name === 'approval') searchApprovalBills();
-    if (name === 'topproducts' && !topProductsLoadedOnce) { topProductsLoadedOnce = true; setTopProductsRange('offline', 'net'); }
-    if (name === 'topcustomers' && !topCustomersLoadedOnce) { topCustomersLoadedOnce = true; setTopCustomersRange('today'); }
+    if (name === 'topperformer' && !topProductsLoadedOnce) { topProductsLoadedOnce = true; setTopProductsRange('offline', 'net'); }
+    if (name === 'topperformer' && !topCustomersLoadedOnce) { topCustomersLoadedOnce = true; setTopCustomersRange('today'); }
     if (name === 'offers') loadOffers();
     if (name === 'offertracking') loadOfferTrackingDropdown();
     if (name === 'broadcast' && !broadcastLoadedOnce) { broadcastLoadedOnce = true; loadBroadcastCustomers(); }
@@ -2730,12 +2736,19 @@
     searchWalletCustomers();
   }
 
-  // ---------------- TOP PRODUCTS TAB ----------------
+  // ---------------- TOP PERFORMER TAB ----------------
+  function switchTopPerformerSubtab(name) {
+    const c = document.getElementById('tab-topperformer');
+    c.querySelectorAll(':scope > .subtabs > .subtab[data-subtab]').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
+    c.querySelectorAll(':scope > .subtab-panel').forEach(function (p) { p.classList.remove('active'); });
+    document.getElementById('tpfsub-' + name).classList.add('active');
+  }
+
   let topProductsLoadedOnce = false;
   let tpOfflineData = [], tpOnlineData = [];
   let tpOfflineSortBy = 'qty', tpOnlineSortBy = 'qty';
   function switchTopProductsSubtab(name) {
-    const c = document.getElementById('tab-topproducts');
+    const c = document.getElementById('tpfsub-product');
     c.querySelectorAll('.subtab[data-subtab]').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
     c.querySelectorAll('.subtab-panel').forEach(function (p) { p.classList.remove('active'); });
     document.getElementById('tpsub-' + name).classList.add('active');
