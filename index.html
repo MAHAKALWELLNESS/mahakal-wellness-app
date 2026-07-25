@@ -2405,7 +2405,7 @@
     clearTimeout(customerSearchDebounce);
     customerSearchDebounce = setTimeout(async function () {
       const q = document.getElementById('customerSearch').value.trim();
-      let query = sb.from('customers').select('*').order('created_at', { ascending: false }).limit(50);
+      let query = sb.from('customers').select('*').order('name', { ascending: true }).limit(50);
       if (q) query = query.or('name.ilike.%' + q + '%,mobile.ilike.%' + q + '%');
       const { data, error } = await query;
       if (error) { showToast(error.message, true); return; }
@@ -2417,7 +2417,7 @@
     const box = document.getElementById('customersList');
     if (!rows.length) { box.innerHTML = '<div class="empty-cart">No customers found.</div>'; return; }
     box.innerHTML = rows.map(function (c) {
-      return '<div class="list-row" data-mobile="' + escapeHtml(c.mobile || '') + '" data-name="' + escapeHtml(c.name || '') + '"><div><div class="result-name">' + escapeHtml(c.name || '(No name)') + '</div><div class="result-meta">' + escapeHtml(c.mobile || '') + '</div></div></div>';
+      return '<div class="list-row" data-mobile="' + escapeHtml(c.mobile || '') + '" data-name="' + escapeHtml(c.name || '') + '"><div><div class="result-name">' + escapeHtml((c.name || '(No name)').toUpperCase()) + '</div><div class="result-meta">' + escapeHtml(c.mobile || '') + '</div></div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { openCustomerDetail(row.dataset.mobile, row.dataset.name); }); });
   }
@@ -2426,7 +2426,7 @@
   function openCustomerDetail(mobile, name) {
     currentCustomerMobile = mobile;
     currentCustomerName = name || '';
-    document.getElementById('customerDetailName').textContent = name || 'Customer';
+    document.getElementById('customerDetailName').textContent = (name || 'Customer').toUpperCase();
     document.getElementById('customerDetailMobile').textContent = mobile || '';
     document.getElementById('customerDetailModal').classList.add('show');
     setCustomerRange('today');
