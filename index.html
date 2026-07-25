@@ -559,6 +559,13 @@
           <button class="btn btn-primary btn-block" onclick="loadTopProductsOffline()">Apply filter</button>
           <h2 style="font-size:14px;margin-top:14px;" id="tpOfflineRangeLabel">All-time</h2>
         </div>
+        <div class="card">
+          <p class="section-label">Sort by</p>
+          <div style="display:flex;gap:8px;">
+            <button class="subtab active" id="tpOfflineSortQtyBtn" style="flex:1;" onclick="setTopProductsSort('offline','qty')">Qty</button>
+            <button class="subtab" id="tpOfflineSortAmtBtn" style="flex:1;" onclick="setTopProductsSort('offline','amount')">Amount</button>
+          </div>
+        </div>
         <div class="card"><div id="tpOfflineList"><div class="empty-cart">Loading…</div></div></div>
       </div>
       <div id="tpsub-online" class="subtab-panel">
@@ -572,6 +579,13 @@
           <div class="field-row"><div class="field"><label>From</label><input type="date" id="tpOnlineFrom"></div><div class="field"><label>To</label><input type="date" id="tpOnlineTo"></div></div>
           <button class="btn btn-primary btn-block" onclick="loadTopProductsOnline()">Apply filter</button>
           <h2 style="font-size:14px;margin-top:14px;" id="tpOnlineRangeLabel">All-time</h2>
+        </div>
+        <div class="card">
+          <p class="section-label">Sort by</p>
+          <div style="display:flex;gap:8px;">
+            <button class="subtab active" id="tpOnlineSortQtyBtn" style="flex:1;" onclick="setTopProductsSort('online','qty')">Qty</button>
+            <button class="subtab" id="tpOnlineSortAmtBtn" style="flex:1;" onclick="setTopProductsSort('online','amount')">SP</button>
+          </div>
         </div>
         <div class="card"><div id="tpOnlineList"><div class="empty-cart">Loading…</div></div></div>
       </div>
@@ -2493,9 +2507,11 @@
 
   // ---------------- TOP PRODUCTS TAB ----------------
   let topProductsLoadedOnce = false;
+  let tpOfflineData = [], tpOnlineData = [];
+  let tpOfflineSortBy = 'qty', tpOnlineSortBy = 'qty';
   function switchTopProductsSubtab(name) {
     const c = document.getElementById('tab-topproducts');
-    c.querySelectorAll('.subtab').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
+    c.querySelectorAll('.subtab[data-subtab]').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
     c.querySelectorAll('.subtab-panel').forEach(function (p) { p.classList.remove('active'); });
     document.getElementById('tpsub-' + name).classList.add('active');
     if (name === 'online' && !document.getElementById('tpOnlineFrom').dataset.loaded) { setTopProductsRange('online', 'net'); }
@@ -2518,13 +2534,21 @@
     if (which === 'offline') loadTopProductsOffline(); else loadTopProductsOnline();
   }
 
+  function setTopProductsSort(which, sortBy) {
+    if (which === 'offline') { tpOfflineSortBy = sortBy; renderTopProductsOffline(); }
+    else { tpOnlineSortBy = sortBy; renderTopProductsOnline(); }
+    document.getElementById((which === 'offline' ? 'tpOffline' : 'tpOnline') + 'SortQtyBtn').classList.toggle('active', sortBy === 'qty');
+    document.getElementById((which === 'offline' ? 'tpOffline' : 'tpOnline') + 'SortAmtBtn').classList.toggle('active', sortBy === 'amount');
+  }
+
   async function loadTopProductsOffline() {
     const box = document.getElementById('tpOfflineList');
     box.innerHTML = '<div class="empty-cart">Loading…</div>';
     const from = document.getElementById('tpOfflineFrom').value, to = document.getElementById('tpOfflineTo').value;
     const { data, error } = await sb.rpc('get_top_products_offline', { p_start_date: from || null, p_end_date: to || null });
     if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
-    renderTopProductsList(data || [], box, 'total_amount', function (r) { return money(r.total_amount); });
+    tpOfflineData = data || [];
+    renderTopProductsOffline();
   }
 
   async function loadTopProductsOnline() {
@@ -2533,10 +2557,25 @@
     const from = document.getElementById('tpOnlineFrom').value, to = document.getElementById('tpOnlineTo').value;
     const { data, error } = await sb.rpc('get_top_products_online', { p_start_date: from || null, p_end_date: to || null });
     if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
-    renderTopProductsList(data || [], box, 'total_sp', function (r) { return trimNum(r.total_sp) + ' SP'; });
+    tpOnlineData = data || [];
+    renderTopProductsOnline();
   }
 
-  function renderTopProductsList(rows, box, sortKey, valueFn) {
+  function renderTopProductsOffline() {
+    const sorted = tpOfflineData.slice().sort(function (a, b) {
+      return tpOfflineSortBy === 'amount' ? (b.total_amount - a.total_amount) : (b.total_qty - a.total_qty);
+    });
+    renderTopProductsList(sorted, document.getElementById('tpOfflineList'), function (r) { return money(r.total_amount); });
+  }
+
+  function renderTopProductsOnline() {
+    const sorted = tpOnlineData.slice().sort(function (a, b) {
+      return tpOnlineSortBy === 'amount' ? (b.total_sp - a.total_sp) : (b.total_qty - a.total_qty);
+    });
+    renderTopProductsList(sorted, document.getElementById('tpOnlineList'), function (r) { return trimNum(r.total_sp) + ' SP'; });
+  }
+
+  function renderTopProductsList(rows, box, valueFn) {
     if (!rows.length) { box.innerHTML = '<div class="empty-cart">No sales in this range.</div>'; return; }
     box.innerHTML = rows.map(function (r, idx) {
       return '<div class="list-row" style="cursor:default;"><div style="display:flex;align-items:center;gap:10px;">' +
