@@ -256,6 +256,9 @@
       <button class="tab" data-tab="customers" onclick="switchTab('customers')">Customers</button>
       <button class="tab" data-tab="stockreport" onclick="switchTab('stockreport')">Stock</button>
       <button class="tab" data-tab="wallet" onclick="switchTab('wallet')">Wallet</button>
+      <button class="tab" data-tab="topproducts" onclick="switchTab('topproducts')">Top Products</button>
+      <button class="tab" data-tab="topcustomers" onclick="switchTab('topcustomers')">Top Customers</button>
+      <button class="tab" data-tab="offers" onclick="switchTab('offers')">Offers</button>
     </nav>
 
     <main>
@@ -537,6 +540,73 @@
       <div class="card"><p class="section-label">Find a customer's wallet</p><input type="text" id="walletSearch" class="search-input" placeholder="Name or mobile…" oninput="searchWalletCustomers()"></div>
       <div class="card"><div id="walletList"><div class="empty-cart">Loading…</div></div></div>
     </section>
+
+    <!-- ============ TOP PRODUCTS TAB ============ -->
+    <section id="tab-topproducts" class="tab-panel">
+      <div class="subtabs">
+        <button class="subtab active" data-subtab="offline" onclick="switchTopProductsSubtab('offline')">Offline (Billed)</button>
+        <button class="subtab" data-subtab="online" onclick="switchTopProductsSubtab('online')">Online (Official)</button>
+      </div>
+      <div id="tpsub-offline" class="subtab-panel active">
+        <div class="card">
+          <p class="section-label">Quick range</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <button class="quickbtn" type="button" onclick="setTopProductsRange('offline','today')">Today</button>
+            <button class="quickbtn" type="button" onclick="setTopProductsRange('offline','week')">This week (Thu–Wed)</button>
+            <button class="quickbtn" type="button" onclick="setTopProductsRange('offline','net')">All-time</button>
+          </div>
+          <div class="field-row"><div class="field"><label>From</label><input type="date" id="tpOfflineFrom"></div><div class="field"><label>To</label><input type="date" id="tpOfflineTo"></div></div>
+          <button class="btn btn-primary btn-block" onclick="loadTopProductsOffline()">Apply filter</button>
+          <h2 style="font-size:14px;margin-top:14px;" id="tpOfflineRangeLabel">All-time</h2>
+        </div>
+        <div class="card"><div id="tpOfflineList"><div class="empty-cart">Loading…</div></div></div>
+      </div>
+      <div id="tpsub-online" class="subtab-panel">
+        <div class="card">
+          <p class="section-label">Quick range</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <button class="quickbtn" type="button" onclick="setTopProductsRange('online','today')">Today</button>
+            <button class="quickbtn" type="button" onclick="setTopProductsRange('online','week')">This week (Thu–Wed)</button>
+            <button class="quickbtn" type="button" onclick="setTopProductsRange('online','net')">All-time</button>
+          </div>
+          <div class="field-row"><div class="field"><label>From</label><input type="date" id="tpOnlineFrom"></div><div class="field"><label>To</label><input type="date" id="tpOnlineTo"></div></div>
+          <button class="btn btn-primary btn-block" onclick="loadTopProductsOnline()">Apply filter</button>
+          <h2 style="font-size:14px;margin-top:14px;" id="tpOnlineRangeLabel">All-time</h2>
+        </div>
+        <div class="card"><div id="tpOnlineList"><div class="empty-cart">Loading…</div></div></div>
+      </div>
+    </section>
+
+    <!-- ============ TOP CUSTOMERS TAB ============ -->
+    <section id="tab-topcustomers" class="tab-panel">
+      <div class="card">
+        <p class="section-label">Quick range</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="quickbtn" type="button" onclick="setTopCustomersRange('today')">Today</button>
+          <button class="quickbtn" type="button" onclick="setTopCustomersRange('week')">This week (Thu–Wed)</button>
+          <button class="quickbtn" type="button" onclick="setTopCustomersRange('month')">This month</button>
+        </div>
+        <div class="field-row"><div class="field"><label>From</label><input type="date" id="topCustFrom"></div><div class="field"><label>To</label><input type="date" id="topCustTo"></div></div>
+        <button class="btn btn-primary btn-block" onclick="loadTopCustomers()">Apply filter</button>
+        <h2 style="font-size:14px;margin-top:14px;" id="topCustRangeLabel">Today</h2>
+      </div>
+      <div class="card"><div id="topCustomersList"><div class="empty-cart">Loading…</div></div></div>
+    </section>
+
+    <!-- ============ OFFERS TAB ============ -->
+    <section id="tab-offers" class="tab-panel">
+      <div class="card">
+        <p class="section-label">Create a new offer</p>
+        <div class="field"><label for="offerTitle">Title</label><input type="text" id="offerTitle" placeholder="e.g. July Mega Sale Contest"></div>
+        <div class="field-row"><div class="field"><label for="offerStartDate">Start date</label><input type="date" id="offerStartDate"></div><div class="field"><label for="offerEndDate">End date</label><input type="date" id="offerEndDate"></div></div>
+        <div class="field-row">
+          <div class="field"><label for="offerTargetType">Target type</label><select id="offerTargetType"><option value="Amount">Amount (₹)</option><option value="SP">SP</option></select></div>
+          <div class="field"><label for="offerTargetValue">Target value</label><input type="number" id="offerTargetValue" min="0" step="0.01" placeholder="0"></div>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="createOffer()">Create Offer</button>
+      </div>
+      <div class="card"><h2>Offers</h2><div id="offersList"><div class="empty-cart">Loading…</div></div></div>
+    </section>
     </main>
 
     <div id="summaryBar" class="summary-bar">
@@ -644,6 +714,33 @@
   </div>
 
   <!-- ============ ADVANCE PAYMENT CONFIRM MODAL ============ -->
+  <!-- ============ OFFER WINNERS MODAL ============ -->
+  <div class="modal-overlay" id="offerWinnersModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;" id="offerWinnersTitle"></h2>
+      <p class="hint" id="offerWinnersMeta" style="margin-bottom:14px;"></p>
+      <div id="offerWinnersList"><div class="empty-cart">Loading…</div></div>
+      <div class="modal-actions"><button class="btn btn-outline btn-block" onclick="document.getElementById('offerWinnersModal').classList.remove('show')">Close</button></div>
+    </div>
+  </div>
+
+  <!-- ============ SEND WHATSAPP MESSAGE MODAL (Top Customers / Offer Winners) ============ -->
+  <div class="modal-overlay" id="sendMessageModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:16px;color:var(--green-800);margin-bottom:2px;" id="sendMessageToName"></h2>
+      <p class="hint" style="margin-bottom:12px;" id="sendMessageToMobile"></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+        <button class="quickbtn" type="button" onclick="fillMessageTemplate('rank')">Top performer message</button>
+        <button class="quickbtn" type="button" onclick="fillMessageTemplate('winner')">Offer winner message</button>
+      </div>
+      <div class="field" style="margin-bottom:0;"><label for="sendMessageText">Message</label><textarea id="sendMessageText" rows="6" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;" placeholder="Type your message…"></textarea></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('sendMessageModal').classList.remove('show')">Cancel</button>
+        <button class="btn btn-gold" onclick="sendCustomMessage()">Send on WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="advanceConfirmModal">
     <div class="modal-sheet" style="max-width:420px;">
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:10px;">Show advance payment on this bill?</h2>
@@ -1524,6 +1621,9 @@
     if (name === 'stockreport' && !onlineStockLoadedOnce) switchStockSubtab('online');
     if (name === 'wallet') searchWalletCustomers();
     if (name === 'approval') searchApprovalBills();
+    if (name === 'topproducts' && !topProductsLoadedOnce) { topProductsLoadedOnce = true; setTopProductsRange('offline', 'net'); }
+    if (name === 'topcustomers' && !topCustomersLoadedOnce) { topCustomersLoadedOnce = true; setTopCustomersRange('today'); }
+    if (name === 'offers') loadOffers();
   }
 
   function fmtDateInput_(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
@@ -2389,6 +2489,195 @@
     document.getElementById('walletWithdrawNote').value = '';
     await refreshWalletDetail();
     searchWalletCustomers();
+  }
+
+  // ---------------- TOP PRODUCTS TAB ----------------
+  let topProductsLoadedOnce = false;
+  function switchTopProductsSubtab(name) {
+    const c = document.getElementById('tab-topproducts');
+    c.querySelectorAll('.subtab').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
+    c.querySelectorAll('.subtab-panel').forEach(function (p) { p.classList.remove('active'); });
+    document.getElementById('tpsub-' + name).classList.add('active');
+    if (name === 'online' && !document.getElementById('tpOnlineFrom').dataset.loaded) { setTopProductsRange('online', 'net'); }
+  }
+
+  function setTopProductsRange(which, preset) {
+    const now = new Date();
+    const fromEl = document.getElementById(which === 'offline' ? 'tpOfflineFrom' : 'tpOnlineFrom');
+    const toEl = document.getElementById(which === 'offline' ? 'tpOfflineTo' : 'tpOnlineTo');
+    const labelEl = document.getElementById(which === 'offline' ? 'tpOfflineRangeLabel' : 'tpOnlineRangeLabel');
+    if (preset === 'net') {
+      fromEl.value = ''; toEl.value = ''; labelEl.textContent = 'All-time';
+    } else {
+      let from = new Date(now);
+      if (preset === 'week') { const day = now.getDay(); const daysSinceThursday = (day - 4 + 7) % 7; from = new Date(now); from.setDate(now.getDate() - daysSinceThursday); }
+      fromEl.value = fmtDateInput_(from); toEl.value = fmtDateInput_(now);
+      labelEl.textContent = preset === 'week' ? 'This week (Thu–Wed)' : 'Today';
+    }
+    fromEl.dataset.loaded = '1';
+    if (which === 'offline') loadTopProductsOffline(); else loadTopProductsOnline();
+  }
+
+  async function loadTopProductsOffline() {
+    const box = document.getElementById('tpOfflineList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const from = document.getElementById('tpOfflineFrom').value, to = document.getElementById('tpOfflineTo').value;
+    const { data, error } = await sb.rpc('get_top_products_offline', { p_start_date: from || null, p_end_date: to || null });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
+    renderTopProductsList(data || [], box, 'total_amount', function (r) { return money(r.total_amount); });
+  }
+
+  async function loadTopProductsOnline() {
+    const box = document.getElementById('tpOnlineList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const from = document.getElementById('tpOnlineFrom').value, to = document.getElementById('tpOnlineTo').value;
+    const { data, error } = await sb.rpc('get_top_products_online', { p_start_date: from || null, p_end_date: to || null });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
+    renderTopProductsList(data || [], box, 'total_sp', function (r) { return trimNum(r.total_sp) + ' SP'; });
+  }
+
+  function renderTopProductsList(rows, box, sortKey, valueFn) {
+    if (!rows.length) { box.innerHTML = '<div class="empty-cart">No sales in this range.</div>'; return; }
+    box.innerHTML = rows.map(function (r, idx) {
+      return '<div class="list-row" style="cursor:default;"><div style="display:flex;align-items:center;gap:10px;">' +
+        '<div style="font-family:\'Fraunces\',serif;font-size:17px;color:var(--gold-600);min-width:22px;">#' + (idx + 1) + '</div>' +
+        '<div><div class="result-name">' + escapeHtml(r.name) + '</div><div class="result-meta">#' + r.code + ' · ' + trimNum(r.total_qty) + ' qty</div></div></div>' +
+        '<div class="amt">' + valueFn(r) + '</div></div>';
+    }).join('');
+  }
+
+  // ---------------- TOP CUSTOMERS TAB ----------------
+  let topCustomersLoadedOnce = false;
+  let topCustomersData = [];
+  function setTopCustomersRange(preset) {
+    const now = new Date(); let from = new Date(now), label = 'Today';
+    if (preset === 'week') { const day = now.getDay(); const daysSinceThursday = (day - 4 + 7) % 7; from = new Date(now); from.setDate(now.getDate() - daysSinceThursday); label = 'This week (Thu–Wed)'; }
+    else if (preset === 'month') { from = new Date(now.getFullYear(), now.getMonth(), 1); label = 'This month'; }
+    document.getElementById('topCustFrom').value = fmtDateInput_(from);
+    document.getElementById('topCustTo').value = fmtDateInput_(now);
+    document.getElementById('topCustRangeLabel').textContent = label;
+    loadTopCustomers();
+  }
+
+  async function loadTopCustomers() {
+    const box = document.getElementById('topCustomersList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const from = document.getElementById('topCustFrom').value, to = document.getElementById('topCustTo').value;
+    const { data, error } = await sb.rpc('get_top_customers', { p_start_date: from || null, p_end_date: to || null });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
+    topCustomersData = data || [];
+    renderTopCustomersList();
+  }
+
+  function renderTopCustomersList() {
+    const box = document.getElementById('topCustomersList');
+    if (!topCustomersData.length) { box.innerHTML = '<div class="empty-cart">No purchases in this range.</div>'; return; }
+    box.innerHTML = topCustomersData.map(function (r, idx) {
+      return '<div class="list-row" data-idx="' + idx + '"><div style="display:flex;align-items:center;gap:10px;">' +
+        '<div style="font-family:\'Fraunces\',serif;font-size:17px;color:var(--gold-600);min-width:22px;">#' + (idx + 1) + '</div>' +
+        '<div><div class="result-name">' + escapeHtml(r.name || 'Customer') + '</div><div class="result-meta">' + escapeHtml(r.mobile) + ' · ' + trimNum(r.total_sp) + ' SP · ' + r.bill_count + ' bill' + (r.bill_count > 1 ? 's' : '') + '</div></div></div>' +
+        '<div class="amt">' + money(r.total_amount) + '</div></div>';
+    }).join('');
+    Array.from(box.querySelectorAll('.list-row')).forEach(function (row) {
+      row.addEventListener('click', function () {
+        const r = topCustomersData[Number(row.dataset.idx)];
+        openSendMessageModal(r.mobile, r.name, { rank: Number(row.dataset.idx) + 1, totalAmount: r.total_amount, totalSp: r.total_sp });
+      });
+    });
+  }
+
+  let sendMessageContext = null;
+  function openSendMessageModal(mobile, name, context) {
+    sendMessageContext = { mobile: mobile, name: name || 'there', context: context || {} };
+    document.getElementById('sendMessageToName').textContent = name || 'Customer';
+    document.getElementById('sendMessageToMobile').textContent = mobile;
+    document.getElementById('sendMessageText').value = '';
+    document.getElementById('sendMessageModal').classList.add('show');
+  }
+
+  function fillMessageTemplate(type) {
+    const ctx = sendMessageContext.context || {};
+    const name = sendMessageContext.name;
+    let text = '';
+    if (type === 'rank') {
+      text = 'Hi ' + name + '! 🎉 Great news — you are currently ranked #' + (ctx.rank || '') + ' among our top customers with ' + money(ctx.totalAmount || 0) + ' in purchases' + (ctx.totalSp ? ' and ' + trimNum(ctx.totalSp) + ' SP' : '') + '. Keep it up — let\'s make next month even better! 🌟';
+    } else if (type === 'winner') {
+      text = 'Congratulations ' + name + '! 🏆 You have won our latest offer! Thank you for your continued trust and support — we truly appreciate you. Keep shopping with us for more rewards ahead!';
+    }
+    document.getElementById('sendMessageText').value = text;
+  }
+
+  function sendCustomMessage() {
+    const text = document.getElementById('sendMessageText').value.trim();
+    if (!text) { showToast('Type a message first.', true); return; }
+    let digits = String(sendMessageContext.mobile || '').replace(/\D/g, '');
+    if (!digits) { showToast('No mobile number.', true); return; }
+    if (digits.length === 10) digits = '91' + digits;
+    window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(text), '_blank');
+    document.getElementById('sendMessageModal').classList.remove('show');
+  }
+
+  // ---------------- OFFERS TAB ----------------
+  async function createOffer() {
+    const title = document.getElementById('offerTitle').value.trim();
+    const startDate = document.getElementById('offerStartDate').value;
+    const endDate = document.getElementById('offerEndDate').value;
+    const targetType = document.getElementById('offerTargetType').value;
+    const targetValue = Number(document.getElementById('offerTargetValue').value);
+    if (!title) { showToast('Enter a title.', true); return; }
+    if (!startDate || !endDate) { showToast('Choose start and end dates.', true); return; }
+    if (!(targetValue > 0)) { showToast('Enter a valid target value.', true); return; }
+    const { error } = await sb.from('offers').insert({ title: title, start_date: startDate, end_date: endDate, target_type: targetType, target_value: targetValue });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Offer created.');
+    document.getElementById('offerTitle').value = ''; document.getElementById('offerStartDate').value = '';
+    document.getElementById('offerEndDate').value = ''; document.getElementById('offerTargetValue').value = '';
+    loadOffers();
+  }
+
+  async function loadOffers() {
+    const box = document.getElementById('offersList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const { data, error } = await sb.from('offers').select('*').order('created_at', { ascending: false });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load offers.</div>'; return; }
+    if (!data || !data.length) { box.innerHTML = '<div class="empty-cart">No offers yet — create one above.</div>'; return; }
+    const today = fmtDateInput_(new Date());
+    box.innerHTML = data.map(function (o) {
+      const isActive = o.start_date <= today && o.end_date >= today;
+      const isUpcoming = o.start_date > today;
+      const statusLabel = isActive ? 'Active' : (isUpcoming ? 'Upcoming' : 'Ended');
+      const statusCls = isActive ? 'badge-paid' : (isUpcoming ? 'badge-partial' : 'badge-unpaid');
+      return '<div class="list-row" data-id="' + o.id + '" data-title="' + escapeHtml(o.title) + '"><div><div class="result-name">' + escapeHtml(o.title) + '</div>' +
+        '<div class="result-meta">' + o.start_date + ' to ' + o.end_date + ' · Target: ' + (o.target_type === 'SP' ? trimNum(o.target_value) + ' SP' : money(o.target_value)) + '</div></div>' +
+        '<span class="badge ' + statusCls + '">' + statusLabel + '</span></div>';
+    }).join('');
+    Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { viewOfferWinners(row.dataset.id, row.dataset.title); }); });
+  }
+
+  let currentOfferWinners = [];
+  async function viewOfferWinners(offerId, title) {
+    document.getElementById('offerWinnersTitle').textContent = title;
+    document.getElementById('offerWinnersMeta').textContent = 'Winners who met the target so far';
+    document.getElementById('offerWinnersList').innerHTML = '<div class="empty-cart">Calculating…</div>';
+    document.getElementById('offerWinnersModal').classList.add('show');
+    const { data, error } = await sb.rpc('get_offer_winners', { p_offer_id: Number(offerId) });
+    if (error) { document.getElementById('offerWinnersList').innerHTML = '<div class="empty-cart">Could not calculate winners.</div>'; showToast(error.message, true); return; }
+    currentOfferWinners = data || [];
+    const box = document.getElementById('offerWinnersList');
+    if (!currentOfferWinners.length) { box.innerHTML = '<div class="empty-cart">No one has met the target yet.</div>'; return; }
+    box.innerHTML = currentOfferWinners.map(function (r, idx) {
+      return '<div class="list-row" data-idx="' + idx + '"><div style="display:flex;align-items:center;gap:10px;">' +
+        '<div style="font-family:\'Fraunces\',serif;font-size:17px;color:var(--gold-600);min-width:22px;">#' + (idx + 1) + '</div>' +
+        '<div><div class="result-name">' + escapeHtml(r.name || 'Customer') + '</div><div class="result-meta">' + escapeHtml(r.mobile) + ' · ' + trimNum(r.total_sp) + ' SP</div></div></div>' +
+        '<div class="amt">' + money(r.total_amount) + '</div></div>';
+    }).join('');
+    Array.from(box.querySelectorAll('.list-row')).forEach(function (row) {
+      row.addEventListener('click', function () {
+        const r = currentOfferWinners[Number(row.dataset.idx)];
+        document.getElementById('offerWinnersModal').classList.remove('show');
+        openSendMessageModal(r.mobile, r.name, { rank: Number(row.dataset.idx) + 1, totalAmount: r.total_amount, totalSp: r.total_sp });
+      });
+    });
   }
 
 
