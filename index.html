@@ -260,6 +260,7 @@
       <button class="tab" data-tab="topcustomers" onclick="switchTab('topcustomers')">Top Customers</button>
       <button class="tab" data-tab="offers" onclick="switchTab('offers')">Offers</button>
       <button class="tab" data-tab="offertracking" onclick="switchTab('offertracking')">Offer Tracking</button>
+      <button class="tab" data-tab="broadcast" onclick="switchTab('broadcast')">Broadcast</button>
     </nav>
 
     <main>
@@ -651,6 +652,54 @@
         <select id="offerTrackingSelect" onchange="loadOfferTrackingList()" style="width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;background:var(--surface);"><option value="">Loading…</option></select>
       </div>
       <div class="card"><h2 id="offerTrackingHeading">Progress (closest to target first)</h2><div id="offerTrackingList"><div class="empty-cart">Choose an offer above.</div></div></div>
+    </section>
+
+    <!-- ============ BROADCAST TAB ============ -->
+    <section id="tab-broadcast" class="tab-panel">
+      <div class="card">
+        <p class="section-label">Compose message</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="quickbtn" type="button" onclick="fillBroadcastTemplate('festival')">Festival Wish</button>
+          <button class="quickbtn" type="button" onclick="fillBroadcastTemplate('product')">New Product Available</button>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label for="broadcastMessage">Message</label>
+          <textarea id="broadcastMessage" rows="6" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;" placeholder="Type your message…"></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-label">Optional: create a poster image</p>
+        <div class="field"><label for="posterHeading">Poster heading</label><input type="text" id="posterHeading" placeholder="e.g. Happy Diwali!"></div>
+        <div class="field" style="margin-bottom:0;"><label for="posterSubtext">Poster message</label><input type="text" id="posterSubtext" placeholder="e.g. Wishing you joy and prosperity"></div>
+        <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="generateBroadcastPoster()">Generate &amp; Download Poster</button>
+        <p class="hint" style="margin-top:6px;">Downloads as an image — WhatsApp doesn't allow auto-attaching images, so attach it manually once a chat opens below.</p>
+      </div>
+
+      <div class="card">
+        <p class="section-label">Select recipients</p>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <button class="btn btn-outline" style="flex:1;" onclick="selectAllBroadcastRecipients(true)">Select All</button>
+          <button class="btn btn-outline" style="flex:1;" onclick="selectAllBroadcastRecipients(false)">Deselect All</button>
+        </div>
+        <input type="text" id="broadcastSearch" class="search-input" placeholder="Search name or mobile…" oninput="renderBroadcastRecipients()" style="margin-bottom:10px;">
+        <div id="broadcastRecipientsList"><div class="empty-cart">Loading…</div></div>
+      </div>
+
+      <div class="card">
+        <button class="btn btn-gold btn-block" id="startBroadcastBtn" onclick="startBroadcast()">Start Broadcast</button>
+      </div>
+
+      <div class="card" id="broadcastStepCard" style="display:none;">
+        <p class="section-label" id="broadcastProgressLabel">Sending 1 of 10</p>
+        <h2 id="broadcastCurrentName" style="font-size:16px;margin-bottom:4px;"></h2>
+        <p class="hint" id="broadcastCurrentMobile" style="margin-bottom:14px;"></p>
+        <div class="modal-actions" style="margin-top:0;">
+          <button class="btn btn-outline" onclick="skipBroadcastRecipient()">Skip</button>
+          <button class="btn btn-primary" onclick="sendBroadcastRecipient()">Send &amp; Next</button>
+        </div>
+        <button class="btn btn-outline btn-block" style="margin-top:8px;color:var(--danger);border-color:var(--danger);" onclick="stopBroadcast()">Stop Broadcast</button>
+      </div>
     </section>
     </main>
 
@@ -1719,6 +1768,7 @@
     if (name === 'topcustomers' && !topCustomersLoadedOnce) { topCustomersLoadedOnce = true; setTopCustomersRange('today'); }
     if (name === 'offers') loadOffers();
     if (name === 'offertracking') loadOfferTrackingDropdown();
+    if (name === 'broadcast' && !broadcastLoadedOnce) { broadcastLoadedOnce = true; loadBroadcastCustomers(); }
   }
 
   function fmtDateInput_(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
@@ -2893,6 +2943,121 @@
         openSendMessageModal(r.mobile, r.name, { pendingAmount: r.pending_amount, offerTitle: offerTitle });
       });
     });
+  }
+
+  // ---------------- BROADCAST TAB ----------------
+  let broadcastLoadedOnce = false;
+  let broadcastCustomers = [];
+  let broadcastSelected = {};
+  let broadcastQueue = [];
+  let broadcastIndex = 0;
+
+  async function loadBroadcastCustomers() {
+    const box = document.getElementById('broadcastRecipientsList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const { data, error } = await sb.from('customers').select('name, mobile').order('name', { ascending: true });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load customers.</div>'; return; }
+    broadcastCustomers = (data || []).filter(function (c) { return c.mobile && c.mobile.trim(); });
+    broadcastCustomers.forEach(function (c) { broadcastSelected[c.mobile] = false; });
+    renderBroadcastRecipients();
+  }
+
+  function renderBroadcastRecipients() {
+    const q = document.getElementById('broadcastSearch').value.trim().toLowerCase();
+    const box = document.getElementById('broadcastRecipientsList');
+    const filtered = q ? broadcastCustomers.filter(function (c) { return (c.name || '').toLowerCase().indexOf(q) > -1 || (c.mobile || '').indexOf(q) > -1; }) : broadcastCustomers;
+    if (!filtered.length) { box.innerHTML = '<div class="empty-cart">No customers found.</div>'; return; }
+    box.innerHTML = filtered.map(function (c) {
+      const checked = broadcastSelected[c.mobile] ? 'checked' : '';
+      return '<label class="list-row" style="cursor:pointer;"><div style="display:flex;align-items:center;gap:10px;">' +
+        '<input type="checkbox" data-mobile="' + escapeHtml(c.mobile) + '" ' + checked + ' style="width:18px;height:18px;">' +
+        '<div><div class="result-name">' + escapeHtml((c.name || '(No name)').toUpperCase()) + '</div><div class="result-meta">' + escapeHtml(c.mobile) + '</div></div></div></label>';
+    }).join('');
+    Array.from(box.querySelectorAll('input[type="checkbox"]')).forEach(function (cb) {
+      cb.addEventListener('change', function () { broadcastSelected[cb.dataset.mobile] = cb.checked; });
+    });
+  }
+
+  function selectAllBroadcastRecipients(select) {
+    broadcastCustomers.forEach(function (c) { broadcastSelected[c.mobile] = select; });
+    renderBroadcastRecipients();
+  }
+
+  function fillBroadcastTemplate(type) {
+    let text = '';
+    if (type === 'festival') {
+      text = '🪔 Wishing you and your family a very Happy Festival! 🎉\n\nMay this season bring you joy, prosperity, and good health. Thank you for being a valued customer of Mahakal Wellness — we look forward to serving you always!';
+    } else if (type === 'product') {
+      text = '📢 New Product Alert!\n\nWe now have [Product Name] available at Mahakal Wellness! Come visit us or reach out to grab yours today. Limited stock available!';
+    }
+    document.getElementById('broadcastMessage').value = text;
+  }
+
+  function generateBroadcastPoster() {
+    if (typeof window.html2canvas !== 'function') { showToast('Poster generation is not available right now.', true); return; }
+    const heading = document.getElementById('posterHeading').value.trim() || 'Mahakal Wellness';
+    const subtext = document.getElementById('posterSubtext').value.trim() || '';
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'width:600px;padding:50px 40px;background:linear-gradient(160deg,var(--green-900),var(--green-800));font-family:Inter,sans-serif;text-align:center;color:#fff;';
+    wrap.innerHTML =
+      '<img src="' + LOGO_DATA_URI + '" style="width:90px;height:90px;border-radius:50%;margin-bottom:18px;box-shadow:0 0 0 4px var(--gold-500);">' +
+      '<h1 style="font-family:Fraunces,serif;font-size:34px;margin:0 0 14px;color:#fff;">' + escapeHtml(heading) + '</h1>' +
+      (subtext ? '<p style="font-size:17px;line-height:1.6;color:var(--green-100);max-width:460px;margin:0 auto;">' + escapeHtml(subtext) + '</p>' : '') +
+      '<p style="margin-top:36px;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-500);font-weight:700;">Mahakal Wellness</p>';
+    document.body.appendChild(wrap);
+    showToast('Generating poster…');
+    window.html2canvas(wrap, { scale: 2 }).then(function (canvas) {
+      document.body.removeChild(wrap);
+      const link = document.createElement('a');
+      link.download = 'poster.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }).catch(function () {
+      document.body.removeChild(wrap);
+      showToast('Could not generate poster.', true);
+    });
+  }
+
+  function startBroadcast() {
+    const text = document.getElementById('broadcastMessage').value.trim();
+    if (!text) { showToast('Type a message first.', true); return; }
+    broadcastQueue = broadcastCustomers.filter(function (c) { return broadcastSelected[c.mobile]; });
+    if (!broadcastQueue.length) { showToast('Select at least one recipient.', true); return; }
+    broadcastIndex = 0;
+    document.getElementById('broadcastStepCard').style.display = 'block';
+    renderBroadcastStep();
+  }
+
+  function renderBroadcastStep() {
+    if (broadcastIndex >= broadcastQueue.length) {
+      showToast('Broadcast complete — sent to ' + broadcastQueue.length + ' customers.');
+      document.getElementById('broadcastStepCard').style.display = 'none';
+      return;
+    }
+    const c = broadcastQueue[broadcastIndex];
+    document.getElementById('broadcastProgressLabel').textContent = 'Sending ' + (broadcastIndex + 1) + ' of ' + broadcastQueue.length;
+    document.getElementById('broadcastCurrentName').textContent = (c.name || '(No name)').toUpperCase();
+    document.getElementById('broadcastCurrentMobile').textContent = c.mobile;
+  }
+
+  function sendBroadcastRecipient() {
+    const c = broadcastQueue[broadcastIndex];
+    const text = document.getElementById('broadcastMessage').value.trim();
+    let digits = String(c.mobile || '').replace(/\D/g, '');
+    if (digits.length === 10) digits = '91' + digits;
+    window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(text), '_blank');
+    broadcastIndex++;
+    renderBroadcastStep();
+  }
+
+  function skipBroadcastRecipient() {
+    broadcastIndex++;
+    renderBroadcastStep();
+  }
+
+  function stopBroadcast() {
+    document.getElementById('broadcastStepCard').style.display = 'none';
+    showToast('Broadcast stopped.');
   }
 
 
