@@ -807,6 +807,40 @@
   function escapeHtml(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function roundQty(n) { return Math.max(0, Math.round(Number(n) || 0)); }
 
+  // Prevents the background page from scrolling whenever any modal is open -
+  // watches every .modal-overlay for its 'show' class so this works
+  // automatically for all of them, without touching each open/close call site.
+  (function () {
+    let savedScrollY = 0;
+    let locked = false;
+    function isAnyModalOpen() {
+      return Array.from(document.querySelectorAll('.modal-overlay')).some(function (m) { return m.classList.contains('show'); });
+    }
+    function applyLockState() {
+      const shouldLock = isAnyModalOpen();
+      if (shouldLock && !locked) {
+        savedScrollY = window.scrollY;
+        document.body.style.position = 'fixed';
+        document.body.style.top = '-' + savedScrollY + 'px';
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        locked = true;
+      } else if (!shouldLock && locked) {
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        window.scrollTo(0, savedScrollY);
+        locked = false;
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.modal-overlay').forEach(function (modal) {
+        new MutationObserver(applyLockState).observe(modal, { attributes: true, attributeFilter: ['class'] });
+      });
+    });
+  })();
+
   document.addEventListener('DOMContentLoaded', async function () {
     document.getElementById('logoImg').src = LOGO_DATA_URI;
     document.getElementById('loginLogoImg').src = LOGO_DATA_URI;
