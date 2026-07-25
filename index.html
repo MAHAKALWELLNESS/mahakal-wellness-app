@@ -180,8 +180,8 @@
 <body>
 
   <div id="printDuplicateArea" style="display:none;"></div>
-  <div id="retailDetailPrintArea" style="position:absolute; left:-9999px; top:0; width:520px;"></div>
-  <div id="pdfCaptureArea" style="position:absolute; left:-9999px; top:0; width:520px;"></div>
+  <div id="retailDetailPrintArea" style="position:fixed; top:0; left:0; width:520px; opacity:0; pointer-events:none; z-index:-1;"></div>
+  <div id="pdfCaptureArea" style="position:fixed; top:0; left:0; width:520px; opacity:0; pointer-events:none; z-index:-1;"></div>
 
   <div class="login-overlay" id="loginOverlay">
     <div class="login-card">
@@ -1678,7 +1678,7 @@
     showToast('Preparing PDF…');
     const el = document.getElementById(preparePdfCapture_('printArea'));
     pauseScrollLock();
-    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] } }).from(el).save().then(resumeScrollLock);
+    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, windowWidth: 900 } }).from(el).save().then(resumeScrollLock);
   }
 
   // ---------------- TABS ----------------
@@ -2258,14 +2258,14 @@
     showToast('Preparing PDF…');
     const el = document.getElementById(preparePdfCapture_(sourceId));
     pauseScrollLock();
-    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] } }).from(el).save().then(resumeScrollLock);
+    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, windowWidth: 900 } }).from(el).save().then(resumeScrollLock);
   }
   async function shareWhatsappFromDetail() {
     const sourceId = await getDetailPrintSourceId_();
     showToast('Preparing PDF…');
     const el = document.getElementById(preparePdfCapture_(sourceId));
     pauseScrollLock();
-    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] } }).from(el).save().then(function () {
+    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, windowWidth: 900 } }).from(el).save().then(function () {
       resumeScrollLock();
       let digits = String(currentDetailMobile || '').replace(/\D/g, ''); if (digits.length === 10) digits = '91' + digits;
       const text = buildBillShareText_(currentDetailInvoice, currentDetailShareToken, null);
@@ -3397,7 +3397,7 @@
     showToast('Preparing PDF…');
     const el = document.getElementById(preparePdfCapture_('printArea'));
     pauseScrollLock();
-    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] } }).from(el).save().then(function () {
+    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, windowWidth: 900 } }).from(el).save().then(function () {
       resumeScrollLock();
       let digits = String(lastSavedBill.mobile || '').replace(/\D/g, '');
       if (digits.length === 10) digits = '91' + digits;
