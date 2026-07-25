@@ -2886,7 +2886,8 @@
     } else if (type === 'winner') {
       text = 'Congratulations ' + name + '! 🏆 You have won our latest offer! Thank you for your continued trust and support — we truly appreciate you. Keep shopping with us for more rewards ahead!';
     } else if (type === 'pendency') {
-      text = 'Hi ' + name + '! 💪 You\'re so close to winning our "' + (ctx.offerTitle || 'current offer') + '" — just ' + money(ctx.pendingAmount || 0) + ' more to go! Shop with us soon to reach your target and claim your reward. We\'re rooting for you! 🎯';
+      const pendingLabel = ctx.isSpOffer ? trimNum(ctx.pendingAmount || 0) + ' SP' : money(ctx.pendingAmount || 0);
+      text = 'Hi ' + name + '! 💪 You\'re so close to winning our "' + (ctx.offerTitle || 'current offer') + '" — just ' + pendingLabel + ' more to go! Shop with us soon to reach your target and claim your reward. We\'re rooting for you! 🎯';
     }
     document.getElementById('sendMessageText').value = text;
   }
@@ -2939,11 +2940,13 @@
   }
 
   let currentOfferWinners = [];
+  let offerTrackingOffersList = [];
   async function loadOfferTrackingDropdown() {
     const select = document.getElementById('offerTrackingSelect');
     const { data, error } = await sb.from('offers').select('*').order('start_date', { ascending: false });
     if (error) { select.innerHTML = '<option value="">Could not load offers</option>'; return; }
     if (!data || !data.length) { select.innerHTML = '<option value="">No offers yet — create one in Offers tab</option>'; document.getElementById('offerTrackingList').innerHTML = '<div class="empty-cart">No offers to track yet.</div>'; return; }
+    offerTrackingOffersList = data;
     const prevValue = select.value;
     select.innerHTML = data.map(function (o) { return '<option value="' + o.id + '">' + escapeHtml(o.title) + ' (' + o.start_date + ' to ' + o.end_date + ')</option>'; }).join('');
     if (prevValue && data.some(function (o) { return String(o.id) === prevValue; })) select.value = prevValue;
@@ -2956,21 +2959,24 @@
     const box = document.getElementById('offerTrackingList');
     if (!offerId) { box.innerHTML = '<div class="empty-cart">Choose an offer above.</div>'; return; }
     box.innerHTML = '<div class="empty-cart">Calculating…</div>';
+    const offer = offerTrackingOffersList.find(function (o) { return String(o.id) === String(offerId); });
+    const isSpOffer = offer && offer.target_type === 'SP';
     const { data, error } = await sb.rpc('get_offer_progress', { p_offer_id: Number(offerId) });
     if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
     offerTrackingData = data || [];
     if (!offerTrackingData.length) { box.innerHTML = '<div class="empty-cart">No bills made yet during this offer\'s period.</div>'; return; }
     box.innerHTML = offerTrackingData.map(function (r, idx) {
       const isAchieved = r.pending_amount <= 0.005;
+      const pendingLabel = isSpOffer ? trimNum(r.pending_amount) + ' SP' : money(r.pending_amount);
       return '<div class="list-row" data-idx="' + idx + '"><div><div class="result-name">' + escapeHtml(r.name || 'Customer') + '</div>' +
         '<div class="result-meta">' + escapeHtml(r.mobile) + ' · ' + trimNum(r.total_sp) + ' SP · ' + money(r.total_amount) + '</div></div>' +
-        '<div style="text-align:right;">' + (isAchieved ? '<span class="badge badge-paid">Achieved</span>' : '<span class="badge badge-partial">Pending ' + money(r.pending_amount) + '</span>') + '</div></div>';
+        '<div style="text-align:right;">' + (isAchieved ? '<span class="badge badge-paid">Achieved</span>' : '<span class="badge badge-partial">Pending ' + pendingLabel + '</span>') + '</div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) {
       row.addEventListener('click', function () {
         const r = offerTrackingData[Number(row.dataset.idx)];
         const offerTitle = document.getElementById('offerTrackingSelect').selectedOptions[0].textContent;
-        openSendMessageModal(r.mobile, r.name, { pendingAmount: r.pending_amount, offerTitle: offerTitle });
+        openSendMessageModal(r.mobile, r.name, { pendingAmount: r.pending_amount, offerTitle: offerTitle, isSpOffer: isSpOffer });
       });
     });
   }
