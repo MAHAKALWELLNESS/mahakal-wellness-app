@@ -2806,14 +2806,24 @@
     box.innerHTML = '<div class="empty-cart">Loading…</div>';
     const { data: invoices, error } = await sb.from('invoices').select('*').gt('total_sp', 0).eq('bill_status', 'Active').order('invoice_date', { ascending: false });
     if (error) { box.innerHTML = '<div class="empty-cart">Could not load bills.</div>'; return; }
+    const spUsedByInvoice = await fetchSpUsedByInvoice_((invoices || []).map(function (h) { return h.invoice_no; }));
     const rows = [];
-    for (const h of (invoices || [])) {
-      const { data: official } = await sb.from('official_sessions').select('total_sp_used').eq('invoice_no', h.invoice_no);
-      const used = (official || []).reduce(function (s, o) { return s + Number(o.total_sp_used); }, 0);
+    (invoices || []).forEach(function (h) {
+      const used = spUsedByInvoice[h.invoice_no] || 0;
       const remaining = h.total_sp - used;
       if (remaining > 0.0001) rows.push({ invoiceNo: h.invoice_no, date: h.invoice_date, customer: h.customer_name, totalDP: h.total_dp, totalSP: h.total_sp, usedSP: used, remainingSP: remaining });
-    }
+    });
     renderOfficialList(rows);
+  }
+
+  // Fetches SP-used totals for many bills in ONE query instead of one query
+  // per bill - the old per-bill loop was the reason Official felt slow.
+  async function fetchSpUsedByInvoice_(invoiceNos) {
+    if (!invoiceNos.length) return {};
+    const { data } = await sb.from('official_sessions').select('invoice_no, total_sp_used').in('invoice_no', invoiceNos);
+    const map = {};
+    (data || []).forEach(function (o) { map[o.invoice_no] = (map[o.invoice_no] || 0) + Number(o.total_sp_used); });
+    return map;
   }
 
   let officialSearchDebounce = null;
@@ -2825,12 +2835,11 @@
     officialSearchDebounce = setTimeout(async function () {
       const { data: invoices, error } = await sb.from('invoices').select('*').gt('total_sp', 0).ilike('invoice_no', '%' + q + '%');
       if (error) { showToast(error.message, true); return; }
-      const rows = [];
-      for (const h of (invoices || [])) {
-        const { data: official } = await sb.from('official_sessions').select('total_sp_used').eq('invoice_no', h.invoice_no);
-        const used = (official || []).reduce(function (s, o) { return s + Number(o.total_sp_used); }, 0);
-        rows.push({ invoiceNo: h.invoice_no, date: h.invoice_date, customer: h.customer_name, totalDP: h.total_dp, totalSP: h.total_sp, usedSP: used, remainingSP: h.total_sp - used });
-      }
+      const spUsedByInvoice = await fetchSpUsedByInvoice_((invoices || []).map(function (h) { return h.invoice_no; }));
+      const rows = (invoices || []).map(function (h) {
+        const used = spUsedByInvoice[h.invoice_no] || 0;
+        return { invoiceNo: h.invoice_no, date: h.invoice_date, customer: h.customer_name, totalDP: h.total_dp, totalSP: h.total_sp, usedSP: used, remainingSP: h.total_sp - used };
+      });
       renderOfficialList(rows);
     }, 250);
   }
