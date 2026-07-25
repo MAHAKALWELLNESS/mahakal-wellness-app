@@ -259,6 +259,7 @@
       <button class="tab" data-tab="topproducts" onclick="switchTab('topproducts')">Top Products</button>
       <button class="tab" data-tab="topcustomers" onclick="switchTab('topcustomers')">Top Customers</button>
       <button class="tab" data-tab="offers" onclick="switchTab('offers')">Offers</button>
+      <button class="tab" data-tab="offertracking" onclick="switchTab('offertracking')">Offer Tracking</button>
     </nav>
 
     <main>
@@ -437,6 +438,10 @@
         <button class="btn btn-primary btn-block" onclick="loadDashboard()">Apply filter</button>
       </div>
       <div class="card"><button class="btn btn-gold btn-block" style="margin-bottom:10px;" onclick="loadDashboard()">↻ Refresh</button><h2 id="dashRangeLabel">Today</h2><div id="dashStats"><div class="empty-cart">Loading…</div></div></div>
+      <div class="card"><h2>Top 3 Products Sold</h2><div id="dashTopProducts"><div class="empty-cart">Loading…</div></div></div>
+      <div class="card"><h2>Top 3 Customers</h2><div id="dashTopCustomers"><div class="empty-cart">Loading…</div></div></div>
+      <div class="card"><h2>Running Offers</h2><div id="dashRunningOffers"><div class="empty-cart">Loading…</div></div></div>
+      <div class="card"><h2>Upcoming Offers</h2><div id="dashUpcomingOffers"><div class="empty-cart">Loading…</div></div></div>
     </section>
 
     <!-- ============ EXPENSE TAB ============ -->
@@ -637,6 +642,16 @@
       </div>
       <div class="card"><h2>Offers</h2><div id="offersList"><div class="empty-cart">Loading…</div></div></div>
     </section>
+
+    <!-- ============ OFFER TRACKING TAB ============ -->
+    <section id="tab-offertracking" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadOfferTrackingList()">↻ Refresh</button>
+      <div class="card">
+        <p class="section-label">Choose offer</p>
+        <select id="offerTrackingSelect" onchange="loadOfferTrackingList()" style="width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;background:var(--surface);"><option value="">Loading…</option></select>
+      </div>
+      <div class="card"><h2 id="offerTrackingHeading">Progress (closest to target first)</h2><div id="offerTrackingList"><div class="empty-cart">Choose an offer above.</div></div></div>
+    </section>
     </main>
 
     <div id="summaryBar" class="summary-bar">
@@ -762,6 +777,7 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
         <button class="quickbtn" type="button" onclick="fillMessageTemplate('rank')">Top performer message</button>
         <button class="quickbtn" type="button" onclick="fillMessageTemplate('winner')">Offer winner message</button>
+        <button class="quickbtn" type="button" onclick="fillMessageTemplate('pendency')">Offer pendency message</button>
       </div>
       <div class="field" style="margin-bottom:0;"><label for="sendMessageText">Message</label><textarea id="sendMessageText" rows="6" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;" placeholder="Type your message…"></textarea></div>
       <div class="modal-actions">
@@ -1702,6 +1718,7 @@
     if (name === 'topproducts' && !topProductsLoadedOnce) { topProductsLoadedOnce = true; setTopProductsRange('offline', 'net'); }
     if (name === 'topcustomers' && !topCustomersLoadedOnce) { topCustomersLoadedOnce = true; setTopCustomersRange('today'); }
     if (name === 'offers') loadOffers();
+    if (name === 'offertracking') loadOfferTrackingDropdown();
   }
 
   function fmtDateInput_(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
@@ -1956,6 +1973,76 @@
     (purchases || []).forEach(function (p) { s.purchaseCount++; s.purchaseQty += Number(p.total_qty); s.purchaseAmount += Number(p.total_dp); s.purchaseSP += Number(p.total_sp); });
     (expenses || []).forEach(function (e) { s.expenseCount++; s.expenseAmount += Number(e.total); s.expenseCash += Number(e.cash); s.expenseOnline += Number(e.online); });
     renderDashboardStats(s);
+
+    loadDashboardTopProducts(from, to);
+    loadDashboardTopCustomers(from, to);
+    loadDashboardOffers();
+  }
+
+  async function loadDashboardTopProducts(from, to) {
+    const box = document.getElementById('dashTopProducts');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const { data, error } = await sb.rpc('get_top_products_offline', { p_start_date: from || null, p_end_date: to || null });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; return; }
+    const top3 = (data || []).slice(0, 3);
+    if (!top3.length) { box.innerHTML = '<div class="empty-cart">No sales in this range.</div>'; return; }
+    box.innerHTML = top3.map(function (r, idx) {
+      return '<div class="list-row" style="cursor:default;"><div style="display:flex;align-items:center;gap:10px;">' +
+        '<div style="font-family:\'Fraunces\',serif;font-size:17px;color:var(--gold-600);min-width:22px;">#' + (idx + 1) + '</div>' +
+        '<div><div class="result-name">' + escapeHtml(r.name) + '</div><div class="result-meta">#' + r.code + '</div></div></div>' +
+        '<div class="amt">' + trimNum(r.total_qty) + ' qty</div></div>';
+    }).join('');
+  }
+
+  async function loadDashboardTopCustomers(from, to) {
+    const box = document.getElementById('dashTopCustomers');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const { data, error } = await sb.rpc('get_top_customers', { p_start_date: from || null, p_end_date: to || null });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; return; }
+    const top3 = (data || []).slice(0, 3);
+    if (!top3.length) { box.innerHTML = '<div class="empty-cart">No purchases in this range.</div>'; return; }
+    box.innerHTML = top3.map(function (r, idx) {
+      return '<div class="list-row" style="cursor:default;"><div style="display:flex;align-items:center;gap:10px;">' +
+        '<div style="font-family:\'Fraunces\',serif;font-size:17px;color:var(--gold-600);min-width:22px;">#' + (idx + 1) + '</div>' +
+        '<div><div class="result-name">' + escapeHtml(r.name || 'Customer') + '</div><div class="result-meta">' + escapeHtml(r.mobile) + '</div></div></div>' +
+        '<div class="amt">' + money(r.total_amount) + '</div></div>';
+    }).join('');
+  }
+
+  async function loadDashboardOffers() {
+    const runningBox = document.getElementById('dashRunningOffers');
+    const upcomingBox = document.getElementById('dashUpcomingOffers');
+    runningBox.innerHTML = '<div class="empty-cart">Loading…</div>';
+    upcomingBox.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const { data: offersData, error } = await sb.from('offers').select('*').order('start_date', { ascending: true });
+    if (error) { runningBox.innerHTML = '<div class="empty-cart">Could not load.</div>'; upcomingBox.innerHTML = ''; return; }
+    const today = fmtDateInput_(new Date());
+    const running = (offersData || []).filter(function (o) { return o.start_date <= today && o.end_date >= today; });
+    const upcoming = (offersData || []).filter(function (o) { return o.start_date > today; });
+
+    if (!running.length) { runningBox.innerHTML = '<div class="empty-cart">No offer running right now.</div>'; }
+    else {
+      const cards = [];
+      for (const o of running) {
+        const { data: winners } = await sb.rpc('get_offer_winners', { p_offer_id: o.id });
+        const top3 = (winners || []).slice(0, 3);
+        cards.push('<div class="card" style="box-shadow:none;border:1px solid var(--line);margin-bottom:10px;">' +
+          '<div class="result-name">' + escapeHtml(o.title) + '</div>' +
+          '<div class="result-meta" style="margin-bottom:8px;">' + o.start_date + ' to ' + o.end_date + ' · Target: ' + (o.target_type === 'SP' ? trimNum(o.target_value) + ' SP' : money(o.target_value)) + '</div>' +
+          '<div style="font-size:12.5px;font-weight:700;color:var(--green-800);margin-bottom:4px;">Total achievers: ' + (winners || []).length + '</div>' +
+          (top3.length ? top3.map(function (w, idx) { return '<div style="font-size:12.5px;color:var(--ink-soft);margin:2px 0;">#' + (idx + 1) + ' ' + escapeHtml(w.name || w.mobile) + ' — ' + money(w.total_amount) + '</div>'; }).join('') : '<div class="hint">No achievers yet.</div>') +
+          '</div>');
+      }
+      runningBox.innerHTML = cards.join('');
+    }
+
+    if (!upcoming.length) { upcomingBox.innerHTML = '<div class="empty-cart">No upcoming offers.</div>'; }
+    else {
+      upcomingBox.innerHTML = upcoming.map(function (o) {
+        return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + escapeHtml(o.title) + '</div>' +
+          '<div class="result-meta">Starts ' + o.start_date + ' · Target: ' + (o.target_type === 'SP' ? trimNum(o.target_value) + ' SP' : money(o.target_value)) + '</div></div></div>';
+      }).join('');
+    }
   }
 
   function renderDashboardStats(s) {
@@ -2718,6 +2805,8 @@
       text = 'Hi ' + name + '! 🎉 Great news — you are currently ranked #' + (ctx.rank || '') + ' among our top customers with ' + money(ctx.totalAmount || 0) + ' in purchases' + (ctx.totalSp ? ' and ' + trimNum(ctx.totalSp) + ' SP' : '') + '. Keep it up — let\'s make next month even better! 🌟';
     } else if (type === 'winner') {
       text = 'Congratulations ' + name + '! 🏆 You have won our latest offer! Thank you for your continued trust and support — we truly appreciate you. Keep shopping with us for more rewards ahead!';
+    } else if (type === 'pendency') {
+      text = 'Hi ' + name + '! 💪 You\'re so close to winning our "' + (ctx.offerTitle || 'current offer') + '" — just ' + money(ctx.pendingAmount || 0) + ' more to go! Shop with us soon to reach your target and claim your reward. We\'re rooting for you! 🎯';
     }
     document.getElementById('sendMessageText').value = text;
   }
@@ -2770,6 +2859,43 @@
   }
 
   let currentOfferWinners = [];
+  async function loadOfferTrackingDropdown() {
+    const select = document.getElementById('offerTrackingSelect');
+    const { data, error } = await sb.from('offers').select('*').order('start_date', { ascending: false });
+    if (error) { select.innerHTML = '<option value="">Could not load offers</option>'; return; }
+    if (!data || !data.length) { select.innerHTML = '<option value="">No offers yet — create one in Offers tab</option>'; document.getElementById('offerTrackingList').innerHTML = '<div class="empty-cart">No offers to track yet.</div>'; return; }
+    const prevValue = select.value;
+    select.innerHTML = data.map(function (o) { return '<option value="' + o.id + '">' + escapeHtml(o.title) + ' (' + o.start_date + ' to ' + o.end_date + ')</option>'; }).join('');
+    if (prevValue && data.some(function (o) { return String(o.id) === prevValue; })) select.value = prevValue;
+    loadOfferTrackingList();
+  }
+
+  let offerTrackingData = [];
+  async function loadOfferTrackingList() {
+    const offerId = document.getElementById('offerTrackingSelect').value;
+    const box = document.getElementById('offerTrackingList');
+    if (!offerId) { box.innerHTML = '<div class="empty-cart">Choose an offer above.</div>'; return; }
+    box.innerHTML = '<div class="empty-cart">Calculating…</div>';
+    const { data, error } = await sb.rpc('get_offer_progress', { p_offer_id: Number(offerId) });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
+    offerTrackingData = data || [];
+    if (!offerTrackingData.length) { box.innerHTML = '<div class="empty-cart">No bills made yet during this offer\'s period.</div>'; return; }
+    box.innerHTML = offerTrackingData.map(function (r, idx) {
+      const isAchieved = r.pending_amount <= 0.005;
+      return '<div class="list-row" data-idx="' + idx + '"><div><div class="result-name">' + escapeHtml(r.name || 'Customer') + '</div>' +
+        '<div class="result-meta">' + escapeHtml(r.mobile) + ' · ' + trimNum(r.total_sp) + ' SP · ' + money(r.total_amount) + '</div></div>' +
+        '<div style="text-align:right;">' + (isAchieved ? '<span class="badge badge-paid">Achieved</span>' : '<span class="badge badge-partial">Pending ' + money(r.pending_amount) + '</span>') + '</div></div>';
+    }).join('');
+    Array.from(box.querySelectorAll('.list-row')).forEach(function (row) {
+      row.addEventListener('click', function () {
+        const r = offerTrackingData[Number(row.dataset.idx)];
+        const offerTitle = document.getElementById('offerTrackingSelect').selectedOptions[0].textContent;
+        openSendMessageModal(r.mobile, r.name, { pendingAmount: r.pending_amount, offerTitle: offerTitle });
+      });
+    });
+  }
+
+
   async function viewOfferWinners(offerId, title) {
     document.getElementById('offerWinnersTitle').textContent = title;
     document.getElementById('offerWinnersMeta').textContent = 'Winners who met the target so far';
