@@ -682,6 +682,11 @@
         <p class="hint" style="margin-top:6px;">Downloads as an image — WhatsApp doesn't allow auto-attaching images, so attach it manually once a chat opens below.</p>
         <button class="btn btn-gold btn-block" style="margin-top:10px;" onclick="window.open('https://play.google.com/store/apps/details?id=com.app95.client','_blank')">Open Leadr App (professional templates)</button>
         <p class="hint" style="margin-top:6px;">Opens Leadr if it's installed on your phone — fill in the achiever/festival details there using their templates, then come back here to download that poster and send it.</p>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn btn-outline" style="flex:1;" onclick="openAiPosterHelper('chatgpt')">Try with ChatGPT</button>
+          <button class="btn btn-outline" style="flex:1;" onclick="openAiPosterHelper('gemini')">Try with Gemini</button>
+        </div>
+        <p class="hint" style="margin-top:6px;">Opens the AI with your heading/message pre-filled where possible — you'll still need to hit Send and ask it for an image. AI is often inaccurate at rendering exact text inside images, so double-check the result before using it.</p>
       </div>
 
       <div class="card">
@@ -3041,6 +3046,26 @@
       document.body.removeChild(wrap);
       showToast('Could not generate poster.', true);
     });
+  }
+
+  function openAiPosterHelper(engine) {
+    const heading = document.getElementById('posterHeading').value.trim() || 'Mahakal Wellness';
+    const subtext = document.getElementById('posterSubtext').value.trim() || '';
+    const prompt = 'Create a professional, festive marketing poster image for a wellness business called Mahakal Wellness. ' +
+      'Include this heading text exactly, spelled correctly: "' + heading + '". ' +
+      (subtext ? 'Include this message text exactly, spelled correctly: "' + subtext + '". ' : '') +
+      'Make it colorful, eye-catching, and suitable for sharing on WhatsApp.';
+    if (engine === 'chatgpt') {
+      window.open('https://chatgpt.com/?q=' + encodeURIComponent(prompt), '_blank');
+      showToast('Opened ChatGPT — hit Send, then ask it to generate the image.');
+    } else {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(prompt).then(function () { showToast('Prompt copied — paste it into Gemini and hit Send.'); });
+      } else {
+        showToast('Opening Gemini — type your poster request there.');
+      }
+      window.open('https://gemini.google.com/app', '_blank');
+    }
   }
 
   function startBroadcast() {
