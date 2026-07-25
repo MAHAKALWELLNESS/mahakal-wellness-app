@@ -263,6 +263,7 @@
 
     <main>
     <section id="tab-bill" class="tab-panel active">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="resetNewBillForm()">↻ Refresh / Start Fresh</button>
       <div class="card">
         <p class="section-label">Customer (optional)</p>
         <div class="field-row">
@@ -347,6 +348,7 @@
         <button class="subtab" data-subtab="remaining" onclick="switchPurchaseSubtab('remaining')">Remaining</button>
       </div>
       <div id="psub-new" class="subtab-panel active">
+        <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="resetPurchaseForm()">↻ Refresh / Start Fresh</button>
         <div class="card">
           <p class="section-label">Search &amp; add product</p>
           <div class="search-wrap">
@@ -369,10 +371,12 @@
         </div>
       </div>
       <div id="psub-bills" class="subtab-panel">
+        <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="searchPurchases()">↻ Refresh</button>
         <div class="card"><p class="section-label">Find a purchase</p><input type="text" id="purchaseSearch" class="search-input" placeholder="Purchase no…" oninput="searchPurchases()"></div>
         <div class="card"><div id="purchaseList"><div class="empty-cart">Type above, or leave blank to see recent purchases.</div></div></div>
       </div>
       <div id="psub-remaining" class="subtab-panel">
+        <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadRemainingList()">↻ Refresh</button>
         <div class="card">
           <h2>Remaining to receive</h2>
           <p class="hint" style="margin-bottom:10px;">Purchases with items not yet physically received. Tap one to update.</p>
@@ -387,24 +391,28 @@
 
     <!-- ============ BILL APPROVAL TAB ============ -->
     <section id="tab-approval" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="searchApprovalBills()">↻ Refresh</button>
       <div class="card"><p class="section-label">Find a pending bill</p><input type="text" id="approvalSearch" class="search-input" placeholder="Invoice no, name or mobile…" oninput="searchApprovalBills()"></div>
       <div class="card"><h2>Awaiting approval</h2><div id="approvalList"><div class="empty-cart">Loading…</div></div></div>
     </section>
 
     <!-- ============ PAST BILLS TAB ============ -->
     <section id="tab-history" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="searchHistory()">↻ Refresh</button>
       <div class="card"><p class="section-label">Find a bill</p><input type="text" id="historySearch" class="search-input" placeholder="Invoice no, name or mobile…" oninput="searchHistory()"></div>
       <div class="card"><div id="historyList"><div class="empty-cart">Type above, or leave blank to see recent bills.</div></div></div>
     </section>
 
     <!-- ============ ACCOUNTING TAB ============ -->
     <section id="tab-accounting" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadAccounting()">↻ Refresh</button>
       <div class="card"><p class="section-label">Find a bill</p><input type="text" id="acctSearch" class="search-input" placeholder="Invoice no, name or mobile…" oninput="searchAccounting()"></div>
       <div class="card"><h2>Amount pending</h2><div id="acctList"><div class="empty-cart">Loading…</div></div></div>
     </section>
 
     <!-- ============ DELIVERY UPDATE TAB ============ -->
     <section id="tab-pending" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadPendingList()">↻ Refresh</button>
       <div class="card">
         <h2>Delivery update</h2>
         <p class="hint" style="margin-bottom:10px;">Bills with items still to be delivered. Tap one to update.</p>
@@ -428,11 +436,12 @@
         </div>
         <button class="btn btn-primary btn-block" onclick="loadDashboard()">Apply filter</button>
       </div>
-      <div class="card"><h2 id="dashRangeLabel">Today</h2><div id="dashStats"><div class="empty-cart">Loading…</div></div></div>
+      <div class="card"><button class="btn btn-gold btn-block" style="margin-bottom:10px;" onclick="loadDashboard()">↻ Refresh</button><h2 id="dashRangeLabel">Today</h2><div id="dashStats"><div class="empty-cart">Loading…</div></div></div>
     </section>
 
     <!-- ============ EXPENSE TAB ============ -->
     <section id="tab-expense" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="searchExpenses()">↻ Refresh</button>
       <div class="card">
         <p class="section-label">Record an expense</p>
         <div class="field-row">
@@ -456,12 +465,14 @@
 
     <!-- ============ OFFICIAL TAB ============ -->
     <section id="tab-official" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadOfficialPending()">↻ Refresh</button>
       <div class="card"><p class="section-label">Search by bill no</p><input type="text" id="officialSearch" class="search-input" placeholder="Bill no…" oninput="searchOfficialBills()"></div>
       <div class="card"><h2 id="officialListHeading">Pending SP allocation</h2><div id="officialList"><div class="empty-cart">Loading…</div></div></div>
     </section>
 
     <!-- ============ CUSTOMERS TAB ============ -->
     <section id="tab-customers" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="searchCustomersTab()">↻ Refresh</button>
       <div class="card"><p class="section-label">Find a customer</p><input type="text" id="customerSearch" class="search-input" placeholder="Name or mobile…" oninput="searchCustomersTab()"></div>
       <div class="card"><div id="customersList"><div class="empty-cart">Type above, or leave blank to see recent customers.</div></div></div>
     </section>
@@ -537,6 +548,7 @@
 
     <!-- ============ WALLET TAB ============ -->
     <section id="tab-wallet" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="searchWalletCustomers()">↻ Refresh</button>
       <div class="card"><p class="section-label">Find a customer's wallet</p><input type="text" id="walletSearch" class="search-input" placeholder="Name or mobile…" oninput="searchWalletCustomers()"></div>
       <div class="card"><div id="walletList"><div class="empty-cart">Loading…</div></div></div>
     </section>
@@ -548,6 +560,7 @@
         <button class="subtab" data-subtab="online" onclick="switchTopProductsSubtab('online')">Online (Official)</button>
       </div>
       <div id="tpsub-offline" class="subtab-panel active">
+        <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadTopProductsOffline()">↻ Refresh</button>
         <div class="card">
           <p class="section-label">Quick range</p>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
@@ -569,6 +582,7 @@
         <div class="card"><div id="tpOfflineList"><div class="empty-cart">Loading…</div></div></div>
       </div>
       <div id="tpsub-online" class="subtab-panel">
+        <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadTopProductsOnline()">↻ Refresh</button>
         <div class="card">
           <p class="section-label">Quick range</p>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
@@ -604,11 +618,13 @@
         <button class="btn btn-primary btn-block" onclick="loadTopCustomers()">Apply filter</button>
         <h2 style="font-size:14px;margin-top:14px;" id="topCustRangeLabel">Today</h2>
       </div>
+      <button class="btn btn-gold btn-block" style="margin-bottom:10px;" onclick="loadTopCustomers()">↻ Refresh</button>
       <div class="card"><div id="topCustomersList"><div class="empty-cart">Loading…</div></div></div>
     </section>
 
     <!-- ============ OFFERS TAB ============ -->
     <section id="tab-offers" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadOffers()">↻ Refresh</button>
       <div class="card">
         <p class="section-label">Create a new offer</p>
         <div class="field"><label for="offerTitle">Title</label><input type="text" id="offerTitle" placeholder="e.g. July Mega Sale Contest"></div>
@@ -921,13 +937,19 @@
   // Prevents the background page from scrolling whenever any modal is open -
   // watches every .modal-overlay for its 'show' class so this works
   // automatically for all of them, without touching each open/close call site.
+  // Exposes pauseScrollLock/resumeScrollLock globally so print and PDF export
+  // can temporarily lift the body's fixed-position offset, which otherwise
+  // clips/offsets the printed or captured content.
+  let pauseScrollLock, resumeScrollLock;
   (function () {
     let savedScrollY = 0;
     let locked = false;
+    let paused = false;
     function isAnyModalOpen() {
       return Array.from(document.querySelectorAll('.modal-overlay')).some(function (m) { return m.classList.contains('show'); });
     }
     function applyLockState() {
+      if (paused) return;
       const shouldLock = isAnyModalOpen();
       if (shouldLock && !locked) {
         savedScrollY = window.scrollY;
@@ -945,6 +967,17 @@
         locked = false;
       }
     }
+    pauseScrollLock = function () {
+      paused = true;
+      if (locked) { document.body.style.position = ''; document.body.style.top = ''; document.body.style.left = ''; document.body.style.right = ''; }
+    };
+    resumeScrollLock = function () {
+      paused = false;
+      if (locked) { document.body.style.position = 'fixed'; document.body.style.top = '-' + savedScrollY + 'px'; document.body.style.left = '0'; document.body.style.right = '0'; }
+      else { applyLockState(); }
+    };
+    window.addEventListener('beforeprint', pauseScrollLock);
+    window.addEventListener('afterprint', resumeScrollLock);
     document.addEventListener('DOMContentLoaded', function () {
       document.querySelectorAll('.modal-overlay').forEach(function (modal) {
         new MutationObserver(applyLockState).observe(modal, { attributes: true, attributeFilter: ['class'] });
@@ -1394,6 +1427,25 @@
     renderCart();
   }
 
+  function resetNewBillForm() {
+    CART = [];
+    document.getElementById('custMobile').value = '';
+    document.getElementById('custName').value = '';
+    document.getElementById('custType').value = '';
+    document.getElementById('payCash').value = '';
+    document.getElementById('payOnline').value = '';
+    document.getElementById('walletUseAmt').value = '';
+    document.getElementById('walletUseArea').style.display = 'none';
+    document.getElementById('remark').value = '';
+    document.getElementById('idName').value = '';
+    document.getElementById('idNo').value = '';
+    document.getElementById('referenceName').value = '';
+    document.getElementById('referenceMobile').value = '';
+    toggleRetailDiscount();
+    renderCart();
+    showToast('Form reset.');
+  }
+
   function modifyPendingBill() {
     if (!lastSavedBill) return;
     document.getElementById('printModal').classList.remove('show');
@@ -1614,7 +1666,8 @@
     await maybeAskAdvanceAndRerender_(lastSavedBill, 'printArea');
     showToast('Preparing PDF…');
     const el = document.getElementById('printArea');
-    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] } }).from(el).save();
+    pauseScrollLock();
+    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] } }).from(el).save().then(resumeScrollLock);
   }
 
   // ---------------- TABS ----------------
@@ -1644,6 +1697,13 @@
 
   // ---------------- PURCHASE TAB ----------------
   let PURCHASE_CART = [];
+  function resetPurchaseForm() {
+    PURCHASE_CART = [];
+    document.getElementById('purchaseRemark').value = '';
+    document.getElementById('stockSearchInput').value = '';
+    renderPurchaseCart();
+    showToast('Form reset.');
+  }
   let pendingPurchaseProduct = null;
 
   function switchPurchaseSubtab(name) {
@@ -2185,12 +2245,15 @@
   async function downloadPdfFromDetail() {
     const sourceId = await getDetailPrintSourceId_();
     showToast('Preparing PDF…');
-    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] } }).from(document.getElementById(sourceId)).save();
+    pauseScrollLock();
+    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] } }).from(document.getElementById(sourceId)).save().then(resumeScrollLock);
   }
   async function shareWhatsappFromDetail() {
     const sourceId = await getDetailPrintSourceId_();
     showToast('Preparing PDF…');
+    pauseScrollLock();
     html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] } }).from(document.getElementById(sourceId)).save().then(function () {
+      resumeScrollLock();
       let digits = String(currentDetailMobile || '').replace(/\D/g, ''); if (digits.length === 10) digits = '91' + digits;
       const text = buildBillShareText_(currentDetailInvoice, currentDetailShareToken, null);
       const waUrl = digits ? 'https://wa.me/' + digits + '?text=' + encodeURIComponent(text) : 'https://wa.me/?text=' + encodeURIComponent(text);
@@ -3283,7 +3346,8 @@
       headers.map(function (h) { return '<th style="text-align:left;border-bottom:2px solid #333;padding:6px 5px;text-transform:uppercase;color:#555;">' + escapeHtml(h) + '</th>'; }).join('') +
       '</tr></thead><tbody>' + rows.map(function (r) { return '<tr>' + r.map(function (c) { return '<td style="border-bottom:1px solid #ddd;padding:5px;">' + escapeHtml(String(c)) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>';
     document.body.appendChild(wrap);
-    html2pdf().set({ margin: 8, filename: title.replace(/\s+/g, '_') + '.pdf', jsPDF: { unit: 'mm', format: 'a4' } }).from(wrap).save().then(function () { document.body.removeChild(wrap); });
+    pauseScrollLock();
+    html2pdf().set({ margin: 8, filename: title.replace(/\s+/g, '_') + '.pdf', jsPDF: { unit: 'mm', format: 'a4' } }).from(wrap).save().then(function () { document.body.removeChild(wrap); resumeScrollLock(); });
   }
 
   function buildBillShareText_(invoiceNo, shareToken, totalDP) {
@@ -3319,7 +3383,9 @@
     await maybeAskAdvanceAndRerender_(lastSavedBill, 'printArea');
     showToast('Preparing PDF…');
     const el = document.getElementById('printArea');
+    pauseScrollLock();
     html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] } }).from(el).save().then(function () {
+      resumeScrollLock();
       let digits = String(lastSavedBill.mobile || '').replace(/\D/g, '');
       if (digits.length === 10) digits = '91' + digits;
       const text = buildBillShareText_(lastSavedBill.invoiceNo, lastSavedBill.shareToken, lastSavedBill.totalDP);
