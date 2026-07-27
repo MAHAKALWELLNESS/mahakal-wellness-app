@@ -2541,7 +2541,7 @@
       if (!pendingByInvoice[r.invoice_no]) pendingByInvoice[r.invoice_no] = { invoiceNo: r.invoice_no, date: r.invoices ? r.invoices.invoice_date : null, customer: r.invoices ? r.invoices.customer_name : '', mobile: r.invoices ? r.invoices.mobile : '', items: [] };
       pendingByInvoice[r.invoice_no].items.push(r);
     });
-    const invoices = Object.values(pendingByInvoice);
+    const invoices = Object.values(pendingByInvoice).sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
     if (!invoices.length) { box.innerHTML = '<div class="empty-cart">Nothing pending — all caught up.</div>'; return; }
     box.innerHTML = invoices.map(function (inv) {
       const dateStr = inv.date ? new Date(inv.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '';
