@@ -87,6 +87,7 @@
   async function loadBill() {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
+    const showAdvance = params.get('showAdvance') === '1';
     const main = document.getElementById('mainArea');
     if (!token) { main.innerHTML = '<div class="empty">No bill specified.</div>'; return; }
 
@@ -147,7 +148,8 @@
         (isPending ? '' :
           '<div class="receipt-total-row"><span>Cash</span><span>' + money(data.cash) + '</span></div>' +
           '<div class="receipt-total-row"><span>Online</span><span>' + money(data.online) + '</span></div>' +
-          '<div class="receipt-total-row"><span>Balance</span><span>' + (data.balance < 0 ? 'Due ' + money(-data.balance) : money(data.balance)) + '</span></div>') +
+          '<div class="receipt-total-row"><span>Balance</span><span>' + (data.balance < -0.005 ? 'Due ' + money(-data.balance) : 'Settled') + '</span></div>' +
+          (showAdvance && data.balance > 0.005 ? '<div class="receipt-total-row"><span>Advance Payment</span><span>' + money(data.balance) + '</span></div>' : '')) +
         '<p style="font-size:11px;color:var(--ink-soft);margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;">Rs. (in words): ' + numberToWordsIndian(data.totalDP) + '</p>' +
         (data.salesman ? '<p style="font-size:11.5px;color:var(--ink-faint);margin-top:6px;">Billed by ' + escapeHtml(data.salesman) + '</p>' : '') +
         '<div style="font-size:10.5px;color:var(--ink-faint);margin-top:14px;line-height:1.7;">' +
