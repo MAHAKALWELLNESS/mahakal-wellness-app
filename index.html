@@ -1791,19 +1791,33 @@
       '<p style="text-align:center;font-size:12px;color:var(--ink-faint);margin-top:14px;">Thank you for shopping with us!</p>';
   }
 
-  // FOUND THE ROOT CAUSE: opacity:0 (used to hide this container from the
-  // user) was ALSO being respected by html2canvas when it captured the
-  // content - meaning it rendered the bill as fully transparent/invisible
-  // into the PDF, producing a blank page. Fix: make the container briefly,
-  // fully visible and normally opaque (on top of everything, covering the
-  // screen for a split second) while the capture happens, then hide it again
-  // right after. This guarantees html2canvas sees fully-rendered, opaque
-  // content - no more relying on off-screen/opacity tricks that it may not
-  // respect.
+  // FOUND THE ACTUAL ROOT CAUSE: this app's CSS relies heavily on custom
+  // properties (var(--xxx)) for every color, border, and background used in
+  // the receipt - both inline styles and CSS classes (.receipt-table,
+  // .receipt-meta, .badge, etc). html2canvas (the library behind the PDF)
+  // has long-standing, well-known bugs resolving CSS custom properties -
+  // when it can't resolve var(--ink-soft) etc, text can render with no
+  // color at all, which on a white background looks completely blank even
+  // though the content is technically there. Fix: inject a small style
+  // block, scoped to this capture container, that force-overrides every
+  // receipt-related rule with a plain hex color instead of var() - this
+  // guarantees html2canvas has real, resolvable colors to render regardless
+  // of its var() support.
   function preparePdfCapture_(sourceId) {
     const capture = document.getElementById('pdfCaptureArea');
-    capture.innerHTML = document.getElementById(sourceId).innerHTML;
-    capture.style.cssText = 'position:fixed; top:0; left:0; width:520px; max-width:100vw; background:#fff; z-index:99999; padding:16px; box-sizing:border-box;';
+    const hardCodedOverrides =
+      '<style>' +
+      '#pdfCaptureArea, #pdfCaptureArea *{color:#222222 !important; border-color:#E7E4DC !important;}' +
+      '#pdfCaptureArea h2{color:#1E4A3D !important;}' +
+      '#pdfCaptureArea .receipt-meta{color:#555555 !important;}' +
+      '#pdfCaptureArea table.receipt-table th{color:#8A8A8A !important;}' +
+      '#pdfCaptureArea table.receipt-table tbody tr:nth-child(even){background:#F6F5F1 !important;}' +
+      '#pdfCaptureArea .receipt-total-row.grand{color:#1E4A3D !important;}' +
+      '#pdfCaptureArea .badge{background:#F7E9C7 !important; color:#B8842C !important;}' +
+      '#pdfCaptureArea *[style*="color"]{color:#222222 !important;}' +
+      '</style>';
+    capture.innerHTML = hardCodedOverrides + document.getElementById(sourceId).innerHTML;
+    capture.style.cssText = 'position:fixed; top:0; left:0; width:520px; max-width:100vw; background:#ffffff; z-index:99999; padding:16px; box-sizing:border-box;';
     return 'pdfCaptureArea';
   }
   function hidePdfCapture_() {
@@ -1828,7 +1842,7 @@
     const el = document.getElementById(preparePdfCapture_('printArea'));
     await waitForRender_();
     pauseScrollLock();
-    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, windowWidth: 900 } }).from(el).save().then(function () { hidePdfCapture_(); resumeScrollLock(); });
+    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, windowWidth: 900 } }).from(el).save().then(function () { hidePdfCapture_(); resumeScrollLock(); }).catch(function (err) { hidePdfCapture_(); resumeScrollLock(); showToast('PDF failed: ' + (err && err.message ? err.message : 'unknown error'), true); });
   }
 
   // ---------------- TABS ----------------
@@ -2481,7 +2495,7 @@
     const el = document.getElementById(preparePdfCapture_(sourceId));
     await waitForRender_();
     pauseScrollLock();
-    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, windowWidth: 900 } }).from(el).save().then(function () { hidePdfCapture_(); resumeScrollLock(); });
+    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, windowWidth: 900 } }).from(el).save().then(function () { hidePdfCapture_(); resumeScrollLock(); }).catch(function (err) { hidePdfCapture_(); resumeScrollLock(); showToast('PDF failed: ' + (err && err.message ? err.message : 'unknown error'), true); });
   }
   async function shareWhatsappFromDetail() {
     const sourceId = await getDetailPrintSourceId_();
@@ -2496,7 +2510,7 @@
       const text = buildBillShareText_(currentDetailInvoice, currentDetailShareToken, null, lastShowAdvanceChoice);
       const waUrl = digits ? 'https://wa.me/' + digits + '?text=' + encodeURIComponent(text) : 'https://wa.me/?text=' + encodeURIComponent(text);
       setTimeout(function () { window.open(waUrl, '_blank'); }, 900);
-    });
+    }).catch(function (err) { hidePdfCapture_(); resumeScrollLock(); showToast('PDF failed: ' + (err && err.message ? err.message : 'unknown error'), true); });
   }
 
   // ---------------- ACCOUNTING ----------------
@@ -3875,7 +3889,7 @@
       const waUrl = digits ? 'https://wa.me/' + digits + '?text=' + encodeURIComponent(text) : 'https://wa.me/?text=' + encodeURIComponent(text);
       showToast(digits ? 'PDF downloaded — opening their chat…' : 'PDF downloaded — pick a contact in WhatsApp.');
       setTimeout(function () { window.open(waUrl, '_blank'); }, 900);
-    });
+    }).catch(function (err) { hidePdfCapture_(); resumeScrollLock(); showToast('PDF failed: ' + (err && err.message ? err.message : 'unknown error'), true); });
   }
 </script>
 </body>
