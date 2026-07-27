@@ -400,6 +400,7 @@
     <!-- ============ DELIVERY UPDATE TAB ============ -->
     <section id="tab-pending" class="tab-panel">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadPendingList()">↻ Refresh</button>
+      <div class="card"><p class="section-label">Find a bill</p><input type="text" id="pendingSearch" class="search-input" placeholder="Invoice no, name or mobile…" oninput="renderPendingList()"></div>
       <div class="card">
         <h2>Delivery update</h2>
         <p class="hint" style="margin-bottom:10px;">Bills with items still to be delivered. Tap one to update.</p>
@@ -2555,8 +2556,21 @@
       if (!pendingByInvoice[r.invoice_no]) pendingByInvoice[r.invoice_no] = { invoiceNo: r.invoice_no, date: r.invoices ? r.invoices.invoice_date : null, customer: r.invoices ? r.invoices.customer_name : '', mobile: r.invoices ? r.invoices.mobile : '', items: [] };
       pendingByInvoice[r.invoice_no].items.push(r);
     });
-    const invoices = Object.values(pendingByInvoice).sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
-    if (!invoices.length) { box.innerHTML = '<div class="empty-cart">Nothing pending — all caught up.</div>'; return; }
+    renderPendingList();
+  }
+
+  function renderPendingList() {
+    const box = document.getElementById('pendingList');
+    const q = (document.getElementById('pendingSearch').value || '').trim().toLowerCase();
+    let invoices = Object.values(pendingByInvoice).sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+    if (q) {
+      invoices = invoices.filter(function (inv) {
+        return inv.invoiceNo.toLowerCase().indexOf(q) > -1 ||
+          (inv.customer || '').toLowerCase().indexOf(q) > -1 ||
+          String(inv.mobile || '').indexOf(q) > -1;
+      });
+    }
+    if (!invoices.length) { box.innerHTML = '<div class="empty-cart">' + (q ? 'No matching bills.' : 'Nothing pending — all caught up.') + '</div>'; return; }
     box.innerHTML = invoices.map(function (inv) {
       const dateStr = inv.date ? new Date(inv.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '';
       return '<div class="list-row" data-inv="' + inv.invoiceNo + '"><div><div class="result-name">' + inv.invoiceNo + '</div><div class="result-meta">' + escapeHtml(inv.customer || 'Walk-in') + (inv.mobile ? ' · ' + escapeHtml(String(inv.mobile)) : '') + ' · ' + dateStr + '</div></div><span class="badge badge-partial">' + inv.items.length + ' item' + (inv.items.length > 1 ? 's' : '') + '</span></div>';
