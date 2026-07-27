@@ -749,7 +749,10 @@
         <button class="quickbtn" type="button" style="flex:1;" onclick="fillPaymentStepFull('online')">Mark fully paid (Online)</button>
       </div>
       <div id="paymentStepBalanceLine" class="balance-line balance-due" style="margin-top:12px;"><span>Balance</span><span id="paymentStepBalanceValue">₹0</span></div>
-      <div class="modal-actions"><button class="btn btn-primary btn-block" onclick="proceedToDeliveryStep()">Next: Delivery →</button></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="backFromPaymentStep()">← Back</button>
+        <button class="btn btn-primary" onclick="proceedToDeliveryStep()">Next: Delivery →</button>
+      </div>
     </div>
   </div>
 
@@ -1510,6 +1513,11 @@
     document.getElementById('detailModal').classList.remove('show');
     await renderPaymentStep();
     document.getElementById('paymentStepModal').classList.add('show');
+  }
+
+  function backFromPaymentStep() {
+    document.getElementById('paymentStepModal').classList.remove('show');
+    document.getElementById('detailModal').classList.add('show');
   }
 
   async function renderPaymentStep() {
