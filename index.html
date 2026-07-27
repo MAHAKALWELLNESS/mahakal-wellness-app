@@ -789,9 +789,14 @@
   <!-- ============ PROCEED FURTHER: STEP 3 - OFFICIAL WORK PRE-FILL ============ -->
   <div class="modal-overlay" id="officialPrefillModal">
     <div class="modal-sheet">
-      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Step 3 of 3: Official Work</h2>
-      <p class="hint" style="margin-bottom:4px;">Optional — fill this in only if you already know who this bill's SP will be credited to. You can leave it blank and fill it later in the Official tab instead.</p>
-      <p class="hint" style="margin-bottom:12px;font-weight:700;color:var(--green-800);">Bill Total SP: <span id="prefillTotalSp">0</span></p>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+        <h2 style="font-size:17px;color:var(--green-800);margin:0;">Step 3 of 3: Official Work</h2>
+        <div style="background:var(--gold-500);color:var(--green-900);border-radius:10px;padding:6px 12px;text-align:center;line-height:1.2;white-space:nowrap;">
+          <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;">Total SP</div>
+          <div style="font-size:18px;font-weight:800;" id="prefillTotalSp">0</div>
+        </div>
+      </div>
+      <p class="hint" style="margin-bottom:12px;">Optional — fill this in only if you already know who this bill's SP will be credited to. You can leave it blank and fill it later in the Official tab instead.</p>
       <div class="field-row">
         <div class="field"><label for="prefillDsId">DS ID (for SP credit)</label><input type="text" id="prefillDsId" placeholder="Distributor ID"></div>
         <div class="field"><label for="prefillDsName">DS Name</label><input type="text" id="prefillDsName" placeholder="Distributor name"></div>
