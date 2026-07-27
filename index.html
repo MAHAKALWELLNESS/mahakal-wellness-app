@@ -785,7 +785,8 @@
   <div class="modal-overlay" id="officialPrefillModal">
     <div class="modal-sheet">
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Step 3 of 3: Official Work</h2>
-      <p class="hint" style="margin-bottom:12px;">Optional — fill this in only if you already know who this bill's SP will be credited to. You can leave it blank and fill it later in the Official tab instead.</p>
+      <p class="hint" style="margin-bottom:4px;">Optional — fill this in only if you already know who this bill's SP will be credited to. You can leave it blank and fill it later in the Official tab instead.</p>
+      <p class="hint" style="margin-bottom:12px;font-weight:700;color:var(--green-800);">Bill Total SP: <span id="prefillTotalSp">0</span></p>
       <div class="field-row">
         <div class="field"><label for="prefillDsId">DS ID (for SP credit)</label><input type="text" id="prefillDsId" placeholder="Distributor ID"></div>
         <div class="field"><label for="prefillDsName">DS Name</label><input type="text" id="prefillDsName" placeholder="Distributor name"></div>
@@ -794,7 +795,11 @@
         <div class="field"><label for="prefillOrderType">Greening/Repurchase</label><select id="prefillOrderType" onchange="togglePrefillSaoSgo()"><option value="Greening">Greening</option><option value="Repurchase">Repurchase</option></select></div>
         <div class="field" id="prefillSaoSgoField" style="display:none;"><label for="prefillSaoSgo">SAO/SGO</label><select id="prefillSaoSgo"><option value="SAO">SAO</option><option value="SGO">SGO</option></select></div>
       </div>
-      <div class="field" style="margin-bottom:0;"><label for="prefillSpAmount">SP to allocate</label><input type="number" id="prefillSpAmount" min="0" step="0.01" placeholder="0"></div>
+      <div class="field" style="margin-bottom:0;">
+        <label for="prefillSpAmount">SP to allocate</label>
+        <input type="number" id="prefillSpAmount" min="0" step="0.01" placeholder="0" oninput="capPrefillSpAmount()">
+        <p class="login-error" id="prefillSpWarning" style="min-height:0;margin:4px 0 0;"></p>
+      </div>
       <div class="modal-actions">
         <button class="btn btn-outline" onclick="backToDeliveryStep()">← Back</button>
         <button class="btn btn-primary" onclick="confirmDeliveryFlow()">Confirm &amp; Finish</button>
@@ -1663,6 +1668,9 @@
       return { code: row.dataset.code, delivered_qty: delivered };
     });
     document.getElementById('deliveryModal').classList.remove('show');
+    document.getElementById('prefillTotalSp').textContent = trimNum(currentDetailBill.totalSP);
+    document.getElementById('prefillSpAmount').max = currentDetailBill.totalSP;
+    document.getElementById('prefillSpWarning').textContent = '';
     document.getElementById('officialPrefillModal').classList.add('show');
   }
 
@@ -1675,6 +1683,18 @@
     document.getElementById('prefillSaoSgoField').style.display = document.getElementById('prefillOrderType').value === 'Repurchase' ? 'block' : 'none';
   }
 
+  function capPrefillSpAmount() {
+    const input = document.getElementById('prefillSpAmount');
+    const totalSp = currentDetailBill ? Number(currentDetailBill.totalSP) : 0;
+    const val = Number(input.value);
+    if (val > totalSp) {
+      input.value = totalSp;
+      document.getElementById('prefillSpWarning').textContent = 'Can\'t exceed this bill\'s Total SP (' + trimNum(totalSp) + ').';
+    } else {
+      document.getElementById('prefillSpWarning').textContent = '';
+    }
+  }
+
   async function confirmDeliveryFlow() {
     if (!currentDetailBill) return;
     const invoiceNo = currentDetailBill.invoiceNo;
@@ -1683,6 +1703,10 @@
     const orderType = document.getElementById('prefillOrderType').value;
     const saoSgo = orderType === 'Repurchase' ? document.getElementById('prefillSaoSgo').value : null;
     const spAmount = document.getElementById('prefillSpAmount').value;
+    if (spAmount && Number(spAmount) > Number(currentDetailBill.totalSP)) {
+      showToast('SP to allocate can\'t exceed this bill\'s Total SP (' + trimNum(currentDetailBill.totalSP) + ').', true);
+      return;
+    }
     const { error } = await sb.rpc('confirm_delivery', {
       p_invoice_no: invoiceNo, p_items: proceedFurtherDeliveryItems,
       p_cash: proceedFurtherPayment.cash, p_online: proceedFurtherPayment.online, p_wallet_used: proceedFurtherPayment.walletUsed,
