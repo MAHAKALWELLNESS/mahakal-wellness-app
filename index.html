@@ -260,8 +260,7 @@
 
     <nav class="tabs">
       <button class="tab" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
-      <button class="tab" data-tab="stock" onclick="switchTab('stock')">Purchase</button>
-      <button class="tab active" data-tab="bill" onclick="switchTab('bill')">New Bill</button>
+      <button class="tab active" data-tab="newbillmain" onclick="switchTab('newbillmain')">New Bill</button>
       <button class="tab" data-tab="approval" onclick="switchTab('approval')">Bill Approval</button>
       <button class="tab" data-tab="history" onclick="switchTab('history')">Past Bill</button>
       <button class="tab" data-tab="accounting" onclick="switchTab('accounting')">Accounting</button>
@@ -279,7 +278,12 @@
     </nav>
 
     <main>
-    <section id="tab-bill" class="tab-panel active">
+    <section id="tab-newbillmain" class="tab-panel active">
+      <div class="subtabs">
+        <button class="subtab active" data-subtab="sale" onclick="switchNewBillMainSubtab('sale')">Sale</button>
+        <button class="subtab" data-subtab="purchase" onclick="switchNewBillMainSubtab('purchase')">Purchase</button>
+      </div>
+      <div id="nbmsub-sale" class="subtab-panel active">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="resetNewBillForm()">↻ Refresh / Start Fresh</button>
       <div class="card">
         <p class="section-label">Customer/Distributor</p>
@@ -338,10 +342,9 @@
         </div>
         <div class="field" style="margin-bottom:0;"><label for="remark">Remark (optional)</label><input type="text" id="remark" placeholder="Any note for this bill"></div>
       </div>
-    </section>
+      </div>
 
-    <!-- ============ PURCHASE TAB ============ -->
-    <section id="tab-stock" class="tab-panel">
+      <div id="nbmsub-purchase" class="subtab-panel">
       <div class="subtabs">
         <button class="subtab active" data-subtab="new" onclick="switchPurchaseSubtab('new')">New Purchase</button>
         <button class="subtab" data-subtab="bills" onclick="switchPurchaseSubtab('bills')">Purchase Bills</button>
@@ -386,6 +389,7 @@
       <div class="card">
         <h2>Low stock</h2>
         <div id="lowStockList"><div class="empty-cart">Loading…</div></div>
+      </div>
       </div>
     </section>
 
@@ -2135,8 +2139,9 @@
     document.querySelectorAll('.tab').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === name); });
     document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
     document.getElementById('tab-' + name).classList.add('active');
-    document.getElementById('summaryBar').style.display = (name === 'bill') ? 'flex' : 'none';
-    if (name === 'stock') { if (!purchaseProductsWired) { purchaseProductsWired = true; wirePurchaseSearch(); } refreshLowStock(); }
+    const saleSubtabActive = document.getElementById('nbmsub-sale') && document.getElementById('nbmsub-sale').classList.contains('active');
+    document.getElementById('summaryBar').style.display = (name === 'newbillmain' && saleSubtabActive) ? 'flex' : 'none';
+    if (name === 'newbillmain') { if (!purchaseProductsWired) { purchaseProductsWired = true; wirePurchaseSearch(); } refreshLowStock(); }
     if (name === 'history') searchHistory();
     if (name === 'accounting') loadAccounting();
     if (name === 'pending') loadPendingList();
@@ -2168,8 +2173,16 @@
   }
   let pendingPurchaseProduct = null;
 
+  function switchNewBillMainSubtab(name) {
+    const c = document.getElementById('tab-newbillmain');
+    c.querySelectorAll(':scope > .subtabs > .subtab[data-subtab]').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
+    c.querySelectorAll(':scope > .subtab-panel').forEach(function (p) { p.classList.remove('active'); });
+    document.getElementById('nbmsub-' + name).classList.add('active');
+    document.getElementById('summaryBar').style.display = (name === 'sale') ? 'flex' : 'none';
+  }
+
   function switchPurchaseSubtab(name) {
-    const c = document.getElementById('tab-stock');
+    const c = document.getElementById('nbmsub-purchase');
     c.querySelectorAll('.subtab').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
     c.querySelectorAll('.subtab-panel').forEach(function (p) { p.classList.remove('active'); });
     document.getElementById('psub-' + name).classList.add('active');
