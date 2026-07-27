@@ -261,15 +261,18 @@
 
   function showPaymentQr(invoiceNo, totalAmount) {
     const upiUrl = 'upi://pay?pa=' + encodeURIComponent(BUSINESS_UPI_ID) + '&pn=' + encodeURIComponent(BUSINESS_PAYEE_NAME) +
-      '&am=' + encodeURIComponent(Number(totalAmount).toFixed(2)) + '&cu=INR&tn=' + encodeURIComponent('Order ' + invoiceNo);
+      '&am=' + encodeURIComponent(Number(totalAmount).toFixed(2)) + '&cu=INR&tr=' + encodeURIComponent(invoiceNo) + '&tn=' + encodeURIComponent('Order ' + invoiceNo);
     const qrImgUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(upiUrl);
     document.getElementById('mainArea').innerHTML =
       '<div class="card" style="text-align:center;">' +
         '<h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Pay now via UPI</h2>' +
         '<p class="hint">Order No. <strong>' + escapeHtml(invoiceNo) + '</strong> · ' + money(totalAmount) + '</p>' +
         '<div class="qr-box"><img src="' + qrImgUrl + '" alt="UPI QR code"></div>' +
-        '<p class="hint">Scan with any UPI app — the amount (' + money(totalAmount) + ') is already filled in.</p>' +
-        '<a class="btn btn-gold" style="margin-top:12px;" href="' + escapeHtml(upiUrl) + '">Pay with UPI app</a>' +
+        '<p class="hint"><strong>Recommended:</strong> open your UPI app and scan this QR — the amount (' + money(totalAmount) + ') is already filled in.</p>' +
+      '</div>' +
+      '<div class="card" style="text-align:center;">' +
+        '<a class="btn" style="background:transparent;border:1.5px solid var(--line);color:var(--green-800);" href="' + escapeHtml(upiUrl) + '">Or tap here to open your UPI app</a>' +
+        '<p class="hint" style="margin-top:8px;">If this shows an "unable to proceed" error, please use the QR code above instead — that always works.</p>' +
       '</div>' +
       '<div class="card">' +
         '<div class="field" style="margin-bottom:0;"><label for="payUtr">Your UPI transaction ref. (optional)</label><input type="text" id="payUtr" placeholder="If shown in your UPI app"></div>' +
