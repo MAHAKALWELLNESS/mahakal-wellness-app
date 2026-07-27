@@ -770,6 +770,14 @@
       <div id="pstmt-deposits" class="subtab-panel">
         <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadCashDeposits()">↻ Refresh</button>
         <div class="card">
+          <p class="section-label">Cash on hand (not yet deposited)</p>
+          <div class="stat-grid" style="margin-bottom:10px;">
+            <div class="stat-card"><div class="stat-label">Total Cash Received</div><div class="stat-value" id="cashOnHandReceived" style="font-size:18px;">₹0</div></div>
+            <div class="stat-card"><div class="stat-label">Total Deposited</div><div class="stat-value" id="cashOnHandDeposited" style="font-size:18px;">₹0</div></div>
+          </div>
+          <div class="stat-card warn"><div class="stat-label">Remaining to Deposit</div><div class="stat-value" id="cashOnHandRemaining">₹0</div></div>
+        </div>
+        <div class="card">
           <p class="section-label">Record a cash deposit</p>
           <div class="field-row">
             <div class="field"><label for="depositDate">Date</label><input type="date" id="depositDate"></div>
@@ -4394,6 +4402,22 @@
     if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
     cashDepositsData = data || [];
     renderCashDeposits();
+    refreshCashOnHand();
+  }
+
+  // "Cash on hand" is an all-time running balance (Total Cash Received minus
+  // Total Deposited so far) - independent of whatever date range is applied
+  // to the deposits list above, since it represents the current, live
+  // undeposited amount right now.
+  async function refreshCashOnHand() {
+    const { data: cashPayments } = await sb.from('payments').select('amount').eq('mode', 'Cash');
+    const totalReceived = (cashPayments || []).reduce(function (s, r) { return s + Number(r.amount); }, 0);
+    const { data: allDeposits } = await sb.from('cash_deposits').select('amount');
+    const totalDeposited = (allDeposits || []).reduce(function (s, r) { return s + Number(r.amount); }, 0);
+    const remaining = totalReceived - totalDeposited;
+    document.getElementById('cashOnHandReceived').textContent = money(totalReceived);
+    document.getElementById('cashOnHandDeposited').textContent = money(totalDeposited);
+    document.getElementById('cashOnHandRemaining').textContent = money(remaining);
   }
 
   function renderCashDeposits() {
