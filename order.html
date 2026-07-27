@@ -216,15 +216,17 @@
     const subtotal = items.reduce(function (s, it) { return s + it.qty * it[priceField]; }, 0);
     const totalSp = items.reduce(function (s, it) { return s + it.qty * it.sp; }, 0);
     let discountAmt = 0;
+    let finalTotal = subtotal;
     if (isRetail) {
       let pct = Number(document.getElementById('discountPercent').value) || 0;
       if (pct > 5) pct = 5;
-      discountAmt = subtotal * pct / 100;
+      finalTotal = Math.round(subtotal * (1 - pct / 100));
+      discountAmt = subtotal - finalTotal;
     }
     document.getElementById('discountLine').style.display = (isRetail && discountAmt > 0) ? 'flex' : 'none';
     document.getElementById('cartDiscount').textContent = '−' + money(discountAmt);
     document.getElementById('cartSp').textContent = trimNum(totalSp) + ' SP';
-    document.getElementById('cartTotal').textContent = money(subtotal - discountAmt);
+    document.getElementById('cartTotal').textContent = money(finalTotal);
     document.getElementById('saveNoPayBtn').disabled = items.length === 0;
     document.getElementById('payNowBtn').disabled = items.length === 0;
   }

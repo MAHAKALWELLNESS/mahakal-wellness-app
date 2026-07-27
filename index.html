@@ -1586,8 +1586,8 @@
 
     const isRetail = document.getElementById('custType').value === 'Retail';
     const discountPercent = isRetail ? (Number(document.getElementById('discountPercent').value) || 0) : 0;
-    const discountAmount = Math.round(totalMrp * discountPercent) / 100;
-    const netAmount = totalMrp - discountAmount;
+    const netAmount = Math.round(totalMrp * (1 - discountPercent / 100));
+    const discountAmount = totalMrp - netAmount;
     if (isRetail) {
       document.getElementById('retailTotalMrp').textContent = money(totalMrp);
       document.getElementById('retailDiscountAmt').textContent = money(discountAmount) + (discountPercent ? ' (' + discountPercent + '%)' : '');
