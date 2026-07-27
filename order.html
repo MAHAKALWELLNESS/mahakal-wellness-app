@@ -82,6 +82,8 @@
 
   let ALL_PRODUCTS = [];
   let CART = {}; // code -> { code, name, mrp, qty }
+  let currentOrderTotalSp = 0;
+  let officialEntriesAdded = []; // { dsId, dsName, orderType, saoSgo, sp }
 
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -255,6 +257,8 @@
       document.getElementById('payNowBtn').textContent = 'Pay Now';
       return;
     }
+    currentOrderTotalSp = Number(data.totalSp) || 0;
+    officialEntriesAdded = [];
     if (wantsToPay) showPaymentQr(data.invoiceNo, data.totalAmount);
     else showThankYou(data.invoiceNo, data.totalAmount, false);
   }
@@ -301,48 +305,81 @@
   }
 
   function showOfficialWorkForm(invoiceNo) {
+    renderOfficialWorkScreen(invoiceNo);
+  }
+
+  function renderOfficialWorkScreen(invoiceNo) {
+    const usedSp = officialEntriesAdded.reduce(function (s, e) { return s + e.sp; }, 0);
+    const remainingSp = currentOrderTotalSp - usedSp;
+    const entriesHtml = officialEntriesAdded.map(function (e) {
+      return '<div class="cart-row"><div><div class="cart-name">' + escapeHtml(e.dsId || '(No DS ID)') + (e.dsName ? ' — ' + escapeHtml(e.dsName) : '') + '</div>' +
+        '<div class="cart-price">' + e.orderType + (e.saoSgo ? ' (' + e.saoSgo + ')' : '') + '</div></div>' +
+        '<div class="cart-price" style="font-weight:700;color:var(--green-800);">' + trimNum(e.sp) + ' SP</div></div>';
+    }).join('');
+
     document.getElementById('mainArea').innerHTML =
       '<div class="card">' +
-        '<p class="section-label">Official Work (optional)</p>' +
-        '<p class="hint" style="margin-bottom:14px;">If you know which Distributor ID this order\'s SP should be credited to, fill it in below. Otherwise just skip.</p>' +
-        '<div class="field-row">' +
-          '<div class="field"><label for="ofDsId">DS ID</label><input type="text" id="ofDsId" placeholder="Distributor ID"></div>' +
-          '<div class="field"><label for="ofDsName">DS Name</label><input type="text" id="ofDsName" placeholder="Distributor name"></div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">' +
+          '<p class="section-label" style="margin:0;">Official Work (optional)</p>' +
+          '<div style="background:var(--gold-500);color:var(--green-900);border-radius:10px;padding:6px 12px;text-align:center;white-space:nowrap;">' +
+            '<div style="font-size:9px;font-weight:700;text-transform:uppercase;">Remaining SP</div>' +
+            '<div style="font-size:18px;font-weight:800;">' + trimNum(remainingSp) + '</div>' +
+          '</div>' +
         '</div>' +
-        '<div class="field-row">' +
-          '<div class="field"><label for="ofOrderType">Greening/Repurchase</label>' +
-            '<select id="ofOrderType" onchange="toggleOfSaoSgo()" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">' +
-              '<option value="Greening">Greening</option><option value="Repurchase">Repurchase</option>' +
-            '</select></div>' +
-          '<div class="field" id="ofSaoSgoField" style="display:none;"><label for="ofSaoSgo">SAO/SGO</label>' +
-            '<select id="ofSaoSgo" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">' +
-              '<option value="SAO">SAO</option><option value="SGO">SGO</option>' +
-            '</select></div>' +
-        '</div>' +
-        '<div class="field" style="margin-bottom:0;"><label for="ofSpAmount">SP to allocate</label><input type="number" id="ofSpAmount" min="0" step="0.01" placeholder="0"></div>' +
+        '<p class="hint" style="margin-bottom:14px;">Total SP for this order: <strong>' + trimNum(currentOrderTotalSp) + '</strong>. Split it across one or more Distributor IDs if you know them, or skip.</p>' +
+        (entriesHtml ? '<div style="margin-bottom:14px;border-top:1px solid var(--line);">' + entriesHtml + '</div>' : '') +
+        (remainingSp > 0.005 ?
+          '<div class="field-row">' +
+            '<div class="field"><label for="ofDsId">DS ID</label><input type="text" id="ofDsId" placeholder="Distributor ID"></div>' +
+            '<div class="field"><label for="ofDsName">DS Name</label><input type="text" id="ofDsName" placeholder="Distributor name"></div>' +
+          '</div>' +
+          '<div class="field-row">' +
+            '<div class="field"><label for="ofOrderType">Greening/Repurchase</label>' +
+              '<select id="ofOrderType" onchange="toggleOfSaoSgo()" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">' +
+                '<option value="Greening">Greening</option><option value="Repurchase">Repurchase</option>' +
+              '</select></div>' +
+            '<div class="field" id="ofSaoSgoField" style="display:none;"><label for="ofSaoSgo">SAO/SGO</label>' +
+              '<select id="ofSaoSgo" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">' +
+                '<option value="SAO">SAO</option><option value="SGO">SGO</option>' +
+              '</select></div>' +
+          '</div>' +
+          '<div class="field" style="margin-bottom:0;"><label for="ofSpAmount">SP to allocate (max ' + trimNum(remainingSp) + ')</label><input type="number" id="ofSpAmount" min="0" max="' + remainingSp + '" step="0.01" placeholder="0" oninput="capOfSpAmount(' + remainingSp + ')"></div>' +
+          '<p class="error-msg" id="ofError"></p>'
+          : '<p class="hint" style="text-align:center;">All SP has been allocated across the entries above.</p>') +
       '</div>' +
-      '<button class="btn btn-gold" style="margin-bottom:8px;" onclick="submitOfficialWork(\'' + invoiceNo + '\')">Save &amp; Continue</button>' +
-      '<button class="btn" style="background:transparent;border:1.5px solid var(--line);color:var(--green-800);" onclick="showFinalReceipt(\'' + invoiceNo + '\')">Skip</button>';
+      (remainingSp > 0.005 ? '<button class="btn" style="background:transparent;border:1.5px solid var(--line);color:var(--green-800);margin-bottom:8px;" onclick="addOfficialEntry(\'' + invoiceNo + '\')">+ Add This Entry</button>' : '') +
+      '<button class="btn btn-gold" onclick="showFinalReceipt(\'' + invoiceNo + '\')">' + (officialEntriesAdded.length > 0 ? 'Continue' : 'Skip') + '</button>';
   }
 
   function toggleOfSaoSgo() {
     document.getElementById('ofSaoSgoField').style.display = document.getElementById('ofOrderType').value === 'Repurchase' ? 'block' : 'none';
   }
 
-  async function submitOfficialWork(invoiceNo) {
+  function capOfSpAmount(remainingSp) {
+    const input = document.getElementById('ofSpAmount');
+    if (Number(input.value) > remainingSp) input.value = remainingSp;
+  }
+
+  async function addOfficialEntry(invoiceNo) {
+    const errBox = document.getElementById('ofError');
+    errBox.textContent = '';
     const dsId = document.getElementById('ofDsId').value.trim();
     const dsName = document.getElementById('ofDsName').value.trim();
     const orderType = document.getElementById('ofOrderType').value;
     const saoSgo = orderType === 'Repurchase' ? document.getElementById('ofSaoSgo').value : null;
-    const spAmount = document.getElementById('ofSpAmount').value;
-    if (dsId || dsName || spAmount) {
-      await sb.rpc('save_order_official_prefill', {
-        p_invoice_no: invoiceNo, p_ds_id: dsId || null, p_ds_name: dsName || null,
-        p_greening_repurchase: (dsId || dsName) ? orderType : null, p_sao_sgo: saoSgo,
-        p_sp_to_allocate: spAmount ? Number(spAmount) : null
-      });
-    }
-    showFinalReceipt(invoiceNo);
+    const spAmount = Number(document.getElementById('ofSpAmount').value);
+    if (!(spAmount > 0)) { errBox.textContent = 'Enter a valid SP amount.'; return; }
+    const usedSp = officialEntriesAdded.reduce(function (s, e) { return s + e.sp; }, 0);
+    const remainingSp = currentOrderTotalSp - usedSp;
+    if (spAmount > remainingSp + 0.005) { errBox.textContent = 'Only ' + trimNum(remainingSp) + ' SP remaining for this order.'; return; }
+
+    const { error } = await sb.rpc('save_order_official_entry', {
+      p_invoice_no: invoiceNo, p_ds_id: dsId || null, p_ds_name: dsName || null,
+      p_greening_repurchase: orderType, p_sao_sgo: saoSgo, p_sp_allocated: spAmount
+    });
+    if (error) { errBox.textContent = error.message || 'Could not save this entry.'; return; }
+    officialEntriesAdded.push({ dsId: dsId, dsName: dsName, orderType: orderType, saoSgo: saoSgo, sp: spAmount });
+    renderOfficialWorkScreen(invoiceNo);
   }
 
   async function showFinalReceipt(invoiceNo) {
