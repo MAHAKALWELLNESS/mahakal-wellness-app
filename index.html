@@ -275,6 +275,7 @@
       <button class="tab" data-tab="offers" onclick="switchTab('offers')">Offers</button>
       <button class="tab" data-tab="offertracking" onclick="switchTab('offertracking')">Offer Tracking</button>
       <button class="tab" data-tab="broadcast" onclick="switchTab('broadcast')">Broadcast</button>
+      <button class="tab" data-tab="paymentstatement" onclick="switchTab('paymentstatement')">Payment Statement</button>
     </nav>
 
     <main>
@@ -715,6 +716,82 @@
         <button class="btn btn-outline btn-block" style="margin-top:8px;color:var(--danger);border-color:var(--danger);" onclick="stopBroadcast()">Stop Broadcast</button>
       </div>
     </section>
+
+    <!-- ============ PAYMENT STATEMENT TAB ============ -->
+    <section id="tab-paymentstatement" class="tab-panel">
+      <div class="subtabs">
+        <button class="subtab active" data-subtab="online" onclick="switchPaymentStmtSubtab('online')">Online</button>
+        <button class="subtab" data-subtab="cash" onclick="switchPaymentStmtSubtab('cash')">Cash</button>
+        <button class="subtab" data-subtab="deposits" onclick="switchPaymentStmtSubtab('deposits')">Cash Deposits</button>
+      </div>
+
+      <div id="pstmt-online" class="subtab-panel active">
+        <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadPaymentStmt('online')">↻ Refresh</button>
+        <div class="card">
+          <p class="section-label">Quick range</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('online','today')">Today</button>
+            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('online','week')">This week (Thu–Wed)</button>
+            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('online','month')">This month</button>
+          </div>
+          <div class="field-row"><div class="field"><label>From</label><input type="date" id="pstmtOnlineFrom"></div><div class="field"><label>To</label><input type="date" id="pstmtOnlineTo"></div></div>
+          <button class="btn btn-primary btn-block" onclick="loadPaymentStmt('online')">Apply filter</button>
+        </div>
+        <div class="card">
+          <div style="display:flex;gap:8px;margin-bottom:10px;"><button class="btn btn-outline" style="flex:1;" onclick="exportPaymentStmtCsv('online')">Download Excel</button><button class="btn btn-outline" style="flex:1;" onclick="exportPaymentStmtPdf('online')">Download PDF</button></div>
+          <div id="pstmtOnlineTotal" style="margin-bottom:10px;font-weight:700;color:var(--green-800);"></div>
+          <div id="pstmtOnlineList"><div class="empty-cart">Loading…</div></div>
+        </div>
+      </div>
+
+      <div id="pstmt-cash" class="subtab-panel">
+        <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadPaymentStmt('cash')">↻ Refresh</button>
+        <div class="card">
+          <p class="section-label">Quick range</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('cash','today')">Today</button>
+            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('cash','week')">This week (Thu–Wed)</button>
+            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('cash','month')">This month</button>
+          </div>
+          <div class="field-row"><div class="field"><label>From</label><input type="date" id="pstmtCashFrom"></div><div class="field"><label>To</label><input type="date" id="pstmtCashTo"></div></div>
+          <button class="btn btn-primary btn-block" onclick="loadPaymentStmt('cash')">Apply filter</button>
+        </div>
+        <div class="card">
+          <div style="display:flex;gap:8px;margin-bottom:10px;"><button class="btn btn-outline" style="flex:1;" onclick="exportPaymentStmtCsv('cash')">Download Excel</button><button class="btn btn-outline" style="flex:1;" onclick="exportPaymentStmtPdf('cash')">Download PDF</button></div>
+          <div id="pstmtCashTotal" style="margin-bottom:10px;font-weight:700;color:var(--green-800);"></div>
+          <div id="pstmtCashList"><div class="empty-cart">Loading…</div></div>
+        </div>
+      </div>
+
+      <div id="pstmt-deposits" class="subtab-panel">
+        <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadCashDeposits()">↻ Refresh</button>
+        <div class="card">
+          <p class="section-label">Record a cash deposit</p>
+          <div class="field-row">
+            <div class="field"><label for="depositDate">Date</label><input type="date" id="depositDate"></div>
+            <div class="field"><label for="depositAmount">Amount ₹</label><input type="number" id="depositAmount" min="0" step="0.01" placeholder="0"></div>
+          </div>
+          <div class="field"><label for="depositBy">Deposited by</label><input type="text" id="depositBy" placeholder="Staff name"></div>
+          <div class="field" style="margin-bottom:0;"><label for="depositNote">Note (optional)</label><input type="text" id="depositNote" placeholder="e.g. HDFC branch"></div>
+          <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="submitCashDeposit()">Record Deposit</button>
+        </div>
+        <div class="card">
+          <p class="section-label">Quick range</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('deposits','today')">Today</button>
+            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('deposits','week')">This week (Thu–Wed)</button>
+            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('deposits','month')">This month</button>
+          </div>
+          <div class="field-row"><div class="field"><label>From</label><input type="date" id="pstmtDepositsFrom"></div><div class="field"><label>To</label><input type="date" id="pstmtDepositsTo"></div></div>
+          <button class="btn btn-primary btn-block" onclick="loadCashDeposits()">Apply filter</button>
+        </div>
+        <div class="card">
+          <div style="display:flex;gap:8px;margin-bottom:10px;"><button class="btn btn-outline" style="flex:1;" onclick="exportDepositsCsv()">Download Excel</button><button class="btn btn-outline" style="flex:1;" onclick="exportDepositsPdf()">Download PDF</button></div>
+          <div id="depositsTotal" style="margin-bottom:10px;font-weight:700;color:var(--green-800);"></div>
+          <div id="depositsList"><div class="empty-cart">Loading…</div></div>
+        </div>
+      </div>
+    </section>
     </main>
 
     <div id="summaryBar" class="summary-bar">
@@ -762,6 +839,10 @@
       <div class="field-row">
         <div class="field"><label for="paymentStepCash">Cash ₹</label><input type="number" id="paymentStepCash" placeholder="0" min="0" step="0.01" oninput="renderPaymentStepBalance()"></div>
         <div class="field"><label for="paymentStepOnline">Online / UPI ₹</label><input type="number" id="paymentStepOnline" placeholder="0" min="0" step="0.01" oninput="renderPaymentStepBalance()"></div>
+      </div>
+      <div class="field" id="paymentStepUtrField" style="display:none;">
+        <label for="paymentStepUtr">UTR Number</label>
+        <input type="text" id="paymentStepUtr" placeholder="Transaction reference number">
       </div>
       <div style="display:flex;gap:8px;">
         <button class="quickbtn" type="button" style="flex:1;" onclick="fillPaymentStepFull('cash')">Mark fully paid (Cash)</button>
@@ -876,9 +957,10 @@
         <p class="section-label">Add balance received</p>
         <p class="hint" style="margin-bottom:10px;">Customer sent extra money directly (not tied to a bill)? Record it here.</p>
         <div class="field-row">
-          <div class="field"><label for="walletAddCash">Cash ₹</label><input type="number" id="walletAddCash" min="0" step="0.01" placeholder="0"></div>
-          <div class="field"><label for="walletAddOnline">Online ₹</label><input type="number" id="walletAddOnline" min="0" step="0.01" placeholder="0"></div>
+          <div class="field"><label for="walletAddCash">Cash ₹</label><input type="number" id="walletAddCash" min="0" step="0.01" placeholder="0" oninput="toggleWalletAddUtr()"></div>
+          <div class="field"><label for="walletAddOnline">Online ₹</label><input type="number" id="walletAddOnline" min="0" step="0.01" placeholder="0" oninput="toggleWalletAddUtr()"></div>
         </div>
+        <div class="field" id="walletAddUtrField" style="display:none;"><label for="walletAddUtr">UTR Number</label><input type="text" id="walletAddUtr" placeholder="Transaction reference number"></div>
         <div class="field" style="margin-bottom:0;"><label for="walletAddNote">Note (optional)</label><input type="text" id="walletAddNote" placeholder="e.g. Advance for next order"></div>
         <button class="btn btn-gold btn-block" style="margin-top:10px;" onclick="submitWalletAddCredit()">Add to Wallet</button>
       </div>
@@ -1627,6 +1709,8 @@
     document.getElementById('paymentStepAmountDue').textContent = money(amountDue);
     document.getElementById('paymentStepCash').value = '';
     document.getElementById('paymentStepOnline').value = '';
+    document.getElementById('paymentStepUtr').value = '';
+    document.getElementById('paymentStepUtrField').style.display = 'none';
     document.getElementById('paymentStepWalletUse').value = '';
     document.getElementById('paymentStepWalletWarning').textContent = '';
     document.getElementById('paymentStepWalletArea').style.display = 'none';
@@ -1675,6 +1759,7 @@
     const cash = Number(document.getElementById('paymentStepCash').value) || 0;
     const online = Number(document.getElementById('paymentStepOnline').value) || 0;
     const walletUsed = Number(document.getElementById('paymentStepWalletUse').value) || 0;
+    document.getElementById('paymentStepUtrField').style.display = online > 0.005 ? 'block' : 'none';
     const balance = (cash + online + walletUsed) - amountDue;
     const balEl = document.getElementById('paymentStepBalanceLine');
     const balVal = document.getElementById('paymentStepBalanceValue');
@@ -1706,9 +1791,14 @@
       showToast('Wallet amount can\'t exceed the available balance (' + money(currentWalletBalanceForPayment) + ').', true);
       return;
     }
+    const online = Number(document.getElementById('paymentStepOnline').value) || 0;
+    if (online > 0.005 && !document.getElementById('paymentStepUtr').value.trim()) {
+      showToast('UTR number is required for the online payment amount.', true);
+      return;
+    }
     proceedFurtherPayment = {
       cash: Number(document.getElementById('paymentStepCash').value) || 0,
-      online: Number(document.getElementById('paymentStepOnline').value) || 0,
+      online: online,
       walletUsed: walletUsed
     };
     document.getElementById('paymentStepModal').classList.remove('show');
@@ -1775,6 +1865,11 @@
   async function confirmDeliveryFlow() {
     if (!currentDetailBill) return;
     const invoiceNo = currentDetailBill.invoiceNo;
+    if (proceedFurtherPayment.online > 0.005 && !document.getElementById('paymentStepUtr').value.trim()) {
+      showToast('UTR number is required for the online payment amount.', true);
+      return;
+    }
+    const utrNo = document.getElementById('paymentStepUtr').value.trim();
     const dsId = document.getElementById('prefillDsId').value.trim();
     const dsName = document.getElementById('prefillDsName').value.trim();
     const orderType = document.getElementById('prefillOrderType').value;
@@ -1789,7 +1884,7 @@
       p_cash: proceedFurtherPayment.cash, p_online: proceedFurtherPayment.online, p_wallet_used: proceedFurtherPayment.walletUsed,
       p_ds_id: dsId || null, p_ds_name: dsName || null,
       p_greening_repurchase: (dsId || dsName) ? orderType : null,
-      p_sao_sgo: saoSgo, p_sp_to_allocate: spAmount ? Number(spAmount) : null
+      p_sao_sgo: saoSgo, p_sp_to_allocate: spAmount ? Number(spAmount) : null, p_utr_no: utrNo || null
     });
     if (error) { showToast('Could not finalize: ' + error.message, true); return; }
     showToast('Bill ' + invoiceNo + ' finalized.');
@@ -2057,6 +2152,7 @@
     if (name === 'offers') loadOffers();
     if (name === 'offertracking') loadOfferTrackingDropdown();
     if (name === 'broadcast' && !broadcastLoadedOnce) { broadcastLoadedOnce = true; loadBroadcastCustomers(); }
+    if (name === 'paymentstatement' && !paymentStmtLoadedOnce) { paymentStmtLoadedOnce = true; setPaymentStmtRange('online', 'today'); setPaymentStmtRange('cash', 'today'); setPaymentStmtRange('deposits', 'today'); }
   }
 
   function fmtDateInput_(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
@@ -2524,8 +2620,9 @@
     const box = document.getElementById('paymentEditArea');
     if (bill.balance >= -0.005) { box.innerHTML = ''; return; }
     box.innerHTML = '<div class="card" style="margin-top:4px;box-shadow:none;"><p class="section-label">Amount pending: ' + money(-bill.balance) + '</p>' +
-      '<div class="field-row"><div class="field"><label>Mode</label><select id="payEditMode"><option>Cash</option><option>Online</option></select></div>' +
+      '<div class="field-row"><div class="field"><label>Mode</label><select id="payEditMode" onchange="togglePayEditUtr()"><option>Cash</option><option>Online</option></select></div>' +
       '<div class="field"><label>Amount received</label><input type="number" id="payEditAmount" min="0" step="0.01" placeholder="0"></div></div>' +
+      '<div class="field" id="payEditUtrField" style="display:none;"><label>UTR Number</label><input type="text" id="payEditUtr" placeholder="Transaction reference number"></div>' +
       '<button class="btn btn-primary btn-block" id="recordPaymentBtn" type="button">Record payment</button>' +
       '<button class="btn btn-outline btn-block" id="sendReminderBtn" type="button" style="margin-top:8px;">Send Payment Reminder on WhatsApp</button></div>';
     document.getElementById('recordPaymentBtn').addEventListener('click', function () { submitPaymentEdit(bill.invoiceNo); });
@@ -2658,11 +2755,17 @@
     }
   }
 
+  function togglePayEditUtr() {
+    document.getElementById('payEditUtrField').style.display = document.getElementById('payEditMode').value === 'Online' ? 'block' : 'none';
+  }
+
   async function submitPaymentEdit(invoiceNo) {
     const mode = document.getElementById('payEditMode').value;
     const amount = Number(document.getElementById('payEditAmount').value);
     if (!(amount > 0)) { showToast('Enter a valid amount.', true); return; }
-    const { data, error } = await sb.rpc('add_payment', { p_invoice_no: invoiceNo, p_mode: mode, p_amount: amount });
+    const utrNo = document.getElementById('payEditUtr') ? document.getElementById('payEditUtr').value.trim() : '';
+    if (mode === 'Online' && !utrNo) { showToast('UTR number is required for online payments.', true); return; }
+    const { data, error } = await sb.rpc('add_payment', { p_invoice_no: invoiceNo, p_mode: mode, p_amount: amount, p_utr_no: utrNo || null });
     if (error) { showToast(error.message, true); return; }
     showToast(data.status === 'PAID' ? 'Fully settled.' : 'Payment recorded.');
     viewBill(invoiceNo, true);
@@ -3060,16 +3163,26 @@
     }).join('');
   }
 
+  function toggleWalletAddUtr() {
+    const online = Number(document.getElementById('walletAddOnline').value) || 0;
+    document.getElementById('walletAddUtrField').style.display = online > 0.005 ? 'block' : 'none';
+  }
+
   async function submitWalletAddCredit() {
     const cash = Number(document.getElementById('walletAddCash').value) || 0;
     const online = Number(document.getElementById('walletAddOnline').value) || 0;
     if (cash + online <= 0) { showToast('Enter Cash and/or Online amount.', true); return; }
-    const note = document.getElementById('walletAddNote').value.trim();
+    const utrNo = document.getElementById('walletAddUtr').value.trim();
+    if (online > 0.005 && !utrNo) { showToast('UTR number is required for online amounts.', true); return; }
+    let note = document.getElementById('walletAddNote').value.trim();
+    if (utrNo) note = (note ? note + ' — ' : '') + 'UTR: ' + utrNo;
     const { error } = await sb.rpc('add_wallet_credit', { p_mobile: currentWalletMobile, p_cash: cash, p_online: online, p_note: note });
     if (error) { showToast(error.message, true); return; }
     showToast('Added to wallet.');
     document.getElementById('walletAddCash').value = '';
     document.getElementById('walletAddOnline').value = '';
+    document.getElementById('walletAddUtr').value = '';
+    document.getElementById('walletAddUtrField').style.display = 'none';
     document.getElementById('walletAddNote').value = '';
     await refreshWalletDetail();
     searchWalletCustomers();
@@ -4133,6 +4246,129 @@
     const rows = getFilteredOrderCalcRows_(); if (!rows.length) { showToast('Nothing to export.', true); return; }
     downloadTablePdf('Order Calculation Report', ['Product', 'Code', 'Online', 'Physical', 'Off. Use', 'Delivered', 'Diff'],
       rows.map(function (p) { return [p.name, p.code, trimNum(p.online_qty), trimNum(p.physical_qty), trimNum(p.official_use_qty), trimNum(p.delivered_qty), trimNum(p.difference)]; }));
+  }
+
+  // ---------------- PAYMENT STATEMENT TAB ----------------
+  let paymentStmtLoadedOnce = false;
+  let paymentStmtData = { online: [], cash: [] };
+  let cashDepositsData = [];
+
+  function switchPaymentStmtSubtab(name) {
+    const c = document.getElementById('tab-paymentstatement');
+    c.querySelectorAll(':scope > .subtabs > .subtab[data-subtab]').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
+    c.querySelectorAll(':scope > .subtab-panel').forEach(function (p) { p.classList.remove('active'); });
+    document.getElementById('pstmt-' + name).classList.add('active');
+  }
+
+  function setPaymentStmtRange(which, preset) {
+    const now = new Date(); let from = new Date(now);
+    if (preset === 'week') { const day = now.getDay(); const daysSinceThursday = (day - 4 + 7) % 7; from = new Date(now); from.setDate(now.getDate() - daysSinceThursday); }
+    else if (preset === 'month') { from = new Date(now.getFullYear(), now.getMonth(), 1); }
+    const prefix = which === 'online' ? 'pstmtOnline' : (which === 'cash' ? 'pstmtCash' : 'pstmtDeposits');
+    document.getElementById(prefix + 'From').value = fmtDateInput_(from);
+    document.getElementById(prefix + 'To').value = fmtDateInput_(now);
+    if (which === 'deposits') loadCashDeposits(); else loadPaymentStmt(which);
+  }
+
+  async function loadPaymentStmt(which) {
+    const mode = which === 'online' ? 'Online' : 'Cash';
+    const box = document.getElementById(which === 'online' ? 'pstmtOnlineList' : 'pstmtCashList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const from = document.getElementById(which === 'online' ? 'pstmtOnlineFrom' : 'pstmtCashFrom').value;
+    const to = document.getElementById(which === 'online' ? 'pstmtOnlineTo' : 'pstmtCashTo').value;
+    let query = sb.from('payments').select('*').eq('mode', mode).order('payment_date', { ascending: false });
+    if (from) query = query.gte('payment_date', from + 'T00:00:00');
+    if (to) query = query.lte('payment_date', to + 'T23:59:59');
+    const { data, error } = await query;
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
+    paymentStmtData[which] = data || [];
+    renderPaymentStmt(which);
+  }
+
+  function renderPaymentStmt(which) {
+    const rows = paymentStmtData[which];
+    const box = document.getElementById(which === 'online' ? 'pstmtOnlineList' : 'pstmtCashList');
+    const totalBox = document.getElementById(which === 'online' ? 'pstmtOnlineTotal' : 'pstmtCashTotal');
+    const total = rows.reduce(function (s, r) { return s + Number(r.amount); }, 0);
+    totalBox.textContent = 'Total: ' + money(total) + ' · ' + rows.length + ' payment' + (rows.length === 1 ? '' : 's');
+    if (!rows.length) { box.innerHTML = '<div class="empty-cart">No payments in this range.</div>'; return; }
+    box.innerHTML = rows.map(function (r) {
+      const dateStr = new Date(r.payment_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + r.invoice_no + '</div>' +
+        '<div class="result-meta">' + dateStr + (r.utr_no ? ' · UTR: ' + escapeHtml(r.utr_no) : '') + (r.remark ? ' · ' + escapeHtml(r.remark) : '') + '</div></div>' +
+        '<div class="amt">' + money(r.amount) + '</div></div>';
+    }).join('');
+  }
+
+  function exportPaymentStmtCsv(which) {
+    const rows = paymentStmtData[which]; if (!rows.length) { showToast('Nothing to export.', true); return; }
+    const headers = which === 'online' ? ['Date', 'Invoice No', 'Customer', 'Mobile', 'Amount', 'UTR No', 'Remark'] : ['Date', 'Invoice No', 'Customer', 'Mobile', 'Amount', 'Remark'];
+    downloadCsv((which === 'online' ? 'online_payments_' : 'cash_payments_') + fmtDateInput_(new Date()) + '.csv', headers,
+      rows.map(function (r) {
+        const dateStr = new Date(r.payment_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+        return which === 'online' ? [dateStr, r.invoice_no, r.customer_name || '', r.mobile || '', r.amount, r.utr_no || '', r.remark || ''] : [dateStr, r.invoice_no, r.customer_name || '', r.mobile || '', r.amount, r.remark || ''];
+      }));
+  }
+  function exportPaymentStmtPdf(which) {
+    const rows = paymentStmtData[which]; if (!rows.length) { showToast('Nothing to export.', true); return; }
+    const headers = which === 'online' ? ['Date', 'Invoice No', 'Customer', 'Amount', 'UTR No'] : ['Date', 'Invoice No', 'Customer', 'Amount'];
+    downloadTablePdf(which === 'online' ? 'Online Payment Statement' : 'Cash Payment Statement', headers,
+      rows.map(function (r) {
+        const dateStr = new Date(r.payment_date).toLocaleDateString('en-IN', { dateStyle: 'medium' });
+        return which === 'online' ? [dateStr, r.invoice_no, r.customer_name || '', money(r.amount), r.utr_no || ''] : [dateStr, r.invoice_no, r.customer_name || '', money(r.amount)];
+      }));
+  }
+
+  async function submitCashDeposit() {
+    const date = document.getElementById('depositDate').value || fmtDateInput_(new Date());
+    const amount = Number(document.getElementById('depositAmount').value);
+    if (!(amount > 0)) { showToast('Enter a valid amount.', true); return; }
+    const depositedBy = document.getElementById('depositBy').value.trim();
+    const note = document.getElementById('depositNote').value.trim();
+    const { error } = await sb.from('cash_deposits').insert({ deposit_date: date, amount: amount, deposited_by: depositedBy || null, note: note || null });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Deposit recorded.');
+    document.getElementById('depositDate').value = ''; document.getElementById('depositAmount').value = '';
+    document.getElementById('depositBy').value = ''; document.getElementById('depositNote').value = '';
+    loadCashDeposits();
+  }
+
+  async function loadCashDeposits() {
+    const box = document.getElementById('depositsList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const from = document.getElementById('pstmtDepositsFrom').value;
+    const to = document.getElementById('pstmtDepositsTo').value;
+    let query = sb.from('cash_deposits').select('*').order('deposit_date', { ascending: false });
+    if (from) query = query.gte('deposit_date', from);
+    if (to) query = query.lte('deposit_date', to);
+    const { data, error } = await query;
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
+    cashDepositsData = data || [];
+    renderCashDeposits();
+  }
+
+  function renderCashDeposits() {
+    const rows = cashDepositsData;
+    const total = rows.reduce(function (s, r) { return s + Number(r.amount); }, 0);
+    document.getElementById('depositsTotal').textContent = 'Total deposited: ' + money(total) + ' · ' + rows.length + ' deposit' + (rows.length === 1 ? '' : 's');
+    const box = document.getElementById('depositsList');
+    if (!rows.length) { box.innerHTML = '<div class="empty-cart">No deposits in this range.</div>'; return; }
+    box.innerHTML = rows.map(function (r) {
+      return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + escapeHtml(r.deposited_by || 'Staff') + '</div>' +
+        '<div class="result-meta">' + r.deposit_date + (r.note ? ' · ' + escapeHtml(r.note) : '') + '</div></div>' +
+        '<div class="amt">' + money(r.amount) + '</div></div>';
+    }).join('');
+  }
+
+  function exportDepositsCsv() {
+    const rows = cashDepositsData; if (!rows.length) { showToast('Nothing to export.', true); return; }
+    downloadCsv('cash_deposits_' + fmtDateInput_(new Date()) + '.csv', ['Date', 'Amount', 'Deposited By', 'Note'],
+      rows.map(function (r) { return [r.deposit_date, r.amount, r.deposited_by || '', r.note || '']; }));
+  }
+  function exportDepositsPdf() {
+    const rows = cashDepositsData; if (!rows.length) { showToast('Nothing to export.', true); return; }
+    downloadTablePdf('Cash Deposit Statement', ['Date', 'Amount', 'Deposited By', 'Note'],
+      rows.map(function (r) { return [r.deposit_date, money(r.amount), r.deposited_by || '', r.note || '']; }));
   }
 
   // ---------------- SHARED CSV / TABLE-PDF HELPERS ----------------
