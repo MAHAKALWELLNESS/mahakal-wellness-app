@@ -275,7 +275,8 @@
         '<p class="hint" style="margin-top:8px;">If this shows an "unable to proceed" error, please use the QR code above instead — that always works.</p>' +
       '</div>' +
       '<div class="card">' +
-        '<div class="field" style="margin-bottom:0;"><label for="payUtr">Your UPI transaction ref. (optional)</label><input type="text" id="payUtr" placeholder="If shown in your UPI app"></div>' +
+        '<div class="field" style="margin-bottom:0;"><label for="payUtr">Your UPI transaction ref. (UTR) — required</label><input type="text" id="payUtr" placeholder="As shown in your UPI app after payment"></div>' +
+        '<p class="error-msg" id="utrError"></p>' +
       '</div>' +
       '<button class="btn btn-gold" style="margin-bottom:8px;" onclick="confirmUpiPaid(\'' + invoiceNo + '\',' + totalAmount + ')">I\'ve completed the payment</button>' +
       '<button class="btn" style="background:transparent;border:1.5px solid var(--line);color:var(--green-800);" onclick="showThankYou(\'' + invoiceNo + '\',' + totalAmount + ',false)">← I\'ll pay later</button>';
@@ -283,7 +284,8 @@
 
   async function confirmUpiPaid(invoiceNo, totalAmount) {
     const utr = document.getElementById('payUtr').value.trim();
-    await sb.rpc('mark_order_payment_intent', { p_invoice_no: invoiceNo, p_amount: totalAmount, p_utr_no: utr || null });
+    if (!utr) { document.getElementById('utrError').textContent = 'Please enter your UPI transaction reference (UTR) — it\'s in your UPI app\'s payment history.'; return; }
+    await sb.rpc('mark_order_payment_intent', { p_invoice_no: invoiceNo, p_amount: totalAmount, p_utr_no: utr });
     showThankYou(invoiceNo, totalAmount, true);
   }
 
