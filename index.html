@@ -477,6 +477,7 @@
     <!-- ============ CUSTOMERS TAB ============ -->
     <section id="tab-customers" class="tab-panel">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="searchCustomersTab()">↻ Refresh</button>
+      <button class="btn btn-primary btn-block" style="margin-bottom:12px;" onclick="openAddCustomerModal()">+ Add New Customer</button>
       <div class="card"><p class="section-label">Find a customer</p><input type="text" id="customerSearch" class="search-input" placeholder="Name or mobile…" oninput="searchCustomersTab()"></div>
       <div class="card"><div id="customersList"><div class="empty-cart">Type above, or leave blank to see recent customers.</div></div></div>
     </section>
@@ -951,6 +952,29 @@
       <div id="editBillItemsList"></div>
       <div class="receipt-total-row grand" style="margin-top:10px;"><span>Total</span><span id="editBillTotal">₹0</span></div>
       <div class="modal-actions"><button class="btn btn-outline" onclick="document.getElementById('editBillModal').classList.remove('show')">Cancel</button><button class="btn btn-primary" id="editBillSaveBtn" onclick="saveEditedBill()">Save Changes</button></div>
+    </div>
+  </div>
+
+  <!-- ============ ADD NEW CUSTOMER MODAL ============ -->
+  <div class="modal-overlay" id="addCustomerModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:14px;">Add New Customer</h2>
+      <div class="field-row">
+        <div class="field"><label for="newCustMobile">Mobile</label><input type="tel" id="newCustMobile" placeholder="10-digit mobile" maxlength="15"></div>
+        <div class="field"><label for="newCustName">Name</label><input type="text" id="newCustName" placeholder="Customer name" oninput="this.value = this.value.toUpperCase();"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="newCustIdName">ID Name</label><input type="text" id="newCustIdName" placeholder="Optional"></div>
+        <div class="field"><label for="newCustIdNo">DS ID No.</label><input type="text" id="newCustIdNo" placeholder="Optional"></div>
+      </div>
+      <div class="field-row" style="margin-bottom:0;">
+        <div class="field" style="margin-bottom:0;"><label for="newCustRefName">Reference/Upline name</label><input type="text" id="newCustRefName" placeholder="Optional"></div>
+        <div class="field" style="margin-bottom:0;"><label for="newCustRefMobile">Reference/Upline mobile</label><input type="tel" id="newCustRefMobile" placeholder="Optional"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('addCustomerModal').classList.remove('show')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitAddCustomer()">Save Customer</button>
+      </div>
     </div>
   </div>
 
@@ -2817,6 +2841,34 @@
 
   // ---------------- CUSTOMERS TAB ----------------
   let customerSearchDebounce = null, currentCustomerMobile = null;
+  function openAddCustomerModal() {
+    document.getElementById('newCustMobile').value = '';
+    document.getElementById('newCustName').value = '';
+    document.getElementById('newCustIdName').value = '';
+    document.getElementById('newCustIdNo').value = '';
+    document.getElementById('newCustRefName').value = '';
+    document.getElementById('newCustRefMobile').value = '';
+    document.getElementById('addCustomerModal').classList.add('show');
+  }
+
+  async function submitAddCustomer() {
+    const mobile = document.getElementById('newCustMobile').value.trim();
+    if (!mobile) { showToast('Mobile number is required.', true); return; }
+    const name = document.getElementById('newCustName').value.trim();
+    const idName = document.getElementById('newCustIdName').value.trim();
+    const idNo = document.getElementById('newCustIdNo').value.trim();
+    const refName = document.getElementById('newCustRefName').value.trim();
+    const refMobile = document.getElementById('newCustRefMobile').value.trim();
+    const { error } = await sb.from('customers').upsert({
+      mobile: mobile, name: name || null, id_name: idName || null, id_no: idNo || null,
+      reference_name: refName || null, reference_mobile: refMobile || null
+    }, { onConflict: 'mobile' });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Customer saved.');
+    document.getElementById('addCustomerModal').classList.remove('show');
+    searchCustomersTab();
+  }
+
   function searchCustomersTab() {
     clearTimeout(customerSearchDebounce);
     customerSearchDebounce = setTimeout(async function () {
@@ -2940,19 +2992,31 @@
     clearTimeout(walletSearchDebounce);
     walletSearchDebounce = setTimeout(async function () {
       const q = document.getElementById('walletSearch').value.trim();
-      let walletQuery = sb.from('customer_wallets').select('*').order('balance', { ascending: false });
-      const { data: wallets, error } = await walletQuery;
-      if (error) { showToast(error.message, true); return; }
-      const mobiles = (wallets || []).map(function (w) { return w.mobile; });
-      let customersByMobile = {};
-      if (mobiles.length) {
-        const { data: custs } = await sb.from('customers').select('mobile, name').in('mobile', mobiles);
-        (custs || []).forEach(function (c) { customersByMobile[c.mobile] = c.name; });
-      }
-      let rows = (wallets || []).map(function (w) { return { mobile: w.mobile, balance: Number(w.balance), name: customersByMobile[w.mobile] || '' }; });
+      let rows;
       if (q) {
-        const qLower = q.toLowerCase();
-        rows = rows.filter(function (r) { return (r.name || '').toLowerCase().indexOf(qLower) > -1 || (r.mobile || '').indexOf(q) > -1; });
+        // Search ALL customers (not just ones who already have a wallet
+        // entry) - advance payment can come from anyone, even someone who's
+        // never had a wallet balance before.
+        const { data: custs, error } = await sb.from('customers').select('mobile, name').or('name.ilike.%' + q + '%,mobile.ilike.%' + q + '%').limit(50);
+        if (error) { showToast(error.message, true); return; }
+        const mobiles = (custs || []).map(function (c) { return c.mobile; });
+        let balanceByMobile = {};
+        if (mobiles.length) {
+          const { data: wallets } = await sb.from('customer_wallets').select('mobile, balance').in('mobile', mobiles);
+          (wallets || []).forEach(function (w) { balanceByMobile[w.mobile] = Number(w.balance); });
+        }
+        rows = (custs || []).map(function (c) { return { mobile: c.mobile, name: c.name || '', balance: balanceByMobile[c.mobile] || 0 }; })
+          .sort(function (a, b) { return b.balance - a.balance; });
+      } else {
+        const { data: wallets, error } = await sb.from('customer_wallets').select('*').order('balance', { ascending: false });
+        if (error) { showToast(error.message, true); return; }
+        const mobiles = (wallets || []).map(function (w) { return w.mobile; });
+        let customersByMobile = {};
+        if (mobiles.length) {
+          const { data: custs } = await sb.from('customers').select('mobile, name').in('mobile', mobiles);
+          (custs || []).forEach(function (c) { customersByMobile[c.mobile] = c.name; });
+        }
+        rows = (wallets || []).map(function (w) { return { mobile: w.mobile, balance: Number(w.balance), name: customersByMobile[w.mobile] || '' }; });
       }
       renderWalletList(rows);
     }, 250);
@@ -2960,7 +3024,7 @@
 
   function renderWalletList(rows) {
     const box = document.getElementById('walletList');
-    if (!rows.length) { box.innerHTML = '<div class="empty-cart">No wallet balances yet — these build up automatically when a customer pays more than a bill\'s amount due.</div>'; return; }
+    if (!rows.length) { box.innerHTML = '<div class="empty-cart">No customers found. Try a different search, or add them first in the Customers tab.</div>'; return; }
     box.innerHTML = rows.map(function (r) {
       return '<div class="list-row" data-mobile="' + escapeHtml(r.mobile) + '" data-name="' + escapeHtml(r.name) + '"><div><div class="result-name">' + escapeHtml(r.name || '(No name)') + '</div><div class="result-meta">' + escapeHtml(r.mobile) + '</div></div>' +
         '<div class="amt" style="color:' + (r.balance > 0.005 ? 'var(--ok)' : 'var(--ink-faint)') + ';">' + money(r.balance) + '</div></div>';
