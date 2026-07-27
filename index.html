@@ -158,6 +158,21 @@
   }
   .receipt-total-row{display:flex; justify-content:space-between; padding:6px 0; font-size:13.5px;}
   .receipt-total-row.grand{font-weight:700; font-size:16.5px; color:var(--green-800); border-top:1px solid var(--line); margin-top:4px; padding-top:10px;}
+
+  /* PDF capture mode: html2canvas has long-standing bugs resolving CSS custom
+     properties (var(--xxx)); these static, hard-coded-color rules (scoped by
+     a data attribute set only during PDF capture) guarantee real, resolvable
+     colors regardless of that. Kept as a normal stylesheet rule (not
+     dynamically injected) since that's the most reliable way for html2canvas
+     to pick it up. */
+  [data-pdf-capturing="1"], [data-pdf-capturing="1"] *{color:#222222 !important; border-color:#E7E4DC !important;}
+  [data-pdf-capturing="1"] h2{color:#1E4A3D !important;}
+  [data-pdf-capturing="1"] .receipt-meta{color:#555555 !important;}
+  [data-pdf-capturing="1"] table.receipt-table th{color:#8A8A8A !important;}
+  [data-pdf-capturing="1"] table.receipt-table tbody tr:nth-child(even){background:#F6F5F1 !important;}
+  [data-pdf-capturing="1"] .receipt-total-row.grand{color:#1E4A3D !important;}
+  [data-pdf-capturing="1"] .badge{background:#F7E9C7 !important; color:#B8842C !important;}
+  [data-pdf-capturing="1"]{background:#ffffff !important;}
   .badge{padding:2px 9px; border-radius:20px; font-size:10.5px; font-weight:700; white-space:nowrap;}
   .badge-paid{background:var(--ok-100); color:var(--ok);}
   .badge-partial{background:var(--gold-100); color:var(--gold-600);}
@@ -1792,47 +1807,44 @@
       '<p style="text-align:center;font-size:12px;color:var(--ink-faint);margin-top:14px;">Thank you for shopping with us!</p>';
   }
 
-  // FOUND THE ACTUAL ROOT CAUSE: this app's CSS relies heavily on custom
-  // properties (var(--xxx)) for every color, border, and background used in
-  // the receipt - both inline styles and CSS classes (.receipt-table,
-  // .receipt-meta, .badge, etc). html2canvas (the library behind the PDF)
-  // has long-standing, well-known bugs resolving CSS custom properties -
-  // when it can't resolve var(--ink-soft) etc, text can render with no
-  // color at all, which on a white background looks completely blank even
-  // though the content is technically there. Fix: inject a small style
-  // block, scoped to this capture container, that force-overrides every
-  // receipt-related rule with a plain hex color instead of var() - this
-  // guarantees html2canvas has real, resolvable colors to render regardless
-  // of its var() support.
+  // DIRECT CAPTURE: capture the actual, already-visible on-screen element
+  // (printArea / detailArea) instead of cloning into a separate, specially
+  // positioned container. Off-screen positioning, opacity tricks, and
+  // position:fixed have all been tried and are all known trouble spots for
+  // html2canvas - this is the lowest-risk approach left: the element being
+  // captured is the exact same one already normally rendered on screen
+  // inside its modal, just with the modal's scroll-height limit lifted so
+  // the WHOLE bill (not just the visible-on-screen portion) is included.
+  // The hard-coded color override (see [data-pdf-capturing] rules above)
+  // still applies, since CSS custom properties remain a real, separate risk
+  // for html2canvas regardless of positioning.
+  let pdfCaptureRestore_ = null;
   function preparePdfCapture_(sourceId) {
-    const capture = document.getElementById('pdfCaptureArea');
-    const hardCodedOverrides =
-      '<style>' +
-      '#pdfCaptureArea, #pdfCaptureArea *{color:#222222 !important; border-color:#E7E4DC !important;}' +
-      '#pdfCaptureArea h2{color:#1E4A3D !important;}' +
-      '#pdfCaptureArea .receipt-meta{color:#555555 !important;}' +
-      '#pdfCaptureArea table.receipt-table th{color:#8A8A8A !important;}' +
-      '#pdfCaptureArea table.receipt-table tbody tr:nth-child(even){background:#F6F5F1 !important;}' +
-      '#pdfCaptureArea .receipt-total-row.grand{color:#1E4A3D !important;}' +
-      '#pdfCaptureArea .badge{background:#F7E9C7 !important; color:#B8842C !important;}' +
-      '#pdfCaptureArea *[style*="color"]{color:#222222 !important;}' +
-      '</style>';
-    capture.innerHTML = hardCodedOverrides + document.getElementById(sourceId).innerHTML;
-    capture.style.cssText = 'position:fixed; top:0; left:0; width:520px; max-width:100vw; background:#ffffff; z-index:99999; padding:16px; box-sizing:border-box;';
-    return 'pdfCaptureArea';
+    const el = document.getElementById(sourceId);
+    const sheet = el.closest('.modal-sheet');
+    const restore = [];
+    if (sheet) {
+      restore.push([sheet, 'maxHeight', sheet.style.maxHeight]);
+      restore.push([sheet, 'overflow', sheet.style.overflow]);
+      sheet.style.maxHeight = 'none';
+      sheet.style.overflow = 'visible';
+    }
+    el.dataset.pdfCapturing = '1';
+    pdfCaptureRestore_ = restore;
+    return sourceId;
   }
   function hidePdfCapture_() {
-    const capture = document.getElementById('pdfCaptureArea');
-    capture.style.cssText = 'position:fixed; top:-99999px; left:0; width:520px;';
+    if (pdfCaptureRestore_) { pdfCaptureRestore_.forEach(function (r) { r[0].style[r[1]] = r[2]; }); pdfCaptureRestore_ = null; }
+    document.querySelectorAll('[data-pdf-capturing]').forEach(function (n) { delete n.dataset.pdfCapturing; });
   }
-  // Making the container visible via style.cssText doesn't guarantee the
-  // browser has actually painted it yet on the very next line of JS, and any
-  // <img> (the logo) needs to finish decoding too - if html2canvas starts
-  // before either has happened, it can capture a stale, not-yet-rendered
-  // (blank) state.
-  function waitForRender_() {
-    const capture = document.getElementById('pdfCaptureArea');
-    const images = Array.from(capture.querySelectorAll('img'));
+  // Making the container visible/unconstrained via style changes doesn't
+  // guarantee the browser has actually painted it yet on the very next line
+  // of JS, and any <img> (the logo) needs to finish decoding too - if
+  // html2canvas starts before either has happened, it can capture a stale,
+  // not-yet-rendered (blank) state.
+  function waitForRender_(sourceId) {
+    const el = document.getElementById(sourceId);
+    const images = Array.from(el.querySelectorAll('img'));
     const imagePromises = images.map(function (img) {
       if (img.complete && img.naturalWidth > 0) return Promise.resolve();
       if (typeof img.decode === 'function') return img.decode().catch(function () {});
@@ -1850,7 +1862,7 @@
     await maybeAskAdvanceAndRerender_(lastSavedBill, 'printArea');
     showToast('Preparing PDF…');
     const el = document.getElementById(preparePdfCapture_('printArea'));
-    await waitForRender_();
+    await waitForRender_('printArea');
     pauseScrollLock();
     html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, useCORS: true, allowTaint: true, logging: true } }).from(el).save().then(function () { hidePdfCapture_(); resumeScrollLock(); }).catch(function (err) { hidePdfCapture_(); resumeScrollLock(); showToast('PDF failed: ' + (err && err.message ? err.message : 'unknown error'), true); });
   }
@@ -2494,16 +2506,15 @@
   function hideDetail() { document.getElementById('detailModal').classList.remove('show'); }
   async function getDetailPrintSourceId_() {
     if (!currentDetailBill) return 'detailArea';
-    const targetId = currentDetailBill.customerType === 'Retail' ? 'retailDetailPrintArea' : 'detailArea';
-    await maybeAskAdvanceAndRerender_(currentDetailBill, targetId);
-    return targetId;
+    await maybeAskAdvanceAndRerender_(currentDetailBill, 'detailArea');
+    return 'detailArea';
   }
   async function printFromDetail() { preparePrintDuplicate_(await getDetailPrintSourceId_()); window.print(); }
   async function downloadPdfFromDetail() {
     const sourceId = await getDetailPrintSourceId_();
     showToast('Preparing PDF…');
     const el = document.getElementById(preparePdfCapture_(sourceId));
-    await waitForRender_();
+    await waitForRender_(sourceId);
     pauseScrollLock();
     html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, useCORS: true, allowTaint: true, logging: true } }).from(el).save().then(function () { hidePdfCapture_(); resumeScrollLock(); }).catch(function (err) { hidePdfCapture_(); resumeScrollLock(); showToast('PDF failed: ' + (err && err.message ? err.message : 'unknown error'), true); });
   }
@@ -2511,7 +2522,7 @@
     const sourceId = await getDetailPrintSourceId_();
     showToast('Preparing PDF…');
     const el = document.getElementById(preparePdfCapture_(sourceId));
-    await waitForRender_();
+    await waitForRender_(sourceId);
     pauseScrollLock();
     html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, useCORS: true, allowTaint: true, logging: true } }).from(el).save().then(function () {
       hidePdfCapture_();
@@ -3901,7 +3912,7 @@
     await maybeAskAdvanceAndRerender_(lastSavedBill, 'printArea');
     showToast('Preparing PDF…');
     const el = document.getElementById(preparePdfCapture_('printArea'));
-    await waitForRender_();
+    await waitForRender_('printArea');
     pauseScrollLock();
     html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, useCORS: true, allowTaint: true, logging: true } }).from(el).save().then(function () {
       hidePdfCapture_();
