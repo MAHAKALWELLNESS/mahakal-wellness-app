@@ -286,6 +286,15 @@
           <div class="field"><label for="custMobile">Mobile</label><input type="tel" id="custMobile" placeholder="10-digit mobile" maxlength="15" onblur="loadCustomerWalletForBill()"></div>
           <div class="field"><label for="custName">Name</label><input type="text" id="custName" placeholder="Walk-in customer" oninput="this.value = this.value.toUpperCase();"></div>
         </div>
+        <p class="section-label" style="margin-top:14px;">Distributor / Member <span style="text-transform:none;font-weight:400;">(whose SP this credits)</span></p>
+        <div class="field-row">
+          <div class="field"><label for="idName">ID Name</label><input type="text" id="idName" placeholder="Optional"></div>
+          <div class="field"><label for="idNo">DS ID No.</label><input type="text" id="idNo" placeholder="Optional"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="referenceName">Reference/Upline name</label><input type="text" id="referenceName" placeholder="Optional"></div>
+          <div class="field"><label for="referenceMobile">Reference/Upline mobile</label><input type="tel" id="referenceMobile" placeholder="Optional"></div>
+        </div>
         <div class="field" style="margin-bottom:0;">
           <label for="custType">Customer type</label>
           <select id="custType" onchange="toggleRetailDiscount()"><option value="" selected disabled>Choose type…</option><option>Retail</option><option>Distributor</option><option>Wholesale</option></select>
@@ -321,17 +330,6 @@
         </div>
       </div>
 
-      <div class="card">
-        <p class="section-label">Distributor / Member <span style="text-transform:none;font-weight:400;">(whose SP this credits)</span></p>
-        <div class="field-row">
-          <div class="field"><label for="idName">ID Name</label><input type="text" id="idName" placeholder="Optional"></div>
-          <div class="field"><label for="idNo">ID No.</label><input type="text" id="idNo" placeholder="Optional"></div>
-        </div>
-        <div class="field-row" style="margin-bottom:0;">
-          <div class="field" style="margin-bottom:0;"><label for="referenceName">Reference/Upline name</label><input type="text" id="referenceName" placeholder="Optional"></div>
-          <div class="field" style="margin-bottom:0;"><label for="referenceMobile">Reference/Upline mobile</label><input type="tel" id="referenceMobile" placeholder="Optional"></div>
-        </div>
-      </div>
 
       <div class="card">
         <p class="section-label">Sold by</p>
