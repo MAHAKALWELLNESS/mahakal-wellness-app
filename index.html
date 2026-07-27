@@ -829,6 +829,7 @@
     <div class="modal-sheet">
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Step 1 of 2: Payment</h2>
       <p class="hint" style="margin-bottom:12px;">Amount due: <strong id="paymentStepAmountDue"></strong></p>
+      <div id="paymentStepCustomerNote" style="display:none;margin-bottom:12px;background:var(--gold-100);border:1.5px solid var(--gold-500);border-radius:8px;padding:8px 10px;font-size:12.5px;font-weight:700;color:var(--green-900);"></div>
       <div id="paymentStepWalletArea" style="display:none;margin-bottom:12px;background:var(--gold-100);border-radius:10px;padding:10px 12px;">
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700;color:var(--gold-600);margin-bottom:6px;">
           <span>Wallet balance: <span id="paymentStepWalletAvail">₹0</span></span>
@@ -1715,10 +1716,24 @@
     document.getElementById('paymentStepOnline').value = '';
     document.getElementById('paymentStepUtr').value = '';
     document.getElementById('paymentStepUtrField').style.display = 'none';
+    document.getElementById('paymentStepCustomerNote').style.display = 'none';
     document.getElementById('paymentStepWalletUse').value = '';
     document.getElementById('paymentStepWalletWarning').textContent = '';
     document.getElementById('paymentStepWalletArea').style.display = 'none';
     currentWalletBalanceForPayment = 0;
+
+    // If this bill came from the customer Order Form and they already
+    // reported paying via UPI, pre-fill Online + UTR here so staff don't
+    // have to re-type it - they still review/confirm as normal.
+    const { data: paymentIntent } = await sb.from('order_form_payment_intent').select('amount, utr_no').eq('invoice_no', bill.invoiceNo).maybeSingle();
+    if (paymentIntent) {
+      document.getElementById('paymentStepOnline').value = paymentIntent.amount;
+      if (paymentIntent.utr_no) document.getElementById('paymentStepUtr').value = paymentIntent.utr_no;
+      document.getElementById('paymentStepUtrField').style.display = 'block';
+      document.getElementById('paymentStepCustomerNote').textContent = 'Customer reported paying ' + money(paymentIntent.amount) + ' via UPI on the Order Form — please verify before confirming.';
+      document.getElementById('paymentStepCustomerNote').style.display = 'block';
+    }
+
     if (bill.mobile && bill.mobile.trim()) {
       const { data } = await sb.from('customer_wallets').select('balance').eq('mobile', bill.mobile.trim()).maybeSingle();
       const balance = data ? Number(data.balance) : 0;
@@ -1828,7 +1843,7 @@
     }).join('');
   }
 
-  function goToOfficialPrefillStep() {
+  async function goToOfficialPrefillStep() {
     const rows = document.querySelectorAll('#deliveryItemsList .cart-item');
     proceedFurtherDeliveryItems = Array.from(rows).map(function (row) {
       const input = row.querySelector('.deliveredInput');
@@ -1842,6 +1857,22 @@
     document.getElementById('prefillTotalSp').textContent = trimNum(currentDetailBill.totalSP);
     document.getElementById('prefillSpAmount').max = currentDetailBill.totalSP;
     document.getElementById('prefillSpWarning').textContent = '';
+
+    // If the customer already filled this in via the Order Form, pre-fill it
+    // here too - staff can still review/change it before confirming.
+    document.getElementById('prefillDsId').value = ''; document.getElementById('prefillDsName').value = '';
+    document.getElementById('prefillOrderType').value = 'Greening'; document.getElementById('prefillSaoSgoField').style.display = 'none';
+    document.getElementById('prefillSpAmount').value = '';
+    const { data: existingPrefill } = await sb.from('official_prefill').select('*').eq('invoice_no', currentDetailBill.invoiceNo).maybeSingle();
+    if (existingPrefill) {
+      document.getElementById('prefillDsId').value = existingPrefill.ds_id || '';
+      document.getElementById('prefillDsName').value = existingPrefill.ds_name || '';
+      document.getElementById('prefillOrderType').value = existingPrefill.greening_repurchase || 'Greening';
+      document.getElementById('prefillSaoSgoField').style.display = existingPrefill.greening_repurchase === 'Repurchase' ? 'block' : 'none';
+      if (existingPrefill.sao_sgo) document.getElementById('prefillSaoSgo').value = existingPrefill.sao_sgo;
+      if (existingPrefill.sp_to_allocate) document.getElementById('prefillSpAmount').value = existingPrefill.sp_to_allocate;
+    }
+
     document.getElementById('officialPrefillModal').classList.add('show');
   }
 

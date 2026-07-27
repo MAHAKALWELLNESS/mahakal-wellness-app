@@ -127,9 +127,11 @@
         '<p class="section-label" id="cartHeading">Your order (0 items)</p>' +
         '<div id="cartList"><div class="empty-cart">Search above and tap a product to add it.</div></div>' +
         '<div id="discountLine" style="display:none;" class="total-row"><span class="lbl">Discount</span><span class="val" id="cartDiscount" style="font-size:14px;color:var(--danger);">−₹0</span></div>' +
+        '<div class="total-row" style="border-top:none;padding-top:0;"><span class="lbl">Total SP</span><span class="val" id="cartSp" style="font-size:15px;color:var(--gold-600);">0 SP</span></div>' +
         '<div class="total-row"><span class="lbl">Total</span><span class="val" id="cartTotal">₹0</span></div>' +
       '</div>' +
-      '<button class="btn btn-gold" id="placeOrderBtn" onclick="placeOrder()" disabled>Place Order</button>' +
+      '<button class="btn" style="background:transparent;border:1.5px solid var(--line);color:var(--green-800);margin-bottom:8px;" id="saveNoPayBtn" onclick="createOrder(false)" disabled>Save without Payment</button>' +
+      '<button class="btn btn-gold" id="payNowBtn" onclick="createOrder(true)" disabled>Pay Now</button>' +
       '<p class="error-msg" id="formError"></p>';
   }
 
@@ -160,7 +162,7 @@
     if (!matches.length) { box.innerHTML = '<p class="hint" style="padding:10px 0;">No products found for "' + escapeHtml(q) + '".</p>'; return; }
     box.innerHTML = matches.map(function (p) {
       return '<div class="search-row" data-code="' + escapeHtml(p.code) + '">' +
-        '<div><div class="search-name">' + escapeHtml(p.name) + '</div><div class="search-meta">#' + escapeHtml(p.code) + '</div></div>' +
+        '<div><div class="search-name">' + escapeHtml(p.name) + '</div><div class="search-meta">#' + escapeHtml(p.code) + ' · ' + trimNum(p.sp) + ' SP</div></div>' +
         '<div class="search-price">' + money(p[priceField]) + '</div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.search-row')).forEach(function (row) {
@@ -173,7 +175,7 @@
     const p = ALL_PRODUCTS.find(function (x) { return x.code === code; });
     if (!p) return;
     if (CART[code]) CART[code].qty += 1;
-    else CART[code] = { code: p.code, name: p.name, mrp: p.mrp, dp: p.dp, qty: 1 };
+    else CART[code] = { code: p.code, name: p.name, mrp: p.mrp, dp: p.dp, sp: p.sp, qty: 1 };
     document.getElementById('searchInput').value = '';
     document.getElementById('searchResults').innerHTML = '';
     renderCart();
@@ -196,7 +198,7 @@
       box.innerHTML = '<div class="empty-cart">Search above and tap a product to add it.</div>';
     } else {
       box.innerHTML = items.map(function (it) {
-        return '<div class="cart-row"><div><div class="cart-name">' + escapeHtml(it.name) + '</div><div class="cart-price">' + money(it[priceField]) + ' each</div></div>' +
+        return '<div class="cart-row"><div><div class="cart-name">' + escapeHtml(it.name) + '</div><div class="cart-price">' + money(it[priceField]) + ' each · ' + trimNum(it.qty * it.sp) + ' SP</div></div>' +
           '<div class="qty-ctrl">' +
             '<button class="qty-btn" onclick="changeQty(\'' + it.code + '\',-1)">−</button>' +
             '<span class="qty-val">' + trimNum(it.qty) + '</span>' +
@@ -205,6 +207,7 @@
       }).join('');
     }
     const subtotal = items.reduce(function (s, it) { return s + it.qty * it[priceField]; }, 0);
+    const totalSp = items.reduce(function (s, it) { return s + it.qty * it.sp; }, 0);
     let discountAmt = 0;
     if (isRetail) {
       let pct = Number(document.getElementById('discountPercent').value) || 0;
@@ -213,11 +216,13 @@
     }
     document.getElementById('discountLine').style.display = (isRetail && discountAmt > 0) ? 'flex' : 'none';
     document.getElementById('cartDiscount').textContent = '−' + money(discountAmt);
+    document.getElementById('cartSp').textContent = trimNum(totalSp) + ' SP';
     document.getElementById('cartTotal').textContent = money(subtotal - discountAmt);
-    document.getElementById('placeOrderBtn').disabled = items.length === 0;
+    document.getElementById('saveNoPayBtn').disabled = items.length === 0;
+    document.getElementById('payNowBtn').disabled = items.length === 0;
   }
 
-  async function placeOrder() {
+  async function createOrder(wantsToPay) {
     const errBox = document.getElementById('formError');
     errBox.textContent = '';
     const name = document.getElementById('custName').value.trim();
@@ -230,34 +235,132 @@
     let discountPercent = 0;
     if (custType === 'Retail') { discountPercent = Number(document.getElementById('discountPercent').value) || 0; if (discountPercent > 5) discountPercent = 5; }
 
-    const btn = document.getElementById('placeOrderBtn');
-    btn.disabled = true; btn.textContent = 'Placing order…';
+    document.getElementById('saveNoPayBtn').disabled = true;
+    document.getElementById('payNowBtn').disabled = true;
+    document.getElementById('payNowBtn').textContent = 'Placing order…';
     const { data, error } = await sb.rpc('save_public_order', { p_customer_name: name, p_mobile: mobile, p_customer_type: custType, p_discount_percent: discountPercent, p_items: items });
     if (error) {
       errBox.textContent = error.message || 'Could not place order. Please try again.';
-      btn.disabled = false; btn.textContent = 'Place Order';
+      document.getElementById('saveNoPayBtn').disabled = false;
+      document.getElementById('payNowBtn').disabled = false;
+      document.getElementById('payNowBtn').textContent = 'Pay Now';
       return;
     }
-    showSuccess(data.invoiceNo, data.totalAmount);
+    if (wantsToPay) showPaymentQr(data.invoiceNo, data.totalAmount);
+    else showThankYou(data.invoiceNo, data.totalAmount, false);
   }
 
-  function showSuccess(invoiceNo, totalAmount) {
+  function showPaymentQr(invoiceNo, totalAmount) {
     const upiUrl = 'upi://pay?pa=' + encodeURIComponent(BUSINESS_UPI_ID) + '&pn=' + encodeURIComponent(BUSINESS_PAYEE_NAME) +
       '&am=' + encodeURIComponent(Number(totalAmount).toFixed(2)) + '&cu=INR&tn=' + encodeURIComponent('Order ' + invoiceNo);
     const qrImgUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(upiUrl);
     document.getElementById('mainArea').innerHTML =
       '<div class="card" style="text-align:center;">' +
-        '<div class="success-icon">✓</div>' +
-        '<h2 style="font-size:18px;color:var(--green-800);margin-bottom:4px;">Order placed!</h2>' +
+        '<h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Pay now via UPI</h2>' +
         '<p class="hint">Order No. <strong>' + escapeHtml(invoiceNo) + '</strong> · ' + money(totalAmount) + '</p>' +
-        '<p class="hint" style="margin-top:10px;">Our team will confirm and prepare your order shortly.</p>' +
+        '<div class="qr-box"><img src="' + qrImgUrl + '" alt="UPI QR code"></div>' +
+        '<p class="hint">Scan with any UPI app — the amount (' + money(totalAmount) + ') is already filled in.</p>' +
+        '<a class="btn btn-gold" style="margin-top:12px;" href="' + escapeHtml(upiUrl) + '">Pay with UPI app</a>' +
       '</div>' +
       '<div class="card">' +
-        '<p class="section-label" style="text-align:center;">Pay now via UPI</p>' +
-        '<div class="qr-box"><img src="' + qrImgUrl + '" alt="UPI QR code"></div>' +
-        '<p class="hint" style="text-align:center;">Scan with any UPI app — the amount (' + money(totalAmount) + ') is already filled in.</p>' +
-        '<a class="btn btn-gold" style="margin-top:12px;" href="' + escapeHtml(upiUrl) + '">Pay with UPI app</a>' +
-      '</div>';
+        '<div class="field" style="margin-bottom:0;"><label for="payUtr">Your UPI transaction ref. (optional)</label><input type="text" id="payUtr" placeholder="If shown in your UPI app"></div>' +
+      '</div>' +
+      '<button class="btn btn-gold" style="margin-bottom:8px;" onclick="confirmUpiPaid(\'' + invoiceNo + '\',' + totalAmount + ')">I\'ve completed the payment</button>' +
+      '<button class="btn" style="background:transparent;border:1.5px solid var(--line);color:var(--green-800);" onclick="showThankYou(\'' + invoiceNo + '\',' + totalAmount + ',false)">← I\'ll pay later</button>';
+  }
+
+  async function confirmUpiPaid(invoiceNo, totalAmount) {
+    const utr = document.getElementById('payUtr').value.trim();
+    await sb.rpc('mark_order_payment_intent', { p_invoice_no: invoiceNo, p_amount: totalAmount, p_utr_no: utr || null });
+    showThankYou(invoiceNo, totalAmount, true);
+  }
+
+  function showThankYou(invoiceNo, totalAmount, paid) {
+    document.getElementById('mainArea').innerHTML =
+      '<div class="card" style="text-align:center;">' +
+        '<div class="success-icon">✓</div>' +
+        '<h2 style="font-size:18px;color:var(--green-800);margin-bottom:4px;">Thank you!</h2>' +
+        '<p class="hint">Bill No. <strong>' + escapeHtml(invoiceNo) + '</strong> · ' + money(totalAmount) + '</p>' +
+        '<p class="hint" style="margin-top:10px;">' + (paid ? 'We\'ve noted your payment — our team will verify and confirm shortly.' : 'Our team will confirm and prepare your order shortly.') + '</p>' +
+      '</div>' +
+      '<button class="btn btn-gold" onclick="showOfficialWorkForm(\'' + invoiceNo + '\')">Continue</button>';
+  }
+
+  function showOfficialWorkForm(invoiceNo) {
+    document.getElementById('mainArea').innerHTML =
+      '<div class="card">' +
+        '<p class="section-label">Official Work (optional)</p>' +
+        '<p class="hint" style="margin-bottom:14px;">If you know which Distributor ID this order\'s SP should be credited to, fill it in below. Otherwise just skip.</p>' +
+        '<div class="field-row">' +
+          '<div class="field"><label for="ofDsId">DS ID</label><input type="text" id="ofDsId" placeholder="Distributor ID"></div>' +
+          '<div class="field"><label for="ofDsName">DS Name</label><input type="text" id="ofDsName" placeholder="Distributor name"></div>' +
+        '</div>' +
+        '<div class="field-row">' +
+          '<div class="field"><label for="ofOrderType">Greening/Repurchase</label>' +
+            '<select id="ofOrderType" onchange="toggleOfSaoSgo()" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">' +
+              '<option value="Greening">Greening</option><option value="Repurchase">Repurchase</option>' +
+            '</select></div>' +
+          '<div class="field" id="ofSaoSgoField" style="display:none;"><label for="ofSaoSgo">SAO/SGO</label>' +
+            '<select id="ofSaoSgo" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">' +
+              '<option value="SAO">SAO</option><option value="SGO">SGO</option>' +
+            '</select></div>' +
+        '</div>' +
+        '<div class="field" style="margin-bottom:0;"><label for="ofSpAmount">SP to allocate</label><input type="number" id="ofSpAmount" min="0" step="0.01" placeholder="0"></div>' +
+      '</div>' +
+      '<button class="btn btn-gold" style="margin-bottom:8px;" onclick="submitOfficialWork(\'' + invoiceNo + '\')">Save &amp; Continue</button>' +
+      '<button class="btn" style="background:transparent;border:1.5px solid var(--line);color:var(--green-800);" onclick="showFinalReceipt(\'' + invoiceNo + '\')">Skip</button>';
+  }
+
+  function toggleOfSaoSgo() {
+    document.getElementById('ofSaoSgoField').style.display = document.getElementById('ofOrderType').value === 'Repurchase' ? 'block' : 'none';
+  }
+
+  async function submitOfficialWork(invoiceNo) {
+    const dsId = document.getElementById('ofDsId').value.trim();
+    const dsName = document.getElementById('ofDsName').value.trim();
+    const orderType = document.getElementById('ofOrderType').value;
+    const saoSgo = orderType === 'Repurchase' ? document.getElementById('ofSaoSgo').value : null;
+    const spAmount = document.getElementById('ofSpAmount').value;
+    if (dsId || dsName || spAmount) {
+      await sb.rpc('save_order_official_prefill', {
+        p_invoice_no: invoiceNo, p_ds_id: dsId || null, p_ds_name: dsName || null,
+        p_greening_repurchase: (dsId || dsName) ? orderType : null, p_sao_sgo: saoSgo,
+        p_sp_to_allocate: spAmount ? Number(spAmount) : null
+      });
+    }
+    showFinalReceipt(invoiceNo);
+  }
+
+  async function showFinalReceipt(invoiceNo) {
+    document.getElementById('mainArea').innerHTML = '<div class="empty">Loading your bill…</div>';
+    const { data, error } = await sb.rpc('get_public_order_receipt', { p_invoice_no: invoiceNo });
+    if (error || !data) {
+      document.getElementById('mainArea').innerHTML = '<div class="empty">Order ' + escapeHtml(invoiceNo) + ' saved. (Could not load the bill preview.)</div>' +
+        '<button class="btn btn-gold" onclick="goBackToForm()">← Place another order</button>';
+      return;
+    }
+    const dateStr = new Date(data.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    const rows = (data.items || []).map(function (it) {
+      return '<div class="cart-row"><div><div class="cart-name">' + escapeHtml(it.name) + ' × ' + trimNum(it.qty) + '</div><div class="cart-price">' + trimNum(it.qty * it.sp) + ' SP</div></div>' +
+        '<div class="cart-price" style="font-weight:700;color:var(--green-800);">' + money(it.qty * it.price) + '</div></div>';
+    }).join('');
+    document.getElementById('mainArea').innerHTML =
+      '<div class="card">' +
+        '<h2 style="font-size:17px;color:var(--green-800);text-align:center;margin-bottom:2px;">Mahakal Wellness</h2>' +
+        '<p class="hint" style="text-align:center;margin-bottom:14px;">Bill No. ' + escapeHtml(data.invoiceNo) + ' · ' + dateStr + '</p>' +
+        '<p class="hint" style="margin-bottom:10px;">' + escapeHtml(data.customerName || 'Customer') + ' · ' + escapeHtml(data.mobile || '') + ' · ' + escapeHtml(data.customerType) + '</p>' +
+        rows +
+        (data.discountAmount > 0 ? '<div class="total-row"><span class="lbl">Discount (' + trimNum(data.discountPercent) + '%)</span><span class="val" style="font-size:14px;color:var(--danger);">−' + money(data.discountAmount) + '</span></div>' : '') +
+        '<div class="total-row" style="border-top:none;padding-top:0;"><span class="lbl">Total SP</span><span class="val" style="font-size:15px;color:var(--gold-600);">' + trimNum(data.totalSp) + ' SP</span></div>' +
+        '<div class="total-row"><span class="lbl">Total</span><span class="val">' + money(data.totalAmount) + '</span></div>' +
+      '</div>' +
+      '<p class="hint" style="text-align:center;margin-bottom:14px;">📸 Take a screenshot of this bill to keep or share.</p>' +
+      '<button class="btn btn-gold" onclick="goBackToForm()">← Place another order</button>';
+  }
+
+  function goBackToForm() {
+    CART = {};
+    renderForm();
   }
 
   init();
