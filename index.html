@@ -319,24 +319,10 @@
       </div>
 
       <div class="card">
-        <p class="section-label">Payment</p>
-        <div id="walletUseArea" style="display:none;margin-bottom:12px;background:var(--gold-100);border-radius:10px;padding:10px 12px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700;color:var(--gold-600);margin-bottom:6px;">
-            <span>Wallet balance: <span id="walletAvailableAmt">₹0</span></span>
-          </div>
-          <div class="field" style="margin-bottom:0;"><label for="walletUseAmt">Use from wallet ₹</label><input type="number" id="walletUseAmt" placeholder="0" min="0" step="0.01" oninput="renderTotals()"></div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label for="payCash">Cash ₹</label><input type="number" id="payCash" placeholder="0" min="0" step="0.01" oninput="renderTotals()"></div>
-          <div class="field"><label for="payOnline">Online / UPI ₹</label><input type="number" id="payOnline" placeholder="0" min="0" step="0.01" oninput="renderTotals()"></div>
-        </div>
-        <button class="quickbtn" type="button" onclick="fillFullCash()">Mark fully paid (cash)</button>
-        <div id="balanceLine" class="balance-line balance-settled" style="margin-top:12px;"><span>Balance</span><span id="balanceValue">₹0</span></div>
-      </div>
-
-      <div class="card">
         <p class="section-label">Sold by</p>
-        <div class="field"><label for="salesman">Salesman</label><input type="text" id="salesman" placeholder="Staff name"></div>
+        <div class="field"><label for="salesman">Salesman</label><input type="text" id="salesman" list="salesmanOptions" placeholder="Staff name">
+          <datalist id="salesmanOptions"><option value="Alisha"></option><option value="Praveen"></option></datalist>
+        </div>
         <div class="field" style="margin-bottom:0;"><label for="remark">Remark (optional)</label><input type="text" id="remark" placeholder="Any note for this bill"></div>
       </div>
     </section>
@@ -743,12 +729,33 @@
   </div>
 
   <!-- ============ DELIVERY QTY MODAL (right after saving) ============ -->
+  <!-- ============ PROCEED FURTHER: STEP 1 - PAYMENT ============ -->
+  <div class="modal-overlay" id="paymentStepModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Step 1 of 2: Payment</h2>
+      <p class="hint" style="margin-bottom:12px;">Amount due: <strong id="paymentStepAmountDue"></strong></p>
+      <div id="paymentStepWalletArea" style="display:none;margin-bottom:12px;background:var(--gold-100);border-radius:10px;padding:10px 12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700;color:var(--gold-600);margin-bottom:6px;">
+          <span>Wallet balance: <span id="paymentStepWalletAvail">₹0</span></span>
+        </div>
+        <div class="field" style="margin-bottom:0;"><label for="paymentStepWalletUse">Use from wallet ₹</label><input type="number" id="paymentStepWalletUse" placeholder="0" min="0" step="0.01" oninput="renderPaymentStepBalance()"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="paymentStepCash">Cash ₹</label><input type="number" id="paymentStepCash" placeholder="0" min="0" step="0.01" oninput="renderPaymentStepBalance()"></div>
+        <div class="field"><label for="paymentStepOnline">Online / UPI ₹</label><input type="number" id="paymentStepOnline" placeholder="0" min="0" step="0.01" oninput="renderPaymentStepBalance()"></div>
+      </div>
+      <button class="quickbtn" type="button" onclick="fillPaymentStepFullCash()">Mark fully paid (cash)</button>
+      <div id="paymentStepBalanceLine" class="balance-line balance-due" style="margin-top:12px;"><span>Balance</span><span id="paymentStepBalanceValue">₹0</span></div>
+      <div class="modal-actions"><button class="btn btn-primary btn-block" onclick="proceedToDeliveryStep()">Next: Delivery →</button></div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="deliveryModal">
     <div class="modal-sheet">
-      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">How much was delivered now?</h2>
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Step 2 of 2: How much was delivered now?</h2>
       <p class="hint" style="margin-bottom:12px;">Defaults to fully delivered. Reduce a quantity only if something wasn't handed over yet.</p>
       <div id="deliveryItemsList"></div>
-      <div class="modal-actions"><button class="btn btn-primary btn-block" onclick="confirmDeliveryFlow()">Confirm &amp; Continue</button></div>
+      <div class="modal-actions"><button class="btn btn-primary btn-block" onclick="confirmDeliveryFlow()">Confirm &amp; Finish</button></div>
     </div>
   </div>
 
@@ -1365,7 +1372,6 @@
       searchInput.disabled = false;
       searchInput.placeholder = 'Product name or code…';
       searchInput.focus();
-      loadCustomerWalletForBill();
     } else {
       searchInput.disabled = true;
       searchInput.placeholder = 'Choose customer type above first…';
@@ -1391,49 +1397,7 @@
       document.getElementById('retailDiscountAmt').textContent = money(discountAmount) + (discountPercent ? ' (' + discountPercent + '%)' : '');
       document.getElementById('retailNetAmt').textContent = money(netAmount);
     }
-    const amountDue = isRetail ? netAmount : amount;
-
-    const cash = Number(document.getElementById('payCash').value) || 0;
-    const online = Number(document.getElementById('payOnline').value) || 0;
-    const walletUsed = Number(document.getElementById('walletUseAmt').value) || 0;
-    const balance = (cash + online + walletUsed) - amountDue;
-    const balEl = document.getElementById('balanceLine');
-    const balVal = document.getElementById('balanceValue');
-    if (Math.abs(balance) < 0.005) { balEl.className = 'balance-line balance-settled'; balVal.textContent = 'Settled'; }
-    else if (balance < 0) { balEl.className = 'balance-line balance-due'; balVal.textContent = 'Due ' + money(-balance); }
-    else { balEl.className = 'balance-line balance-settled'; balVal.textContent = 'Change ' + money(balance); }
-
     document.getElementById('saveBtn').disabled = CART.length === 0;
-  }
-
-  async function loadCustomerWalletForBill() {
-    const mobile = document.getElementById('custMobile').value.trim();
-    const box = document.getElementById('walletUseArea');
-    if (!mobile) { box.style.display = 'none'; document.getElementById('walletUseAmt').value = ''; return; }
-    const { data } = await sb.from('customer_wallets').select('balance').eq('mobile', mobile).maybeSingle();
-    const balance = data ? Number(data.balance) : 0;
-    if (balance > 0.005) {
-      document.getElementById('walletAvailableAmt').textContent = money(balance);
-      document.getElementById('walletUseAmt').max = balance;
-      box.style.display = 'block';
-    } else {
-      box.style.display = 'none';
-      document.getElementById('walletUseAmt').value = '';
-    }
-  }
-
-  function fillFullCash() {
-    let amount = 0, totalMrp = 0;
-    CART.forEach(function (c) { amount += c.qty * c.dp; totalMrp += c.qty * (c.mrp || 0); });
-    const isRetail = document.getElementById('custType').value === 'Retail';
-    if (isRetail) {
-      const discountPercent = Number(document.getElementById('discountPercent').value) || 0;
-      amount = totalMrp - (Math.round(totalMrp * discountPercent) / 100);
-    }
-    const online = Number(document.getElementById('payOnline').value) || 0;
-    const walletUsed = Number(document.getElementById('walletUseAmt').value) || 0;
-    document.getElementById('payCash').value = Math.max(0, amount - online - walletUsed);
-    renderTotals();
   }
 
   async function saveBill() {
@@ -1449,15 +1413,12 @@
     const idNo = document.getElementById('idNo').value.trim();
     const referenceName = document.getElementById('referenceName').value.trim();
     const referenceMobile = document.getElementById('referenceMobile').value.trim();
-    const cash = Number(document.getElementById('payCash').value) || 0;
-    const online = Number(document.getElementById('payOnline').value) || 0;
-    const walletUsed = Number(document.getElementById('walletUseAmt').value) || 0;
     const salesman = document.getElementById('salesman').value.trim();
     const discountPercent = custType === 'Retail' ? (Number(document.getElementById('discountPercent').value) || 0) : 0;
 
     const payload = {
       p_customer_name: custName, p_mobile: custMobile, p_customer_type: custType,
-      p_cash: cash, p_online: online, p_wallet_used: walletUsed, p_salesman: salesman, p_remark: document.getElementById('remark').value.trim(),
+      p_salesman: salesman, p_remark: document.getElementById('remark').value.trim(),
       p_id_name: idName, p_id_no: idNo, p_reference_name: referenceName, p_reference_mobile: referenceMobile,
       p_discount_percent: discountPercent,
       p_items: cartSnapshot.map(function (c) { return { code: c.code, name: c.name, qty: c.qty, dp: c.dp, sp: c.sp, mrp: c.mrp || 0 }; })
@@ -1473,11 +1434,10 @@
     const discountAmount = custType === 'Retail' ? (Math.round(totalMrp * discountPercent) / 100) : 0;
     const netAmount = custType === 'Retail' ? (totalMrp - discountAmount) : 0;
     const amountDue = custType === 'Retail' ? netAmount : totalDP;
-    const paid = cash + online + walletUsed;
     lastSavedBill = {
       invoiceNo: invoiceNo, date: new Date().toISOString(), totalQty: totalQty, totalDP: totalDP, totalSP: totalSP,
       totalMrp: totalMrp, discountPercent: discountPercent, discountAmount: discountAmount, netAmount: netAmount,
-      cash: cash, online: online, walletUsed: walletUsed, balance: paid - amountDue, salesman: salesman, customerType: custType,
+      cash: 0, online: 0, walletUsed: 0, balance: -amountDue, salesman: salesman, customerType: custType,
       customerName: custName, mobile: custMobile, idName: idName, idNo: idNo, billStatus: 'Pending',
       referenceName: referenceName, referenceMobile: referenceMobile, shareToken: tokenRow ? tokenRow.share_token : null,
       remark: document.getElementById('remark').value.trim(),
@@ -1497,10 +1457,6 @@
     document.getElementById('custMobile').value = '';
     document.getElementById('custName').value = '';
     document.getElementById('custType').value = '';
-    document.getElementById('payCash').value = '';
-    document.getElementById('payOnline').value = '';
-    document.getElementById('walletUseAmt').value = '';
-    document.getElementById('walletUseArea').style.display = 'none';
     document.getElementById('remark').value = '';
     document.getElementById('idName').value = '';
     document.getElementById('idNo').value = '';
@@ -1515,10 +1471,6 @@
     document.getElementById('custMobile').value = '';
     document.getElementById('custName').value = '';
     document.getElementById('custType').value = '';
-    document.getElementById('payCash').value = '';
-    document.getElementById('payOnline').value = '';
-    document.getElementById('walletUseAmt').value = '';
-    document.getElementById('walletUseArea').style.display = 'none';
     document.getElementById('remark').value = '';
     document.getElementById('idName').value = '';
     document.getElementById('idNo').value = '';
@@ -1545,9 +1497,67 @@
     closeReceipt();
   }
 
-  function proceedFurther() {
+  let proceedFurtherPayment = { cash: 0, online: 0, walletUsed: 0 };
+
+  async function proceedFurther() {
     if (!currentDetailBill) return;
     document.getElementById('detailModal').classList.remove('show');
+    await renderPaymentStep();
+    document.getElementById('paymentStepModal').classList.add('show');
+  }
+
+  async function renderPaymentStep() {
+    const bill = currentDetailBill;
+    const amountDue = bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP;
+    document.getElementById('paymentStepAmountDue').textContent = money(amountDue);
+    document.getElementById('paymentStepCash').value = '';
+    document.getElementById('paymentStepOnline').value = '';
+    document.getElementById('paymentStepWalletUse').value = '';
+    document.getElementById('paymentStepWalletArea').style.display = 'none';
+    if (bill.mobile && bill.mobile.trim()) {
+      const { data } = await sb.from('customer_wallets').select('balance').eq('mobile', bill.mobile.trim()).maybeSingle();
+      const balance = data ? Number(data.balance) : 0;
+      if (balance > 0.005) {
+        document.getElementById('paymentStepWalletAvail').textContent = money(balance);
+        document.getElementById('paymentStepWalletUse').max = balance;
+        document.getElementById('paymentStepWalletArea').style.display = 'block';
+      }
+    }
+    renderPaymentStepBalance();
+  }
+
+  function renderPaymentStepBalance() {
+    const bill = currentDetailBill;
+    if (!bill) return;
+    const amountDue = bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP;
+    const cash = Number(document.getElementById('paymentStepCash').value) || 0;
+    const online = Number(document.getElementById('paymentStepOnline').value) || 0;
+    const walletUsed = Number(document.getElementById('paymentStepWalletUse').value) || 0;
+    const balance = (cash + online + walletUsed) - amountDue;
+    const balEl = document.getElementById('paymentStepBalanceLine');
+    const balVal = document.getElementById('paymentStepBalanceValue');
+    if (Math.abs(balance) < 0.005) { balEl.className = 'balance-line balance-settled'; balVal.textContent = 'Settled'; }
+    else if (balance < 0) { balEl.className = 'balance-line balance-due'; balVal.textContent = 'Due ' + money(-balance); }
+    else { balEl.className = 'balance-line balance-settled'; balVal.textContent = 'Change ' + money(balance); }
+  }
+
+  function fillPaymentStepFullCash() {
+    const bill = currentDetailBill;
+    if (!bill) return;
+    const amountDue = bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP;
+    const online = Number(document.getElementById('paymentStepOnline').value) || 0;
+    const walletUsed = Number(document.getElementById('paymentStepWalletUse').value) || 0;
+    document.getElementById('paymentStepCash').value = Math.max(0, amountDue - online - walletUsed);
+    renderPaymentStepBalance();
+  }
+
+  function proceedToDeliveryStep() {
+    proceedFurtherPayment = {
+      cash: Number(document.getElementById('paymentStepCash').value) || 0,
+      online: Number(document.getElementById('paymentStepOnline').value) || 0,
+      walletUsed: Number(document.getElementById('paymentStepWalletUse').value) || 0
+    };
+    document.getElementById('paymentStepModal').classList.remove('show');
     renderDeliveryModal(currentDetailBill.items);
     document.getElementById('deliveryModal').classList.add('show');
   }
@@ -1574,8 +1584,11 @@
       if (delivered > totalQty) delivered = totalQty;
       return { code: row.dataset.code, delivered_qty: delivered };
     });
-    const { error } = await sb.rpc('confirm_delivery', { p_invoice_no: invoiceNo, p_items: items });
-    if (error) { showToast('Could not confirm delivery: ' + error.message, true); return; }
+    const { error } = await sb.rpc('confirm_delivery', {
+      p_invoice_no: invoiceNo, p_items: items,
+      p_cash: proceedFurtherPayment.cash, p_online: proceedFurtherPayment.online, p_wallet_used: proceedFurtherPayment.walletUsed
+    });
+    if (error) { showToast('Could not finalize: ' + error.message, true); return; }
     showToast('Bill ' + invoiceNo + ' finalized.');
     document.getElementById('deliveryModal').classList.remove('show');
     hideDetail();

@@ -97,6 +97,7 @@
     }
 
     const s = data.settings || {};
+    const isPending = data.billStatus === 'Pending';
     const payCls = data.status === 'PAID' ? 'badge-paid' : (data.status === 'PARTIAL' ? 'badge-partial' : 'badge-unpaid');
     const payLabel = data.status === 'PAID' ? 'Paid' : (data.status === 'PARTIAL' ? 'Partially Paid' : 'Unpaid');
     const delCls = data.deliveryStatus === 'Partial' ? 'badge-partial' : 'badge-paid';
@@ -106,7 +107,7 @@
     const rows = (data.items || []).map(function (it) {
       const sp = Number(it.sp) || 0;
       const pending = Number(it.pendingQty) || 0;
-      return '<tr><td>' + escapeHtml(it.name) + (pending > 0.0001 ? ' <span class="badge badge-partial" style="margin-left:4px;">P ' + trimNum(pending) + '</span>' : '') + '</td><td class="num">' + trimNum(it.qty) + '</td>' +
+      return '<tr><td>' + escapeHtml(it.name) + (!isPending && pending > 0.0001 ? ' <span class="badge badge-partial" style="margin-left:4px;">P ' + trimNum(pending) + '</span>' : '') + '</td><td class="num">' + trimNum(it.qty) + '</td>' +
         '<td class="num">' + money(it.dp) + '</td><td class="num">' + money(it.amount) + '</td>' +
         '<td class="num">' + trimNum(it.qty * sp) + '</td></tr>';
     }).join('');
@@ -122,8 +123,10 @@
     main.innerHTML =
       '<div class="card">' +
         '<div class="live-tag"><span class="live-dot"></span>Live status — updates automatically</div>' +
-        '<div><span class="badge ' + payCls + '">' + payLabel + (data.balance < -0.005 ? ' — Due ' + money(-data.balance) : '') + '</span>' +
-        '<span class="badge ' + delCls + '">' + delLabel + '</span></div>' +
+        (isPending
+          ? '<div><span class="badge badge-partial">On Hold — Awaiting Approval</span></div>'
+          : '<div><span class="badge ' + payCls + '">' + payLabel + (data.balance < -0.005 ? ' — Due ' + money(-data.balance) : '') + '</span>' +
+            '<span class="badge ' + delCls + '">' + delLabel + '</span></div>') +
       '</div>' +
       '<div class="card">' +
         '<p style="font-size:10.5px;color:var(--ink-faint);margin:0 0 4px;">' + (s['FSSAI No'] ? 'FSSAI: ' + escapeHtml(s['FSSAI No']) : '') + '</p>' +
@@ -139,9 +142,10 @@
         '<div class="receipt-total-row"><span>Qty</span><span>' + trimNum(data.totalQty) + '</span></div>' +
         '<div class="receipt-total-row grand"><span>Total</span><span>' + money(data.totalDP) + '</span></div>' +
         '<div class="receipt-total-row"><span>Total SP</span><span>' + trimNum(data.totalSP) + '</span></div>' +
-        '<div class="receipt-total-row"><span>Cash</span><span>' + money(data.cash) + '</span></div>' +
-        '<div class="receipt-total-row"><span>Online</span><span>' + money(data.online) + '</span></div>' +
-        '<div class="receipt-total-row"><span>Balance</span><span>' + (data.balance < 0 ? 'Due ' + money(-data.balance) : money(data.balance)) + '</span></div>' +
+        (isPending ? '' :
+          '<div class="receipt-total-row"><span>Cash</span><span>' + money(data.cash) + '</span></div>' +
+          '<div class="receipt-total-row"><span>Online</span><span>' + money(data.online) + '</span></div>' +
+          '<div class="receipt-total-row"><span>Balance</span><span>' + (data.balance < 0 ? 'Due ' + money(-data.balance) : money(data.balance)) + '</span></div>') +
         '<p style="font-size:11px;color:var(--ink-soft);margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;">Rs. (in words): ' + numberToWordsIndian(data.totalDP) + '</p>' +
         (data.salesman ? '<p style="font-size:11.5px;color:var(--ink-faint);margin-top:6px;">Billed by ' + escapeHtml(data.salesman) + '</p>' : '') +
         '<div style="font-size:10.5px;color:var(--ink-faint);margin-top:14px;line-height:1.7;">' +
