@@ -284,7 +284,7 @@
         <p class="section-label">Customer (optional)</p>
         <div class="field-row">
           <div class="field"><label for="custMobile">Mobile</label><input type="tel" id="custMobile" placeholder="10-digit mobile" maxlength="15" onblur="loadCustomerWalletForBill()"></div>
-          <div class="field"><label for="custName">Name</label><input type="text" id="custName" placeholder="Walk-in customer"></div>
+          <div class="field"><label for="custName">Name</label><input type="text" id="custName" placeholder="Walk-in customer" oninput="this.value = this.value.toUpperCase();"></div>
         </div>
         <div class="field" style="margin-bottom:0;">
           <label for="custType">Customer type</label>
@@ -774,11 +774,32 @@
 
   <div class="modal-overlay" id="deliveryModal">
     <div class="modal-sheet">
-      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Step 2 of 2: How much was delivered now?</h2>
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Step 2 of 3: How much was delivered now?</h2>
       <p class="hint" style="margin-bottom:12px;">Defaults to fully delivered. Reduce a quantity only if something wasn't handed over yet.</p>
       <div id="deliveryItemsList"></div>
       <div class="modal-actions">
         <button class="btn btn-outline" onclick="backToPaymentStep()">← Back</button>
+        <button class="btn btn-primary" onclick="goToOfficialPrefillStep()">Next: Official Work →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PROCEED FURTHER: STEP 3 - OFFICIAL WORK PRE-FILL ============ -->
+  <div class="modal-overlay" id="officialPrefillModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Step 3 of 3: Official Work</h2>
+      <p class="hint" style="margin-bottom:12px;">Optional — fill this in only if you already know who this bill's SP will be credited to. You can leave it blank and fill it later in the Official tab instead.</p>
+      <div class="field-row">
+        <div class="field"><label for="prefillDsId">DS ID (for SP credit)</label><input type="text" id="prefillDsId" placeholder="Distributor ID"></div>
+        <div class="field"><label for="prefillDsName">DS Name</label><input type="text" id="prefillDsName" placeholder="Distributor name"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="prefillOrderType">Greening/Repurchase</label><select id="prefillOrderType" onchange="togglePrefillSaoSgo()"><option value="Greening">Greening</option><option value="Repurchase">Repurchase</option></select></div>
+        <div class="field" id="prefillSaoSgoField" style="display:none;"><label for="prefillSaoSgo">SAO/SGO</label><select id="prefillSaoSgo"><option value="SAO">SAO</option><option value="SGO">SGO</option></select></div>
+      </div>
+      <div class="field" style="margin-bottom:0;"><label for="prefillSpAmount">SP to allocate</label><input type="number" id="prefillSpAmount" min="0" step="0.01" placeholder="0"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="backToDeliveryStep()">← Back</button>
         <button class="btn btn-primary" onclick="confirmDeliveryFlow()">Confirm &amp; Finish</button>
       </div>
     </div>
@@ -914,7 +935,8 @@
   <div class="modal-overlay" id="customerDetailModal">
     <div class="modal-sheet">
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;" id="customerDetailName"></h2>
-      <p class="hint" id="customerDetailMobile" style="margin-bottom:14px;"></p>
+      <p class="hint" id="customerDetailMobile" style="margin-bottom:6px;"></p>
+      <div id="customerDetailExtra" style="display:none;margin-bottom:14px;background:var(--gold-100);border:1.5px solid var(--gold-500);border-radius:8px;padding:8px 10px;font-size:12.5px;font-weight:700;color:var(--green-900);"></div>
       <p class="section-label">Quick range</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
         <button class="quickbtn" type="button" onclick="setCustomerRange('today')">Today</button>
@@ -949,11 +971,27 @@
     </div>
   </div>
 
+  <!-- ============ OFFICIAL WORK: use the details captured during Bill Approval? ============ -->
+  <div class="modal-overlay" id="officialUsePrefillModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:16px;color:var(--green-800);margin-bottom:10px;">Use these Official details?</h2>
+      <div id="officialPrefillSummary" style="background:var(--gold-100);border:1.5px solid var(--gold-500);border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:13px;color:var(--green-900);"></div>
+      <div class="modal-actions" style="margin-top:0;">
+        <button class="btn btn-outline" onclick="officialPrefillGoBack()">← Back</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="chooseOfficialPrefillNo()">No, Manual Entry</button>
+        <button class="btn btn-primary" onclick="chooseOfficialPrefillYes()">Yes, Use Same</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ OFFICIAL WORK: STEP 2 - Same product / Manual entry ============ -->
   <div class="modal-overlay" id="officialSourceModal">
     <div class="modal-sheet">
       <h2 style="font-size:16px;color:var(--green-800);margin-bottom:14px;">How do you want to work this bill?</h2>
       <div class="modal-actions" style="margin-top:0;"><button class="btn btn-outline" id="officialSameBtn" onclick="chooseOfficialSame()">Same Product</button><button class="btn btn-gold" onclick="chooseOfficialManual()">Manual Entry</button></div>
+      <div class="modal-actions"><button class="btn btn-outline btn-block" onclick="officialSourceGoBack()">← Back</button></div>
     </div>
   </div>
 
@@ -1586,6 +1624,8 @@
     renderPaymentStepBalance();
   }
 
+  let proceedFurtherDeliveryItems = [];
+
   function proceedToDeliveryStep() {
     proceedFurtherPayment = {
       cash: Number(document.getElementById('paymentStepCash').value) || 0,
@@ -1615,11 +1655,9 @@
     }).join('');
   }
 
-  async function confirmDeliveryFlow() {
-    if (!currentDetailBill) return;
-    const invoiceNo = currentDetailBill.invoiceNo;
+  function goToOfficialPrefillStep() {
     const rows = document.querySelectorAll('#deliveryItemsList .cart-item');
-    const items = Array.from(rows).map(function (row) {
+    proceedFurtherDeliveryItems = Array.from(rows).map(function (row) {
       const input = row.querySelector('.deliveredInput');
       const totalQty = Number(row.dataset.qty) || 0;
       let delivered = Math.round(Number(input.value));
@@ -1627,13 +1665,40 @@
       if (delivered > totalQty) delivered = totalQty;
       return { code: row.dataset.code, delivered_qty: delivered };
     });
+    document.getElementById('deliveryModal').classList.remove('show');
+    document.getElementById('officialPrefillModal').classList.add('show');
+  }
+
+  function backToDeliveryStep() {
+    document.getElementById('officialPrefillModal').classList.remove('show');
+    document.getElementById('deliveryModal').classList.add('show');
+  }
+
+  function togglePrefillSaoSgo() {
+    document.getElementById('prefillSaoSgoField').style.display = document.getElementById('prefillOrderType').value === 'Repurchase' ? 'block' : 'none';
+  }
+
+  async function confirmDeliveryFlow() {
+    if (!currentDetailBill) return;
+    const invoiceNo = currentDetailBill.invoiceNo;
+    const dsId = document.getElementById('prefillDsId').value.trim();
+    const dsName = document.getElementById('prefillDsName').value.trim();
+    const orderType = document.getElementById('prefillOrderType').value;
+    const saoSgo = orderType === 'Repurchase' ? document.getElementById('prefillSaoSgo').value : null;
+    const spAmount = document.getElementById('prefillSpAmount').value;
     const { error } = await sb.rpc('confirm_delivery', {
-      p_invoice_no: invoiceNo, p_items: items,
-      p_cash: proceedFurtherPayment.cash, p_online: proceedFurtherPayment.online, p_wallet_used: proceedFurtherPayment.walletUsed
+      p_invoice_no: invoiceNo, p_items: proceedFurtherDeliveryItems,
+      p_cash: proceedFurtherPayment.cash, p_online: proceedFurtherPayment.online, p_wallet_used: proceedFurtherPayment.walletUsed,
+      p_ds_id: dsId || null, p_ds_name: dsName || null,
+      p_greening_repurchase: (dsId || dsName) ? orderType : null,
+      p_sao_sgo: saoSgo, p_sp_to_allocate: spAmount ? Number(spAmount) : null
     });
     if (error) { showToast('Could not finalize: ' + error.message, true); return; }
     showToast('Bill ' + invoiceNo + ' finalized.');
-    document.getElementById('deliveryModal').classList.remove('show');
+    document.getElementById('officialPrefillModal').classList.remove('show');
+    document.getElementById('prefillDsId').value = ''; document.getElementById('prefillDsName').value = '';
+    document.getElementById('prefillOrderType').value = 'Greening'; document.getElementById('prefillSaoSgoField').style.display = 'none';
+    document.getElementById('prefillSpAmount').value = '';
     hideDetail();
     searchApprovalBills();
     searchHistory();
@@ -2700,13 +2765,26 @@
   }
 
   let currentCustomerName = '';
-  function openCustomerDetail(mobile, name) {
+  async function openCustomerDetail(mobile, name) {
     currentCustomerMobile = mobile;
     currentCustomerName = name || '';
     document.getElementById('customerDetailName').textContent = (name || 'Customer').toUpperCase();
     document.getElementById('customerDetailMobile').textContent = mobile || '';
     document.getElementById('customerDetailModal').classList.add('show');
     setCustomerRange('today');
+
+    const extraBox = document.getElementById('customerDetailExtra');
+    extraBox.style.display = 'none';
+    if (mobile) {
+      const { data: custRow } = await sb.from('customers').select('id_no, reference_name, reference_mobile').eq('mobile', mobile).maybeSingle();
+      if (custRow && (custRow.id_no || custRow.reference_name || custRow.reference_mobile)) {
+        extraBox.innerHTML =
+          (custRow.id_no ? 'DS ID: ' + escapeHtml(custRow.id_no) + '&nbsp;&nbsp; ' : '') +
+          (custRow.reference_name || custRow.reference_mobile ? 'Reference/Upline: ' + escapeHtml(custRow.reference_name || '') +
+            (custRow.reference_mobile ? ' (' + escapeHtml(String(custRow.reference_mobile)) + ')' : '') : '');
+        extraBox.style.display = 'block';
+      }
+    }
   }
 
   function setCustomerRange(preset) {
@@ -3392,11 +3470,52 @@
     setTimeout(function () { document.getElementById('officialProceedBtn').focus(); }, 60);
   }
 
+  let officialPrefillData = null;
+  let officialCameFromPrefillChoice = false;
+  let officialUsingPrefill = false;
+
   function closeOfficialAction() { document.getElementById('officialActionModal').classList.remove('show'); }
-  function proceedOfficialAction() {
+  async function proceedOfficialAction() {
     document.getElementById('officialActionModal').classList.remove('show');
+    const { data } = await sb.from('official_prefill').select('*').eq('invoice_no', officialCurrentBill.header.invoiceNo).maybeSingle();
+    officialPrefillData = data || null;
+    if (officialPrefillData && (officialPrefillData.ds_id || officialPrefillData.ds_name)) {
+      officialCameFromPrefillChoice = true;
+      document.getElementById('officialPrefillSummary').innerHTML =
+        (officialPrefillData.ds_id ? 'DS ID: <strong>' + escapeHtml(officialPrefillData.ds_id) + '</strong><br>' : '') +
+        (officialPrefillData.ds_name ? 'DS Name: <strong>' + escapeHtml(officialPrefillData.ds_name) + '</strong><br>' : '') +
+        (officialPrefillData.greening_repurchase ? officialPrefillData.greening_repurchase + (officialPrefillData.sao_sgo ? ' (' + officialPrefillData.sao_sgo + ')' : '') + '<br>' : '') +
+        (officialPrefillData.sp_to_allocate ? 'SP planned: ' + trimNum(officialPrefillData.sp_to_allocate) : '');
+      document.getElementById('officialUsePrefillModal').classList.add('show');
+    } else {
+      officialCameFromPrefillChoice = false;
+      document.getElementById('officialSourceModal').classList.add('show');
+      setTimeout(function () { document.getElementById('officialSameBtn').focus(); }, 60);
+    }
+  }
+
+  function officialPrefillGoBack() {
+    document.getElementById('officialUsePrefillModal').classList.remove('show');
+    document.getElementById('officialActionModal').classList.add('show');
+  }
+
+  function chooseOfficialPrefillYes() {
+    officialUsingPrefill = true;
+    document.getElementById('officialUsePrefillModal').classList.remove('show');
     document.getElementById('officialSourceModal').classList.add('show');
     setTimeout(function () { document.getElementById('officialSameBtn').focus(); }, 60);
+  }
+  function chooseOfficialPrefillNo() {
+    officialUsingPrefill = false;
+    document.getElementById('officialUsePrefillModal').classList.remove('show');
+    document.getElementById('officialSourceModal').classList.add('show');
+    setTimeout(function () { document.getElementById('officialSameBtn').focus(); }, 60);
+  }
+
+  function officialSourceGoBack() {
+    document.getElementById('officialSourceModal').classList.remove('show');
+    if (officialCameFromPrefillChoice) document.getElementById('officialUsePrefillModal').classList.add('show');
+    else document.getElementById('officialActionModal').classList.add('show');
   }
 
   function chooseOfficialSame() {
@@ -3416,8 +3535,16 @@
     const h = officialCurrentBill.header;
     document.getElementById('officialWorkBillMeta').textContent = h.invoiceNo + ' · ' + escapeHtml(h.customer || 'Walk-in');
     document.getElementById('officialTotalAmount').textContent = money(h.totalDP);
-    document.getElementById('officialDsId').value = ''; document.getElementById('officialDsName').value = '';
-    document.getElementById('officialOrderType').value = 'Greening'; document.getElementById('officialSaoSgoField').style.display = 'none';
+    if (officialUsingPrefill && officialPrefillData) {
+      document.getElementById('officialDsId').value = officialPrefillData.ds_id || '';
+      document.getElementById('officialDsName').value = officialPrefillData.ds_name || '';
+      document.getElementById('officialOrderType').value = officialPrefillData.greening_repurchase || 'Greening';
+      document.getElementById('officialSaoSgoField').style.display = officialPrefillData.greening_repurchase === 'Repurchase' ? 'block' : 'none';
+      if (officialPrefillData.sao_sgo) document.getElementById('officialSaoSgo').value = officialPrefillData.sao_sgo;
+    } else {
+      document.getElementById('officialDsId').value = ''; document.getElementById('officialDsName').value = '';
+      document.getElementById('officialOrderType').value = 'Greening'; document.getElementById('officialSaoSgoField').style.display = 'none';
+    }
     document.getElementById('officialCompanyInvoiceNo').value = ''; document.getElementById('officialCompanyInvoiceWarning').textContent = '';
     document.getElementById('officialManualSearchWrap').style.display = officialSource === 'Manual' ? 'block' : 'none';
     document.getElementById('officialSearchInput').value = '';
