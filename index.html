@@ -1826,13 +1826,22 @@
     capture.style.cssText = 'position:fixed; top:-99999px; left:0; width:520px;';
   }
   // Making the container visible via style.cssText doesn't guarantee the
-  // browser has actually painted it yet on the very next line of JS - if
-  // html2canvas starts before that paint happens, it can capture a stale,
-  // not-yet-rendered (blank) state. Waiting two animation frames reliably
-  // means at least one real paint has occurred first.
+  // browser has actually painted it yet on the very next line of JS, and any
+  // <img> (the logo) needs to finish decoding too - if html2canvas starts
+  // before either has happened, it can capture a stale, not-yet-rendered
+  // (blank) state.
   function waitForRender_() {
-    return new Promise(function (resolve) {
-      requestAnimationFrame(function () { requestAnimationFrame(resolve); });
+    const capture = document.getElementById('pdfCaptureArea');
+    const images = Array.from(capture.querySelectorAll('img'));
+    const imagePromises = images.map(function (img) {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      if (typeof img.decode === 'function') return img.decode().catch(function () {});
+      return new Promise(function (resolve) { img.onload = resolve; img.onerror = resolve; });
+    });
+    return Promise.all(imagePromises).then(function () {
+      return new Promise(function (resolve) {
+        requestAnimationFrame(function () { requestAnimationFrame(function () { setTimeout(resolve, 150); }); });
+      });
     });
   }
 
@@ -1843,7 +1852,7 @@
     const el = document.getElementById(preparePdfCapture_('printArea'));
     await waitForRender_();
     pauseScrollLock();
-    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, windowWidth: 900 } }).from(el).save().then(function () { hidePdfCapture_(); resumeScrollLock(); }).catch(function (err) { hidePdfCapture_(); resumeScrollLock(); showToast('PDF failed: ' + (err && err.message ? err.message : 'unknown error'), true); });
+    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, useCORS: true, allowTaint: true, logging: true } }).from(el).save().then(function () { hidePdfCapture_(); resumeScrollLock(); }).catch(function (err) { hidePdfCapture_(); resumeScrollLock(); showToast('PDF failed: ' + (err && err.message ? err.message : 'unknown error'), true); });
   }
 
   // ---------------- TABS ----------------
@@ -2496,7 +2505,7 @@
     const el = document.getElementById(preparePdfCapture_(sourceId));
     await waitForRender_();
     pauseScrollLock();
-    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, windowWidth: 900 } }).from(el).save().then(function () { hidePdfCapture_(); resumeScrollLock(); }).catch(function (err) { hidePdfCapture_(); resumeScrollLock(); showToast('PDF failed: ' + (err && err.message ? err.message : 'unknown error'), true); });
+    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, useCORS: true, allowTaint: true, logging: true } }).from(el).save().then(function () { hidePdfCapture_(); resumeScrollLock(); }).catch(function (err) { hidePdfCapture_(); resumeScrollLock(); showToast('PDF failed: ' + (err && err.message ? err.message : 'unknown error'), true); });
   }
   async function shareWhatsappFromDetail() {
     const sourceId = await getDetailPrintSourceId_();
@@ -2504,7 +2513,7 @@
     const el = document.getElementById(preparePdfCapture_(sourceId));
     await waitForRender_();
     pauseScrollLock();
-    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, windowWidth: 900 } }).from(el).save().then(function () {
+    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, useCORS: true, allowTaint: true, logging: true } }).from(el).save().then(function () {
       hidePdfCapture_();
       resumeScrollLock();
       let digits = String(currentDetailMobile || '').replace(/\D/g, ''); if (digits.length === 10) digits = '91' + digits;
@@ -3894,7 +3903,7 @@
     const el = document.getElementById(preparePdfCapture_('printArea'));
     await waitForRender_();
     pauseScrollLock();
-    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, windowWidth: 900 } }).from(el).save().then(function () {
+    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, useCORS: true, allowTaint: true, logging: true } }).from(el).save().then(function () {
       hidePdfCapture_();
       resumeScrollLock();
       let digits = String(lastSavedBill.mobile || '').replace(/\D/g, '');
