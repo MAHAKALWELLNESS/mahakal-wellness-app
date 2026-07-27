@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Place an Order — Mahakal Wellness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --green-900:#132E26; --green-800:#1E4A3D; --green-700:#2A5C4C; --green-100:#DCE9E3;
+    --gold-500:#D9A441; --gold-600:#B8842C; --gold-100:#F7E9C7;
+    --surface:#FFFFFF; --bg:#F6F5F1; --ink-soft:#555; --ink-faint:#8A8A8A; --line:#E7E4DC;
+    --danger:#C0392B; --danger-100:#FBE7E4; --ok:#2E7D4F; --ok-100:#E3F1E8;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'Inter',sans-serif; background:var(--bg); color:#222; -webkit-font-smoothing:antialiased;}
+  h1,h2{font-family:'Fraunces',serif; margin:0;}
+  .topbar{background:var(--green-900); padding:14px 16px; text-align:center;}
+  .topbar h1{font-size:17px; font-weight:600; color:#fff;}
+  .topbar p{margin:2px 0 0; font-size:11.5px; color:var(--green-100); opacity:.85;}
+  main{max-width:520px; margin:0 auto; padding:16px 16px 90px;}
+  .card{background:var(--surface); border-radius:16px; padding:20px; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  .section-label{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--ink-faint); margin:0 0 10px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block; font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
+  .field input{width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; font-size:15px; font-family:inherit; background:#fff;}
+  .field input:focus{outline:none; border-color:var(--gold-500);}
+  .field-row{display:flex; gap:10px;}
+  .field-row .field{flex:1;}
+  .search-wrap{position:relative;}
+  .search-results{margin-top:8px; max-height:280px; overflow-y:auto;}
+  .search-row{display:flex; justify-content:space-between; align-items:center; padding:11px 4px; border-bottom:1px solid var(--line); cursor:pointer;}
+  .search-row:last-child{border-bottom:none;}
+  .search-row:active{background:var(--bg);}
+  .search-name{font-size:13.5px; font-weight:600;}
+  .search-meta{font-size:11.5px; color:var(--ink-faint);}
+  .search-price{font-size:13.5px; font-weight:700; color:var(--green-800); white-space:nowrap; margin-left:10px;}
+  .cart-row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line);}
+  .cart-row:last-child{border-bottom:none;}
+  .cart-name{font-size:13.5px; font-weight:600;}
+  .cart-price{font-size:11.5px; color:var(--ink-faint);}
+  .qty-ctrl{display:flex; align-items:center; gap:10px;}
+  .qty-btn{width:30px; height:30px; border-radius:8px; border:1.5px solid var(--line); background:#fff; font-size:16px; font-weight:700; color:var(--green-800); cursor:pointer;}
+  .qty-val{min-width:22px; text-align:center; font-weight:700; font-size:14px;}
+  .empty-cart{padding:24px 0; text-align:center; color:var(--ink-faint); font-size:13px;}
+  .total-row{display:flex; justify-content:space-between; align-items:center; padding-top:12px; margin-top:4px; border-top:1px solid var(--line);}
+  .total-row .lbl{font-size:13px; color:var(--ink-soft);}
+  .total-row .val{font-size:20px; font-weight:700; color:var(--green-800);}
+  .btn{display:block; width:100%; padding:14px; border-radius:12px; border:none; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; text-align:center; text-decoration:none;}
+  .btn-gold{background:var(--gold-500); color:var(--green-900);}
+  .btn-gold:disabled{opacity:.5;}
+  .hint{font-size:12.5px; color:var(--ink-faint); margin:0;}
+  .error-msg{font-size:12.5px; color:var(--danger); margin:8px 0 0; min-height:16px;}
+  .empty{padding:40px 20px; text-align:center; color:var(--ink-faint);}
+  .success-icon{width:56px; height:56px; border-radius:50%; background:var(--ok-100); color:var(--ok); font-size:28px; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;}
+  .qr-box{text-align:center; padding:18px 0 6px;}
+  .qr-box img{width:220px; height:220px; border-radius:12px; border:1px solid var(--line);}
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <h1>Mahakal Wellness</h1>
+    <p>Place an Order</p>
+  </header>
+  <main id="mainArea">
+    <div class="empty">Loading…</div>
+  </main>
+
+<script>
+  const SUPABASE_URL = 'https://lrrqdmmugvizkbjfwneb.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ⚠️ REPLACE THIS with the business's real UPI ID (VPA) once you have it -
+  // e.g. 'mahakalwellness@okaxis'. Without a real one here, the QR code on
+  // the confirmation screen won't work for actual payment.
+  const BUSINESS_UPI_ID = '8199983834@okbizaxis';
+  const BUSINESS_PAYEE_NAME = 'Mahakal Wellness';
+
+  let ALL_PRODUCTS = [];
+  let CART = {}; // code -> { code, name, mrp, qty }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function money(n) { return '₹' + (Number(n) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }); }
+  function trimNum(n) { n = Number(n) || 0; return n % 1 === 0 ? String(n) : n.toFixed(2).replace(/\.?0+$/, ''); }
+
+  async function init() {
+    const { data, error } = await sb.rpc('get_public_products_for_order');
+    if (error) {
+      document.getElementById('mainArea').innerHTML = '<div class="empty">Could not load products. Please try again in a moment.</div>';
+      return;
+    }
+    ALL_PRODUCTS = data || [];
+    renderForm();
+  }
+
+  function renderForm() {
+    document.getElementById('mainArea').innerHTML =
+      '<div class="card">' +
+        '<p class="section-label">Your details</p>' +
+        '<div class="field"><label for="custName">Name</label><input type="text" id="custName" placeholder="Your name" oninput="this.value=this.value.toUpperCase()"></div>' +
+        '<div class="field"><label for="custMobile">Mobile</label><input type="tel" id="custMobile" placeholder="10-digit mobile" maxlength="15"></div>' +
+        '<div class="field" style="margin-bottom:0;"><label for="custType">Customer type</label>' +
+          '<select id="custType" onchange="onCustomerTypeChange()" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">' +
+            '<option value="" selected disabled>Choose type…</option><option>Retail</option><option>Distributor</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="field" id="discountField" style="display:none;margin-top:12px;margin-bottom:0;">' +
+          '<label for="discountPercent">Discount % (max 5%)</label>' +
+          '<input type="number" id="discountPercent" min="0" max="5" step="0.5" placeholder="0" oninput="capDiscount(); renderCart();">' +
+        '</div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<p class="section-label">Search products by code or name</p>' +
+        '<div class="search-wrap">' +
+          '<input type="text" id="searchInput" class="field" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;" placeholder="e.g. product code…" autocomplete="off" oninput="renderSearchResults(this.value)">' +
+          '<div id="searchResults" class="search-results"></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<p class="section-label" id="cartHeading">Your order (0 items)</p>' +
+        '<div id="cartList"><div class="empty-cart">Search above and tap a product to add it.</div></div>' +
+        '<div id="discountLine" style="display:none;" class="total-row"><span class="lbl">Discount</span><span class="val" id="cartDiscount" style="font-size:14px;color:var(--danger);">−₹0</span></div>' +
+        '<div class="total-row"><span class="lbl">Total</span><span class="val" id="cartTotal">₹0</span></div>' +
+      '</div>' +
+      '<button class="btn btn-gold" id="placeOrderBtn" onclick="placeOrder()" disabled>Place Order</button>' +
+      '<p class="error-msg" id="formError"></p>';
+  }
+
+  function onCustomerTypeChange() {
+    const type = document.getElementById('custType').value;
+    document.getElementById('discountField').style.display = type === 'Retail' ? 'block' : 'none';
+    renderCart();
+  }
+
+  function capDiscount() {
+    const input = document.getElementById('discountPercent');
+    if (Number(input.value) > 5) input.value = 5;
+    if (Number(input.value) < 0) input.value = 0;
+  }
+
+  function currentPriceField() {
+    return document.getElementById('custType') && document.getElementById('custType').value === 'Distributor' ? 'dp' : 'mrp';
+  }
+
+  function renderSearchResults(q) {
+    const box = document.getElementById('searchResults');
+    q = (q || '').trim().toLowerCase();
+    if (!q) { box.innerHTML = ''; return; }
+    const priceField = currentPriceField();
+    const matches = ALL_PRODUCTS.filter(function (p) {
+      return p.code.toLowerCase().indexOf(q) > -1 || p.name.toLowerCase().indexOf(q) > -1;
+    }).slice(0, 20);
+    if (!matches.length) { box.innerHTML = '<p class="hint" style="padding:10px 0;">No products found for "' + escapeHtml(q) + '".</p>'; return; }
+    box.innerHTML = matches.map(function (p) {
+      return '<div class="search-row" data-code="' + escapeHtml(p.code) + '">' +
+        '<div><div class="search-name">' + escapeHtml(p.name) + '</div><div class="search-meta">#' + escapeHtml(p.code) + '</div></div>' +
+        '<div class="search-price">' + money(p[priceField]) + '</div></div>';
+    }).join('');
+    Array.from(box.querySelectorAll('.search-row')).forEach(function (row) {
+      row.addEventListener('click', function () { addToCart(row.dataset.code); });
+    });
+  }
+
+  function addToCart(code) {
+    if (!document.getElementById('custType').value) { document.getElementById('formError').textContent = 'Please choose a customer type first.'; return; }
+    const p = ALL_PRODUCTS.find(function (x) { return x.code === code; });
+    if (!p) return;
+    if (CART[code]) CART[code].qty += 1;
+    else CART[code] = { code: p.code, name: p.name, mrp: p.mrp, dp: p.dp, qty: 1 };
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchResults').innerHTML = '';
+    renderCart();
+  }
+
+  function changeQty(code, delta) {
+    if (!CART[code]) return;
+    CART[code].qty += delta;
+    if (CART[code].qty <= 0) delete CART[code];
+    renderCart();
+  }
+
+  function renderCart() {
+    const items = Object.values(CART);
+    const priceField = currentPriceField();
+    const isRetail = document.getElementById('custType') && document.getElementById('custType').value === 'Retail';
+    document.getElementById('cartHeading').textContent = 'Your order (' + items.length + (items.length === 1 ? ' item)' : ' items)');
+    const box = document.getElementById('cartList');
+    if (!items.length) {
+      box.innerHTML = '<div class="empty-cart">Search above and tap a product to add it.</div>';
+    } else {
+      box.innerHTML = items.map(function (it) {
+        return '<div class="cart-row"><div><div class="cart-name">' + escapeHtml(it.name) + '</div><div class="cart-price">' + money(it[priceField]) + ' each</div></div>' +
+          '<div class="qty-ctrl">' +
+            '<button class="qty-btn" onclick="changeQty(\'' + it.code + '\',-1)">−</button>' +
+            '<span class="qty-val">' + trimNum(it.qty) + '</span>' +
+            '<button class="qty-btn" onclick="changeQty(\'' + it.code + '\',1)">+</button>' +
+          '</div></div>';
+      }).join('');
+    }
+    const subtotal = items.reduce(function (s, it) { return s + it.qty * it[priceField]; }, 0);
+    let discountAmt = 0;
+    if (isRetail) {
+      let pct = Number(document.getElementById('discountPercent').value) || 0;
+      if (pct > 5) pct = 5;
+      discountAmt = subtotal * pct / 100;
+    }
+    document.getElementById('discountLine').style.display = (isRetail && discountAmt > 0) ? 'flex' : 'none';
+    document.getElementById('cartDiscount').textContent = '−' + money(discountAmt);
+    document.getElementById('cartTotal').textContent = money(subtotal - discountAmt);
+    document.getElementById('placeOrderBtn').disabled = items.length === 0;
+  }
+
+  async function placeOrder() {
+    const errBox = document.getElementById('formError');
+    errBox.textContent = '';
+    const name = document.getElementById('custName').value.trim();
+    const mobile = document.getElementById('custMobile').value.trim();
+    const custType = document.getElementById('custType').value;
+    if (!custType) { errBox.textContent = 'Please choose a customer type.'; return; }
+    if (!mobile || mobile.replace(/\D/g, '').length < 10) { errBox.textContent = 'Please enter a valid 10-digit mobile number.'; return; }
+    const items = Object.values(CART).map(function (it) { return { code: it.code, qty: it.qty }; });
+    if (!items.length) { errBox.textContent = 'Add at least one product first.'; return; }
+    let discountPercent = 0;
+    if (custType === 'Retail') { discountPercent = Number(document.getElementById('discountPercent').value) || 0; if (discountPercent > 5) discountPercent = 5; }
+
+    const btn = document.getElementById('placeOrderBtn');
+    btn.disabled = true; btn.textContent = 'Placing order…';
+    const { data, error } = await sb.rpc('save_public_order', { p_customer_name: name, p_mobile: mobile, p_customer_type: custType, p_discount_percent: discountPercent, p_items: items });
+    if (error) {
+      errBox.textContent = error.message || 'Could not place order. Please try again.';
+      btn.disabled = false; btn.textContent = 'Place Order';
+      return;
+    }
+    showSuccess(data.invoiceNo, data.totalAmount);
+  }
+
+  function showSuccess(invoiceNo, totalAmount) {
+    const upiUrl = 'upi://pay?pa=' + encodeURIComponent(BUSINESS_UPI_ID) + '&pn=' + encodeURIComponent(BUSINESS_PAYEE_NAME) +
+      '&am=' + encodeURIComponent(Number(totalAmount).toFixed(2)) + '&cu=INR&tn=' + encodeURIComponent('Order ' + invoiceNo);
+    const qrImgUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(upiUrl);
+    document.getElementById('mainArea').innerHTML =
+      '<div class="card" style="text-align:center;">' +
+        '<div class="success-icon">✓</div>' +
+        '<h2 style="font-size:18px;color:var(--green-800);margin-bottom:4px;">Order placed!</h2>' +
+        '<p class="hint">Order No. <strong>' + escapeHtml(invoiceNo) + '</strong> · ' + money(totalAmount) + '</p>' +
+        '<p class="hint" style="margin-top:10px;">Our team will confirm and prepare your order shortly.</p>' +
+      '</div>' +
+      '<div class="card">' +
+        '<p class="section-label" style="text-align:center;">Pay now via UPI</p>' +
+        '<div class="qr-box"><img src="' + qrImgUrl + '" alt="UPI QR code"></div>' +
+        '<p class="hint" style="text-align:center;">Scan with any UPI app — the amount (' + money(totalAmount) + ') is already filled in.</p>' +
+        '<a class="btn btn-gold" style="margin-top:12px;" href="' + escapeHtml(upiUrl) + '">Pay with UPI app</a>' +
+      '</div>';
+  }
+
+  init();
+</script>
+</body>
+</html>
