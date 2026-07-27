@@ -131,11 +131,13 @@
       '<div class="card">' +
         '<p style="font-size:10.5px;color:var(--ink-faint);margin:0 0 4px;">' + (s['FSSAI No'] ? 'FSSAI: ' + escapeHtml(s['FSSAI No']) : '') + '</p>' +
         '<div class="receipt-head"><img src="' + LOGO_DATA_URI + '" alt="Logo" style="width:64px;height:64px;border-radius:50%;margin-bottom:6px;box-shadow:0 0 0 2px var(--gold-500);">' +
-        '<h2>' + escapeHtml(s['Company Name'] || 'Mahakal Wellness') + '</h2>' +
+        '<h2 style="margin-bottom:2px;">' + escapeHtml(s['Company Name'] || 'Mahakal Wellness') + '</h2>' +
+        '<p style="font-size:10.5px;font-weight:700;color:var(--gold-600);letter-spacing:.3px;margin:0 0 4px;">AUTH. C&amp;F OF ASCLEPIUS WELLNESS PVT LTD</p>' +
         '<p>' + escapeHtml(s['Address'] || '') + '</p><p>' + escapeHtml(s['Mobile'] || '') + (s['Mobile 2'] ? ' / ' + escapeHtml(s['Mobile 2']) : '') + '</p></div>' +
         '<div class="receipt-meta"><span>Bill No: <strong>' + data.invoiceNo + '</strong></span><span>' + dateStr + '</span></div>' +
-        (data.customerName || data.mobile ? '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;">' +
+        (data.customerName || data.mobile ? '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 4px;">' +
           escapeHtml(data.customerName || 'Customer') + (data.mobile ? ' · ' + escapeHtml(data.mobile) : '') + '</p>' : '') +
+        (data.customerType ? '<p style="font-size:11px;font-weight:700;color:var(--green-800);text-transform:uppercase;margin:0 0 10px;">Customer Type: ' + escapeHtml(data.customerType) + '</p>' : '') +
         idLine +
         '<table class="receipt-table"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th><th class="num">SP</th></tr></thead>' +
         '<tbody>' + rows + '</tbody></table>' +

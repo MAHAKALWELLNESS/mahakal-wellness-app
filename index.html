@@ -1670,14 +1670,16 @@
     document.getElementById(targetId).innerHTML =
       '<div class="receipt-head" style="border-bottom:2px solid var(--green-800);padding-bottom:14px;margin-bottom:14px;">' +
         '<img src="' + LOGO_DATA_URI + '" alt="Logo" style="width:72px;height:72px;border-radius:50%;margin-bottom:8px;box-shadow:0 0 0 2px var(--gold-500);">' +
-        '<h2 style="font-size:22px;letter-spacing:.4px;margin-bottom:4px;">' + escapeHtml(SETTINGS.companyName || 'Mahakal Wellness') + '</h2>' +
+        '<h2 style="font-size:22px;letter-spacing:.4px;margin-bottom:2px;">' + escapeHtml(SETTINGS.companyName || 'Mahakal Wellness') + '</h2>' +
+        '<p style="font-size:11px;font-weight:700;color:var(--gold-600);letter-spacing:.3px;margin:0 0 4px;">AUTH. C&amp;F OF ASCLEPIUS WELLNESS PVT LTD</p>' +
         (SETTINGS.address ? '<p style="font-size:12px;color:var(--ink-soft);margin:2px 0;">' + escapeHtml(SETTINGS.address) + '</p>' : '') +
         (SETTINGS.mobile || SETTINGS.mobile2 ? '<p style="font-size:12px;color:var(--ink-soft);margin:2px 0;font-weight:600;">Mobile: ' + escapeHtml(SETTINGS.mobile || '') + (SETTINGS.mobile2 ? ', ' + escapeHtml(SETTINGS.mobile2) : '') + '</p>' : '') +
         (SETTINGS.fssai ? '<p style="font-size:10px;color:var(--ink-faint);margin:6px 0 0;">FSSAI No: ' + escapeHtml(SETTINGS.fssai) + '</p>' : '') +
       '</div>' +
       '<div class="receipt-meta"><span>Bill No: <strong>' + bill.invoiceNo + '</strong></span><span>' + dateStr + '</span></div>' +
-      (bill.customerName || bill.mobile ? '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;">' +
+      (bill.customerName || bill.mobile ? '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 4px;">' +
         escapeHtml(bill.customerName || 'Customer') + (bill.mobile ? ' · ' + escapeHtml(bill.mobile) : '') + '</p>' : '') +
+      '<p style="font-size:11px;font-weight:700;color:var(--green-800);text-transform:uppercase;margin:0 0 10px;">Customer Type: ' + escapeHtml(bill.customerType || '') + '</p>' +
       idLine +
       '<table class="receipt-table"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th><th class="num">SP</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table>' +
@@ -1724,14 +1726,16 @@
     document.getElementById(targetId).innerHTML =
       '<div class="receipt-head" style="border-bottom:2px solid var(--green-800);padding-bottom:14px;margin-bottom:14px;">' +
         '<img src="' + LOGO_DATA_URI + '" alt="Logo" style="width:72px;height:72px;border-radius:50%;margin-bottom:8px;box-shadow:0 0 0 2px var(--gold-500);">' +
-        '<h2 style="font-size:22px;letter-spacing:.4px;margin-bottom:4px;">' + escapeHtml(SETTINGS.companyName || 'Mahakal Wellness') + '</h2>' +
+        '<h2 style="font-size:22px;letter-spacing:.4px;margin-bottom:2px;">' + escapeHtml(SETTINGS.companyName || 'Mahakal Wellness') + '</h2>' +
+        '<p style="font-size:11px;font-weight:700;color:var(--gold-600);letter-spacing:.3px;margin:0 0 4px;">AUTH. C&amp;F OF ASCLEPIUS WELLNESS PVT LTD</p>' +
         (SETTINGS.address ? '<p style="font-size:12px;color:var(--ink-soft);margin:2px 0;">' + escapeHtml(SETTINGS.address) + '</p>' : '') +
         (SETTINGS.mobile || SETTINGS.mobile2 ? '<p style="font-size:12px;color:var(--ink-soft);margin:2px 0;font-weight:600;">Mobile: ' + escapeHtml(SETTINGS.mobile || '') + (SETTINGS.mobile2 ? ', ' + escapeHtml(SETTINGS.mobile2) : '') + '</p>' : '') +
         (SETTINGS.fssai ? '<p style="font-size:10px;color:var(--ink-faint);margin:6px 0 0;">FSSAI No: ' + escapeHtml(SETTINGS.fssai) + '</p>' : '') +
       '</div>' +
       '<div class="receipt-meta"><span>Bill No: <strong>' + bill.invoiceNo + '</strong></span><span>' + dateStr + '</span></div>' +
-      (bill.customerName || bill.mobile ? '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;">' +
+      (bill.customerName || bill.mobile ? '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 4px;">' +
         escapeHtml(bill.customerName || 'Customer') + (bill.mobile ? ' · ' + escapeHtml(bill.mobile) : '') + '</p>' : '') +
+      '<p style="font-size:11px;font-weight:700;color:var(--green-800);text-transform:uppercase;margin:0 0 10px;">Customer Type: ' + escapeHtml(bill.customerType || '') + '</p>' +
       '<table class="receipt-table"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">MRP</th><th class="num">Amount</th><th class="num">SP</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table>' +
       '<div class="receipt-total-row"><span>Qty</span><span>' + trimNum(bill.totalQty) + '</span></div>' +
