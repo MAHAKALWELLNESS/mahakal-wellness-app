@@ -4338,28 +4338,33 @@
     if (!rows.length) { box.innerHTML = '<div class="empty-cart">No payments in this range.</div>'; return; }
     box.innerHTML = rows.map(function (r) {
       const dateStr = new Date(r.payment_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      const balanceText = r.balance_after == null ? '' : (r.balance_after < -0.005 ? 'Due ' + money(-r.balance_after) : 'Settled');
+      const balanceColor = r.balance_after == null ? '' : (r.balance_after < -0.005 ? 'var(--danger)' : 'var(--ok)');
       return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + r.invoice_no + '</div>' +
-        '<div class="result-meta">' + dateStr + (r.utr_no ? ' · UTR: ' + escapeHtml(r.utr_no) : '') + (r.remark ? ' · ' + escapeHtml(r.remark) : '') + '</div></div>' +
+        '<div class="result-meta">' + dateStr + (r.utr_no ? ' · UTR: ' + escapeHtml(r.utr_no) : '') + (r.remark ? ' · ' + escapeHtml(r.remark) : '') +
+        (balanceText ? ' · <span style="color:' + balanceColor + ';font-weight:700;">' + balanceText + '</span>' : '') + '</div></div>' +
         '<div class="amt">' + money(r.amount) + '</div></div>';
     }).join('');
   }
 
   function exportPaymentStmtCsv(which) {
     const rows = paymentStmtData[which]; if (!rows.length) { showToast('Nothing to export.', true); return; }
-    const headers = which === 'online' ? ['Date', 'Invoice No', 'Customer', 'Mobile', 'Amount', 'UTR No', 'Remark'] : ['Date', 'Invoice No', 'Customer', 'Mobile', 'Amount', 'Remark'];
+    const headers = which === 'online' ? ['Date', 'Invoice No', 'Customer', 'Mobile', 'Amount', 'UTR No', 'Balance', 'Remark'] : ['Date', 'Invoice No', 'Customer', 'Mobile', 'Amount', 'Balance', 'Remark'];
     downloadCsv((which === 'online' ? 'online_payments_' : 'cash_payments_') + fmtDateInput_(new Date()) + '.csv', headers,
       rows.map(function (r) {
         const dateStr = new Date(r.payment_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-        return which === 'online' ? [dateStr, r.invoice_no, r.customer_name || '', r.mobile || '', r.amount, r.utr_no || '', r.remark || ''] : [dateStr, r.invoice_no, r.customer_name || '', r.mobile || '', r.amount, r.remark || ''];
+        const balanceText = r.balance_after == null ? '' : (r.balance_after < -0.005 ? 'Due ' + money(-r.balance_after) : 'Settled');
+        return which === 'online' ? [dateStr, r.invoice_no, r.customer_name || '', r.mobile || '', r.amount, r.utr_no || '', balanceText, r.remark || ''] : [dateStr, r.invoice_no, r.customer_name || '', r.mobile || '', r.amount, balanceText, r.remark || ''];
       }));
   }
   function exportPaymentStmtPdf(which) {
     const rows = paymentStmtData[which]; if (!rows.length) { showToast('Nothing to export.', true); return; }
-    const headers = which === 'online' ? ['Date', 'Invoice No', 'Customer', 'Amount', 'UTR No'] : ['Date', 'Invoice No', 'Customer', 'Amount'];
+    const headers = which === 'online' ? ['Date', 'Invoice No', 'Customer', 'Amount', 'UTR No', 'Balance'] : ['Date', 'Invoice No', 'Customer', 'Amount', 'Balance'];
     downloadTablePdf(which === 'online' ? 'Online Payment Statement' : 'Cash Payment Statement', headers,
       rows.map(function (r) {
         const dateStr = new Date(r.payment_date).toLocaleDateString('en-IN', { dateStyle: 'medium' });
-        return which === 'online' ? [dateStr, r.invoice_no, r.customer_name || '', money(r.amount), r.utr_no || ''] : [dateStr, r.invoice_no, r.customer_name || '', money(r.amount)];
+        const balanceText = r.balance_after == null ? '' : (r.balance_after < -0.005 ? 'Due ' + money(-r.balance_after) : 'Settled');
+        return which === 'online' ? [dateStr, r.invoice_no, r.customer_name || '', money(r.amount), r.utr_no || '', balanceText] : [dateStr, r.invoice_no, r.customer_name || '', money(r.amount), balanceText];
       }));
   }
 
