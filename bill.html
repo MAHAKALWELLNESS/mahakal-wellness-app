@@ -99,8 +99,9 @@
 
     const s = data.settings || {};
     const isPending = data.billStatus === 'Pending';
-    const payCls = data.status === 'PAID' ? 'badge-paid' : (data.status === 'PARTIAL' ? 'badge-partial' : 'badge-unpaid');
-    const payLabel = data.status === 'PAID' ? 'Paid' : (data.status === 'PARTIAL' ? 'Partially Paid' : 'Unpaid');
+    const paidSoFar = Number(data.cash || 0) + Number(data.online || 0);
+    const payCls = data.balance >= -0.005 ? 'badge-paid' : (paidSoFar > 0.005 ? 'badge-partial' : 'badge-unpaid');
+    const payLabel = data.balance >= -0.005 ? 'Paid' : (paidSoFar > 0.005 ? 'Partially Paid' : 'Unpaid');
     const delCls = data.deliveryStatus === 'Partial' ? 'badge-partial' : 'badge-paid';
     const delLabel = data.deliveryStatus === 'Partial' ? 'Delivery Pending' : 'Fully Delivered';
     const dateStr = new Date(data.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });

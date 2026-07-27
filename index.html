@@ -744,7 +744,10 @@
         <div class="field"><label for="paymentStepCash">Cash ₹</label><input type="number" id="paymentStepCash" placeholder="0" min="0" step="0.01" oninput="renderPaymentStepBalance()"></div>
         <div class="field"><label for="paymentStepOnline">Online / UPI ₹</label><input type="number" id="paymentStepOnline" placeholder="0" min="0" step="0.01" oninput="renderPaymentStepBalance()"></div>
       </div>
-      <button class="quickbtn" type="button" onclick="fillPaymentStepFullCash()">Mark fully paid (cash)</button>
+      <div style="display:flex;gap:8px;">
+        <button class="quickbtn" type="button" style="flex:1;" onclick="fillPaymentStepFull('cash')">Mark fully paid (Cash)</button>
+        <button class="quickbtn" type="button" style="flex:1;" onclick="fillPaymentStepFull('online')">Mark fully paid (Online)</button>
+      </div>
       <div id="paymentStepBalanceLine" class="balance-line balance-due" style="margin-top:12px;"><span>Balance</span><span id="paymentStepBalanceValue">₹0</span></div>
       <div class="modal-actions"><button class="btn btn-primary btn-block" onclick="proceedToDeliveryStep()">Next: Delivery →</button></div>
     </div>
@@ -1541,13 +1544,18 @@
     else { balEl.className = 'balance-line balance-settled'; balVal.textContent = 'Change ' + money(balance); }
   }
 
-  function fillPaymentStepFullCash() {
+  function fillPaymentStepFull(mode) {
     const bill = currentDetailBill;
     if (!bill) return;
     const amountDue = bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP;
-    const online = Number(document.getElementById('paymentStepOnline').value) || 0;
     const walletUsed = Number(document.getElementById('paymentStepWalletUse').value) || 0;
-    document.getElementById('paymentStepCash').value = Math.max(0, amountDue - online - walletUsed);
+    if (mode === 'cash') {
+      const online = Number(document.getElementById('paymentStepOnline').value) || 0;
+      document.getElementById('paymentStepCash').value = Math.max(0, amountDue - online - walletUsed);
+    } else {
+      const cash = Number(document.getElementById('paymentStepCash').value) || 0;
+      document.getElementById('paymentStepOnline').value = Math.max(0, amountDue - cash - walletUsed);
+    }
     renderPaymentStepBalance();
   }
 
@@ -1621,10 +1629,13 @@
     });
   }
 
+  let lastShowAdvanceChoice = false;
   async function maybeAskAdvanceAndRerender_(bill, targetId) {
     const showAdvance = bill.balance > 0.005 ? await askShowAdvance_(bill.balance) : false;
+    lastShowAdvanceChoice = showAdvance;
     if (bill.customerType === 'Retail') renderRetailPrintReceipt(bill, targetId, showAdvance);
     else renderReceipt(bill, targetId, showAdvance);
+    return showAdvance;
   }
 
   async function doPrint() { await maybeAskAdvanceAndRerender_(lastSavedBill, 'printArea'); preparePrintDuplicate_('printArea'); window.print(); }
@@ -2463,7 +2474,7 @@
       hidePdfCapture_();
       resumeScrollLock();
       let digits = String(currentDetailMobile || '').replace(/\D/g, ''); if (digits.length === 10) digits = '91' + digits;
-      const text = buildBillShareText_(currentDetailInvoice, currentDetailShareToken, null);
+      const text = buildBillShareText_(currentDetailInvoice, currentDetailShareToken, null, lastShowAdvanceChoice);
       const waUrl = digits ? 'https://wa.me/' + digits + '?text=' + encodeURIComponent(text) : 'https://wa.me/?text=' + encodeURIComponent(text);
       setTimeout(function () { window.open(waUrl, '_blank'); }, 900);
     });
@@ -3801,10 +3812,10 @@
     html2pdf().set({ margin: 8, filename: title.replace(/\s+/g, '_') + '.pdf', jsPDF: { unit: 'mm', format: 'a4' } }).from(wrap).save().then(function () { document.body.removeChild(wrap); resumeScrollLock(); });
   }
 
-  function buildBillShareText_(invoiceNo, shareToken, totalDP) {
+  function buildBillShareText_(invoiceNo, shareToken, totalDP, showAdvance) {
     const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
     let text = 'Hi! Your Mahakal Wellness bill ' + invoiceNo + (totalDP ? ' (' + money(totalDP) + ')' : '') + ' is ready.';
-    if (shareToken) text += '\nView bill status anytime: ' + baseUrl + 'bill.html?token=' + shareToken;
+    if (shareToken) text += '\nView bill status anytime: ' + baseUrl + 'bill.html?token=' + shareToken + (showAdvance ? '&showAdvance=1' : '');
     text += '\n\nMAHAKAL SP BILLING FORMAT:\n' +
       'CASH MEMO NO ( IF GIVEN):____\n' +
       'BILL NO (MW000______) :' + invoiceNo + '\n' +
@@ -3841,7 +3852,7 @@
       resumeScrollLock();
       let digits = String(lastSavedBill.mobile || '').replace(/\D/g, '');
       if (digits.length === 10) digits = '91' + digits;
-      const text = buildBillShareText_(lastSavedBill.invoiceNo, lastSavedBill.shareToken, lastSavedBill.totalDP);
+      const text = buildBillShareText_(lastSavedBill.invoiceNo, lastSavedBill.shareToken, lastSavedBill.totalDP, lastShowAdvanceChoice);
       const waUrl = digits ? 'https://wa.me/' + digits + '?text=' + encodeURIComponent(text) : 'https://wa.me/?text=' + encodeURIComponent(text);
       showToast(digits ? 'PDF downloaded — opening their chat…' : 'PDF downloaded — pick a contact in WhatsApp.');
       setTimeout(function () { window.open(waUrl, '_blank'); }, 900);
