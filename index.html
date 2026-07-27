@@ -758,7 +758,10 @@
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Step 2 of 2: How much was delivered now?</h2>
       <p class="hint" style="margin-bottom:12px;">Defaults to fully delivered. Reduce a quantity only if something wasn't handed over yet.</p>
       <div id="deliveryItemsList"></div>
-      <div class="modal-actions"><button class="btn btn-primary btn-block" onclick="confirmDeliveryFlow()">Confirm &amp; Finish</button></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="backToPaymentStep()">← Back</button>
+        <button class="btn btn-primary" onclick="confirmDeliveryFlow()">Confirm &amp; Finish</button>
+      </div>
     </div>
   </div>
 
@@ -1568,6 +1571,14 @@
     document.getElementById('paymentStepModal').classList.remove('show');
     renderDeliveryModal(currentDetailBill.items);
     document.getElementById('deliveryModal').classList.add('show');
+  }
+
+  function backToPaymentStep() {
+    // The payment step's fields still hold whatever was entered before -
+    // hiding a modal doesn't clear its inputs - so just switch views back.
+    document.getElementById('deliveryModal').classList.remove('show');
+    document.getElementById('paymentStepModal').classList.add('show');
+    renderPaymentStepBalance();
   }
 
   function renderDeliveryModal(items) {
