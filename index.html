@@ -1623,7 +1623,13 @@
   }
 
   function useAllWalletBalance() {
-    document.getElementById('paymentStepWalletUse').value = currentWalletBalanceForPayment;
+    const bill = currentDetailBill;
+    const amountDue = bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP;
+    const cash = Number(document.getElementById('paymentStepCash').value) || 0;
+    const online = Number(document.getElementById('paymentStepOnline').value) || 0;
+    const remainingDue = Math.max(0, amountDue - cash - online);
+    const amountToUse = Math.min(currentWalletBalanceForPayment, remainingDue);
+    document.getElementById('paymentStepWalletUse').value = amountToUse;
     document.getElementById('paymentStepWalletWarning').textContent = '';
     renderPaymentStepBalance();
   }
