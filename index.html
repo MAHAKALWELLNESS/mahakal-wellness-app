@@ -281,13 +281,12 @@
     <section id="tab-bill" class="tab-panel active">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="resetNewBillForm()">↻ Refresh / Start Fresh</button>
       <div class="card">
-        <p class="section-label">Customer (optional)</p>
+        <p class="section-label">Customer/Distributor</p>
         <div class="field-row">
           <div class="field"><label for="custMobile">Mobile</label><input type="tel" id="custMobile" placeholder="10-digit mobile" maxlength="15" onblur="loadCustomerWalletForBill()"></div>
           <div class="field"><label for="custName">Name</label><input type="text" id="custName" placeholder="Walk-in customer" oninput="this.value = this.value.toUpperCase();"></div>
         </div>
-        <p class="section-label" style="margin-top:14px;">Distributor / Member <span style="text-transform:none;font-weight:400;">(whose SP this credits)</span></p>
-        <div class="field-row">
+        <div class="field-row" style="margin-top:14px;">
           <div class="field"><label for="idName">ID Name</label><input type="text" id="idName" placeholder="Optional"></div>
           <div class="field"><label for="idNo">DS ID No.</label><input type="text" id="idNo" placeholder="Optional"></div>
         </div>
@@ -297,7 +296,7 @@
         </div>
         <div class="field" style="margin-bottom:0;">
           <label for="custType">Customer type</label>
-          <select id="custType" onchange="toggleRetailDiscount()"><option value="" selected disabled>Choose type…</option><option>Retail</option><option>Distributor</option><option>Wholesale</option></select>
+          <select id="custType" onchange="toggleRetailDiscount()"><option value="" selected disabled>Choose type…</option><option>Retail</option><option>Distributor</option></select>
         </div>
         <div class="field" id="discountField" style="margin-bottom:0;margin-top:10px;">
           <label for="discountPercent">Discount % (on MRP)</label>
