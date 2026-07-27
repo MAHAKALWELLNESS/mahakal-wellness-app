@@ -63,6 +63,7 @@
   <header class="topbar">
     <h1>Mahakal Wellness</h1>
     <p>Place an Order</p>
+    <button onclick="refreshOrderForm()" style="margin-top:10px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;">↻ Refresh</button>
   </header>
   <main id="mainArea">
     <div class="empty">Loading…</div>
@@ -98,6 +99,12 @@
     }
     ALL_PRODUCTS = data || [];
     renderForm();
+  }
+
+  async function refreshOrderForm() {
+    CART = {};
+    document.getElementById('mainArea').innerHTML = '<div class="empty">Refreshing…</div>';
+    await init();
   }
 
   function renderForm() {
