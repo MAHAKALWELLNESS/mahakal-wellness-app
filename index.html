@@ -872,6 +872,16 @@
       <p class="hint" id="walletDetailMobile" style="margin-bottom:10px;"></p>
       <div class="stat-card" style="margin-bottom:14px;"><div class="stat-label">Current Balance</div><div class="stat-value" id="walletDetailBalance">₹0</div></div>
       <div class="card" style="box-shadow:none;border:1px solid var(--line);margin-bottom:14px;">
+        <p class="section-label">Add balance received</p>
+        <p class="hint" style="margin-bottom:10px;">Customer sent extra money directly (not tied to a bill)? Record it here.</p>
+        <div class="field-row">
+          <div class="field"><label for="walletAddCash">Cash ₹</label><input type="number" id="walletAddCash" min="0" step="0.01" placeholder="0"></div>
+          <div class="field"><label for="walletAddOnline">Online ₹</label><input type="number" id="walletAddOnline" min="0" step="0.01" placeholder="0"></div>
+        </div>
+        <div class="field" style="margin-bottom:0;"><label for="walletAddNote">Note (optional)</label><input type="text" id="walletAddNote" placeholder="e.g. Advance for next order"></div>
+        <button class="btn btn-gold btn-block" style="margin-top:10px;" onclick="submitWalletAddCredit()">Add to Wallet</button>
+      </div>
+      <div class="card" style="box-shadow:none;border:1px solid var(--line);margin-bottom:14px;">
         <p class="section-label">Withdraw / use this balance</p>
         <div class="field-row">
           <div class="field"><label for="walletWithdrawAmt">Amount ₹</label><input type="number" id="walletWithdrawAmt" min="0" step="0.01" placeholder="0"></div>
@@ -2984,6 +2994,21 @@
       return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + (t.note || t.type) + '</div><div class="result-meta">' + dateStr + (t.invoice_no ? ' · ' + t.invoice_no : '') + '</div></div>' +
         '<div class="amt" style="color:' + (isCredit ? 'var(--ok)' : 'var(--danger)') + ';">' + (isCredit ? '+' : '−') + money(t.amount) + '</div></div>';
     }).join('');
+  }
+
+  async function submitWalletAddCredit() {
+    const cash = Number(document.getElementById('walletAddCash').value) || 0;
+    const online = Number(document.getElementById('walletAddOnline').value) || 0;
+    if (cash + online <= 0) { showToast('Enter Cash and/or Online amount.', true); return; }
+    const note = document.getElementById('walletAddNote').value.trim();
+    const { error } = await sb.rpc('add_wallet_credit', { p_mobile: currentWalletMobile, p_cash: cash, p_online: online, p_note: note });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Added to wallet.');
+    document.getElementById('walletAddCash').value = '';
+    document.getElementById('walletAddOnline').value = '';
+    document.getElementById('walletAddNote').value = '';
+    await refreshWalletDetail();
+    searchWalletCustomers();
   }
 
   async function submitWalletWithdraw() {
