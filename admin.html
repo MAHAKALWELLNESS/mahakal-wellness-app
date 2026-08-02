@@ -310,6 +310,7 @@
       <button class="tab" data-tab="paymentstatement" onclick="switchTab('paymentstatement')">Payment Statement</button>
       <button class="tab" data-tab="companypayout" id="tabBtnCompanyPayout" onclick="switchTab('companypayout')" style="display:none;">Company Payout</button>
       <button class="tab" data-tab="profitreport" id="tabBtnProfitReport" onclick="switchTab('profitreport')" style="display:none;">Profit Report</button>
+      <button class="tab" data-tab="franchiseeinvestment" id="tabBtnFranchisee" onclick="switchTab('franchiseeinvestment')" style="display:none;">Franchisee Investment</button>
     </nav>
 
     <main>
@@ -479,6 +480,7 @@
           <div class="stat-card"><div class="stat-label">Total Payout (All Time)</div><div class="stat-value" id="dashNetTotalPayout">₹0</div></div>
           <div class="stat-card warn"><div class="stat-label">Net Total Profit (All Time)</div><div class="stat-value" id="dashNetTotalProfit">₹0</div></div>
         </div>
+        <div class="stat-card" style="margin-top:10px;"><div class="stat-label">Net Investment (All Time — Invested minus Withdrawn)</div><div class="stat-value" id="dashNetInvestment">₹0</div></div>
       </div>
       <div class="card">
         <p class="section-label">Quick range</p>
@@ -903,6 +905,31 @@
       <div class="card">
         <p class="section-label">Month-wise history</p>
         <div id="profitHistoryList"></div>
+      </div>
+    </section>
+
+    <!-- ============ FRANCHISEE INVESTMENT TAB (Super Admin only) ============ -->
+    <section id="tab-franchiseeinvestment" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadFranchiseeEntries()">↻ Refresh</button>
+      <div class="card">
+        <p class="section-label">Add an entry</p>
+        <div class="field-row">
+          <div class="field"><label for="franchiseeType">Type</label><select id="franchiseeType"><option value="Investment">Investment (money in)</option><option value="Withdrawal">Withdrawal (money out)</option></select></div>
+          <div class="field"><label for="franchiseeAmount">Amount ₹</label><input type="number" id="franchiseeAmount" min="0" step="0.01" placeholder="0"></div>
+        </div>
+        <div class="field"><label for="franchiseeDate">Date (leave blank for today)</label><input type="date" id="franchiseeDate"></div>
+        <div class="field" style="margin-bottom:0;"><label for="franchiseeNote">Note (optional)</label><input type="text" id="franchiseeNote" placeholder="e.g. Bank transfer ref"></div>
+        <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="submitFranchiseeEntry()">Add Entry</button>
+      </div>
+      <div class="card">
+        <p class="section-label">Yearly summary</p>
+        <div id="franchiseeYearlySummary"></div>
+      </div>
+      <div class="card">
+        <div class="field" style="margin-bottom:10px;"><label for="franchiseeYearFilter">Filter by year</label>
+          <select id="franchiseeYearFilter" onchange="loadFranchiseeEntries()"><option value="">All years</option></select>
+        </div>
+        <div id="franchiseeEntriesList"><div class="empty-cart">Loading…</div></div>
       </div>
     </section>
     </main>
@@ -1538,6 +1565,7 @@
     document.getElementById('changeAdminCodeBtn').style.display = isSuperAdmin ? 'inline-block' : 'none';
     document.getElementById('tabBtnCompanyPayout').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnProfitReport').style.display = isSuperAdmin ? 'block' : 'none';
+    document.getElementById('tabBtnFranchisee').style.display = isSuperAdmin ? 'block' : 'none';
     if (isSuperAdmin) loadDashboardProfitStats_();
   }
 
@@ -2383,6 +2411,7 @@
     if (name === 'paymentstatement' && !paymentStmtLoadedOnce) { paymentStmtLoadedOnce = true; setPaymentStmtRange('online', 'today'); setPaymentStmtRange('cash', 'today'); setPaymentStmtRange('deposits', 'today'); }
     if (name === 'companypayout' && !companyPayoutLoadedOnce) { companyPayoutLoadedOnce = true; loadCompanyPayouts(); }
     if (name === 'profitreport') loadProfitReport();
+    if (name === 'franchiseeinvestment' && !franchiseeLoadedOnce) { franchiseeLoadedOnce = true; loadFranchiseeEntries(); }
   }
 
   function fmtDateInput_(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
@@ -4680,6 +4709,7 @@
   // ---------------- PAYMENT STATEMENT TAB ----------------
   let paymentStmtLoadedOnce = false;
   let companyPayoutLoadedOnce = false;
+  let franchiseeLoadedOnce = false;
   let paymentStmtData = { online: [], cash: [] };
   let cashDepositsData = [];
 
@@ -4907,6 +4937,64 @@
     document.getElementById('dashLastMonthProfit').textContent = money(data.lastMonthProfit);
     document.getElementById('dashNetTotalPayout').textContent = money(data.netTotalPayout);
     document.getElementById('dashNetTotalProfit').textContent = money(data.netTotalProfit);
+
+    const { data: yearly, error: yErr } = await sb.rpc('get_franchisee_yearly_summary');
+    if (!yErr && yearly) {
+      const totalInvested = yearly.reduce(function (s, y) { return s + Number(y.totalInvested); }, 0);
+      const totalWithdrawn = yearly.reduce(function (s, y) { return s + Number(y.totalWithdrawn); }, 0);
+      document.getElementById('dashNetInvestment').textContent = money(totalInvested - totalWithdrawn);
+    }
+  }
+
+  // ---------------- FRANCHISEE INVESTMENT (Super Admin only) ----------------
+  async function submitFranchiseeEntry() {
+    const type = document.getElementById('franchiseeType').value;
+    const amount = Number(document.getElementById('franchiseeAmount').value);
+    const dateVal = document.getElementById('franchiseeDate').value || null;
+    const note = document.getElementById('franchiseeNote').value.trim();
+    if (!(amount > 0)) { showToast('Enter a valid amount.', true); return; }
+    const { error } = await sb.rpc('add_franchisee_entry', { p_date: dateVal, p_entry_type: type, p_amount: amount, p_note: note || null });
+    if (error) { showToast(error.message, true); return; }
+    showToast(type + ' entry added.');
+    document.getElementById('franchiseeAmount').value = ''; document.getElementById('franchiseeDate').value = ''; document.getElementById('franchiseeNote').value = '';
+    loadFranchiseeEntries();
+  }
+
+  let franchiseeYearsPopulated_ = false;
+  async function loadFranchiseeEntries() {
+    const box = document.getElementById('franchiseeEntriesList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+
+    const { data: summary, error: sErr } = await sb.rpc('get_franchisee_yearly_summary');
+    if (!sErr && summary) {
+      const summaryBox = document.getElementById('franchiseeYearlySummary');
+      if (!summary.length) { summaryBox.innerHTML = '<p class="hint">No entries yet.</p>'; }
+      else {
+        summaryBox.innerHTML = summary.map(function (y) {
+          const isPositive = y.net >= 0;
+          return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + y.year + '</div>' +
+            '<div class="result-meta">Invested ' + money(y.totalInvested) + ' · Withdrawn ' + money(y.totalWithdrawn) + '</div></div>' +
+            '<div class="amt" style="color:' + (isPositive ? 'var(--ok)' : 'var(--danger)') + ';">Net ' + money(y.net) + '</div></div>';
+        }).join('');
+      }
+      if (!franchiseeYearsPopulated_) {
+        franchiseeYearsPopulated_ = true;
+        const yearSelect = document.getElementById('franchiseeYearFilter');
+        summary.forEach(function (y) { yearSelect.innerHTML += '<option value="' + y.year + '">' + y.year + '</option>'; });
+      }
+    }
+
+    const yearFilter = document.getElementById('franchiseeYearFilter').value;
+    const { data, error } = await sb.rpc('get_franchisee_entries', { p_year: yearFilter ? Number(yearFilter) : null });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
+    const rows = data || [];
+    if (!rows.length) { box.innerHTML = '<div class="empty-cart">No entries in this range.</div>'; return; }
+    box.innerHTML = rows.map(function (r) {
+      const isInvestment = r.entry_type === 'Investment';
+      return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + r.entry_type + '</div>' +
+        '<div class="result-meta">' + r.entry_date + (r.note ? ' · ' + escapeHtml(r.note) : '') + '</div></div>' +
+        '<div class="amt" style="color:' + (isInvestment ? 'var(--danger)' : 'var(--ok)') + ';">' + (isInvestment ? '−' : '+') + money(r.amount) + '</div></div>';
+    }).join('');
   }
 
   // ---------------- SHARED CSV / TABLE-PDF HELPERS ----------------
