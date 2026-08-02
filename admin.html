@@ -125,7 +125,7 @@
   .modal-actions .btn{flex:1;}
 
   /* ---------- tabs nav ---------- */
-  .tabs{position:sticky; top:0; z-index:29; display:flex; background:var(--surface); border-bottom:1px solid var(--line); overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;}
+  .tabs{position:sticky; top:0; z-index:29; display:flex; background:var(--surface); border-bottom:1px solid var(--line); overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; -webkit-mask-image:linear-gradient(to right, transparent 0, black 14px, black calc(100% - 14px), transparent 100%); mask-image:linear-gradient(to right, transparent 0, black 14px, black calc(100% - 14px), transparent 100%);}
   .tabs::-webkit-scrollbar{display:none;}
   .tab{flex:none; padding:12px 14px; text-align:center; background:none; border:none; color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap;}
   .tab.active{color:var(--green-800); border-bottom-color:var(--gold-500);}
@@ -291,7 +291,7 @@
       <button class="header-link" style="margin-left:10px;" onclick="logout()">Logout</button>
     </header>
 
-    <nav class="tabs">
+    <nav class="tabs" id="tabsNav">
       <button class="tab" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
       <button class="tab active" data-tab="newbillmain" onclick="switchTab('newbillmain')">New Bill</button>
       <button class="tab" data-tab="approval" onclick="switchTab('approval')">Bill Approval</button>
@@ -1435,6 +1435,16 @@
   document.addEventListener('DOMContentLoaded', async function () {
     document.getElementById('logoImg').src = LOGO_DATA_URI;
     document.getElementById('loginLogoImg').src = LOGO_DATA_URI;
+
+    // Lets a normal mouse wheel (no Shift key needed) scroll the tab bar
+    // left/right - touch devices already scroll it fine with a swipe, this
+    // is specifically for laptop/mouse users.
+    const tabsNav = document.getElementById('tabsNav');
+    tabsNav.addEventListener('wheel', function (e) {
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      tabsNav.scrollLeft += e.deltaY;
+    }, { passive: false });
 
     const { data: { session } } = await sb.auth.getSession();
     if (session) { startApp(); } else { document.getElementById('loginOverlay').style.display = 'flex'; }
