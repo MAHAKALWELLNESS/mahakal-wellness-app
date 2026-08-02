@@ -2,7 +2,7 @@
   "name": "Mahakal Wellness Billing",
   "short_name": "Mahakal Billing",
   "description": "Billing counter app for Mahakal Wellness",
-  "start_url": "./index.html",
+  "start_url": "./admin.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#F6F5F1",
