@@ -10,11 +10,12 @@
 <link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --green-900:#132E26; --green-800:#1E4A3D; --green-100:#DCE9E3;
     --gold-500:#D9A441; --gold-600:#B8842C;
-    --surface:#FFFFFF; --bg:#F6F5F1; --ink-soft:#555; --ink-faint:#8A8A8A; --line:#E7E4DC;
+    --surface:#FFFFFF; --bg:#F6F5F1; --ink-soft:#555; --ink-faint:#8A8A8A; --line:#E7E4DC; --danger:#C0392B;
   }
   *{box-sizing:border-box;}
   body{margin:0; min-height:100vh; font-family:'Inter',sans-serif; background:var(--bg); color:#222; -webkit-font-smoothing:antialiased;
@@ -24,7 +25,7 @@
   .brand h1{font-size:24px; color:var(--green-900);}
   .brand p{margin:4px 0 0; font-size:13px; color:var(--ink-faint); letter-spacing:.3px;}
   .choices{width:100%; max-width:400px; display:flex; flex-direction:column; gap:16px;}
-  .choice-card{display:block; background:var(--surface); border-radius:18px; padding:26px 22px; text-decoration:none; box-shadow:0 1px 4px rgba(0,0,0,.07); border:1.5px solid var(--line); transition:transform .15s;}
+  .choice-card{display:block; width:100%; text-align:left; background:var(--surface); border-radius:18px; padding:26px 22px; text-decoration:none; box-shadow:0 1px 4px rgba(0,0,0,.07); border:1.5px solid var(--line); transition:transform .15s; font-family:inherit; cursor:pointer;}
   .choice-card:active{transform:scale(.98);}
   .choice-icon{font-size:28px; margin-bottom:10px;}
   .choice-title{font-size:17px; font-weight:700; color:var(--green-900); margin-bottom:4px;}
@@ -33,6 +34,15 @@
   .choice-card.primary .choice-title{color:#fff;}
   .choice-card.primary .choice-desc{color:var(--green-100);}
   .footer-note{margin-top:32px; font-size:11.5px; color:var(--ink-faint); text-align:center;}
+  .code-gate{background:var(--surface); border-radius:18px; padding:24px 22px; box-shadow:0 1px 4px rgba(0,0,0,.07); border:1.5px solid var(--line); width:100%;}
+  .code-gate label{display:block; font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:6px;}
+  .code-gate input{width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; font-size:15px; font-family:inherit; margin-bottom:8px;}
+  .code-gate input:focus{outline:none; border-color:var(--gold-500);}
+  .code-gate .err{font-size:12.5px; color:var(--danger); min-height:16px; margin:0 0 10px;}
+  .code-gate .btn-row{display:flex; gap:8px;}
+  .code-gate button{flex:1; padding:12px; border-radius:10px; border:none; font-size:14px; font-weight:700; font-family:inherit; cursor:pointer;}
+  .code-gate .btn-go{background:var(--gold-500); color:var(--green-900);}
+  .code-gate .btn-cancel{background:var(--bg); color:var(--ink-soft); border:1.5px solid var(--line);}
 </style>
 </head>
 <body>
@@ -40,18 +50,57 @@
     <h1>Mahakal Wellness</h1>
     <p>WELCOME</p>
   </div>
-  <div class="choices">
+  <div class="choices" id="mainChoices">
     <a class="choice-card primary" href="order.html">
       <div class="choice-icon">🛒</div>
       <div class="choice-title">Purchase Product</div>
       <div class="choice-desc">Browse products and place your order directly.</div>
     </a>
-    <a class="choice-card" href="index.html">
+    <button class="choice-card" onclick="showCodeGate()">
       <div class="choice-icon">🔒</div>
       <div class="choice-title">Admin Login</div>
       <div class="choice-desc">For Mahakal Wellness staff — billing counter access.</div>
-    </a>
+    </button>
+  </div>
+  <div class="code-gate" id="codeGate" style="display:none;">
+    <label for="adminCodeInput">Enter Admin Link Code</label>
+    <input type="password" id="adminCodeInput" placeholder="Code" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();verifyAdminCode();}">
+    <p class="err" id="adminCodeError"></p>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="hideCodeGate()">Cancel</button>
+      <button class="btn-go" onclick="verifyAdminCode()">Continue</button>
+    </div>
   </div>
   <p class="footer-note">© Mahakal Wellness</p>
+
+<script>
+  const SUPABASE_URL = 'https://lrrqdmmugvizkbjfwneb.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function showCodeGate() {
+    document.getElementById('mainChoices').style.display = 'none';
+    document.getElementById('codeGate').style.display = 'block';
+    document.getElementById('adminCodeInput').value = '';
+    document.getElementById('adminCodeError').textContent = '';
+    setTimeout(function () { document.getElementById('adminCodeInput').focus(); }, 60);
+  }
+
+  function hideCodeGate() {
+    document.getElementById('codeGate').style.display = 'none';
+    document.getElementById('mainChoices').style.display = 'flex';
+  }
+
+  async function verifyAdminCode() {
+    const code = document.getElementById('adminCodeInput').value.trim();
+    const errEl = document.getElementById('adminCodeError');
+    errEl.textContent = '';
+    if (!code) { errEl.textContent = 'Enter the code.'; return; }
+    const { data: ok, error } = await sb.rpc('verify_admin_link_code', { p_code: code });
+    if (error) { errEl.textContent = 'Could not verify right now — try again.'; return; }
+    if (!ok) { errEl.textContent = 'Incorrect code.'; return; }
+    window.location.href = 'index.html';
+  }
+</script>
 </body>
 </html>

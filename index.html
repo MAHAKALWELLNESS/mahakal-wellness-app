@@ -245,6 +245,16 @@
     </div>
   </div>
 
+  <div class="login-overlay" id="resetAdminCodeOverlay" style="display:none;">
+    <div class="login-card">
+      <h2>Set a new Admin Link Code</h2>
+      <p class="hint" style="margin-bottom:16px;">This is the code visitors must enter before reaching Admin Login from the public order-form site.</p>
+      <div class="field" style="text-align:left;"><label for="newAdminCode">New Admin Link Code</label><input type="text" id="newAdminCode" placeholder="Word+digit+special character combo" onkeydown="if(event.key==='Enter'){event.preventDefault();submitNewAdminCode();}"></div>
+      <p class="login-error" id="resetAdminCodeError"></p>
+      <button class="btn btn-primary btn-block" onclick="submitNewAdminCode()">Set new code</button>
+    </div>
+  </div>
+
   <!-- ============ CHANGE PASSWORD (from inside the app) ============ -->
   <div class="modal-overlay" id="changePasswordModal">
     <div class="modal-sheet">
@@ -258,11 +268,26 @@
     </div>
   </div>
 
+  <!-- ============ CHANGE ADMIN LINK CODE (owner only - sends a real email
+       link via Supabase's own recovery-email system, same as Forgot
+       Password) ============ -->
+  <div class="modal-overlay" id="changeAdminCodeModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:16px;color:var(--green-800);margin-bottom:10px;">Change Admin Link Code</h2>
+      <p class="hint" style="margin-bottom:16px;">For security, this isn't changed directly here — clicking below sends a reset link to your own account email (the same way Forgot Password does). Open that email and click the link to set the new code.</p>
+      <div class="modal-actions" style="margin-top:0;">
+        <button class="btn btn-outline" onclick="document.getElementById('changeAdminCodeModal').classList.remove('show')">Cancel</button>
+        <button class="btn btn-primary" onclick="sendAdminCodeResetEmail()">Send reset link to my email</button>
+      </div>
+    </div>
+  </div>
+
   <div id="appRoot">
     <header class="topbar">
       <div class="brand-mark"><img src="" id="logoImg" alt="Mahakal Wellness logo"></div>
       <div><h1>Mahakal Wellness</h1><p class="tagline">Billing Counter</p></div>
       <button class="header-link" onclick="openChangePassword()">Change password</button>
+      <button class="header-link" id="changeAdminCodeBtn" style="display:none;margin-left:10px;" onclick="openChangeAdminCode()">Change admin link code</button>
       <button class="header-link" style="margin-left:10px;" onclick="logout()">Logout</button>
     </header>
 
@@ -1364,10 +1389,14 @@
 
   // Supabase redirects back to this same page after the person clicks the emailed reset
   // link, and fires a PASSWORD_RECOVERY auth event - that's our cue to show the reset form.
+  // The Admin Link Code's "reset by email" reuses this exact same mechanism - we just tag
+  // the redirect URL with ?resetTarget=admincode when THAT flow triggers the email, so we
+  // know which of the two forms to show once the person arrives back here.
   sb.auth.onAuthStateChange(function (event) {
     if (event === 'PASSWORD_RECOVERY') {
       document.getElementById('loginOverlay').style.display = 'none';
-      document.getElementById('resetPasswordOverlay').style.display = 'flex';
+      const isAdminCodeReset = new URLSearchParams(window.location.search).get('resetTarget') === 'admincode';
+      document.getElementById(isAdminCodeReset ? 'resetAdminCodeOverlay' : 'resetPasswordOverlay').style.display = 'flex';
     }
   });
 
@@ -1402,6 +1431,34 @@
     document.getElementById('changePasswordModal').classList.remove('show');
   }
 
+  const OWNER_USER_ID = '6c7bc5ae-342c-4c48-9b8d-c95b50a6290b'; // ⚠️ update if the owner account's user ID differs
+
+  function openChangeAdminCode() {
+    document.getElementById('changeAdminCodeModal').classList.add('show');
+  }
+
+  async function sendAdminCodeResetEmail() {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user || !user.email) { showToast('Could not find your account email.', true); return; }
+    const redirectUrl = window.location.origin + window.location.pathname + '?resetTarget=admincode';
+    const { error } = await sb.auth.resetPasswordForEmail(user.email, { redirectTo: redirectUrl });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Check your email for the reset link.');
+    document.getElementById('changeAdminCodeModal').classList.remove('show');
+  }
+
+  async function submitNewAdminCode() {
+    const code = document.getElementById('newAdminCode').value.trim();
+    const errEl = document.getElementById('resetAdminCodeError');
+    errEl.textContent = '';
+    if (!code || code.length < 6) { errEl.textContent = 'Code must be at least 6 characters.'; return; }
+    const { error } = await sb.rpc('set_admin_link_code', { p_code: code });
+    if (error) { errEl.textContent = error.message; return; }
+    document.getElementById('resetAdminCodeOverlay').style.display = 'none';
+    showToast('Admin Link Code updated.');
+    startApp();
+  }
+
   async function startApp() {
     document.getElementById('appRoot').style.display = 'block';
     await loadSettings();
@@ -1409,7 +1466,10 @@
     wireSearch();
     if (!purchaseProductsWired) { purchaseProductsWired = true; wirePurchaseSearch(); }
     refreshLowStock();
+    const { data: { user } } = await sb.auth.getUser();
+    document.getElementById('changeAdminCodeBtn').style.display = (user && user.id === OWNER_USER_ID) ? 'inline-block' : 'none';
   }
+
 
   async function loadSettings() {
     const { data, error } = await sb.from('settings').select('*');
