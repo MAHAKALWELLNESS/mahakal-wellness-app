@@ -125,7 +125,10 @@
   .modal-actions .btn{flex:1;}
 
   /* ---------- tabs nav ---------- */
-  .tabs{position:sticky; top:0; z-index:29; display:flex; background:var(--surface); border-bottom:1px solid var(--line); overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; -webkit-mask-image:linear-gradient(to right, transparent 0, black 14px, black calc(100% - 14px), transparent 100%); mask-image:linear-gradient(to right, transparent 0, black 14px, black calc(100% - 14px), transparent 100%);}
+  .tabs-wrap{position:sticky; top:0; z-index:29; display:flex; align-items:stretch; background:var(--surface); border-bottom:1px solid var(--line);}
+  .tabs{flex:1; min-width:0; display:flex; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; -webkit-mask-image:linear-gradient(to right, transparent 0, black 14px, black calc(100% - 14px), transparent 100%); mask-image:linear-gradient(to right, transparent 0, black 14px, black calc(100% - 14px), transparent 100%);}
+  .tab-arrow{display:none; flex:none; width:30px; align-items:center; justify-content:center; background:var(--surface); border:none; color:var(--green-800); font-size:19px; font-weight:700; cursor:pointer; padding:0;}
+  @media (hover:hover) and (pointer:fine){ .tab-arrow{display:flex;} }
   .tabs::-webkit-scrollbar{display:none;}
   .tab{flex:none; padding:12px 14px; text-align:center; background:none; border:none; color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap;}
   .tab.active{color:var(--green-800); border-bottom-color:var(--gold-500);}
@@ -291,6 +294,8 @@
       <button class="header-link" style="margin-left:10px;" onclick="logout()">Logout</button>
     </header>
 
+    <div class="tabs-wrap">
+    <button class="tab-arrow" onclick="scrollTabs_(-200)" aria-label="Scroll tabs left">‹</button>
     <nav class="tabs" id="tabsNav">
       <button class="tab" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
       <button class="tab active" data-tab="newbillmain" onclick="switchTab('newbillmain')">New Bill</button>
@@ -312,6 +317,8 @@
       <button class="tab" data-tab="profitreport" id="tabBtnProfitReport" onclick="switchTab('profitreport')" style="display:none;">Profit Report</button>
       <button class="tab" data-tab="franchiseeinvestment" id="tabBtnFranchisee" onclick="switchTab('franchiseeinvestment')" style="display:none;">Franchisee Investment</button>
     </nav>
+    <button class="tab-arrow" onclick="scrollTabs_(200)" aria-label="Scroll tabs right">›</button>
+    </div>
 
     <main>
     <section id="tab-newbillmain" class="tab-panel active">
@@ -2398,6 +2405,10 @@
 
   // ---------------- TABS ----------------
   let dashboardLoadedOnce = false, purchaseProductsWired = false;
+  function scrollTabs_(amount) {
+    document.getElementById('tabsNav').scrollBy({ left: amount, behavior: 'smooth' });
+  }
+
   function switchTab(name) {
     document.querySelectorAll('.tab').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === name); });
     document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
