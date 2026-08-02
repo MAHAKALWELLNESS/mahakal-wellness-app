@@ -308,6 +308,8 @@
       <button class="tab" data-tab="offertracking" onclick="switchTab('offertracking')">Offer Tracking</button>
       <button class="tab" data-tab="broadcast" onclick="switchTab('broadcast')">Broadcast</button>
       <button class="tab" data-tab="paymentstatement" onclick="switchTab('paymentstatement')">Payment Statement</button>
+      <button class="tab" data-tab="companypayout" id="tabBtnCompanyPayout" onclick="switchTab('companypayout')" style="display:none;">Company Payout</button>
+      <button class="tab" data-tab="profitreport" id="tabBtnProfitReport" onclick="switchTab('profitreport')" style="display:none;">Profit Report</button>
     </nav>
 
     <main>
@@ -466,6 +468,18 @@
 
     <!-- ============ DASHBOARD TAB ============ -->
     <section id="tab-dashboard" class="tab-panel">
+      <div class="card" id="dashboardProfitStats" style="display:none;">
+        <p class="section-label">Company Payout &amp; Profit (Super Admin)</p>
+        <p class="hint" style="margin-bottom:10px;">Last complete month: <strong id="dashLastMonthLabel"></strong></p>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-label">Last Month Payout</div><div class="stat-value" id="dashLastMonthPayout">₹0</div></div>
+          <div class="stat-card warn"><div class="stat-label">Last Month Profit</div><div class="stat-value" id="dashLastMonthProfit">₹0</div></div>
+        </div>
+        <div class="stat-grid" style="margin-top:10px;">
+          <div class="stat-card"><div class="stat-label">Total Payout (All Time)</div><div class="stat-value" id="dashNetTotalPayout">₹0</div></div>
+          <div class="stat-card warn"><div class="stat-label">Net Total Profit (All Time)</div><div class="stat-value" id="dashNetTotalProfit">₹0</div></div>
+        </div>
+      </div>
       <div class="card">
         <p class="section-label">Quick range</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -841,6 +855,54 @@
           <div id="depositsTotal" style="margin-bottom:10px;font-weight:700;color:var(--green-800);"></div>
           <div id="depositsList"><div class="empty-cart">Loading…</div></div>
         </div>
+      </div>
+    </section>
+
+    <!-- ============ COMPANY PAYOUT TAB (Super Admin only) ============ -->
+    <section id="tab-companypayout" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadCompanyPayouts()">↻ Refresh</button>
+      <div class="card">
+        <p class="section-label">Add a Company Payout</p>
+        <p class="hint" style="margin-bottom:10px;">Commission/payment received from Asclepius (the parent company). Say which month it's FOR (e.g. a payout arriving in early August for July's work is "For: July").</p>
+        <div class="field-row">
+          <div class="field"><label for="payoutForMonth">For month</label><input type="month" id="payoutForMonth"></div>
+          <div class="field"><label for="payoutAmount">Amount ₹</label><input type="number" id="payoutAmount" min="0" step="0.01" placeholder="0"></div>
+        </div>
+        <div class="field"><label for="payoutReceivedDate">Actually received on (optional)</label><input type="date" id="payoutReceivedDate"></div>
+        <div class="field" style="margin-bottom:0;"><label for="payoutNote">Note (optional)</label><input type="text" id="payoutNote" placeholder="e.g. NEFT ref, screenshot filed"></div>
+        <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="submitCompanyPayout()">Add Payout</button>
+      </div>
+      <div class="card">
+        <p class="section-label">History</p>
+        <div class="field-row">
+          <div class="field"><label for="payoutHistoryFrom">From month</label><input type="month" id="payoutHistoryFrom"></div>
+          <div class="field"><label for="payoutHistoryTo">To month</label><input type="month" id="payoutHistoryTo"></div>
+        </div>
+        <button class="btn btn-outline btn-block" onclick="loadCompanyPayouts()">Apply filter</button>
+      </div>
+      <div class="card">
+        <div id="payoutHistoryTotal" style="margin-bottom:10px;font-weight:700;color:var(--green-800);"></div>
+        <div id="payoutHistoryList"><div class="empty-cart">Loading…</div></div>
+      </div>
+    </section>
+
+    <!-- ============ PROFIT REPORT TAB (Super Admin only) ============ -->
+    <section id="tab-profitreport" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadProfitReport()">↻ Refresh</button>
+      <div class="card">
+        <p class="section-label">Monthly Profit</p>
+        <div id="profitChartWrap" style="display:flex;align-items:flex-end;gap:6px;height:160px;padding:10px 4px 0;overflow-x:auto;"></div>
+      </div>
+      <div class="card">
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-label">Net Total Payout</div><div class="stat-value" id="profitReportTotalPayout">₹0</div></div>
+          <div class="stat-card warn"><div class="stat-label">Net Total Expenses</div><div class="stat-value" id="profitReportTotalExpenses">₹0</div></div>
+        </div>
+        <div class="stat-card" style="margin-top:10px;"><div class="stat-label">Net Total Profit (All Time)</div><div class="stat-value" id="profitReportNetProfit">₹0</div></div>
+      </div>
+      <div class="card">
+        <p class="section-label">Month-wise history</p>
+        <div id="profitHistoryList"></div>
       </div>
     </section>
     </main>
@@ -1436,6 +1498,7 @@
   }
 
   const OWNER_USER_ID = '6c7bc5ae-342c-4c48-9b8d-c95b50a6290b'; // ⚠️ update if the owner account's user ID differs
+  const SUPER_ADMIN_USER_ID = 'f992e1a4-4a68-462f-942d-3636c81a7ccd';
 
   function openChangeAdminCode() {
     document.getElementById('changeAdminCodeModal').classList.add('show');
@@ -1471,7 +1534,11 @@
     if (!purchaseProductsWired) { purchaseProductsWired = true; wirePurchaseSearch(); }
     refreshLowStock();
     const { data: { user } } = await sb.auth.getUser();
-    document.getElementById('changeAdminCodeBtn').style.display = (user && user.id === OWNER_USER_ID) ? 'inline-block' : 'none';
+    const isSuperAdmin = !!(user && user.id === SUPER_ADMIN_USER_ID);
+    document.getElementById('changeAdminCodeBtn').style.display = isSuperAdmin ? 'inline-block' : 'none';
+    document.getElementById('tabBtnCompanyPayout').style.display = isSuperAdmin ? 'block' : 'none';
+    document.getElementById('tabBtnProfitReport').style.display = isSuperAdmin ? 'block' : 'none';
+    if (isSuperAdmin) loadDashboardProfitStats_();
   }
 
 
@@ -2314,6 +2381,8 @@
     if (name === 'offertracking') loadOfferTrackingDropdown();
     if (name === 'broadcast' && !broadcastLoadedOnce) { broadcastLoadedOnce = true; loadBroadcastCustomers(); }
     if (name === 'paymentstatement' && !paymentStmtLoadedOnce) { paymentStmtLoadedOnce = true; setPaymentStmtRange('online', 'today'); setPaymentStmtRange('cash', 'today'); setPaymentStmtRange('deposits', 'today'); }
+    if (name === 'companypayout' && !companyPayoutLoadedOnce) { companyPayoutLoadedOnce = true; loadCompanyPayouts(); }
+    if (name === 'profitreport') loadProfitReport();
   }
 
   function fmtDateInput_(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
@@ -4610,6 +4679,7 @@
 
   // ---------------- PAYMENT STATEMENT TAB ----------------
   let paymentStmtLoadedOnce = false;
+  let companyPayoutLoadedOnce = false;
   let paymentStmtData = { online: [], cash: [] };
   let cashDepositsData = [];
 
@@ -4750,6 +4820,93 @@
     const rows = cashDepositsData; if (!rows.length) { showToast('Nothing to export.', true); return; }
     downloadTablePdf('Cash Deposit Statement', ['Date', 'Amount', 'Deposited By', 'Note'],
       rows.map(function (r) { return [r.deposit_date, money(r.amount), r.deposited_by || '', r.note || '']; }));
+  }
+
+  // ---------------- COMPANY PAYOUT + PROFIT REPORT (Super Admin only) ----------------
+  async function submitCompanyPayout() {
+    const forMonthVal = document.getElementById('payoutForMonth').value; // "2026-07"
+    const amount = Number(document.getElementById('payoutAmount').value);
+    const receivedDate = document.getElementById('payoutReceivedDate').value || null;
+    const note = document.getElementById('payoutNote').value.trim();
+    if (!forMonthVal) { showToast('Select which month this payout is for.', true); return; }
+    if (!(amount > 0)) { showToast('Enter a valid amount.', true); return; }
+    const { error } = await sb.rpc('add_company_payment', { p_for_month: forMonthVal + '-01', p_amount: amount, p_note: note || null, p_received_date: receivedDate });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Payout added.');
+    document.getElementById('payoutForMonth').value = ''; document.getElementById('payoutAmount').value = '';
+    document.getElementById('payoutReceivedDate').value = ''; document.getElementById('payoutNote').value = '';
+    loadCompanyPayouts();
+  }
+
+  async function loadCompanyPayouts() {
+    const box = document.getElementById('payoutHistoryList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const from = document.getElementById('payoutHistoryFrom').value;
+    const to = document.getElementById('payoutHistoryTo').value;
+    const { data, error } = await sb.rpc('get_company_payments', {
+      p_for_month_start: from ? from + '-01' : null, p_for_month_end: to ? to + '-01' : null
+    });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
+    const rows = data || [];
+    const total = rows.reduce(function (s, r) { return s + Number(r.amount); }, 0);
+    document.getElementById('payoutHistoryTotal').textContent = 'Total: ' + money(total) + ' · ' + rows.length + ' payout' + (rows.length === 1 ? '' : 's');
+    if (!rows.length) { box.innerHTML = '<div class="empty-cart">No payouts in this range.</div>'; return; }
+    box.innerHTML = rows.map(function (r) {
+      const forMonthLabel = new Date(r.for_month + 'T00:00:00').toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+      return '<div class="list-row" style="cursor:default;"><div><div class="result-name">For: ' + forMonthLabel + '</div>' +
+        '<div class="result-meta">Received ' + r.payment_date + (r.note ? ' · ' + escapeHtml(r.note) : '') + '</div></div>' +
+        '<div class="amt">' + money(r.amount) + '</div></div>';
+    }).join('');
+  }
+
+  async function loadProfitReport() {
+    const { data, error } = await sb.rpc('get_monthly_profit_report');
+    if (error) { showToast(error.message, true); return; }
+    const rows = (data || []).slice().reverse(); // chronological order for the chart
+    const chartWrap = document.getElementById('profitChartWrap');
+    if (!rows.length) { chartWrap.innerHTML = '<p class="hint">No data yet.</p>'; }
+    else {
+      const maxAbs = Math.max.apply(null, rows.map(function (r) { return Math.abs(r.profit); }).concat([1]));
+      chartWrap.innerHTML = rows.map(function (r) {
+        const heightPx = Math.max(4, Math.round((Math.abs(r.profit) / maxAbs) * 130));
+        const isPositive = r.profit >= 0;
+        return '<div style="display:flex;flex-direction:column;align-items:center;min-width:48px;">' +
+          '<div style="font-size:10px;color:' + (isPositive ? 'var(--ok)' : 'var(--danger)') + ';font-weight:700;margin-bottom:2px;">' + money(r.profit) + '</div>' +
+          '<div style="width:28px;height:' + heightPx + 'px;background:' + (isPositive ? 'var(--ok)' : 'var(--danger)') + ';border-radius:4px 4px 0 0;"></div>' +
+          '<div style="font-size:10px;color:var(--ink-faint);margin-top:4px;white-space:nowrap;">' + r.monthLabel + '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    const { data: summary, error: sErr } = await sb.rpc('get_profit_summary');
+    if (!sErr && summary) {
+      document.getElementById('profitReportTotalPayout').textContent = money(summary.netTotalPayout);
+      document.getElementById('profitReportTotalExpenses').textContent = money(summary.netTotalExpenses);
+      document.getElementById('profitReportNetProfit').textContent = money(summary.netTotalProfit);
+    }
+
+    const histBox = document.getElementById('profitHistoryList');
+    const chronoDesc = data || [];
+    if (!chronoDesc.length) { histBox.innerHTML = '<div class="empty-cart">No history yet.</div>'; return; }
+    histBox.innerHTML = chronoDesc.map(function (r) {
+      const isPositive = r.profit >= 0;
+      return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + r.monthLabel + '</div>' +
+        '<div class="result-meta">Payout ' + money(r.payout) + ' · Expenses ' + money(r.expenses) + '</div></div>' +
+        '<div class="amt" style="color:' + (isPositive ? 'var(--ok)' : 'var(--danger)') + ';">' + money(r.profit) + '</div></div>';
+    }).join('');
+  }
+
+  async function loadDashboardProfitStats_() {
+    const { data, error } = await sb.rpc('get_profit_summary');
+    if (error || !data) return;
+    const box = document.getElementById('dashboardProfitStats');
+    if (!box) return;
+    box.style.display = 'block';
+    document.getElementById('dashLastMonthLabel').textContent = data.lastMonth;
+    document.getElementById('dashLastMonthPayout').textContent = money(data.lastMonthPayout);
+    document.getElementById('dashLastMonthProfit').textContent = money(data.lastMonthProfit);
+    document.getElementById('dashNetTotalPayout').textContent = money(data.netTotalPayout);
+    document.getElementById('dashNetTotalProfit').textContent = money(data.netTotalProfit);
   }
 
   // ---------------- SHARED CSV / TABLE-PDF HELPERS ----------------
