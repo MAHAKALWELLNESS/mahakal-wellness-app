@@ -839,6 +839,21 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="purchaseQtyModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:16px;color:var(--green-800);margin-bottom:2px;" id="pqtyModalName"></h2>
+      <p class="hint" id="pqtyModalMeta" style="margin-bottom:14px;"></p>
+      <div class="field" style="margin-bottom:16px;">
+        <label for="pqtyModalInput">Quantity</label>
+        <input type="number" id="pqtyModalInput" min="1" step="1" inputmode="numeric" placeholder="Enter qty" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmPurchaseQtyModal();}">
+      </div>
+      <div class="modal-actions" style="margin-top:0;">
+        <button class="btn btn-outline" onclick="cancelPurchaseQtyModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmPurchaseQtyModal()">Add</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ DELIVERY QTY MODAL (right after saving) ============ -->
   <!-- ============ PROCEED FURTHER: STEP 1 - PAYMENT ============ -->
   <div class="modal-overlay" id="paymentStepModal">
@@ -2271,13 +2286,32 @@
 
   function promptPurchaseQty(p) {
     pendingPurchaseProduct = p;
-    const qty = Math.round(Number(prompt('Qty for ' + p.name + '?', '1')));
-    if (!(qty > 0)) return;
+    document.getElementById('pqtyModalName').textContent = p.name;
+    document.getElementById('pqtyModalMeta').textContent = '#' + p.code + ' · ' + money(p.dp) + ' each';
+    const input = document.getElementById('pqtyModalInput');
+    input.value = '1';
+    document.getElementById('purchaseQtyModal').classList.add('show');
+    setTimeout(function () { input.focus(); input.select(); }, 60);
+  }
+
+  function confirmPurchaseQtyModal() {
+    const qty = Math.round(Number(document.getElementById('pqtyModalInput').value));
+    if (!(qty > 0)) { showToast('Enter a valid quantity.', true); return; }
+    const p = pendingPurchaseProduct;
+    if (!p) return;
     const existing = PURCHASE_CART.find(function (c) { return c.code === p.code; });
     if (existing) existing.qty += qty; else PURCHASE_CART.push({ code: p.code, name: p.name, dp: Number(p.dp), sp: Number(p.sp), qty: qty });
+    renderPurchaseCart();
+    document.getElementById('purchaseQtyModal').classList.remove('show');
     document.getElementById('stockSearchInput').value = '';
     document.getElementById('stockSearchResults').classList.remove('show');
-    renderPurchaseCart();
+    document.getElementById('stockSearchInput').focus();
+  }
+
+  function cancelPurchaseQtyModal() {
+    pendingPurchaseProduct = null;
+    document.getElementById('purchaseQtyModal').classList.remove('show');
+    document.getElementById('stockSearchInput').focus();
   }
 
   function renderPurchaseCart() {
