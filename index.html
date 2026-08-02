@@ -1881,7 +1881,7 @@
       return '<div class="cart-item" data-code="' + it.code + '" data-qty="' + it.qty + '">' +
         '<div class="cart-row-top"><div class="cart-name">' + escapeHtml(it.name) + '</div><div class="cart-code">Billed qty: ' + trimNum(it.qty) + '</div></div>' +
         '<div class="cart-row-bottom"><div class="field" style="margin-bottom:0;flex:1;"><label>Delivered now</label>' +
-        '<input type="number" class="deliveredInput" min="0" max="' + it.qty + '" step="1" value="' + it.qty + '" oninput="capDeliveredInput_(this)"></div>' +
+        '<input type="number" class="deliveredInput" min="0" max="' + it.qty + '" step="1" value="' + it.qty + '" oninput="capDeliveredInput_(this)" onfocus="this.select()"></div>' +
         '<button class="quickbtn" type="button" onclick="const c=this.closest(\'.cart-item\'); c.querySelector(\'.deliveredInput\').value=c.dataset.qty;">Deliver All</button></div></div>';
     }).join('');
   }
@@ -2426,9 +2426,9 @@
       return '<div class="cart-item" data-code="' + it.product_code + '" data-dp="' + it.dp + '" data-sp="' + it.sp + '" data-qty="' + it.qty + '">' +
         '<div class="cart-row-top"><div class="cart-name">' + escapeHtml(it.product_name) + '</div><div class="cart-code">' + money(it.dp) + ' each</div></div>' +
         '<div class="cart-row-bottom">' +
-        (anyReceived ? '' : '<div class="field" style="margin-bottom:0;flex:1;"><label>Ordered qty</label><input type="number" class="pdOrderedInput" min="0" step="1" value="' + it.qty + '" oninput="document.getElementById(\'purchaseEditSaveBtn\').style.display=\'block\';"></div>') +
+        (anyReceived ? '' : '<div class="field" style="margin-bottom:0;flex:1;"><label>Ordered qty</label><input type="number" class="pdOrderedInput" min="0" step="1" value="' + it.qty + '" oninput="document.getElementById(\'purchaseEditSaveBtn\').style.display=\'block\';" onfocus="this.select()"></div>') +
         '<div class="field" style="margin-bottom:0;flex:1;"><label>Received so far (of ' + trimNum(it.qty) + ')</label>' +
-        '<input type="number" class="pdReceivedInput" min="0" max="' + it.qty + '" step="1" value="' + it.received_qty + '" oninput="capDeliveredInput_(this)"></div>' +
+        '<input type="number" class="pdReceivedInput" min="0" max="' + it.qty + '" step="1" value="' + it.received_qty + '" oninput="capDeliveredInput_(this)" onfocus="this.select()"></div>' +
         '<button class="quickbtn" type="button" onclick="const c=this.closest(\'.cart-item\'); c.querySelector(\'.pdReceivedInput\').value=c.dataset.qty;">Receive All</button></div></div>';
     }).join('');
     const dateStr = new Date(header.purchase_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
@@ -3060,7 +3060,7 @@
         return '<div class="cart-item" data-invoice="' + invoiceNo + '" data-code="' + it.product_code + '" data-qty="' + it.pending_qty + '">' +
           '<div class="cart-row-top"><div class="cart-name">' + escapeHtml(it.product_name) + '</div></div>' +
           '<div class="cart-row-bottom"><div class="field" style="margin-bottom:0;flex:1;"><label>Deliver now (of ' + trimNum(it.pending_qty) + ' pending)</label>' +
-          '<input type="number" class="deliverNowInput" min="0" max="' + it.pending_qty + '" step="1" value="' + it.pending_qty + '" oninput="capDeliveredInput_(this)"></div>' +
+          '<input type="number" class="deliverNowInput" min="0" max="' + it.pending_qty + '" step="1" value="' + it.pending_qty + '" oninput="capDeliveredInput_(this)" onfocus="this.select()"></div>' +
           '<button class="quickbtn" type="button" onclick="const c=this.closest(\'.cart-item\'); c.querySelector(\'.deliverNowInput\').value=c.dataset.qty;">Deliver All</button>' +
           '<button class="quickbtn" type="button" onclick="confirmDeliverMore(this)">Confirm</button></div></div>';
       }).join('');
