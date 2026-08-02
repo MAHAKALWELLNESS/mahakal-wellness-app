@@ -913,10 +913,12 @@
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadFranchiseeEntries()">↻ Refresh</button>
       <div class="card">
         <p class="section-label">Add an entry</p>
+        <div class="field"><label for="franchiseeType">Type</label><select id="franchiseeType"><option value="Investment">Investment (money in)</option><option value="Withdrawal">Withdrawal (money out)</option></select></div>
         <div class="field-row">
-          <div class="field"><label for="franchiseeType">Type</label><select id="franchiseeType"><option value="Investment">Investment (money in)</option><option value="Withdrawal">Withdrawal (money out)</option></select></div>
-          <div class="field"><label for="franchiseeAmount">Amount ₹</label><input type="number" id="franchiseeAmount" min="0" step="0.01" placeholder="0"></div>
+          <div class="field"><label for="franchiseeCash">Cash ₹</label><input type="number" id="franchiseeCash" min="0" step="0.01" placeholder="0"></div>
+          <div class="field"><label for="franchiseeOnline">Online ₹</label><input type="number" id="franchiseeOnline" min="0" step="0.01" placeholder="0" oninput="document.getElementById('franchiseeUtrField').style.display = Number(this.value) > 0.005 ? 'block' : 'none';"></div>
         </div>
+        <div class="field" id="franchiseeUtrField" style="display:none;"><label for="franchiseeUtr">UTR number</label><input type="text" id="franchiseeUtr" placeholder="UTR / reference number"></div>
         <div class="field"><label for="franchiseeDate">Date (leave blank for today)</label><input type="date" id="franchiseeDate"></div>
         <div class="field" style="margin-bottom:0;"><label for="franchiseeNote">Note (optional)</label><input type="text" id="franchiseeNote" placeholder="e.g. Bank transfer ref"></div>
         <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="submitFranchiseeEntry()">Add Entry</button>
@@ -4949,14 +4951,19 @@
   // ---------------- FRANCHISEE INVESTMENT (Super Admin only) ----------------
   async function submitFranchiseeEntry() {
     const type = document.getElementById('franchiseeType').value;
-    const amount = Number(document.getElementById('franchiseeAmount').value);
+    const cash = Number(document.getElementById('franchiseeCash').value) || 0;
+    const online = Number(document.getElementById('franchiseeOnline').value) || 0;
+    const utrNo = document.getElementById('franchiseeUtr').value.trim();
     const dateVal = document.getElementById('franchiseeDate').value || null;
     const note = document.getElementById('franchiseeNote').value.trim();
-    if (!(amount > 0)) { showToast('Enter a valid amount.', true); return; }
-    const { error } = await sb.rpc('add_franchisee_entry', { p_date: dateVal, p_entry_type: type, p_amount: amount, p_note: note || null });
+    if (cash <= 0 && online <= 0) { showToast('Enter a Cash or Online amount.', true); return; }
+    if (online > 0.005 && !utrNo) { showToast('UTR number is required for the Online amount.', true); return; }
+    const { error } = await sb.rpc('add_franchisee_entry', { p_date: dateVal, p_entry_type: type, p_cash: cash, p_online: online, p_utr_no: utrNo || null, p_note: note || null });
     if (error) { showToast(error.message, true); return; }
     showToast(type + ' entry added.');
-    document.getElementById('franchiseeAmount').value = ''; document.getElementById('franchiseeDate').value = ''; document.getElementById('franchiseeNote').value = '';
+    document.getElementById('franchiseeCash').value = ''; document.getElementById('franchiseeOnline').value = '';
+    document.getElementById('franchiseeUtr').value = ''; document.getElementById('franchiseeUtrField').style.display = 'none';
+    document.getElementById('franchiseeDate').value = ''; document.getElementById('franchiseeNote').value = '';
     loadFranchiseeEntries();
   }
 
@@ -4991,8 +4998,11 @@
     if (!rows.length) { box.innerHTML = '<div class="empty-cart">No entries in this range.</div>'; return; }
     box.innerHTML = rows.map(function (r) {
       const isInvestment = r.entry_type === 'Investment';
+      const modeParts = [];
+      if (Number(r.cash) > 0.005) modeParts.push('Cash ' + money(r.cash));
+      if (Number(r.online) > 0.005) modeParts.push('Online ' + money(r.online) + (r.utr_no ? ' (UTR ' + escapeHtml(r.utr_no) + ')' : ''));
       return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + r.entry_type + '</div>' +
-        '<div class="result-meta">' + r.entry_date + (r.note ? ' · ' + escapeHtml(r.note) : '') + '</div></div>' +
+        '<div class="result-meta">' + r.entry_date + ' · ' + modeParts.join(', ') + (r.note ? ' · ' + escapeHtml(r.note) : '') + '</div></div>' +
         '<div class="amt" style="color:' + (isInvestment ? 'var(--danger)' : 'var(--ok)') + ';">' + (isInvestment ? '−' : '+') + money(r.amount) + '</div></div>';
     }).join('');
   }
