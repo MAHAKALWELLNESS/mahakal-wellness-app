@@ -1384,6 +1384,8 @@
     await loadSettings();
     await loadProducts();
     wireSearch();
+    if (!purchaseProductsWired) { purchaseProductsWired = true; wirePurchaseSearch(); }
+    refreshLowStock();
   }
 
   async function loadSettings() {
