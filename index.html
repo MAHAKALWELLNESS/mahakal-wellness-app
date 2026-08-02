@@ -970,6 +970,9 @@
   <!-- ============ PURCHASE / REMAINING / PENDING DETAIL MODALS ============ -->
   <div class="modal-overlay" id="purchaseDetailModal">
     <div class="modal-sheet">
+      <div style="position:sticky; top:0; z-index:5; background:var(--surface); text-align:right; margin:-4px -4px 4px 0;">
+        <button onclick="document.getElementById('purchaseDetailModal').classList.remove('show')" style="background:var(--bg); border:1.5px solid var(--line); border-radius:50%; width:34px; height:34px; font-size:16px; line-height:1; color:var(--ink-soft); cursor:pointer;">✕</button>
+      </div>
       <div id="purchaseDetailArea"></div>
       <div class="modal-actions"><button class="btn btn-outline" onclick="document.getElementById('purchaseDetailModal').classList.remove('show')">Close</button><button class="btn btn-gold" onclick="updatePurchaseReceivedFromDetail()">Update Received Qty</button></div>
       <div class="modal-actions"><button class="btn btn-outline btn-block" id="purchaseEditSaveBtn" onclick="savePurchaseQtyEdits()" style="display:none;">Save Quantity Changes</button></div>
