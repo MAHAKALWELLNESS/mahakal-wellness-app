@@ -1878,8 +1878,15 @@
       return '<div class="cart-item" data-code="' + it.code + '" data-qty="' + it.qty + '">' +
         '<div class="cart-row-top"><div class="cart-name">' + escapeHtml(it.name) + '</div><div class="cart-code">Billed qty: ' + trimNum(it.qty) + '</div></div>' +
         '<div class="cart-row-bottom"><div class="field" style="margin-bottom:0;flex:1;"><label>Delivered now</label>' +
-        '<input type="number" class="deliveredInput" min="0" max="' + it.qty + '" step="1" value="' + it.qty + '"></div></div></div>';
+        '<input type="number" class="deliveredInput" min="0" max="' + it.qty + '" step="1" value="' + it.qty + '" oninput="capDeliveredInput_(this)"></div>' +
+        '<button class="quickbtn" type="button" onclick="const c=this.closest(\'.cart-item\'); c.querySelector(\'.deliveredInput\').value=c.dataset.qty;">Deliver All</button></div></div>';
     }).join('');
+  }
+
+  function capDeliveredInput_(input) {
+    const max = Number(input.max);
+    if (Number(input.value) > max) input.value = max;
+    if (Number(input.value) < 0) input.value = 0;
   }
 
   async function goToOfficialPrefillStep() {
@@ -2418,7 +2425,8 @@
         '<div class="cart-row-bottom">' +
         (anyReceived ? '' : '<div class="field" style="margin-bottom:0;flex:1;"><label>Ordered qty</label><input type="number" class="pdOrderedInput" min="0" step="1" value="' + it.qty + '" oninput="document.getElementById(\'purchaseEditSaveBtn\').style.display=\'block\';"></div>') +
         '<div class="field" style="margin-bottom:0;flex:1;"><label>Received so far (of ' + trimNum(it.qty) + ')</label>' +
-        '<input type="number" class="pdReceivedInput" min="0" max="' + it.qty + '" step="1" value="' + it.received_qty + '"></div></div></div>';
+        '<input type="number" class="pdReceivedInput" min="0" max="' + it.qty + '" step="1" value="' + it.received_qty + '" oninput="capDeliveredInput_(this)"></div>' +
+        '<button class="quickbtn" type="button" onclick="const c=this.closest(\'.cart-item\'); c.querySelector(\'.pdReceivedInput\').value=c.dataset.qty;">Receive All</button></div></div>';
     }).join('');
     const dateStr = new Date(header.purchase_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
     document.getElementById('purchaseDetailArea').innerHTML =
@@ -3046,10 +3054,11 @@
     document.getElementById('pendingDetailArea').innerHTML = '<h2 style="font-size:16px;color:var(--green-800);margin-bottom:4px;">' + invoiceNo + '</h2>' +
       '<p class="hint" style="margin-bottom:10px;">' + escapeHtml(inv.customer || 'Walk-in') + '</p>' +
       inv.items.map(function (it) {
-        return '<div class="cart-item" data-invoice="' + invoiceNo + '" data-code="' + it.product_code + '">' +
+        return '<div class="cart-item" data-invoice="' + invoiceNo + '" data-code="' + it.product_code + '" data-qty="' + it.pending_qty + '">' +
           '<div class="cart-row-top"><div class="cart-name">' + escapeHtml(it.product_name) + '</div></div>' +
           '<div class="cart-row-bottom"><div class="field" style="margin-bottom:0;flex:1;"><label>Deliver now (of ' + trimNum(it.pending_qty) + ' pending)</label>' +
-          '<input type="number" class="deliverNowInput" min="0" max="' + it.pending_qty + '" step="1" value="' + it.pending_qty + '"></div>' +
+          '<input type="number" class="deliverNowInput" min="0" max="' + it.pending_qty + '" step="1" value="' + it.pending_qty + '" oninput="capDeliveredInput_(this)"></div>' +
+          '<button class="quickbtn" type="button" onclick="const c=this.closest(\'.cart-item\'); c.querySelector(\'.deliverNowInput\').value=c.dataset.qty;">Deliver All</button>' +
           '<button class="quickbtn" type="button" onclick="confirmDeliverMore(this)">Confirm</button></div></div>';
       }).join('');
     document.getElementById('pendingDetailModal').classList.add('show');
@@ -3057,8 +3066,10 @@
 
   async function confirmDeliverMore(btnEl) {
     const row = btnEl.closest('.cart-item');
-    const qty = Math.round(Number(row.querySelector('.deliverNowInput').value));
+    let qty = Math.round(Number(row.querySelector('.deliverNowInput').value));
+    const maxQty = Number(row.dataset.qty);
     if (!(qty > 0)) { showToast('Enter a valid quantity.', true); return; }
+    if (qty > maxQty) { showToast('Can\'t deliver more than the pending quantity (' + trimNum(maxQty) + ').', true); return; }
     btnEl.disabled = true; btnEl.textContent = '…';
     const { error } = await sb.rpc('deliver_more', { p_invoice_no: row.dataset.invoice, p_code: row.dataset.code, p_qty: qty });
     if (error) { btnEl.disabled = false; btnEl.textContent = 'Confirm'; showToast(error.message, true); return; }
