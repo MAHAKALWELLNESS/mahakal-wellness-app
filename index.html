@@ -975,6 +975,7 @@
       </div>
       <div id="purchaseDetailArea"></div>
       <div class="modal-actions"><button class="btn btn-outline" onclick="document.getElementById('purchaseDetailModal').classList.remove('show')">Close</button><button class="btn btn-gold" onclick="updatePurchaseReceivedFromDetail()">Update Received Qty</button></div>
+      <div class="modal-actions"><button class="btn btn-outline btn-block" id="purchaseEditOrderedBtn" onclick="enableOrderedQtyEdit()" style="display:none;">✏️ Edit Ordered Quantities</button></div>
       <div class="modal-actions"><button class="btn btn-outline btn-block" id="purchaseEditSaveBtn" onclick="savePurchaseQtyEdits()" style="display:none;">Save Quantity Changes</button></div>
       <div class="modal-actions"><button class="btn btn-outline btn-block" style="color:var(--danger);border-color:var(--danger);" onclick="deletePurchaseConfirm()">🗑 Delete Purchase Permanently</button></div>
     </div>
@@ -2426,7 +2427,7 @@
       return '<div class="cart-item" data-code="' + it.product_code + '" data-dp="' + it.dp + '" data-sp="' + it.sp + '" data-qty="' + it.qty + '">' +
         '<div class="cart-row-top"><div class="cart-name">' + escapeHtml(it.product_name) + '</div><div class="cart-code">' + money(it.dp) + ' each</div></div>' +
         '<div class="cart-row-bottom">' +
-        (anyReceived ? '' : '<div class="field" style="margin-bottom:0;flex:1;"><label>Ordered qty</label><input type="number" class="pdOrderedInput" min="0" step="1" value="' + it.qty + '" oninput="document.getElementById(\'purchaseEditSaveBtn\').style.display=\'block\';" onfocus="this.select()"></div>') +
+        (anyReceived ? '' : '<div class="field" style="margin-bottom:0;flex:1;"><label>Ordered qty</label><input type="number" class="pdOrderedInput" min="0" step="1" value="' + it.qty + '" disabled style="background:var(--bg);color:var(--ink-faint);" oninput="document.getElementById(\'purchaseEditSaveBtn\').style.display=\'block\';" onfocus="this.select()"></div>') +
         '<div class="field" style="margin-bottom:0;flex:1;"><label>Received so far (of ' + trimNum(it.qty) + ')</label>' +
         '<input type="number" class="pdReceivedInput" min="0" max="' + it.qty + '" step="1" value="' + it.received_qty + '" oninput="capDeliveredInput_(this)" onfocus="this.select()"></div>' +
         '<button class="quickbtn" type="button" onclick="const c=this.closest(\'.cart-item\'); c.querySelector(\'.pdReceivedInput\').value=c.dataset.qty;">Receive All</button></div></div>';
@@ -2439,7 +2440,14 @@
       '<div class="receipt-total-row grand" style="margin-top:6px;"><span>Total</span><span>' + money(header.total_dp) + '</span></div>' +
       '<div class="receipt-total-row"><span>Total SP</span><span>' + trimNum(header.total_sp) + '</span></div>';
     document.getElementById('purchaseEditSaveBtn').style.display = 'none';
+    document.getElementById('purchaseEditOrderedBtn').style.display = anyReceived ? 'none' : 'block';
     document.getElementById('purchaseDetailModal').classList.add('show');
+  }
+
+  function enableOrderedQtyEdit() {
+    Array.from(document.querySelectorAll('#purchaseDetailItems .pdOrderedInput')).forEach(function (input) { input.disabled = false; input.style.background = ''; input.style.color = ''; });
+    document.getElementById('purchaseEditOrderedBtn').style.display = 'none';
+    document.getElementById('purchaseEditSaveBtn').style.display = 'block';
   }
 
   async function savePurchaseQtyEdits() {
