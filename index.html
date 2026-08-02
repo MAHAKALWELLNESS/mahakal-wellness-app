@@ -372,7 +372,11 @@
           <div id="pcartList"><div class="empty-cart">Search above and tap a product to add it to this purchase.</div></div>
         </div>
         <div class="card">
-          <div class="field" style="margin-bottom:0;"><label for="purchaseRemark">Remark (optional)</label><input type="text" id="purchaseRemark" placeholder="Supplier / invoice ref"></div>
+          <div class="field" style="margin-bottom:0;">
+            <label for="purchaseRemark">Company Invoice Number</label>
+            <input type="text" id="purchaseRemark" placeholder="e.g. RAI/000801/26-27" oninput="this.value=this.value.toUpperCase(); checkInvoiceNoLive();">
+            <p class="login-error" id="purchaseRemarkError" style="min-height:0;margin:4px 0 0;"></p>
+          </div>
         </div>
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -2233,6 +2237,7 @@
   function resetPurchaseForm() {
     PURCHASE_CART = [];
     document.getElementById('purchaseRemark').value = '';
+    document.getElementById('purchaseRemarkError').textContent = '';
     document.getElementById('stockSearchInput').value = '';
     renderPurchaseCart();
     showToast('Form reset.');
@@ -2338,12 +2343,30 @@
     document.getElementById('savePurchaseBtn').disabled = PURCHASE_CART.length === 0;
   }
 
+  const INVOICE_NO_PATTERN = /^[A-Z]+\/[0-9]{6}\/[0-9]{2}-[0-9]{2}$/;
+  let invoiceCheckDebounce = null;
+  function checkInvoiceNoLive() {
+    clearTimeout(invoiceCheckDebounce);
+    const errBox = document.getElementById('purchaseRemarkError');
+    const val = document.getElementById('purchaseRemark').value.trim();
+    errBox.textContent = '';
+    if (!val) return;
+    if (!INVOICE_NO_PATTERN.test(val)) { errBox.textContent = 'Format should be LETTERS/000000/00-00 (e.g. RAI/000801/26-27).'; return; }
+    invoiceCheckDebounce = setTimeout(async function () {
+      const { data: available } = await sb.rpc('check_invoice_no_available', { p_invoice_no: val });
+      if (available === false) errBox.textContent = 'This Company Invoice Number has already been used.';
+    }, 400);
+  }
+
   async function savePurchase() {
     if (!PURCHASE_CART.length) { showToast('Add at least one product first.', true); return; }
+    const invoiceNo = document.getElementById('purchaseRemark').value.trim().toUpperCase();
+    if (!invoiceNo) { showToast('Company Invoice Number is required.', true); return; }
+    if (!INVOICE_NO_PATTERN.test(invoiceNo)) { showToast('Company Invoice Number format should be LETTERS/000000/00-00 (e.g. RAI/000801/26-27).', true); return; }
     const btn = document.getElementById('savePurchaseBtn');
     btn.disabled = true; btn.textContent = 'Saving…';
     const { data: purchaseNo, error } = await sb.rpc('save_purchase_bill', {
-      p_remark: document.getElementById('purchaseRemark').value.trim(),
+      p_remark: invoiceNo,
       p_items: PURCHASE_CART.map(function (c) { return { code: c.code, name: c.name, dp: c.dp, sp: c.sp, qty: c.qty }; })
     });
     btn.disabled = false; btn.textContent = 'Save Purchase';
@@ -2352,6 +2375,7 @@
     PURCHASE_CART.forEach(function (c) { const p = PRODUCTS.find(function (x) { return x.code === c.code; }); if (p) p.online_stock += c.qty; });
     PURCHASE_CART = [];
     document.getElementById('purchaseRemark').value = '';
+    document.getElementById('purchaseRemarkError').textContent = '';
     renderPurchaseCart();
   }
 
