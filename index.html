@@ -2424,10 +2424,11 @@
     const dCls = header.status === 'Complete' ? 'badge-paid' : (header.status === 'Partial' ? 'badge-partial' : 'badge-unpaid');
     const anyReceived = (items || []).some(function (it) { return Number(it.received_qty) > 0.0001; });
     const rows = (items || []).map(function (it) {
-      return '<div class="cart-item" data-code="' + it.product_code + '" data-dp="' + it.dp + '" data-sp="' + it.sp + '" data-qty="' + it.qty + '">' +
-        '<div class="cart-row-top"><div class="cart-name">' + escapeHtml(it.product_name) + '</div><div class="cart-code">' + money(it.dp) + ' each</div></div>' +
+      return '<div class="cart-item" data-code="' + it.product_code + '" data-dp="' + it.dp + '" data-sp="' + it.sp + '" data-name="' + escapeHtml(it.product_name) + '" data-qty="' + it.qty + '">' +
+        '<div class="cart-row-top"><div class="cart-name">' + escapeHtml(it.product_name) + '</div><div class="cart-code">' + money(it.dp) + ' each</div>' +
+        '<button class="purchaseRemoveItemBtn" type="button" onclick="removePurchaseEditItem(this)" style="display:none;background:none;border:none;color:var(--danger);font-size:18px;line-height:1;cursor:pointer;padding:2px 8px;">✕</button></div>' +
         '<div class="cart-row-bottom">' +
-        (anyReceived ? '' : '<div class="field" style="margin-bottom:0;flex:1;"><label>Ordered qty</label><input type="number" class="pdOrderedInput" min="0" step="1" value="' + it.qty + '" disabled style="background:var(--bg);color:var(--ink-faint);" oninput="document.getElementById(\'purchaseEditSaveBtn\').style.display=\'block\';" onfocus="this.select()"></div>') +
+        (anyReceived ? '' : '<div class="field" style="margin-bottom:0;flex:1;"><label>Ordered qty</label><input type="number" class="pdOrderedInput" min="0" step="1" value="' + it.qty + '" disabled style="background:var(--bg);color:var(--ink-faint);" onfocus="this.select()"></div>') +
         '<div class="field" style="margin-bottom:0;flex:1;"><label>Received so far (of ' + trimNum(it.qty) + ')</label>' +
         '<input type="number" class="pdReceivedInput" min="0" max="' + it.qty + '" step="1" value="' + it.received_qty + '" oninput="capDeliveredInput_(this)" onfocus="this.select()"></div>' +
         '<button class="quickbtn" type="button" onclick="const c=this.closest(\'.cart-item\'); c.querySelector(\'.pdReceivedInput\').value=c.dataset.qty;">Receive All</button></div></div>';
@@ -2435,19 +2436,95 @@
     const dateStr = new Date(header.purchase_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
     document.getElementById('purchaseDetailArea').innerHTML =
       '<h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">' + header.purchase_no + ' <span class="badge ' + dCls + '" style="margin-left:6px;">' + header.status + '</span></h2>' +
-      '<p class="hint" style="margin-bottom:10px;">' + dateStr + (header.remark ? ' · ' + escapeHtml(header.remark) : '') + '</p>' +
+      '<p class="hint" style="margin-bottom:6px;">' + dateStr + '</p>' +
+      '<div class="field" style="margin-bottom:10px;"><label for="purchaseEditInvoiceNo">Company Invoice Number</label>' +
+      '<input type="text" id="purchaseEditInvoiceNo" value="' + escapeHtml(header.remark || '') + '" disabled style="background:var(--bg);color:var(--ink-faint);" oninput="this.value=this.value.toUpperCase(); checkEditInvoiceNoLive();" onfocus="this.select()">' +
+      '<p class="login-error" id="purchaseEditInvoiceNoError" style="min-height:0;margin:4px 0 0;"></p></div>' +
+      '<div id="purchaseAddProductArea" style="display:none;margin-bottom:10px;">' +
+        '<label style="display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:5px;">Add a product</label>' +
+        '<div class="search-wrap"><input type="text" id="purchaseEditSearchInput" class="search-input" placeholder="Search product to add…" autocomplete="off">' +
+        '<div id="purchaseEditSearchResults" class="search-results"></div></div>' +
+      '</div>' +
       '<div id="purchaseDetailItems">' + rows + '</div>' +
-      '<div class="receipt-total-row grand" style="margin-top:6px;"><span>Total</span><span>' + money(header.total_dp) + '</span></div>' +
-      '<div class="receipt-total-row"><span>Total SP</span><span>' + trimNum(header.total_sp) + '</span></div>';
+      '<div class="receipt-total-row grand" style="margin-top:6px;"><span>Total</span><span id="purchaseEditTotalDisplay">' + money(header.total_dp) + '</span></div>' +
+      '<div class="receipt-total-row"><span>Total SP</span><span id="purchaseEditSpDisplay">' + trimNum(header.total_sp) + '</span></div>';
     document.getElementById('purchaseEditSaveBtn').style.display = 'none';
     document.getElementById('purchaseEditOrderedBtn').style.display = anyReceived ? 'none' : 'block';
     document.getElementById('purchaseDetailModal').classList.add('show');
+    if (!anyReceived) wirePurchaseEditSearch_();
   }
 
   function enableOrderedQtyEdit() {
-    Array.from(document.querySelectorAll('#purchaseDetailItems .pdOrderedInput')).forEach(function (input) { input.disabled = false; input.style.background = ''; input.style.color = ''; });
+    Array.from(document.querySelectorAll('#purchaseDetailItems .pdOrderedInput')).forEach(function (input) { input.disabled = false; input.style.background = ''; input.style.color = ''; input.oninput = function () { document.getElementById('purchaseEditSaveBtn').style.display = 'block'; }; });
+    Array.from(document.querySelectorAll('.purchaseRemoveItemBtn')).forEach(function (btn) { btn.style.display = 'inline-block'; });
+    const invoiceInput = document.getElementById('purchaseEditInvoiceNo');
+    invoiceInput.disabled = false; invoiceInput.style.background = ''; invoiceInput.style.color = '';
+    document.getElementById('purchaseAddProductArea').style.display = 'block';
     document.getElementById('purchaseEditOrderedBtn').style.display = 'none';
     document.getElementById('purchaseEditSaveBtn').style.display = 'block';
+  }
+
+  function removePurchaseEditItem(btn) {
+    const rows = document.querySelectorAll('#purchaseDetailItems .cart-item');
+    if (rows.length <= 1) { showToast('A purchase needs at least one item — add another before removing this one.', true); return; }
+    btn.closest('.cart-item').remove();
+  }
+
+  function wirePurchaseEditSearch_() {
+    const input = document.getElementById('purchaseEditSearchInput');
+    const box = document.getElementById('purchaseEditSearchResults');
+    if (!input) return;
+    input.addEventListener('input', function () {
+      const matches = rankProducts(input.value);
+      if (!matches.length) { box.classList.remove('show'); box.innerHTML = ''; return; }
+      box.innerHTML = matches.map(function (p) {
+        return '<div class="result-row" data-code="' + p.code + '"><div><div class="result-name">' + escapeHtml(p.name) + '</div><div class="result-meta">#' + p.code + '</div></div><div class="result-price">' + money(p.dp) + '</div></div>';
+      }).join('');
+      box.classList.add('show');
+      Array.from(box.querySelectorAll('.result-row')).forEach(function (row) {
+        row.addEventListener('click', function () {
+          const p = PRODUCTS.find(function (x) { return String(x.code) === row.dataset.code; });
+          if (p) addProductToPurchaseEdit_(p);
+          input.value = ''; box.classList.remove('show'); box.innerHTML = '';
+        });
+      });
+    });
+  }
+
+  function addProductToPurchaseEdit_(p) {
+    const existing = Array.from(document.querySelectorAll('#purchaseDetailItems .cart-item')).find(function (row) { return row.dataset.code === p.code; });
+    if (existing) {
+      const input = existing.querySelector('.pdOrderedInput');
+      if (input) { input.value = Number(input.value) + 1; }
+      showToast(p.name + ' is already in this purchase — quantity bumped by 1.');
+      return;
+    }
+    const box = document.getElementById('purchaseDetailItems');
+    const div = document.createElement('div');
+    div.className = 'cart-item';
+    div.dataset.code = p.code; div.dataset.dp = p.dp; div.dataset.sp = p.sp; div.dataset.name = p.name; div.dataset.qty = 1;
+    div.innerHTML =
+      '<div class="cart-row-top"><div class="cart-name">' + escapeHtml(p.name) + '</div><div class="cart-code">' + money(p.dp) + ' each</div>' +
+      '<button class="purchaseRemoveItemBtn" type="button" onclick="removePurchaseEditItem(this)" style="background:none;border:none;color:var(--danger);font-size:18px;line-height:1;cursor:pointer;padding:2px 8px;">✕</button></div>' +
+      '<div class="cart-row-bottom"><div class="field" style="margin-bottom:0;flex:1;"><label>Ordered qty</label>' +
+      '<input type="number" class="pdOrderedInput" min="1" step="1" value="1" oninput="document.getElementById(\'purchaseEditSaveBtn\').style.display=\'block\';" onfocus="this.select()"></div></div>';
+    box.appendChild(div);
+    document.getElementById('purchaseEditSaveBtn').style.display = 'block';
+  }
+
+  const INVOICE_NO_EDIT_PATTERN = /^[A-Z]+\/[0-9]{6}\/[0-9]{2}-[0-9]{2}$/;
+  let editInvoiceCheckDebounce = null;
+  function checkEditInvoiceNoLive() {
+    clearTimeout(editInvoiceCheckDebounce);
+    const errBox = document.getElementById('purchaseEditInvoiceNoError');
+    const val = document.getElementById('purchaseEditInvoiceNo').value.trim();
+    errBox.textContent = '';
+    if (!val) return;
+    if (!INVOICE_NO_EDIT_PATTERN.test(val)) { errBox.textContent = 'Format should be LETTERS/000000/00-00 (e.g. RAI/000801/26-27).'; return; }
+    editInvoiceCheckDebounce = setTimeout(async function () {
+      const { data: available } = await sb.rpc('check_invoice_no_available_for_edit', { p_invoice_no: val, p_purchase_no: currentViewedPurchase });
+      if (available === false) errBox.textContent = 'This Company Invoice Number has already been used for another purchase.';
+    }, 400);
   }
 
   async function savePurchaseQtyEdits() {
@@ -2455,18 +2532,20 @@
     const items = Array.from(rows).map(function (row) {
       const orderedInput = row.querySelector('.pdOrderedInput');
       const qty = orderedInput ? Number(orderedInput.value) : Number(row.dataset.qty);
-      return { code: row.dataset.code, name: row.querySelector('.cart-name').textContent, qty: qty, dp: Number(row.dataset.dp), sp: Number(row.dataset.sp) };
+      return { code: row.dataset.code, name: row.dataset.name, qty: qty, dp: Number(row.dataset.dp), sp: Number(row.dataset.sp) };
     });
     if (items.some(function (it) { return !(it.qty > 0); })) { showToast('Every item needs a quantity greater than 0.', true); return; }
-    const remark = ''; // remark editing not exposed here; existing remark is preserved server-side via current value
-    const { data: current } = await sb.from('purchases').select('remark').eq('purchase_no', currentViewedPurchase).maybeSingle();
-    const { error } = await sb.rpc('edit_purchase_bill', { p_purchase_no: currentViewedPurchase, p_remark: current ? current.remark : null, p_items: items });
+    const invoiceNo = document.getElementById('purchaseEditInvoiceNo').value.trim().toUpperCase();
+    if (!invoiceNo) { showToast('Company Invoice Number is required.', true); return; }
+    if (!INVOICE_NO_EDIT_PATTERN.test(invoiceNo)) { showToast('Company Invoice Number format should be LETTERS/000000/00-00 (e.g. RAI/000801/26-27).', true); return; }
+    const { error } = await sb.rpc('edit_purchase_bill', { p_purchase_no: currentViewedPurchase, p_remark: invoiceNo, p_items: items });
     if (error) { showToast(error.message, true); return; }
     showToast('Purchase updated.');
     viewPurchase(currentViewedPurchase);
     await loadProducts(); refreshLowStock();
     searchPurchases();
   }
+
 
   async function deletePurchaseConfirm() {
     if (!currentViewedPurchase) return;
