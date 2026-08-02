@@ -373,6 +373,7 @@
         <div class="field"><label for="salesman">Salesman</label><input type="text" id="salesman" list="salesmanOptions" placeholder="Staff name">
           <datalist id="salesmanOptions"><option value="Alisha"></option><option value="Praveen"></option></datalist>
         </div>
+        <div class="field"><label for="billDate">Bill date (leave blank for today)</label><input type="date" id="billDate"></div>
         <div class="field" style="margin-bottom:0;"><label for="remark">Remark (optional)</label><input type="text" id="remark" placeholder="Any note for this bill"></div>
       </div>
       </div>
@@ -397,11 +398,12 @@
           <div id="pcartList"><div class="empty-cart">Search above and tap a product to add it to this purchase.</div></div>
         </div>
         <div class="card">
-          <div class="field" style="margin-bottom:0;">
+          <div class="field">
             <label for="purchaseRemark">Company Invoice Number</label>
             <input type="text" id="purchaseRemark" placeholder="e.g. RAI/000801/26-27" oninput="this.value=this.value.toUpperCase(); checkInvoiceNoLive();">
             <p class="login-error" id="purchaseRemarkError" style="min-height:0;margin:4px 0 0;"></p>
           </div>
+          <div class="field" style="margin-bottom:0;"><label for="purchaseDateInput">Purchase date (leave blank for today)</label><input type="date" id="purchaseDateInput"></div>
         </div>
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -925,6 +927,7 @@
     <div class="modal-sheet">
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Step 2 of 3: How much was delivered now?</h2>
       <p class="hint" style="margin-bottom:12px;">Defaults to fully delivered. Reduce a quantity only if something wasn't handed over yet.</p>
+      <div class="field"><label for="deliveryDateInput">Delivery date (leave blank for today)</label><input type="date" id="deliveryDateInput"></div>
       <div id="deliveryItemsList"></div>
       <div class="modal-actions">
         <button class="btn btn-outline" onclick="backToPaymentStep()">← Back</button>
@@ -1217,6 +1220,7 @@
         <input type="text" id="officialCompanyInvoiceNo" placeholder="As shown on the company panel" onkeydown="officialCompanyInvoiceKeyNav(event)" onblur="officialCompanyInvoiceBlurCheck()">
         <p class="login-error" id="officialCompanyInvoiceWarning" style="min-height:0;margin:4px 0 0;"></p>
       </div>
+      <div class="field"><label for="officialWorkDateInput">Work date (leave blank for today)</label><input type="date" id="officialWorkDateInput"></div>
       <div id="officialManualSearchWrap" class="search-wrap" style="display:none;margin-bottom:12px;">
         <input type="text" id="officialSearchInput" class="search-input" placeholder="Search product for SP…" autocomplete="off" oninput="renderOfficialSearchResults(this.value)" onkeydown="officialSearchKeyNav(event)">
         <div id="officialSearchResults" class="search-results"></div>
@@ -1714,13 +1718,16 @@
     const referenceMobile = document.getElementById('referenceMobile').value.trim();
     const salesman = document.getElementById('salesman').value.trim();
     const discountPercent = custType === 'Retail' ? (Number(document.getElementById('discountPercent').value) || 0) : 0;
+    const billDateInput = document.getElementById('billDate').value;
+    const billDateIso = billDateInput ? new Date(billDateInput + 'T' + new Date().toTimeString().slice(0, 8)).toISOString() : null;
 
     const payload = {
       p_customer_name: custName, p_mobile: custMobile, p_customer_type: custType,
       p_salesman: salesman, p_remark: document.getElementById('remark').value.trim(),
       p_id_name: idName, p_id_no: idNo, p_reference_name: referenceName, p_reference_mobile: referenceMobile,
       p_discount_percent: discountPercent,
-      p_items: cartSnapshot.map(function (c) { return { code: c.code, name: c.name, qty: c.qty, dp: c.dp, sp: c.sp, mrp: c.mrp || 0 }; })
+      p_items: cartSnapshot.map(function (c) { return { code: c.code, name: c.name, qty: c.qty, dp: c.dp, sp: c.sp, mrp: c.mrp || 0 }; }),
+      p_bill_date: billDateIso
     };
     const { data: invoiceNo, error } = await sb.rpc('save_invoice', payload);
     btn.disabled = false; btn.textContent = 'Save & Print';
@@ -1734,7 +1741,7 @@
     const netAmount = custType === 'Retail' ? (totalMrp - discountAmount) : 0;
     const amountDue = custType === 'Retail' ? netAmount : totalDP;
     lastSavedBill = {
-      invoiceNo: invoiceNo, date: new Date().toISOString(), totalQty: totalQty, totalDP: totalDP, totalSP: totalSP,
+      invoiceNo: invoiceNo, date: billDateIso || new Date().toISOString(), totalQty: totalQty, totalDP: totalDP, totalSP: totalSP,
       totalMrp: totalMrp, discountPercent: discountPercent, discountAmount: discountAmount, netAmount: netAmount,
       cash: 0, online: 0, walletUsed: 0, balance: -amountDue, salesman: salesman, customerType: custType,
       customerName: custName, mobile: custMobile, idName: idName, idNo: idNo, billStatus: 'Pending',
@@ -1775,6 +1782,7 @@
     document.getElementById('idNo').value = '';
     document.getElementById('referenceName').value = '';
     document.getElementById('referenceMobile').value = '';
+    document.getElementById('billDate').value = '';
     toggleRetailDiscount();
     renderCart();
     showToast('Form reset.');
@@ -1925,6 +1933,7 @@
     };
     document.getElementById('paymentStepModal').classList.remove('show');
     renderDeliveryModal(currentDetailBill.items);
+    document.getElementById('deliveryDateInput').value = '';
     document.getElementById('deliveryModal').classList.add('show');
   }
 
@@ -2007,6 +2016,11 @@
     }
   }
 
+  function deliveryDateOverride_() {
+    const val = document.getElementById('deliveryDateInput').value;
+    return val ? new Date(val + 'T' + new Date().toTimeString().slice(0, 8)).toISOString() : null;
+  }
+
   async function confirmDeliveryFlow() {
     if (!currentDetailBill) return;
     const invoiceNo = currentDetailBill.invoiceNo;
@@ -2029,7 +2043,8 @@
       p_cash: proceedFurtherPayment.cash, p_online: proceedFurtherPayment.online, p_wallet_used: proceedFurtherPayment.walletUsed,
       p_ds_id: dsId || null, p_ds_name: dsName || null,
       p_greening_repurchase: (dsId || dsName) ? orderType : null,
-      p_sao_sgo: saoSgo, p_sp_to_allocate: spAmount ? Number(spAmount) : null, p_utr_no: utrNo || null
+      p_sao_sgo: saoSgo, p_sp_to_allocate: spAmount ? Number(spAmount) : null, p_utr_no: utrNo || null,
+      p_delivery_date: deliveryDateOverride_()
     });
     if (error) { showToast('Could not finalize: ' + error.message, true); return; }
     showToast('Bill ' + invoiceNo + ' finalized.');
@@ -2309,6 +2324,7 @@
     PURCHASE_CART = [];
     document.getElementById('purchaseRemark').value = '';
     document.getElementById('purchaseRemarkError').textContent = '';
+    document.getElementById('purchaseDateInput').value = '';
     document.getElementById('stockSearchInput').value = '';
     renderPurchaseCart();
     showToast('Form reset.');
@@ -2436,9 +2452,12 @@
     if (!INVOICE_NO_PATTERN.test(invoiceNo)) { showToast('Company Invoice Number format should be LETTERS/000000/00-00 (e.g. RAI/000801/26-27).', true); return; }
     const btn = document.getElementById('savePurchaseBtn');
     btn.disabled = true; btn.textContent = 'Saving…';
+    const purchaseDateVal = document.getElementById('purchaseDateInput').value;
+    const purchaseDateIso = purchaseDateVal ? new Date(purchaseDateVal + 'T' + new Date().toTimeString().slice(0, 8)).toISOString() : null;
     const { data: purchaseNo, error } = await sb.rpc('save_purchase_bill', {
       p_remark: invoiceNo,
-      p_items: PURCHASE_CART.map(function (c) { return { code: c.code, name: c.name, dp: c.dp, sp: c.sp, qty: c.qty }; })
+      p_items: PURCHASE_CART.map(function (c) { return { code: c.code, name: c.name, dp: c.dp, sp: c.sp, qty: c.qty }; }),
+      p_purchase_date: purchaseDateIso
     });
     btn.disabled = false; btn.textContent = 'Save Purchase';
     if (error) { showToast('Could not save: ' + error.message, true); return; }
@@ -2447,6 +2466,7 @@
     PURCHASE_CART = [];
     document.getElementById('purchaseRemark').value = '';
     document.getElementById('purchaseRemarkError').textContent = '';
+    document.getElementById('purchaseDateInput').value = '';
     renderPurchaseCart();
   }
 
@@ -3203,6 +3223,7 @@
     if (!inv) return;
     document.getElementById('pendingDetailArea').innerHTML = '<h2 style="font-size:16px;color:var(--green-800);margin-bottom:4px;">' + invoiceNo + '</h2>' +
       '<p class="hint" style="margin-bottom:10px;">' + escapeHtml(inv.customer || 'Walk-in') + '</p>' +
+      '<div class="field"><label for="pendingDeliveryDate">Delivery date (leave blank for today)</label><input type="date" id="pendingDeliveryDate"></div>' +
       inv.items.map(function (it) {
         return '<div class="cart-item" data-invoice="' + invoiceNo + '" data-code="' + it.product_code + '" data-qty="' + it.pending_qty + '">' +
           '<div class="cart-row-top"><div class="cart-name">' + escapeHtml(it.product_name) + '</div></div>' +
@@ -3221,7 +3242,9 @@
     if (!(qty > 0)) { showToast('Enter a valid quantity.', true); return; }
     if (qty > maxQty) { showToast('Can\'t deliver more than the pending quantity (' + trimNum(maxQty) + ').', true); return; }
     btnEl.disabled = true; btnEl.textContent = '…';
-    const { error } = await sb.rpc('deliver_more', { p_invoice_no: row.dataset.invoice, p_code: row.dataset.code, p_qty: qty });
+    const dateVal = document.getElementById('pendingDeliveryDate').value;
+    const dateIso = dateVal ? new Date(dateVal + 'T' + new Date().toTimeString().slice(0, 8)).toISOString() : null;
+    const { error } = await sb.rpc('deliver_more', { p_invoice_no: row.dataset.invoice, p_code: row.dataset.code, p_qty: qty, p_delivery_date: dateIso });
     if (error) { btnEl.disabled = false; btnEl.textContent = 'Confirm'; showToast(error.message, true); return; }
     showToast('Delivery updated.');
     row.remove();
@@ -4369,14 +4392,18 @@
   async function confirmOfficialWorkSave(btn) {
     const payload = buildOfficialPayload_();
     btn.disabled = true; btn.textContent = 'Saving…';
+    const workDateVal = document.getElementById('officialWorkDateInput').value;
+    const workDateIso = workDateVal ? new Date(workDateVal + 'T' + new Date().toTimeString().slice(0, 8)).toISOString() : null;
     const { data, error } = await sb.rpc('save_official_work', {
       p_bill_no: payload.billNo, p_ds_id: payload.dsId, p_ds_name: payload.dsName, p_order_type: payload.orderType,
-      p_sao_sgo: payload.saoSgo, p_company_invoice_no: payload.companyInvoiceNo, p_source: payload.source, p_items: payload.items
+      p_sao_sgo: payload.saoSgo, p_company_invoice_no: payload.companyInvoiceNo, p_source: payload.source, p_items: payload.items,
+      p_work_date: workDateIso
     });
     btn.disabled = false; btn.textContent = 'Confirm & Save';
     if (error) { showToast(error.message, true); return; }
     showToast('Saved ' + data.officialNo + ' — ' + trimNum(data.spUsedThisRound) + ' SP used.');
     document.getElementById('officialPreviewModal').classList.remove('show');
+    document.getElementById('officialWorkDateInput').value = '';
     await loadProducts();
     loadOfficialPending();
   }
