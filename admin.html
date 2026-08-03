@@ -1199,6 +1199,7 @@
     <div class="modal-sheet">
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Edit <span id="editBillInvoiceNo"></span></h2>
       <p class="hint" style="margin-bottom:12px;">Only bills with no payment, delivery, or SP work yet can be edited.</p>
+      <div class="field" id="editBillDateField" style="display:none;"><label for="editBillDate">Bill date</label><input type="date" id="editBillDate"></div>
       <div class="search-wrap" style="margin-bottom:12px;">
         <input type="text" id="editBillSearchInput" class="search-input" placeholder="Add a product…" autocomplete="off" oninput="renderEditBillSearchResults(this.value)">
         <div id="editBillSearchResults" class="search-results"></div>
@@ -1545,6 +1546,7 @@
 
   const OWNER_USER_ID = '6c7bc5ae-342c-4c48-9b8d-c95b50a6290b'; // ⚠️ update if the owner account's user ID differs
   const SUPER_ADMIN_USER_ID = 'f992e1a4-4a68-462f-942d-3636c81a7ccd';
+  let isSuperAdminUser = false;
 
   function openChangeAdminCode() {
     document.getElementById('changeAdminCodeModal').classList.add('show');
@@ -1581,6 +1583,7 @@
     refreshLowStock();
     const { data: { user } } = await sb.auth.getUser();
     const isSuperAdmin = !!(user && user.id === SUPER_ADMIN_USER_ID);
+    isSuperAdminUser = isSuperAdmin;
     document.getElementById('changeAdminCodeBtn').style.display = isSuperAdmin ? 'inline-block' : 'none';
     document.getElementById('tabBtnCompanyPayout').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnProfitReport').style.display = isSuperAdmin ? 'block' : 'none';
@@ -3143,6 +3146,13 @@
     document.getElementById('editBillInvoiceNo').textContent = currentDetailBill.invoiceNo;
     document.getElementById('editBillSearchInput').value = '';
     document.getElementById('editBillSearchResults').classList.remove('show');
+    const dateField = document.getElementById('editBillDateField');
+    if (isSuperAdminUser) {
+      dateField.style.display = 'block';
+      document.getElementById('editBillDate').value = new Date(currentDetailBill.date).toISOString().slice(0, 10);
+    } else {
+      dateField.style.display = 'none';
+    }
     renderEditBillItemsList();
     document.getElementById('editBillModal').classList.add('show');
   }
@@ -3195,11 +3205,17 @@
     const btn = document.getElementById('editBillSaveBtn');
     btn.disabled = true; btn.textContent = 'Saving…';
     const bill = currentDetailBill;
+    let billDateIso = null;
+    if (isSuperAdminUser) {
+      const dateVal = document.getElementById('editBillDate').value;
+      if (dateVal) billDateIso = new Date(dateVal + 'T' + new Date(bill.date).toTimeString().slice(0, 8)).toISOString();
+    }
     const { error } = await sb.rpc('edit_bill', {
       p_invoice_no: bill.invoiceNo, p_customer_name: bill.customerName, p_mobile: bill.mobile, p_customer_type: bill.customerType,
       p_salesman: bill.salesman, p_remark: bill.remark, p_id_name: bill.idName, p_id_no: bill.idNo,
       p_reference_name: bill.referenceName, p_reference_mobile: bill.referenceMobile, p_discount_percent: bill.discountPercent,
-      p_items: EDIT_CART.map(function (c) { return { code: c.code, name: c.name, qty: c.qty, dp: c.dp, sp: c.sp, mrp: c.mrp }; })
+      p_items: EDIT_CART.map(function (c) { return { code: c.code, name: c.name, qty: c.qty, dp: c.dp, sp: c.sp, mrp: c.mrp }; }),
+      p_bill_date: billDateIso
     });
     btn.disabled = false; btn.textContent = 'Save Changes';
     if (error) { showToast(error.message, true); return; }
