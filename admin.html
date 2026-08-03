@@ -384,6 +384,7 @@
           <datalist id="salesmanOptions"><option value="Alisha"></option><option value="Praveen"></option></datalist>
         </div>
         <div class="field"><label for="billDate">Bill date (leave blank for today)</label><input type="date" id="billDate"></div>
+        <div class="field"><label for="transportCharges">Transport/Bus Charges ₹ (optional)</label><input type="number" id="transportCharges" min="0" step="0.01" placeholder="0"></div>
         <div class="field" style="margin-bottom:0;"><label for="remark">Remark (optional)</label><input type="text" id="remark" placeholder="Any note for this bill"></div>
       </div>
       </div>
@@ -1837,6 +1838,7 @@
     const discountPercent = custType === 'Retail' ? (Number(document.getElementById('discountPercent').value) || 0) : 0;
     const billDateInput = document.getElementById('billDate').value;
     const billDateIso = billDateInput ? new Date(billDateInput + 'T' + new Date().toTimeString().slice(0, 8)).toISOString() : null;
+    const transportCharges = Number(document.getElementById('transportCharges').value) || 0;
 
     const payload = {
       p_customer_name: custName, p_mobile: custMobile, p_customer_type: custType,
@@ -1844,7 +1846,8 @@
       p_id_name: idName, p_id_no: idNo, p_reference_name: referenceName, p_reference_mobile: referenceMobile,
       p_discount_percent: discountPercent,
       p_items: cartSnapshot.map(function (c) { return { code: c.code, name: c.name, qty: c.qty, dp: c.dp, sp: c.sp, mrp: c.mrp || 0 }; }),
-      p_bill_date: billDateIso
+      p_bill_date: billDateIso,
+      p_transport_charges: transportCharges
     };
     const { data: invoiceNo, error } = await sb.rpc('save_invoice', payload);
     btn.disabled = false; btn.textContent = 'Save & Print';
@@ -1856,10 +1859,10 @@
     cartSnapshot.forEach(function (c) { totalQty += c.qty; totalDP += c.qty * c.dp; totalSP += c.qty * c.sp; totalMrp += c.qty * (c.mrp || 0); });
     const discountAmount = custType === 'Retail' ? (Math.round(totalMrp * discountPercent) / 100) : 0;
     const netAmount = custType === 'Retail' ? (totalMrp - discountAmount) : 0;
-    const amountDue = custType === 'Retail' ? netAmount : totalDP;
+    const amountDue = (custType === 'Retail' ? netAmount : totalDP) + transportCharges;
     lastSavedBill = {
       invoiceNo: invoiceNo, date: billDateIso || new Date().toISOString(), totalQty: totalQty, totalDP: totalDP, totalSP: totalSP,
-      totalMrp: totalMrp, discountPercent: discountPercent, discountAmount: discountAmount, netAmount: netAmount,
+      totalMrp: totalMrp, discountPercent: discountPercent, discountAmount: discountAmount, netAmount: netAmount, transportCharges: transportCharges,
       cash: 0, online: 0, walletUsed: 0, balance: -amountDue, salesman: salesman, customerType: custType,
       customerName: custName, mobile: custMobile, idName: idName, idNo: idNo, billStatus: 'Pending',
       referenceName: referenceName, referenceMobile: referenceMobile, shareToken: tokenRow ? tokenRow.share_token : null,
@@ -1900,6 +1903,7 @@
     document.getElementById('referenceName').value = '';
     document.getElementById('referenceMobile').value = '';
     document.getElementById('billDate').value = '';
+    document.getElementById('transportCharges').value = '';
     toggleRetailDiscount();
     renderCart();
     showToast('Form reset.');
@@ -2266,7 +2270,9 @@
       '<table class="receipt-table"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th><th class="num">SP</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table>' +
       '<div class="receipt-total-row"><span>Qty</span><span>' + trimNum(bill.totalQty) + '</span></div>' +
-      '<div class="receipt-total-row grand"><span>Total</span><span>' + money(bill.totalDP) + '</span></div>' +
+      '<div class="receipt-total-row"><span>Total</span><span>' + money(bill.totalDP) + '</span></div>' +
+      (Number(bill.transportCharges) > 0.005 ? '<div class="receipt-total-row"><span>Transport/Bus Charges</span><span>' + money(bill.transportCharges) + '</span></div>' : '') +
+      '<div class="receipt-total-row grand"><span>Grand Total</span><span>' + money(bill.totalDP + (Number(bill.transportCharges) || 0)) + '</span></div>' +
       '<div class="receipt-total-row"><span>Total SP</span><span>' + trimNum(bill.totalSP) + '</span></div>' +
       (isPending ? '' :
         '<div class="receipt-total-row"><span>Cash</span><span>' + money(bill.cash) + '</span></div>' +
@@ -2279,7 +2285,7 @@
         '<div class="receipt-total-row"><span>Discount (' + trimNum(bill.discountPercent) + '%)</span><span>' + money(bill.discountAmount) + '</span></div>' +
         '<div class="receipt-total-row grand"><span>Net Amount</span><span>' + money(bill.netAmount) + '</span></div>' +
       '</div>' : '') +
-      '<p style="font-size:11px;color:var(--ink-soft);margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;">Rs. (in words): ' + numberToWordsIndian(bill.totalDP) + '</p>' +
+      '<p style="font-size:11px;color:var(--ink-soft);margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;">Rs. (in words): ' + numberToWordsIndian(bill.totalDP + (Number(bill.transportCharges) || 0)) + '</p>' +
       (bill.salesman ? '<p style="font-size:11.5px;color:var(--ink-faint);margin-top:6px;">Billed by ' + escapeHtml(bill.salesman) + '</p>' : '') +
       '<div style="font-size:10.5px;color:var(--ink-faint);margin-top:14px;line-height:1.7;">' +
         '<p style="margin:2px 0;">भूल-चूक लेनी-देनी।</p>' +
@@ -2326,13 +2332,15 @@
       '<div class="receipt-total-row"><span>Total MRP</span><span>' + money(bill.totalMrp) + '</span></div>' +
       '<div class="receipt-total-row"><span>Total SP</span><span>' + trimNum(bill.totalSP) + '</span></div>' +
       '<div class="receipt-total-row"><span>Discount (' + trimNum(bill.discountPercent) + '%)</span><span>' + money(bill.discountAmount) + '</span></div>' +
-      '<div class="receipt-total-row grand"><span>Net Amount</span><span>' + money(bill.netAmount) + '</span></div>' +
+      '<div class="receipt-total-row"><span>Net Amount</span><span>' + money(bill.netAmount) + '</span></div>' +
+      (Number(bill.transportCharges) > 0.005 ? '<div class="receipt-total-row"><span>Transport/Bus Charges</span><span>' + money(bill.transportCharges) + '</span></div>' : '') +
+      '<div class="receipt-total-row grand"><span>Grand Total</span><span>' + money(bill.netAmount + (Number(bill.transportCharges) || 0)) + '</span></div>' +
       (isPending ? '' :
         '<div class="receipt-total-row"><span>Cash</span><span>' + money(bill.cash) + '</span></div>' +
         '<div class="receipt-total-row"><span>Online</span><span>' + money(bill.online) + '</span></div>' +
         '<div class="receipt-total-row"><span>Balance</span><span>' + (bill.balance < -0.005 ? 'Due ' + money(-bill.balance) : 'Settled') + '</span></div>' +
         (showAdvance && bill.balance > 0.005 ? '<div class="receipt-total-row"><span>Advance Payment</span><span>' + money(bill.balance) + '</span></div>' : '')) +
-      '<p style="font-size:11px;color:var(--ink-soft);margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;">Rs. (in words): ' + numberToWordsIndian(bill.netAmount) + '</p>' +
+      '<p style="font-size:11px;color:var(--ink-soft);margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;">Rs. (in words): ' + numberToWordsIndian(bill.netAmount + (Number(bill.transportCharges) || 0)) + '</p>' +
       (bill.salesman ? '<p style="font-size:11.5px;color:var(--ink-faint);margin-top:6px;">Billed by ' + escapeHtml(bill.salesman) + '</p>' : '') +
       '<div style="font-size:10.5px;color:var(--ink-faint);margin-top:14px;line-height:1.7;">' +
         '<p style="margin:2px 0;">भूल-चूक लेनी-देनी।</p>' +
@@ -3034,6 +3042,7 @@
     const bill = {
       invoiceNo: header.invoice_no, date: header.invoice_date, totalQty: header.total_qty, totalDP: header.total_dp, totalSP: header.total_sp,
       totalMrp: header.total_mrp, discountPercent: header.discount_percent, discountAmount: header.discount_amount, netAmount: header.net_amount,
+      transportCharges: header.transport_charges,
       cash: header.cash, online: header.online, walletUsed: header.wallet_used, balance: header.balance, salesman: header.salesman, customerType: header.customer_type,
       customerName: header.customer_name, mobile: header.mobile, idName: header.id_name, idNo: header.id_no,
       referenceName: header.reference_name, referenceMobile: header.reference_mobile, billStatus: header.bill_status,
@@ -3228,6 +3237,7 @@
       lastSavedBill = {
         invoiceNo: header.invoice_no, date: header.invoice_date, totalQty: header.total_qty, totalDP: header.total_dp, totalSP: header.total_sp,
         totalMrp: header.total_mrp, discountPercent: header.discount_percent, discountAmount: header.discount_amount, netAmount: header.net_amount,
+        transportCharges: header.transport_charges,
         cash: header.cash, online: header.online, walletUsed: header.wallet_used, balance: header.balance, salesman: header.salesman, customerType: header.customer_type,
         customerName: header.customer_name, mobile: header.mobile, idName: header.id_name, idNo: header.id_no, billStatus: header.bill_status,
         referenceName: header.reference_name, referenceMobile: header.reference_mobile, shareToken: header.share_token, remark: header.remark,
@@ -5112,7 +5122,8 @@
       resumeScrollLock();
       let digits = String(lastSavedBill.mobile || '').replace(/\D/g, '');
       if (digits.length === 10) digits = '91' + digits;
-      const text = buildBillShareText_(lastSavedBill.invoiceNo, lastSavedBill.shareToken, lastSavedBill.totalDP, lastShowAdvanceChoice);
+      const grandTotal = (lastSavedBill.customerType === 'Retail' ? lastSavedBill.netAmount : lastSavedBill.totalDP) + (Number(lastSavedBill.transportCharges) || 0);
+      const text = buildBillShareText_(lastSavedBill.invoiceNo, lastSavedBill.shareToken, grandTotal, lastShowAdvanceChoice);
       const waUrl = digits ? 'https://wa.me/' + digits + '?text=' + encodeURIComponent(text) : 'https://wa.me/?text=' + encodeURIComponent(text);
       showToast(digits ? 'PDF downloaded — opening their chat…' : 'PDF downloaded — pick a contact in WhatsApp.');
       setTimeout(function () { window.open(waUrl, '_blank'); }, 900);

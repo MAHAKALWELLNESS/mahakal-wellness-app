@@ -106,11 +106,14 @@
     const delLabel = data.deliveryStatus === 'Partial' ? 'Delivery Pending' : 'Fully Delivered';
     const dateStr = new Date(data.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 
+    const isRetail = data.customerType === 'Retail';
     const rows = (data.items || []).map(function (it) {
       const sp = Number(it.sp) || 0;
       const pending = Number(it.pendingQty) || 0;
+      const rate = isRetail ? Number(it.mrp) || 0 : Number(it.dp) || 0;
+      const amount = isRetail ? it.qty * rate : it.amount;
       return '<tr><td>' + escapeHtml(it.name) + (!isPending && pending > 0.0001 ? ' <span class="badge badge-partial" style="margin-left:4px;">P ' + trimNum(pending) + '</span>' : '') + '</td><td class="num">' + trimNum(it.qty) + '</td>' +
-        '<td class="num">' + money(it.dp) + '</td><td class="num">' + money(it.amount) + '</td>' +
+        '<td class="num">' + money(rate) + '</td><td class="num">' + money(amount) + '</td>' +
         '<td class="num">' + trimNum(it.qty * sp) + '</td></tr>';
     }).join('');
 
@@ -141,17 +144,22 @@
           escapeHtml(data.customerName || 'Customer') + (data.mobile ? ' · ' + escapeHtml(data.mobile) : '') + '</p>' : '') +
         (data.customerType ? '<p style="font-size:11px;font-weight:700;color:var(--green-800);text-transform:uppercase;margin:0 0 10px;">Customer Type: ' + escapeHtml(data.customerType) + '</p>' : '') +
         idLine +
-        '<table class="receipt-table"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th><th class="num">SP</th></tr></thead>' +
+        '<table class="receipt-table"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">' + (isRetail ? 'MRP' : 'Rate') + '</th><th class="num">Amount</th><th class="num">SP</th></tr></thead>' +
         '<tbody>' + rows + '</tbody></table>' +
         '<div class="receipt-total-row"><span>Qty</span><span>' + trimNum(data.totalQty) + '</span></div>' +
-        '<div class="receipt-total-row grand"><span>Total</span><span>' + money(data.totalDP) + '</span></div>' +
+        (isRetail ? '<div class="receipt-total-row"><span>Total MRP</span><span>' + money(data.totalMrp) + '</span></div>' +
+          '<div class="receipt-total-row"><span>Discount (' + trimNum(data.discountPercent) + '%)</span><span>' + money(data.discountAmount) + '</span></div>' +
+          '<div class="receipt-total-row"><span>Net Amount</span><span>' + money(data.netAmount) + '</span></div>'
+          : '<div class="receipt-total-row"><span>Total</span><span>' + money(data.totalDP) + '</span></div>') +
+        (Number(data.transportCharges) > 0.005 ? '<div class="receipt-total-row"><span>Transport/Bus Charges</span><span>' + money(data.transportCharges) + '</span></div>' : '') +
+        '<div class="receipt-total-row grand"><span>Grand Total</span><span>' + money((isRetail ? data.netAmount : data.totalDP) + (Number(data.transportCharges) || 0)) + '</span></div>' +
         '<div class="receipt-total-row"><span>Total SP</span><span>' + trimNum(data.totalSP) + '</span></div>' +
         (isPending ? '' :
           '<div class="receipt-total-row"><span>Cash</span><span>' + money(data.cash) + '</span></div>' +
           '<div class="receipt-total-row"><span>Online</span><span>' + money(data.online) + '</span></div>' +
           '<div class="receipt-total-row"><span>Balance</span><span>' + (data.balance < -0.005 ? 'Due ' + money(-data.balance) : 'Settled') + '</span></div>' +
           (showAdvance && data.balance > 0.005 ? '<div class="receipt-total-row"><span>Advance Payment</span><span>' + money(data.balance) + '</span></div>' : '')) +
-        '<p style="font-size:11px;color:var(--ink-soft);margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;">Rs. (in words): ' + numberToWordsIndian(data.totalDP) + '</p>' +
+        '<p style="font-size:11px;color:var(--ink-soft);margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;">Rs. (in words): ' + numberToWordsIndian((isRetail ? data.netAmount : data.totalDP) + (Number(data.transportCharges) || 0)) + '</p>' +
         (data.salesman ? '<p style="font-size:11.5px;color:var(--ink-faint);margin-top:6px;">Billed by ' + escapeHtml(data.salesman) + '</p>' : '') +
         '<div style="font-size:10.5px;color:var(--ink-faint);margin-top:14px;line-height:1.7;">' +
           '<p style="margin:2px 0;">भूल-चूक लेनी-देनी।</p>' +
