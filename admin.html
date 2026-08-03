@@ -334,6 +334,9 @@
           <div class="field"><label for="custMobile">Mobile</label><input type="tel" id="custMobile" placeholder="10-digit mobile" maxlength="15" onblur="loadCustomerWalletForBill()"></div>
           <div class="field"><label for="custName">Name</label><input type="text" id="custName" placeholder="Walk-in customer" oninput="this.value = this.value.toUpperCase();"></div>
         </div>
+        <div class="field-row">
+          <div class="field" style="margin-bottom:0;"><label for="custCity">City</label><input type="text" id="custCity" placeholder="Optional" oninput="this.value = this.value.toUpperCase();"></div>
+        </div>
         <div class="field-row" style="margin-top:14px;">
           <div class="field"><label for="idName">ID Name</label><input type="text" id="idName" placeholder="Optional"></div>
           <div class="field"><label for="idNo">DS ID No.</label><input type="text" id="idNo" placeholder="Optional"></div>
@@ -1863,7 +1866,8 @@
       p_discount_percent: discountPercent,
       p_items: cartSnapshot.map(function (c) { return { code: c.code, name: c.name, qty: c.qty, dp: c.dp, sp: c.sp, mrp: c.mrp || 0 }; }),
       p_bill_date: billDateIso,
-      p_transport_charges: transportCharges
+      p_transport_charges: transportCharges,
+      p_city: document.getElementById('custCity').value.trim()
     };
     const { data: invoiceNo, error } = await sb.rpc('save_invoice', payload);
     btn.disabled = false; btn.textContent = 'Save & Print';
@@ -1898,6 +1902,7 @@
     CART = [];
     document.getElementById('custMobile').value = '';
     document.getElementById('custName').value = '';
+    document.getElementById('custCity').value = '';
     document.getElementById('custType').value = '';
     document.getElementById('remark').value = '';
     document.getElementById('idName').value = '';
@@ -1912,6 +1917,7 @@
     CART = [];
     document.getElementById('custMobile').value = '';
     document.getElementById('custName').value = '';
+    document.getElementById('custCity').value = '';
     document.getElementById('custType').value = '';
     document.getElementById('remark').value = '';
     document.getElementById('idName').value = '';
