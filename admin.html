@@ -520,7 +520,9 @@
         <p class="section-label">Record an expense</p>
         <div class="field-row">
           <div class="field"><label for="expDate">Date</label><input type="date" id="expDate"></div>
-          <div class="field"><label for="expCategory">Category</label><input type="text" id="expCategory" placeholder="e.g. Rent, Transport"></div>
+          <div class="field"><label for="expCategory">Category</label><input type="text" id="expCategory" list="expenseCategoryOptions" placeholder="e.g. Rent, Transport" oninput="this.value=this.value.toUpperCase();">
+            <datalist id="expenseCategoryOptions"></datalist>
+          </div>
         </div>
         <div class="field"><label for="expName">Expense name</label><input type="text" id="expName" placeholder="What was this for?"></div>
         <div class="field-row">
@@ -997,6 +999,29 @@
       <div class="modal-actions" style="margin-top:0;">
         <button class="btn btn-outline" onclick="document.getElementById('editTransportChargesModal').classList.remove('show')">Cancel</button>
         <button class="btn btn-primary" onclick="submitEditTransportCharges()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="editExpenseModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:16px;color:var(--green-800);margin-bottom:14px;">Edit Expense</h2>
+      <div class="field-row">
+        <div class="field"><label for="eexDate">Date</label><input type="date" id="eexDate"></div>
+        <div class="field"><label for="eexCategory">Category</label><input type="text" id="eexCategory" list="expenseCategoryOptions" oninput="this.value=this.value.toUpperCase();"></div>
+      </div>
+      <div class="field"><label for="eexName">Expense name</label><input type="text" id="eexName"></div>
+      <div class="field-row">
+        <div class="field"><label for="eexCash">Cash ₹</label><input type="number" id="eexCash" min="0" step="0.01"></div>
+        <div class="field"><label for="eexOnline">Online ₹</label><input type="number" id="eexOnline" min="0" step="0.01"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="eexPaidTo">Paid to</label><input type="text" id="eexPaidTo"></div>
+        <div class="field" style="margin-bottom:0;"><label for="eexPaidBy">Payment done by</label><input type="text" id="eexPaidBy"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('editExpenseModal').classList.remove('show')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitEditExpense()">Save</button>
       </div>
     </div>
   </div>
@@ -1600,6 +1625,7 @@
     wireSearch();
     if (!purchaseProductsWired) { purchaseProductsWired = true; wirePurchaseSearch(); }
     refreshLowStock();
+    loadExpenseCategories_();
     const { data: { user } } = await sb.auth.getUser();
     const isSuperAdmin = !!(user && user.id === SUPER_ADMIN_USER_ID);
     isSuperAdminUser = isSuperAdmin;
@@ -3463,6 +3489,45 @@
     document.getElementById('expCash').value = ''; document.getElementById('expOnline').value = '';
     document.getElementById('expPaidTo').value = ''; document.getElementById('expPaidBy').value = '';
     document.getElementById('expDate').value = fmtDateInput_(new Date());
+    loadExpenseCategories_();
+    searchExpenses();
+  }
+
+  async function loadExpenseCategories_() {
+    const { data, error } = await sb.from('expenses').select('category').not('category', 'is', null);
+    if (error || !data) return;
+    const unique = Array.from(new Set(data.map(function (r) { return r.category; }).filter(Boolean))).sort();
+    document.getElementById('expenseCategoryOptions').innerHTML = unique.map(function (c) { return '<option value="' + escapeHtml(c) + '"></option>'; }).join('');
+  }
+
+  let currentEditExpenseId = null;
+  function openEditExpense(row) {
+    currentEditExpenseId = row.id;
+    document.getElementById('eexDate').value = row.expense_date;
+    document.getElementById('eexCategory').value = row.category || '';
+    document.getElementById('eexName').value = row.expense_name || '';
+    document.getElementById('eexCash').value = row.cash || '';
+    document.getElementById('eexOnline').value = row.online || '';
+    document.getElementById('eexPaidTo').value = row.paid_to || '';
+    document.getElementById('eexPaidBy').value = row.payment_done_by || '';
+    document.getElementById('editExpenseModal').classList.add('show');
+  }
+
+  async function submitEditExpense() {
+    const { error } = await sb.rpc('update_expense', {
+      p_id: currentEditExpenseId,
+      p_date: document.getElementById('eexDate').value || null,
+      p_category: document.getElementById('eexCategory').value.trim(),
+      p_name: document.getElementById('eexName').value.trim(),
+      p_cash: Number(document.getElementById('eexCash').value) || 0,
+      p_online: Number(document.getElementById('eexOnline').value) || 0,
+      p_paid_to: document.getElementById('eexPaidTo').value.trim(),
+      p_paid_by: document.getElementById('eexPaidBy').value.trim()
+    });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Expense updated.');
+    document.getElementById('editExpenseModal').classList.remove('show');
+    loadExpenseCategories_();
     searchExpenses();
   }
 
@@ -3482,13 +3547,17 @@
   function renderExpenseList(rows) {
     const box = document.getElementById('expenseList');
     if (!rows.length) { box.innerHTML = '<div class="empty-cart">No expenses found.</div>'; return; }
+    expenseRowsById_ = {};
+    rows.forEach(function (r) { expenseRowsById_[r.id] = r; });
     box.innerHTML = rows.map(function (r) {
       const dateStr = new Date(r.expense_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-      return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + escapeHtml(r.expense_name) + '</div>' +
+      const clickable = isSuperAdminUser ? ' style="cursor:pointer;" onclick="openEditExpense(expenseRowsById_[' + r.id + '])"' : ' style="cursor:default;"';
+      return '<div class="list-row"' + clickable + '><div><div class="result-name">' + escapeHtml(r.expense_name) + '</div>' +
         '<div class="result-meta">' + (r.category ? escapeHtml(r.category) + ' · ' : '') + dateStr + (r.paid_to ? ' · ' + escapeHtml(r.paid_to) : '') + '</div></div>' +
         '<div class="cart-amount"><div class="amt">' + money(r.total) + '</div>' + (r.payment_done_by ? '<div class="pts">by ' + escapeHtml(r.payment_done_by) + '</div>' : '') + '</div></div>';
     }).join('');
   }
+  let expenseRowsById_ = {};
 
   // ---------------- CUSTOMERS TAB ----------------
   let customerSearchDebounce = null, currentCustomerMobile = null;
