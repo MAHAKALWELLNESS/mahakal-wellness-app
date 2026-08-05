@@ -491,6 +491,15 @@
           <div class="stat-card warn"><div class="stat-label">Net Total Profit (All Time)</div><div class="stat-value" id="dashNetTotalProfit">₹0</div></div>
         </div>
         <div class="stat-card" style="margin-top:10px;"><div class="stat-label">Net Investment (All Time — Invested minus Withdrawn)</div><div class="stat-value" id="dashNetInvestment">₹0</div></div>
+        <p class="section-label" style="margin-top:14px;">Check a specific month</p>
+        <select id="dashProfitMonthFilter" onchange="showDashProfitForMonth_()" style="margin-bottom:10px;"><option value="">Select a month…</option></select>
+        <div id="dashProfitMonthResult" style="display:none;">
+          <div class="stat-grid">
+            <div class="stat-card"><div class="stat-label">Payout</div><div class="stat-value" id="dashMonthPayout">₹0</div></div>
+            <div class="stat-card"><div class="stat-label">Expenses</div><div class="stat-value" id="dashMonthExpenses">₹0</div></div>
+          </div>
+          <div class="stat-card warn" style="margin-top:10px;"><div class="stat-label">Profit</div><div class="stat-value" id="dashMonthProfit">₹0</div></div>
+        </div>
       </div>
       <div class="card">
         <p class="section-label">Quick range</p>
@@ -515,14 +524,28 @@
 
     <!-- ============ EXPENSE TAB ============ -->
     <section id="tab-expense" class="tab-panel">
+      <div class="subtabs">
+        <button class="subtab active" data-subtab="add" onclick="switchExpenseSubtab('add')">Add Expense</button>
+        <button class="subtab" data-subtab="report" onclick="switchExpenseSubtab('report')">Report</button>
+      </div>
+
+      <div id="esub-add" class="subtab-panel active">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="searchExpenses()">↻ Refresh</button>
       <div class="card">
         <p class="section-label">Record an expense</p>
         <div class="field-row">
           <div class="field"><label for="expDate">Date</label><input type="date" id="expDate"></div>
-          <div class="field"><label for="expCategory">Category</label><input type="text" id="expCategory" list="expenseCategoryOptions" placeholder="e.g. Rent, Transport" oninput="this.value=this.value.toUpperCase();">
+          <div class="field"><label for="expCategory">Category</label><input type="text" id="expCategory" list="expenseCategoryOptions" placeholder="e.g. Rent, Transport" oninput="this.value=this.value.toUpperCase(); toggleTransportSection_();">
             <datalist id="expenseCategoryOptions"></datalist>
           </div>
+        </div>
+        <div class="card" id="transportParcelSection" style="display:none;box-shadow:none;background:var(--bg);margin:0 0 12px;">
+          <p class="section-label">Whose parcel is this? (optional)</p>
+          <div class="field"><label for="expLeaderMobile">Leader's mobile</label><input type="tel" id="expLeaderMobile" placeholder="10-digit mobile" maxlength="15" onblur="lookupExpenseLeader_()"></div>
+          <p class="hint" id="expLeaderInfo" style="margin-bottom:8px;"></p>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);cursor:pointer;margin-bottom:0;">
+            <input type="checkbox" id="expDeductWallet" style="width:auto;margin:0;"> Deduct this amount from the leader's wallet
+          </label>
         </div>
         <div class="field"><label for="expName">Expense name</label><input type="text" id="expName" placeholder="What was this for?"></div>
         <div class="field-row">
@@ -537,6 +560,22 @@
       </div>
       <div class="card"><p class="section-label">Find an expense</p><input type="text" id="expenseSearch" class="search-input" placeholder="Category, name, paid to…" oninput="searchExpenses()"></div>
       <div class="card"><div id="expenseList"><div class="empty-cart">Type above, or leave blank to see recent expenses.</div></div></div>
+      </div>
+
+      <div id="esub-report" class="subtab-panel">
+        <div class="card">
+          <p class="section-label">Filter</p>
+          <div class="field-row">
+            <div class="field"><label for="expReportFrom">From</label><input type="date" id="expReportFrom"></div>
+            <div class="field"><label for="expReportTo">To</label><input type="date" id="expReportTo"></div>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="loadExpenseReport()">Apply</button>
+        </div>
+        <div class="card">
+          <div class="receipt-total-row grand"><span>Total (all categories)</span><span id="expReportGrandTotal">₹0</span></div>
+        </div>
+        <div class="card"><p class="section-label">By category</p><div id="expReportList"><div class="empty-cart">Loading…</div></div></div>
+      </div>
     </section>
 
     <!-- ============ OFFICIAL TAB ============ -->
@@ -3472,23 +3511,90 @@
   }
 
   // ---------------- EXPENSE TAB ----------------
+  function toggleTransportSection_() {
+    const isTransport = document.getElementById('expCategory').value.trim().toUpperCase() === 'TRANSPORT';
+    document.getElementById('transportParcelSection').style.display = isTransport ? 'block' : 'none';
+    if (!isTransport) {
+      document.getElementById('expLeaderMobile').value = '';
+      document.getElementById('expLeaderInfo').textContent = '';
+      document.getElementById('expDeductWallet').checked = false;
+    }
+  }
+
+  async function lookupExpenseLeader_() {
+    const mobile = document.getElementById('expLeaderMobile').value.trim();
+    const infoEl = document.getElementById('expLeaderInfo');
+    if (!mobile) { infoEl.textContent = ''; return; }
+    const { data: cust } = await sb.from('customers').select('name').eq('mobile', mobile).maybeSingle();
+    const { data: wallet } = await sb.from('customer_wallets').select('balance').eq('mobile', mobile).maybeSingle();
+    const balance = wallet ? Number(wallet.balance) : 0;
+    infoEl.textContent = (cust ? cust.name : 'New customer') + ' — Wallet balance: ' + money(balance);
+  }
+
+  function switchExpenseSubtab(name) {
+    const c = document.getElementById('tab-expense');
+    c.querySelectorAll('.subtab').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
+    c.querySelectorAll('.subtab-panel').forEach(function (p) { p.classList.remove('active'); });
+    document.getElementById('esub-' + name).classList.add('active');
+    if (name === 'report' && !expenseReportLoadedOnce) { expenseReportLoadedOnce = true; loadExpenseReport(); }
+  }
+  let expenseReportLoadedOnce = false;
+
+  async function loadExpenseReport() {
+    const box = document.getElementById('expReportList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const from = document.getElementById('expReportFrom').value || null;
+    const to = document.getElementById('expReportTo').value || null;
+    const { data, error } = await sb.rpc('get_expense_report', { p_start_date: from, p_end_date: to });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
+    document.getElementById('expReportGrandTotal').textContent = money(data.grandTotal);
+    const cats = data.categories || [];
+    if (!cats.length) { box.innerHTML = '<div class="empty-cart">No expenses in this range.</div>'; return; }
+    box.innerHTML = cats.map(function (c) {
+      return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + escapeHtml(c.category) + '</div>' +
+        '<div class="result-meta">' + c.count + ' entr' + (c.count === 1 ? 'y' : 'ies') + '</div></div>' +
+        '<div class="amt">' + money(c.total) + '</div></div>';
+    }).join('');
+  }
+
   async function submitExpense() {
     const name = document.getElementById('expName').value.trim();
     const cash = Number(document.getElementById('expCash').value) || 0;
     const online = Number(document.getElementById('expOnline').value) || 0;
     if (!name) { showToast('Enter an expense name.', true); return; }
     if (cash <= 0 && online <= 0) { showToast('Enter a cash or online amount.', true); return; }
+
+    const isTransport = document.getElementById('expCategory').value.trim().toUpperCase() === 'TRANSPORT';
+    const leaderMobile = isTransport ? document.getElementById('expLeaderMobile').value.trim() : '';
+    const deductWallet = isTransport && document.getElementById('expDeductWallet').checked;
+    if (deductWallet && !leaderMobile) { showToast('Enter the leader\'s mobile number first.', true); return; }
+    let leaderName = '';
+    if (leaderMobile) {
+      const { data: cust } = await sb.from('customers').select('name').eq('mobile', leaderMobile).maybeSingle();
+      leaderName = cust ? (cust.name || '') : '';
+    }
+
     const { data, error } = await sb.from('expenses').insert({
       expense_date: document.getElementById('expDate').value || fmtDateInput_(new Date()),
       category: document.getElementById('expCategory').value.trim(), expense_name: name, cash: cash, online: online,
-      paid_to: document.getElementById('expPaidTo').value.trim(), payment_done_by: document.getElementById('expPaidBy').value.trim()
+      paid_to: document.getElementById('expPaidTo').value.trim(), payment_done_by: document.getElementById('expPaidBy').value.trim(),
+      leader_mobile: leaderMobile || null, leader_name: leaderName || null, deducted_from_wallet: deductWallet
     }).select().single();
     if (error) { showToast(error.message, true); return; }
-    showToast('Saved as E' + String(data.id).padStart(4, '0'));
+
+    if (deductWallet) {
+      const { error: walletErr } = await sb.rpc('deduct_wallet_for_transport', {
+        p_mobile: leaderMobile, p_amount: cash + online, p_note: 'Transport charge — ' + name
+      });
+      if (walletErr) { showToast('Expense saved, but wallet deduction failed: ' + walletErr.message, true); }
+    }
+
+    showToast('Saved as E' + String(data.id).padStart(4, '0') + (deductWallet ? ' — deducted from leader\'s wallet' : ''));
     document.getElementById('expCategory').value = ''; document.getElementById('expName').value = '';
     document.getElementById('expCash').value = ''; document.getElementById('expOnline').value = '';
     document.getElementById('expPaidTo').value = ''; document.getElementById('expPaidBy').value = '';
     document.getElementById('expDate').value = fmtDateInput_(new Date());
+    toggleTransportSection_();
     loadExpenseCategories_();
     searchExpenses();
   }
@@ -3553,7 +3659,8 @@
       const dateStr = new Date(r.expense_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
       const clickable = isSuperAdminUser ? ' style="cursor:pointer;" onclick="openEditExpense(expenseRowsById_[' + r.id + '])"' : ' style="cursor:default;"';
       return '<div class="list-row"' + clickable + '><div><div class="result-name">' + escapeHtml(r.expense_name) + '</div>' +
-        '<div class="result-meta">' + (r.category ? escapeHtml(r.category) + ' · ' : '') + dateStr + (r.paid_to ? ' · ' + escapeHtml(r.paid_to) : '') + '</div></div>' +
+        '<div class="result-meta">' + (r.category ? escapeHtml(r.category) + ' · ' : '') + dateStr + (r.paid_to ? ' · ' + escapeHtml(r.paid_to) : '') +
+        (r.leader_name ? ' · Parcel: ' + escapeHtml(r.leader_name) + (r.deducted_from_wallet ? ' (wallet)' : '') : '') + '</div></div>' +
         '<div class="cart-amount"><div class="amt">' + money(r.total) + '</div>' + (r.payment_done_by ? '<div class="pts">by ' + escapeHtml(r.payment_done_by) + '</div>' : '') + '</div></div>';
     }).join('');
   }
@@ -5107,6 +5214,28 @@
       const totalWithdrawn = yearly.reduce(function (s, y) { return s + Number(y.totalWithdrawn); }, 0);
       document.getElementById('dashNetInvestment').textContent = money(totalInvested - totalWithdrawn);
     }
+
+    const { data: monthly, error: mErr } = await sb.rpc('get_monthly_profit_report');
+    if (!mErr && monthly) {
+      dashMonthlyProfitData_ = {};
+      const select = document.getElementById('dashProfitMonthFilter');
+      select.innerHTML = '<option value="">Select a month…</option>' + monthly.map(function (m) {
+        dashMonthlyProfitData_[m.month] = m;
+        return '<option value="' + m.month + '">' + m.monthLabel + '</option>';
+      }).join('');
+    }
+  }
+
+  let dashMonthlyProfitData_ = {};
+  function showDashProfitForMonth_() {
+    const key = document.getElementById('dashProfitMonthFilter').value;
+    const resultBox = document.getElementById('dashProfitMonthResult');
+    if (!key || !dashMonthlyProfitData_[key]) { resultBox.style.display = 'none'; return; }
+    const m = dashMonthlyProfitData_[key];
+    document.getElementById('dashMonthPayout').textContent = money(m.payout);
+    document.getElementById('dashMonthExpenses').textContent = money(m.expenses);
+    document.getElementById('dashMonthProfit').textContent = money(m.profit);
+    resultBox.style.display = 'block';
   }
 
   // ---------------- FRANCHISEE INVESTMENT (Super Admin only) ----------------
