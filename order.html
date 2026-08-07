@@ -73,8 +73,14 @@
     <p>Place an Order</p>
     <button onclick="refreshOrderForm()" style="margin-top:10px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;">↻ Refresh</button>
   </header>
+  <div style="max-width:520px;margin:14px auto 0;padding:0 16px;display:flex;gap:8px;">
+    <button id="tabBtnOrder" onclick="switchOrderFormTab('order')" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--green-800);background:var(--green-800);color:#fff;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;">Place Order</button>
+    <button id="tabBtnTrack" onclick="switchOrderFormTab('track')" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--ink-soft);font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;">Track My Bills</button>
+  </div>
   <main id="mainArea">
     <div class="empty">Loading…</div>
+  </main>
+  <main id="trackArea" style="display:none;">
   </main>
 
 <script>
@@ -100,6 +106,64 @@
   }
   function money(n) { return '₹' + (Number(n) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }); }
   function trimNum(n) { n = Number(n) || 0; return n % 1 === 0 ? String(n) : n.toFixed(2).replace(/\.?0+$/, ''); }
+
+  function switchOrderFormTab(tab) {
+    const orderBtn = document.getElementById('tabBtnOrder');
+    const trackBtn = document.getElementById('tabBtnTrack');
+    document.getElementById('mainArea').style.display = tab === 'order' ? 'block' : 'none';
+    document.getElementById('trackArea').style.display = tab === 'track' ? 'block' : 'none';
+    orderBtn.style.background = tab === 'order' ? 'var(--green-800)' : '#fff';
+    orderBtn.style.color = tab === 'order' ? '#fff' : 'var(--ink-soft)';
+    orderBtn.style.borderColor = tab === 'order' ? 'var(--green-800)' : 'var(--line)';
+    trackBtn.style.background = tab === 'track' ? 'var(--green-800)' : '#fff';
+    trackBtn.style.color = tab === 'track' ? '#fff' : 'var(--ink-soft)';
+    trackBtn.style.borderColor = tab === 'track' ? 'var(--green-800)' : 'var(--line)';
+    if (tab === 'track' && !document.getElementById('trackMobileInput')) renderTrackForm();
+  }
+
+  function renderTrackForm() {
+    document.getElementById('trackArea').innerHTML =
+      '<div class="card">' +
+        '<p class="section-label">Find your bills</p>' +
+        '<div class="field"><label for="trackMobileInput">Mobile number</label><input type="tel" id="trackMobileInput" placeholder="10-digit mobile" maxlength="15" onkeydown="if(event.key===\'Enter\'){event.preventDefault();searchMyBills();}"></div>' +
+        '<div class="field" style="margin-bottom:0;"><label for="trackInvoiceInput">Bill No. (optional — narrows to one bill)</label><input type="text" id="trackInvoiceInput" placeholder="e.g. MW000060" onkeydown="if(event.key===\'Enter\'){event.preventDefault();searchMyBills();}"></div>' +
+      '</div>' +
+      '<button class="btn btn-gold" onclick="searchMyBills()">Search</button>' +
+      '<p class="error-msg" id="trackError"></p>' +
+      '<div id="trackResults" style="margin-top:14px;"></div>';
+  }
+
+  async function searchMyBills() {
+    const errBox = document.getElementById('trackError');
+    errBox.textContent = '';
+    const mobile = document.getElementById('trackMobileInput').value.trim();
+    const invoiceNo = document.getElementById('trackInvoiceInput').value.trim().toUpperCase();
+    if (!mobile || mobile.replace(/\D/g, '').length < 10) { errBox.textContent = 'Enter a valid 10-digit mobile number.'; return; }
+    const resultsBox = document.getElementById('trackResults');
+    resultsBox.innerHTML = '<div class="empty">Searching…</div>';
+    const { data, error } = await sb.rpc('get_bills_by_mobile', { p_mobile: mobile, p_invoice_no: invoiceNo || null });
+    if (error) { resultsBox.innerHTML = ''; errBox.textContent = 'Could not search right now — try again.'; return; }
+    if (!data || !data.length) { resultsBox.innerHTML = '<div class="empty">No bills found for that mobile number' + (invoiceNo ? ' and bill number' : '') + '.</div>'; return; }
+    resultsBox.innerHTML = data.map(function (b) {
+      const dateStr = new Date(b.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      const isPending = b.billStatus === 'Pending';
+      const balanceText = isPending ? '' : (b.balance < -0.005 ? 'Due ' + money(-b.balance) : 'Settled');
+      const balanceColor = b.balance < -0.005 ? 'var(--danger)' : 'var(--ok)';
+      return '<div class="card">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">' +
+          '<div><div style="font-weight:700;color:var(--green-800);">' + escapeHtml(b.invoiceNo) + '</div><div class="hint">' + dateStr + '</div></div>' +
+          '<div style="font-weight:700;font-size:15px;">' + money(b.totalAmount) + '</div>' +
+        '</div>' +
+        '<div class="hint">' + trimNum(b.totalQty) + ' item(s) · ' + trimNum(b.totalSp) + ' SP · ' + escapeHtml(b.customerType) + '</div>' +
+        '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<span class="hint" style="font-weight:700;color:' + (isPending ? 'var(--gold-600)' : 'var(--ok)') + ';">' + (isPending ? 'Awaiting Approval' : 'Confirmed') + '</span>' +
+          (isPending ? '' : '<span class="hint">·</span><span class="hint">Delivery: ' + escapeHtml(b.deliveryStatus || '') + '</span>') +
+          (balanceText ? '<span class="hint">·</span><span class="hint" style="font-weight:700;color:' + balanceColor + ';">' + balanceText + '</span>' : '') +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
 
   async function init() {
     const { data, error } = await sb.rpc('get_public_products_for_order');
@@ -254,33 +318,46 @@
     let discountPercent = 0;
     if (custType === 'Retail') { discountPercent = Number(document.getElementById('discountPercent').value) || 0; if (discountPercent > 5) discountPercent = 5; }
 
+    if (wantsToPay) {
+      // Don't save anything yet - just show the QR/UTR screen. The order is
+      // only actually placed once the customer confirms payment with a UTR,
+      // so someone who backs out here never leaves a half-finished bill behind.
+      let previewTotal = 0;
+      Object.values(CART).forEach(function (it) { previewTotal += it.qty * (custType === 'Retail' ? it.mrp : it.dp); });
+      if (custType === 'Retail' && discountPercent > 0) previewTotal = Math.round(previewTotal * (1 - discountPercent / 100));
+      showPaymentQr(previewTotal, { name: name, mobile: mobile, custType: custType, discountPercent: discountPercent, items: items });
+      return;
+    }
+
     document.getElementById('saveNoPayBtn').disabled = true;
     document.getElementById('payNowBtn').disabled = true;
-    document.getElementById('payNowBtn').textContent = 'Placing order…';
+    document.getElementById('saveNoPayBtn').textContent = 'Placing order…';
     const { data, error } = await sb.rpc('save_public_order', { p_customer_name: name, p_mobile: mobile, p_customer_type: custType, p_discount_percent: discountPercent, p_items: items });
     if (error) {
       errBox.textContent = error.message || 'Could not place order. Please try again.';
       document.getElementById('saveNoPayBtn').disabled = false;
       document.getElementById('payNowBtn').disabled = false;
-      document.getElementById('payNowBtn').textContent = 'Pay Now';
+      document.getElementById('saveNoPayBtn').textContent = 'Save without Payment';
       return;
     }
     currentOrderTotalSp = Number(data.totalSp) || 0;
     officialEntriesAdded = [];
-    if (wantsToPay) showPaymentQr(data.invoiceNo, data.totalAmount);
-    else showThankYou(data.invoiceNo, data.totalAmount, false);
+    showThankYou(data.invoiceNo, data.totalAmount, false);
   }
 
-  function showPaymentQr(invoiceNo, totalAmount) {
+  let pendingPaymentOrder = null;
+  function showPaymentQr(previewTotal, orderDraft) {
+    pendingPaymentOrder = orderDraft;
+    const tempRef = 'TMP' + Date.now();
     const upiUrl = 'upi://pay?pa=' + encodeURIComponent(BUSINESS_UPI_ID) + '&pn=' + encodeURIComponent(BUSINESS_PAYEE_NAME) +
-      '&am=' + encodeURIComponent(Number(totalAmount).toFixed(2)) + '&cu=INR&tr=' + encodeURIComponent(invoiceNo) + '&tn=' + encodeURIComponent('Order ' + invoiceNo);
+      '&am=' + encodeURIComponent(Number(previewTotal).toFixed(2)) + '&cu=INR&tr=' + encodeURIComponent(tempRef) + '&tn=' + encodeURIComponent('Order payment');
     const qrImgUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(upiUrl);
     document.getElementById('mainArea').innerHTML =
       '<div class="card" style="text-align:center;">' +
         '<h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Pay now via UPI</h2>' +
-        '<p class="hint">Order No. <strong>' + escapeHtml(invoiceNo) + '</strong> · ' + money(totalAmount) + '</p>' +
+        '<p class="hint">' + money(previewTotal) + '</p>' +
         '<div class="qr-box"><img src="' + qrImgUrl + '" alt="UPI QR code"></div>' +
-        '<p class="hint"><strong>Recommended:</strong> open your UPI app and scan this QR — the amount (' + money(totalAmount) + ') is already filled in.</p>' +
+        '<p class="hint"><strong>Recommended:</strong> open your UPI app and scan this QR — the amount (' + money(previewTotal) + ') is already filled in.</p>' +
       '</div>' +
       '<div class="card" style="text-align:center;">' +
         '<a class="btn" style="background:transparent;border:1.5px solid var(--line);color:var(--green-800);" href="' + escapeHtml(upiUrl) + '">Or tap here to open your UPI app</a>' +
@@ -290,15 +367,49 @@
         '<div class="field" style="margin-bottom:0;"><label for="payUtr">Your UPI transaction ref. (UTR) — required</label><input type="text" id="payUtr" placeholder="As shown in your UPI app after payment"></div>' +
         '<p class="error-msg" id="utrError"></p>' +
       '</div>' +
-      '<button class="btn btn-gold" style="margin-bottom:8px;" onclick="confirmUpiPaid(\'' + invoiceNo + '\',' + totalAmount + ')">I\'ve completed the payment</button>' +
-      '<button class="btn" style="background:transparent;border:1.5px solid var(--line);color:var(--green-800);" onclick="showThankYou(\'' + invoiceNo + '\',' + totalAmount + ',false)">← I\'ll pay later</button>';
+      '<button class="btn btn-gold" style="margin-bottom:8px;" id="confirmPaidBtn" onclick="confirmUpiPaidAndSave()">I\'ve completed the payment</button>' +
+      '<button class="btn" style="background:transparent;border:1.5px solid var(--line);color:var(--green-800);" id="payLaterBtn" onclick="saveOrderWithoutPaymentAfterQr()">← I\'ll pay later</button>';
   }
 
-  async function confirmUpiPaid(invoiceNo, totalAmount) {
+  async function confirmUpiPaidAndSave() {
     const utr = document.getElementById('payUtr').value.trim();
-    if (!utr) { document.getElementById('utrError').textContent = 'Please enter your UPI transaction reference (UTR) — it\'s in your UPI app\'s payment history.'; return; }
-    await sb.rpc('mark_order_payment_intent', { p_invoice_no: invoiceNo, p_amount: totalAmount, p_utr_no: utr });
-    showThankYou(invoiceNo, totalAmount, true);
+    if (!utr) { document.getElementById('utrError').textContent = 'Please enter your UPI transaction reference (UTR) — it\'s in your UPI app\'s payment history. Your order is only placed once this is confirmed.'; return; }
+    if (!pendingPaymentOrder) { document.getElementById('utrError').textContent = 'Something went wrong — please start again.'; return; }
+    document.getElementById('confirmPaidBtn').disabled = true;
+    document.getElementById('confirmPaidBtn').textContent = 'Confirming…';
+    document.getElementById('payLaterBtn').disabled = true;
+    const o = pendingPaymentOrder;
+    const { data, error } = await sb.rpc('save_public_order', { p_customer_name: o.name, p_mobile: o.mobile, p_customer_type: o.custType, p_discount_percent: o.discountPercent, p_items: o.items });
+    if (error) {
+      document.getElementById('utrError').textContent = error.message || 'Could not place order. Please try again.';
+      document.getElementById('confirmPaidBtn').disabled = false;
+      document.getElementById('confirmPaidBtn').textContent = 'I\'ve completed the payment';
+      document.getElementById('payLaterBtn').disabled = false;
+      return;
+    }
+    currentOrderTotalSp = Number(data.totalSp) || 0;
+    officialEntriesAdded = [];
+    await sb.rpc('mark_order_payment_intent', { p_invoice_no: data.invoiceNo, p_amount: data.totalAmount, p_utr_no: utr });
+    pendingPaymentOrder = null;
+    showThankYou(data.invoiceNo, data.totalAmount, true);
+  }
+
+  async function saveOrderWithoutPaymentAfterQr() {
+    if (!pendingPaymentOrder) return;
+    document.getElementById('payLaterBtn').disabled = true;
+    document.getElementById('confirmPaidBtn').disabled = true;
+    const o = pendingPaymentOrder;
+    const { data, error } = await sb.rpc('save_public_order', { p_customer_name: o.name, p_mobile: o.mobile, p_customer_type: o.custType, p_discount_percent: o.discountPercent, p_items: o.items });
+    if (error) {
+      document.getElementById('utrError').textContent = error.message || 'Could not place order. Please try again.';
+      document.getElementById('payLaterBtn').disabled = false;
+      document.getElementById('confirmPaidBtn').disabled = false;
+      return;
+    }
+    currentOrderTotalSp = Number(data.totalSp) || 0;
+    officialEntriesAdded = [];
+    pendingPaymentOrder = null;
+    showThankYou(data.invoiceNo, data.totalAmount, false);
   }
 
   function showThankYou(invoiceNo, totalAmount, paid) {
