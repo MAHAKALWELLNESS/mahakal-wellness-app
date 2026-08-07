@@ -2030,7 +2030,7 @@
   let currentWalletBalanceForPayment = 0;
   async function renderPaymentStep() {
     const bill = currentDetailBill;
-    const amountDue = bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP;
+    const amountDue = (bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP) + (Number(bill.transportCharges) || 0);
     document.getElementById('paymentStepAmountDue').textContent = money(amountDue);
     document.getElementById('paymentStepCash').value = '';
     document.getElementById('paymentStepOnline').value = '';
@@ -2081,7 +2081,7 @@
 
   function useAllWalletBalance() {
     const bill = currentDetailBill;
-    const amountDue = bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP;
+    const amountDue = (bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP) + (Number(bill.transportCharges) || 0);
     const cash = Number(document.getElementById('paymentStepCash').value) || 0;
     const online = Number(document.getElementById('paymentStepOnline').value) || 0;
     const remainingDue = Math.max(0, amountDue - cash - online);
@@ -2094,7 +2094,7 @@
   function renderPaymentStepBalance() {
     const bill = currentDetailBill;
     if (!bill) return;
-    const amountDue = bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP;
+    const amountDue = (bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP) + (Number(bill.transportCharges) || 0);
     const cash = Number(document.getElementById('paymentStepCash').value) || 0;
     const online = Number(document.getElementById('paymentStepOnline').value) || 0;
     const walletUsed = Number(document.getElementById('paymentStepWalletUse').value) || 0;
@@ -2110,7 +2110,7 @@
   function fillPaymentStepFull(mode) {
     const bill = currentDetailBill;
     if (!bill) return;
-    const amountDue = bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP;
+    const amountDue = (bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP) + (Number(bill.transportCharges) || 0);
     const walletUsed = Number(document.getElementById('paymentStepWalletUse').value) || 0;
     if (mode === 'cash') {
       const online = Number(document.getElementById('paymentStepOnline').value) || 0;
