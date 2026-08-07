@@ -298,6 +298,7 @@
     <nav class="tabs" id="tabsNav">
       <button class="tab" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
       <button class="tab active" data-tab="newbillmain" onclick="switchTab('newbillmain')">New Bill</button>
+      <button class="tab" data-tab="publicorder" onclick="switchTab('publicorder')">Public Order</button>
       <button class="tab" data-tab="approval" onclick="switchTab('approval')">Bill Approval</button>
       <button class="tab" data-tab="history" onclick="switchTab('history')">Past Bill</button>
       <button class="tab" data-tab="accounting" onclick="switchTab('accounting')">Accounting</button>
@@ -443,6 +444,13 @@
         <div id="lowStockList"><div class="empty-cart">Loading…</div></div>
       </div>
       </div>
+    </section>
+
+    <!-- ============ PUBLIC ORDER TAB (ghost bills — zero effect until approved) ============ -->
+    <section id="tab-publicorder" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadPublicOrders()">↻ Refresh</button>
+      <div class="card" style="box-shadow:none;background:var(--gold-100);"><p style="color:var(--gold-600);font-weight:700;font-size:13px;margin:0;">These are customer requests from the public order form. Nothing here touches stock or bills until you Approve it.</p></div>
+      <div id="publicOrderList"><div class="empty-cart">Loading…</div></div>
     </section>
 
     <!-- ============ BILL APPROVAL TAB ============ -->
@@ -1038,6 +1046,17 @@
       <div class="modal-actions" style="margin-top:0;">
         <button class="btn btn-outline" onclick="document.getElementById('editTransportChargesModal').classList.remove('show')">Cancel</button>
         <button class="btn btn-primary" onclick="submitEditTransportCharges()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="publicOrderDetailModal">
+    <div class="modal-sheet">
+      <div id="publicOrderDetailArea"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('publicOrderDetailModal').classList.remove('show')">Close</button>
+        <button class="btn btn-outline" style="color:var(--danger);border-color:var(--danger);" onclick="rejectPublicOrderConfirm()">Reject</button>
+        <button class="btn btn-primary" onclick="approvePublicOrderConfirm()">Approve</button>
       </div>
     </div>
   </div>
@@ -2524,6 +2543,7 @@
     if (name === 'customers') searchCustomersTab();
     if (name === 'stockreport' && !onlineStockLoadedOnce) switchStockSubtab('online');
     if (name === 'wallet') searchWalletCustomers();
+    if (name === 'publicorder') loadPublicOrders();
     if (name === 'approval') searchApprovalBills();
     if (name === 'topperformer' && !topProductsLoadedOnce) { topProductsLoadedOnce = true; setTopProductsRange('offline', 'net'); }
     if (name === 'topperformer' && !topCustomersLoadedOnce) { topCustomersLoadedOnce = true; setTopCustomersRange('today'); }
@@ -3091,6 +3111,72 @@
   }
 
   let approvalSearchDebounce = null;
+  // ---------------- PUBLIC ORDER (ghost bills — zero effect until approved) ----------------
+  let publicOrdersById_ = {};
+  async function loadPublicOrders() {
+    const box = document.getElementById('publicOrderList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const { data, error } = await sb.rpc('get_pending_public_orders');
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
+    const rows = data || [];
+    if (!rows.length) { box.innerHTML = '<div class="card"><div class="empty-cart">No pending requests.</div></div>'; return; }
+    publicOrdersById_ = {};
+    rows.forEach(function (r) { publicOrdersById_[r.id] = r; });
+    box.innerHTML = rows.map(function (r) {
+      const dateStr = new Date(r.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      const itemCount = (r.items || []).length;
+      return '<div class="card" style="cursor:pointer;" onclick="viewPublicOrderDetail(' + r.id + ')">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
+        '<div><div style="font-weight:700;color:var(--green-800);">' + escapeHtml(r.customer_name || 'Walk-in') + '</div>' +
+        '<div class="hint">' + escapeHtml(r.mobile) + ' · ' + escapeHtml(r.customer_type) + ' · ' + itemCount + ' item(s)</div>' +
+        '<div class="hint">' + dateStr + (r.payment_reported ? ' · <span style="color:var(--ok);font-weight:700;">UPI reported</span>' : '') + '</div></div>' +
+        '<div style="font-weight:700;font-size:15px;">' + money(r.total_amount) + '</div></div></div>';
+    }).join('');
+  }
+
+  let currentPublicOrderId = null;
+  function viewPublicOrderDetail(orderId) {
+    const r = publicOrdersById_[orderId];
+    if (!r) return;
+    currentPublicOrderId = orderId;
+    const dateStr = new Date(r.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    const rows = (r.items || []).map(function (it) {
+      return '<div class="cart-row"><div><div class="cart-name">' + escapeHtml(it.name) + ' × ' + trimNum(it.qty) + '</div></div>' +
+        '<div class="cart-price">' + money(it.qty * (r.customer_type === 'Retail' ? it.mrp : it.dp)) + '</div></div>';
+    }).join('');
+    const officialRows = (r.official_entries || []).map(function (e) {
+      return '<div class="hint">• ' + escapeHtml(e.dsId || '(No DS ID)') + (e.dsName ? ' — ' + escapeHtml(e.dsName) : '') + ' · ' + escapeHtml(e.greeningRepurchase) + (e.saoSgo ? ' (' + escapeHtml(e.saoSgo) + ')' : '') + ' · ' + trimNum(e.spToAllocate) + ' SP</div>';
+    }).join('');
+    document.getElementById('publicOrderDetailArea').innerHTML =
+      '<h2 style="font-size:16px;color:var(--green-800);margin-bottom:2px;">' + escapeHtml(r.customer_name || 'Walk-in') + '</h2>' +
+      '<p class="hint" style="margin-bottom:10px;">' + escapeHtml(r.mobile) + ' · ' + escapeHtml(r.customer_type) + ' · ' + dateStr + '</p>' +
+      (r.payment_reported ? '<div class="card" style="box-shadow:none;background:var(--gold-100);margin-bottom:10px;"><p style="color:var(--gold-600);font-weight:700;font-size:13px;margin:0;">Customer reported paying ' + money(r.reported_amount) + ' via UPI — UTR: ' + escapeHtml(r.utr_no || '') + '. Please verify before approving.</p></div>' : '') +
+      rows +
+      '<div class="receipt-total-row grand" style="margin-top:6px;"><span>Total</span><span>' + money(r.total_amount) + '</span></div>' +
+      '<div class="receipt-total-row"><span>Total SP</span><span>' + trimNum(r.total_sp) + '</span></div>' +
+      (officialRows ? '<p class="section-label" style="margin-top:12px;">Official Work requested</p>' + officialRows : '');
+    document.getElementById('publicOrderDetailModal').classList.add('show');
+  }
+
+  async function approvePublicOrderConfirm() {
+    if (!currentPublicOrderId) return;
+    const { data: invoiceNo, error } = await sb.rpc('approve_public_order', { p_order_id: currentPublicOrderId });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Approved as ' + invoiceNo + ' — now in Bill Approval.');
+    document.getElementById('publicOrderDetailModal').classList.remove('show');
+    loadPublicOrders();
+  }
+
+  async function rejectPublicOrderConfirm() {
+    if (!currentPublicOrderId) return;
+    if (!confirm('Reject this request? It will not become a bill.')) return;
+    const { error } = await sb.rpc('reject_public_order', { p_order_id: currentPublicOrderId });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Request rejected.');
+    document.getElementById('publicOrderDetailModal').classList.remove('show');
+    loadPublicOrders();
+  }
+
   function searchApprovalBills() {
     clearTimeout(approvalSearchDebounce);
     approvalSearchDebounce = setTimeout(async function () {

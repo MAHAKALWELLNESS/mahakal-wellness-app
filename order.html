@@ -187,6 +187,7 @@
         '<p class="section-label">Your details</p>' +
         '<div class="field"><label for="custName">Name</label><input type="text" id="custName" placeholder="Your name" oninput="this.value=this.value.toUpperCase()"></div>' +
         '<div class="field"><label for="custMobile">Mobile</label><input type="tel" id="custMobile" placeholder="10-digit mobile" maxlength="15"></div>' +
+        '<div class="field"><label for="custCity">City</label><input type="text" id="custCity" placeholder="Your city" oninput="this.value=this.value.toUpperCase()"></div>' +
         '<div class="field" style="margin-bottom:0;"><label for="custType">Customer type</label>' +
           '<select id="custType" onchange="onCustomerTypeChange()" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">' +
             '<option value="" selected disabled>Choose type…</option><option>Retail</option><option>Distributor</option>' +
@@ -196,6 +197,13 @@
           '<label for="discountPercent">Discount % (max 5%)</label>' +
           '<input type="number" id="discountPercent" min="0" max="5" step="0.5" placeholder="0" oninput="capDiscount(); renderCart();">' +
         '</div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<p class="section-label">Distributor / reference details</p>' +
+        '<div class="field"><label for="custIdName">ID Name</label><input type="text" id="custIdName" placeholder="Your ID name" oninput="this.value=this.value.toUpperCase()"></div>' +
+        '<div class="field"><label for="custDsId">DS ID No.</label><input type="text" id="custDsId" placeholder="Your DS ID number" oninput="this.value=this.value.toUpperCase()"></div>' +
+        '<div class="field"><label for="custRefName">Reference / Upline Name</label><input type="text" id="custRefName" placeholder="Who referred you" oninput="this.value=this.value.toUpperCase()"></div>' +
+        '<div class="field" style="margin-bottom:0;"><label for="custRefMobile">Reference / Upline Mobile</label><input type="tel" id="custRefMobile" placeholder="10-digit mobile" maxlength="15"></div>' +
       '</div>' +
       '<div class="card">' +
         '<p class="section-label">Search products by code or name</p>' +
@@ -305,34 +313,54 @@
     document.getElementById('payNowBtn').disabled = items.length === 0;
   }
 
+  let lastOrderSnapshot = null;
+
   async function createOrder(wantsToPay) {
     const errBox = document.getElementById('formError');
     errBox.textContent = '';
     const name = document.getElementById('custName').value.trim();
     const mobile = document.getElementById('custMobile').value.trim();
+    const city = document.getElementById('custCity').value.trim();
     const custType = document.getElementById('custType').value;
-    if (!custType) { errBox.textContent = 'Please choose a customer type.'; return; }
+    const idName = document.getElementById('custIdName').value.trim();
+    const dsId = document.getElementById('custDsId').value.trim();
+    const refName = document.getElementById('custRefName').value.trim();
+    const refMobile = document.getElementById('custRefMobile').value.trim();
+    if (!name) { errBox.textContent = 'Please enter your name.'; return; }
     if (!mobile || mobile.replace(/\D/g, '').length < 10) { errBox.textContent = 'Please enter a valid 10-digit mobile number.'; return; }
+    if (!city) { errBox.textContent = 'Please enter your city.'; return; }
+    if (!custType) { errBox.textContent = 'Please choose a customer type.'; return; }
+    if (!idName) { errBox.textContent = 'Please enter your ID Name.'; return; }
+    if (!dsId) { errBox.textContent = 'Please enter your DS ID No.'; return; }
+    if (!refName) { errBox.textContent = 'Please enter your Reference/Upline Name.'; return; }
+    if (!refMobile || refMobile.replace(/\D/g, '').length < 10) { errBox.textContent = 'Please enter a valid Reference/Upline Mobile number.'; return; }
     const items = Object.values(CART).map(function (it) { return { code: it.code, qty: it.qty }; });
     if (!items.length) { errBox.textContent = 'Add at least one product first.'; return; }
     let discountPercent = 0;
     if (custType === 'Retail') { discountPercent = Number(document.getElementById('discountPercent').value) || 0; if (discountPercent > 5) discountPercent = 5; }
+    const orderDraft = {
+      name: name, mobile: mobile, custType: custType, discountPercent: discountPercent, items: items, cartSnapshot: Object.values(CART),
+      city: city, idName: idName, dsId: dsId, refName: refName, refMobile: refMobile
+    };
 
     if (wantsToPay) {
-      // Don't save anything yet - just show the QR/UTR screen. The order is
-      // only actually placed once the customer confirms payment with a UTR,
-      // so someone who backs out here never leaves a half-finished bill behind.
+      // Don't save anything yet - just show the QR/UTR screen. The request
+      // is only staged once the customer confirms payment with a UTR, so
+      // someone who backs out here never leaves anything behind at all.
       let previewTotal = 0;
       Object.values(CART).forEach(function (it) { previewTotal += it.qty * (custType === 'Retail' ? it.mrp : it.dp); });
       if (custType === 'Retail' && discountPercent > 0) previewTotal = Math.round(previewTotal * (1 - discountPercent / 100));
-      showPaymentQr(previewTotal, { name: name, mobile: mobile, custType: custType, discountPercent: discountPercent, items: items });
+      showPaymentQr(previewTotal, orderDraft);
       return;
     }
 
     document.getElementById('saveNoPayBtn').disabled = true;
     document.getElementById('payNowBtn').disabled = true;
     document.getElementById('saveNoPayBtn').textContent = 'Placing order…';
-    const { data, error } = await sb.rpc('save_public_order', { p_customer_name: name, p_mobile: mobile, p_customer_type: custType, p_discount_percent: discountPercent, p_items: items });
+    const { data, error } = await sb.rpc('save_public_order_request', {
+      p_customer_name: name, p_mobile: mobile, p_customer_type: custType, p_discount_percent: discountPercent, p_items: items,
+      p_city: city, p_id_name: idName, p_id_no: dsId, p_reference_name: refName, p_reference_mobile: refMobile
+    });
     if (error) {
       errBox.textContent = error.message || 'Could not place order. Please try again.';
       document.getElementById('saveNoPayBtn').disabled = false;
@@ -342,7 +370,10 @@
     }
     currentOrderTotalSp = Number(data.totalSp) || 0;
     officialEntriesAdded = [];
-    showThankYou(data.invoiceNo, data.totalAmount, false);
+    lastOrderSnapshot = orderDraft;
+    lastOrderSnapshot.totalAmount = data.totalAmount;
+    lastOrderSnapshot.totalSp = data.totalSp;
+    showThankYou(data.orderId, data.totalAmount, false);
   }
 
   let pendingPaymentOrder = null;
@@ -379,7 +410,7 @@
     document.getElementById('confirmPaidBtn').textContent = 'Confirming…';
     document.getElementById('payLaterBtn').disabled = true;
     const o = pendingPaymentOrder;
-    const { data, error } = await sb.rpc('save_public_order', { p_customer_name: o.name, p_mobile: o.mobile, p_customer_type: o.custType, p_discount_percent: o.discountPercent, p_items: o.items });
+    const { data, error } = await sb.rpc('save_public_order_request', { p_customer_name: o.name, p_mobile: o.mobile, p_customer_type: o.custType, p_discount_percent: o.discountPercent, p_items: o.items, p_city: o.city, p_id_name: o.idName, p_id_no: o.dsId, p_reference_name: o.refName, p_reference_mobile: o.refMobile });
     if (error) {
       document.getElementById('utrError').textContent = error.message || 'Could not place order. Please try again.';
       document.getElementById('confirmPaidBtn').disabled = false;
@@ -389,9 +420,12 @@
     }
     currentOrderTotalSp = Number(data.totalSp) || 0;
     officialEntriesAdded = [];
-    await sb.rpc('mark_order_payment_intent', { p_invoice_no: data.invoiceNo, p_amount: data.totalAmount, p_utr_no: utr });
+    await sb.rpc('mark_public_order_payment_intent', { p_order_id: data.orderId, p_amount: data.totalAmount, p_utr_no: utr });
+    lastOrderSnapshot = o;
+    lastOrderSnapshot.totalAmount = data.totalAmount;
+    lastOrderSnapshot.totalSp = data.totalSp;
     pendingPaymentOrder = null;
-    showThankYou(data.invoiceNo, data.totalAmount, true);
+    showThankYou(data.orderId, data.totalAmount, true);
   }
 
   async function saveOrderWithoutPaymentAfterQr() {
@@ -399,7 +433,7 @@
     document.getElementById('payLaterBtn').disabled = true;
     document.getElementById('confirmPaidBtn').disabled = true;
     const o = pendingPaymentOrder;
-    const { data, error } = await sb.rpc('save_public_order', { p_customer_name: o.name, p_mobile: o.mobile, p_customer_type: o.custType, p_discount_percent: o.discountPercent, p_items: o.items });
+    const { data, error } = await sb.rpc('save_public_order_request', { p_customer_name: o.name, p_mobile: o.mobile, p_customer_type: o.custType, p_discount_percent: o.discountPercent, p_items: o.items, p_city: o.city, p_id_name: o.idName, p_id_no: o.dsId, p_reference_name: o.refName, p_reference_mobile: o.refMobile });
     if (error) {
       document.getElementById('utrError').textContent = error.message || 'Could not place order. Please try again.';
       document.getElementById('payLaterBtn').disabled = false;
@@ -408,26 +442,29 @@
     }
     currentOrderTotalSp = Number(data.totalSp) || 0;
     officialEntriesAdded = [];
+    lastOrderSnapshot = o;
+    lastOrderSnapshot.totalAmount = data.totalAmount;
+    lastOrderSnapshot.totalSp = data.totalSp;
     pendingPaymentOrder = null;
-    showThankYou(data.invoiceNo, data.totalAmount, false);
+    showThankYou(data.orderId, data.totalAmount, false);
   }
 
-  function showThankYou(invoiceNo, totalAmount, paid) {
+  function showThankYou(orderId, totalAmount, paid) {
     document.getElementById('mainArea').innerHTML =
       '<div class="card" style="text-align:center;">' +
         '<div class="success-icon">✓</div>' +
         '<h2 style="font-size:18px;color:var(--green-800);margin-bottom:4px;">Thank you!</h2>' +
-        '<p class="hint">Bill No. <strong>' + escapeHtml(invoiceNo) + '</strong> · ' + money(totalAmount) + '</p>' +
-        '<p class="hint" style="margin-top:10px;">' + (paid ? 'We\'ve noted your payment — our team will verify and confirm shortly.' : 'Our team will confirm and prepare your order shortly.') + '</p>' +
+        '<p class="hint">Request No. <strong>' + escapeHtml(String(orderId)) + '</strong> · ' + money(totalAmount) + '</p>' +
+        '<p class="hint" style="margin-top:10px;">' + (paid ? 'We\'ve noted your payment — our team will verify and confirm shortly.' : 'Our team will review and confirm your order shortly.') + '</p>' +
       '</div>' +
-      '<button class="btn btn-gold" onclick="showOfficialWorkForm(\'' + invoiceNo + '\')">Continue</button>';
+      '<button class="btn btn-gold" onclick="showOfficialWorkForm(' + orderId + ')">Continue</button>';
   }
 
-  function showOfficialWorkForm(invoiceNo) {
-    renderOfficialWorkScreen(invoiceNo);
+  function showOfficialWorkForm(orderId) {
+    renderOfficialWorkScreen(orderId);
   }
 
-  function renderOfficialWorkScreen(invoiceNo) {
+  function renderOfficialWorkScreen(orderId) {
     const usedSp = officialEntriesAdded.reduce(function (s, e) { return s + e.sp; }, 0);
     const remainingSp = currentOrderTotalSp - usedSp;
     const entriesHtml = officialEntriesAdded.map(function (e) {
@@ -466,8 +503,8 @@
           '<p class="error-msg" id="ofError"></p>'
           : '<p class="hint" style="text-align:center;">All SP has been allocated across the entries above.</p>') +
       '</div>' +
-      (remainingSp > 0.005 ? '<button class="btn" style="background:transparent;border:1.5px solid var(--line);color:var(--green-800);margin-bottom:8px;" onclick="addOfficialEntry(\'' + invoiceNo + '\')">+ Add This Entry</button>' : '') +
-      '<button class="btn btn-gold" onclick="showFinalReceipt(\'' + invoiceNo + '\')">' + (officialEntriesAdded.length > 0 ? 'Continue' : 'Skip') + '</button>';
+      (remainingSp > 0.005 ? '<button class="btn" style="background:transparent;border:1.5px solid var(--line);color:var(--green-800);margin-bottom:8px;" onclick="addOfficialEntry(' + orderId + ')">+ Add This Entry</button>' : '') +
+      '<button class="btn btn-gold" onclick="showFinalReceipt(' + orderId + ')">' + (officialEntriesAdded.length > 0 ? 'Continue' : 'Skip') + '</button>';
   }
 
   function toggleOfSaoSgo() {
@@ -479,7 +516,7 @@
     if (Number(input.value) > remainingSp) input.value = remainingSp;
   }
 
-  async function addOfficialEntry(invoiceNo) {
+  async function addOfficialEntry(orderId) {
     const errBox = document.getElementById('ofError');
     errBox.textContent = '';
     const dsId = document.getElementById('ofDsId').value.trim();
@@ -492,39 +529,43 @@
     const remainingSp = currentOrderTotalSp - usedSp;
     if (spAmount > remainingSp + 0.005) { errBox.textContent = 'Only ' + trimNum(remainingSp) + ' SP remaining for this order.'; return; }
 
-    const { error } = await sb.rpc('save_order_official_entry', {
-      p_invoice_no: invoiceNo, p_ds_id: dsId || null, p_ds_name: dsName || null,
-      p_greening_repurchase: orderType, p_sao_sgo: saoSgo, p_sp_allocated: spAmount
+    const { error } = await sb.rpc('save_public_order_official_entry', {
+      p_order_id: orderId, p_ds_id: dsId || null, p_ds_name: dsName || null,
+      p_greening_repurchase: orderType, p_sao_sgo: saoSgo, p_sp_to_allocate: spAmount
     });
     if (error) { errBox.textContent = error.message || 'Could not save this entry.'; return; }
     officialEntriesAdded.push({ dsId: dsId, dsName: dsName, orderType: orderType, saoSgo: saoSgo, sp: spAmount });
-    renderOfficialWorkScreen(invoiceNo);
+    renderOfficialWorkScreen(orderId);
   }
 
-  async function showFinalReceipt(invoiceNo) {
-    document.getElementById('mainArea').innerHTML = '<div class="empty">Loading your bill…</div>';
-    const { data, error } = await sb.rpc('get_public_order_receipt', { p_invoice_no: invoiceNo });
-    if (error || !data) {
-      document.getElementById('mainArea').innerHTML = '<div class="empty">Order ' + escapeHtml(invoiceNo) + ' saved. (Could not load the bill preview.)</div>' +
+  function showFinalReceipt(orderId) {
+    const snap = lastOrderSnapshot;
+    if (!snap) {
+      document.getElementById('mainArea').innerHTML = '<div class="empty">Request ' + escapeHtml(String(orderId)) + ' saved.</div>' +
         '<button class="btn btn-gold" onclick="goBackToForm()">← Place another order</button>';
       return;
     }
-    const dateStr = new Date(data.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-    const rows = (data.items || []).map(function (it) {
+    const dateStr = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    const isRetail = snap.custType === 'Retail';
+    let totalMrp = 0;
+    const rows = snap.cartSnapshot.map(function (it) {
+      totalMrp += it.qty * it.mrp;
+      const price = isRetail ? it.mrp : it.dp;
       return '<div class="cart-row"><div><div class="cart-name">' + escapeHtml(it.name) + ' × ' + trimNum(it.qty) + '</div><div class="cart-price">' + trimNum(it.qty * it.sp) + ' SP</div></div>' +
-        '<div class="cart-price" style="font-weight:700;color:var(--green-800);">' + money(it.qty * it.price) + '</div></div>';
+        '<div class="cart-price" style="font-weight:700;color:var(--green-800);">' + money(it.qty * price) + '</div></div>';
     }).join('');
+    const discountAmount = isRetail ? (totalMrp - snap.totalAmount) : 0;
     document.getElementById('mainArea').innerHTML =
       '<div class="card">' +
         '<h2 style="font-size:17px;color:var(--green-800);text-align:center;margin-bottom:2px;">Mahakal Wellness</h2>' +
-        '<p class="hint" style="text-align:center;margin-bottom:14px;">Bill No. ' + escapeHtml(data.invoiceNo) + ' · ' + dateStr + '</p>' +
-        '<p class="hint" style="margin-bottom:10px;">' + escapeHtml(data.customerName || 'Customer') + ' · ' + escapeHtml(data.mobile || '') + ' · ' + escapeHtml(data.customerType) + '</p>' +
+        '<p class="hint" style="text-align:center;margin-bottom:14px;">Request No. ' + escapeHtml(String(orderId)) + ' · ' + dateStr + '</p>' +
+        '<p class="hint" style="margin-bottom:10px;">' + escapeHtml(snap.name || 'Customer') + ' · ' + escapeHtml(snap.mobile || '') + ' · ' + escapeHtml(snap.custType) + '</p>' +
         rows +
-        (data.discountAmount > 0 ? '<div class="total-row"><span class="lbl">Discount (' + trimNum(data.discountPercent) + '%)</span><span class="val" style="font-size:14px;color:var(--danger);">−' + money(data.discountAmount) + '</span></div>' : '') +
-        '<div class="total-row" style="border-top:none;padding-top:0;"><span class="lbl">Total SP</span><span class="val" style="font-size:15px;color:var(--gold-600);">' + trimNum(data.totalSp) + ' SP</span></div>' +
-        '<div class="total-row"><span class="lbl">Total</span><span class="val">' + money(data.totalAmount) + '</span></div>' +
+        (discountAmount > 0 ? '<div class="total-row"><span class="lbl">Discount (' + trimNum(snap.discountPercent) + '%)</span><span class="val" style="font-size:14px;color:var(--danger);">−' + money(discountAmount) + '</span></div>' : '') +
+        '<div class="total-row" style="border-top:none;padding-top:0;"><span class="lbl">Total SP</span><span class="val" style="font-size:15px;color:var(--gold-600);">' + trimNum(snap.totalSp) + ' SP</span></div>' +
+        '<div class="total-row"><span class="lbl">Total</span><span class="val">' + money(snap.totalAmount) + '</span></div>' +
       '</div>' +
-      '<p class="hint" style="text-align:center;margin-bottom:14px;">📸 Take a screenshot of this bill to keep or share.</p>' +
+      '<p class="hint" style="text-align:center;margin-bottom:14px;">📸 Take a screenshot of this bill to keep or share. This is a request — our team will confirm it shortly.</p>' +
       '<button class="btn btn-gold" onclick="goBackToForm()">← Place another order</button>';
   }
 
