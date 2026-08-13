@@ -470,6 +470,7 @@
     <!-- ============ ACCOUNTING TAB ============ -->
     <section id="tab-accounting" class="tab-panel">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadAccounting()">↻ Refresh</button>
+      <div class="card"><div class="receipt-total-row grand"><span>Net Due (all pending bills)</span><span id="acctNetDue">₹0</span></div></div>
       <div class="card"><p class="section-label">Find a bill</p><input type="text" id="acctSearch" class="search-input" placeholder="Invoice no, name or mobile…" oninput="searchAccounting()"></div>
       <div class="card"><h2>Amount pending</h2><div id="acctList"><div class="empty-cart">Loading…</div></div></div>
     </section>
@@ -841,6 +842,8 @@
         <button class="subtab active" data-subtab="online" onclick="switchPaymentStmtSubtab('online')">Online</button>
         <button class="subtab" data-subtab="cash" onclick="switchPaymentStmtSubtab('cash')">Cash</button>
         <button class="subtab" data-subtab="deposits" onclick="switchPaymentStmtSubtab('deposits')">Cash Deposits</button>
+        <button class="subtab" data-subtab="due" onclick="switchPaymentStmtSubtab('due')">Due</button>
+        <button class="subtab" data-subtab="wallet" onclick="switchPaymentStmtSubtab('wallet')">Wallet</button>
       </div>
 
       <div id="pstmt-online" class="subtab-panel active">
@@ -916,6 +919,38 @@
           <div id="depositsTotal" style="margin-bottom:10px;font-weight:700;color:var(--green-800);"></div>
           <div id="depositsList"><div class="empty-cart">Loading…</div></div>
         </div>
+      </div>
+
+      <div id="pstmt-due" class="subtab-panel">
+        <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadDueStatement()">↻ Refresh</button>
+        <div class="card">
+          <div class="field-row"><div class="field"><label>From</label><input type="date" id="dueFrom"></div><div class="field"><label>To</label><input type="date" id="dueTo"></div></div>
+          <button class="btn btn-primary btn-block" onclick="loadDueStatement()">Apply filter</button>
+        </div>
+        <div class="card"><div class="receipt-total-row grand"><span>Net Due (in this range)</span><span id="dueNetTotal">₹0</span></div></div>
+        <div class="card"><p class="section-label">Currently due</p><div id="dueList"><div class="empty-cart">Loading…</div></div></div>
+        <div class="card"><p class="section-label">Recently cleared</p><div id="dueClearedList"><div class="empty-cart">Loading…</div></div></div>
+      </div>
+
+      <div id="pstmt-wallet" class="subtab-panel">
+        <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadWalletStatement()">↻ Refresh</button>
+        <div class="card">
+          <p class="section-label">Quick range</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('wallet','today')">Today</button>
+            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('wallet','week')">This week (Thu–Wed)</button>
+            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('wallet','month')">This month</button>
+          </div>
+          <div class="field-row"><div class="field"><label>From</label><input type="date" id="pstmtWalletFrom"></div><div class="field"><label>To</label><input type="date" id="pstmtWalletTo"></div></div>
+          <button class="btn btn-primary btn-block" onclick="loadWalletStatement()">Apply filter</button>
+        </div>
+        <div class="card">
+          <div class="stat-grid">
+            <div class="stat-card"><div class="stat-label">Total Plus (Credit)</div><div class="stat-value" id="walletStmtCredit" style="font-size:18px;">₹0</div></div>
+            <div class="stat-card warn"><div class="stat-label">Total Used/Withdrawn (Debit)</div><div class="stat-value" id="walletStmtDebit" style="font-size:18px;">₹0</div></div>
+          </div>
+        </div>
+        <div class="card"><div id="walletStmtList"><div class="empty-cart">Loading…</div></div></div>
       </div>
     </section>
 
@@ -3224,7 +3259,8 @@
       items: (items || []).map(function (it) { return { code: it.product_code, name: it.product_name, qty: it.qty, dp: it.dp, sp: it.sp, mrp: it.mrp, pendingQty: it.pending_qty, deliveredQty: it.delivered_qty }; })
     };
     currentDetailBill = bill;
-    renderReceipt(bill, 'detailArea');
+    if (bill.customerType === 'Retail') renderRetailPrintReceipt(bill, 'detailArea');
+    else renderReceipt(bill, 'detailArea');
     renderOfficialDeliveryPaymentHistory(officialRows || [], deliveryRows || [], paymentRows || []);
     // Staff-only note (never printed - kept outside detailArea, which is what print/PDF/WhatsApp read from).
     document.getElementById('walletUsedNoteArea').innerHTML = (Number(bill.walletUsed) || 0) > 0.005
@@ -3516,6 +3552,8 @@
 
   function renderAccountingList(rows) {
     const box = document.getElementById('acctList');
+    const netDue = rows.reduce(function (s, r) { return s + (r.balance < -0.005 ? -r.balance : 0); }, 0);
+    document.getElementById('acctNetDue').textContent = money(netDue);
     if (!rows.length) { box.innerHTML = '<div class="empty-cart">No dues right now.</div>'; return; }
     box.innerHTML = rows.map(function (r) {
       const dateStr = new Date(r.invoice_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
@@ -5069,21 +5107,73 @@
   let paymentStmtData = { online: [], cash: [] };
   let cashDepositsData = [];
 
+  let dueStmtLoadedOnce = false, walletStmtLoadedOnce = false;
   function switchPaymentStmtSubtab(name) {
     const c = document.getElementById('tab-paymentstatement');
     c.querySelectorAll(':scope > .subtabs > .subtab[data-subtab]').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
     c.querySelectorAll(':scope > .subtab-panel').forEach(function (p) { p.classList.remove('active'); });
     document.getElementById('pstmt-' + name).classList.add('active');
+    if (name === 'due' && !dueStmtLoadedOnce) { dueStmtLoadedOnce = true; loadDueStatement(); }
+    if (name === 'wallet' && !walletStmtLoadedOnce) { walletStmtLoadedOnce = true; setPaymentStmtRange('wallet', 'month'); }
   }
 
   function setPaymentStmtRange(which, preset) {
     const now = new Date(); let from = new Date(now);
     if (preset === 'week') { const day = now.getDay(); const daysSinceThursday = (day - 4 + 7) % 7; from = new Date(now); from.setDate(now.getDate() - daysSinceThursday); }
     else if (preset === 'month') { from = new Date(now.getFullYear(), now.getMonth(), 1); }
-    const prefix = which === 'online' ? 'pstmtOnline' : (which === 'cash' ? 'pstmtCash' : 'pstmtDeposits');
+    const prefix = which === 'online' ? 'pstmtOnline' : (which === 'cash' ? 'pstmtCash' : (which === 'wallet' ? 'pstmtWallet' : 'pstmtDeposits'));
     document.getElementById(prefix + 'From').value = fmtDateInput_(from);
     document.getElementById(prefix + 'To').value = fmtDateInput_(now);
-    if (which === 'deposits') loadCashDeposits(); else loadPaymentStmt(which);
+    if (which === 'deposits') loadCashDeposits(); else if (which === 'wallet') loadWalletStatement(); else loadPaymentStmt(which);
+  }
+
+  async function loadDueStatement() {
+    const dueBox = document.getElementById('dueList');
+    const clearedBox = document.getElementById('dueClearedList');
+    dueBox.innerHTML = '<div class="empty-cart">Loading…</div>'; clearedBox.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const from = document.getElementById('dueFrom').value || null;
+    const to = document.getElementById('dueTo').value || null;
+
+    const { data: dueData, error: dueErr } = await sb.rpc('get_due_statement', { p_start_date: from, p_end_date: to });
+    if (dueErr) { dueBox.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(dueErr.message, true); return; }
+    document.getElementById('dueNetTotal').textContent = money(dueData.netDue);
+    const dueRows = dueData.rows || [];
+    dueBox.innerHTML = !dueRows.length ? '<div class="empty-cart">No dues in this range.</div>' : dueRows.map(function (r) {
+      const dateStr = new Date(r.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + r.invoiceNo + '</div><div class="result-meta">' + escapeHtml(r.customerName || 'Walk-in') + ' · ' + dateStr + '</div></div>' +
+        '<div class="amt" style="color:var(--danger);">' + money(r.due) + '</div></div>';
+    }).join('');
+
+    const { data: clearedData, error: clearedErr } = await sb.rpc('get_due_cleared_statement', { p_start_date: from, p_end_date: to });
+    if (clearedErr) { clearedBox.innerHTML = '<div class="empty-cart">Could not load.</div>'; return; }
+    const clearedRows = clearedData || [];
+    clearedBox.innerHTML = !clearedRows.length ? '<div class="empty-cart">No dues cleared in this range.</div>' : clearedRows.map(function (r) {
+      const dateStr = new Date(r.clearedDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + r.invoiceNo + '</div><div class="result-meta">' + escapeHtml(r.customerName || 'Walk-in') + ' · Cleared ' + dateStr + '</div></div>' +
+        '<div class="amt" style="color:var(--ok);">' + money(r.amount) + '</div></div>';
+    }).join('');
+  }
+
+  async function loadWalletStatement() {
+    const box = document.getElementById('walletStmtList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const from = document.getElementById('pstmtWalletFrom').value || null;
+    const to = document.getElementById('pstmtWalletTo').value || null;
+    const { data, error } = await sb.rpc('get_wallet_statement', { p_start_date: from, p_end_date: to });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
+    const rows = data || [];
+    const totalCredit = rows.reduce(function (s, r) { return s + (r.type === 'Credit' ? Number(r.amount) : 0); }, 0);
+    const totalDebit = rows.reduce(function (s, r) { return s + (r.type === 'Debit' ? Number(r.amount) : 0); }, 0);
+    document.getElementById('walletStmtCredit').textContent = money(totalCredit);
+    document.getElementById('walletStmtDebit').textContent = money(totalDebit);
+    if (!rows.length) { box.innerHTML = '<div class="empty-cart">No wallet activity in this range.</div>'; return; }
+    box.innerHTML = rows.map(function (r) {
+      const dateStr = new Date(r.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      const isCredit = r.type === 'Credit';
+      return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + escapeHtml(r.customerName || r.mobile) + '</div>' +
+        '<div class="result-meta">' + dateStr + (r.invoiceNo ? ' · ' + escapeHtml(r.invoiceNo) : '') + (r.note ? ' · ' + escapeHtml(r.note) : '') + '</div></div>' +
+        '<div class="amt" style="color:' + (isCredit ? 'var(--ok)' : 'var(--danger)') + ';">' + (isCredit ? '+' : '−') + money(r.amount) + '</div></div>';
+    }).join('');
   }
 
   async function loadPaymentStmt(which) {
