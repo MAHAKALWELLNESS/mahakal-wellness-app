@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Mahakal Wellness — Billing Counter</title>
 <link rel="manifest" href="manifest-staff.json">
-<meta name="theme-color" content="#132E26">
+<meta name="theme-color" content="#C74A0C">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
@@ -18,9 +18,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
   :root{
-    --green-900:#132E26; --green-800:#1E4A3D; --green-700:#2A5C4C; --green-100:#DCE9E3;
-    --gold-500:#D9A441; --gold-600:#B8842C; --gold-100:#F7E9C7;
-    --surface:#FFFFFF; --bg:#F6F5F1; --ink-soft:#555; --ink-faint:#8A8A8A; --line:#E7E4DC;
+    --green-900:#C74A0C; --green-800:#E8620F; --green-700:#F17A2E; --green-100:#FDECDD;
+    --gold-500:#F2A93B; --gold-600:#C97F1E; --gold-100:#FDF3DE;
+    --surface:#FFFFFF; --bg:#F8F6F3; --ink-soft:#555; --ink-faint:#8A8A8A; --line:#EDE6DE;
     --danger:#C0392B; --danger-100:#FBE7E4; --ok:#2E7D4F; --ok-100:#E3F1E8;
   }
   *{box-sizing:border-box;}
@@ -176,12 +176,12 @@
      dynamically injected) since that's the most reliable way for html2canvas
      to pick it up. */
   [data-pdf-capturing="1"], [data-pdf-capturing="1"] *{color:#222222 !important; border-color:#E7E4DC !important;}
-  [data-pdf-capturing="1"] h2{color:#1E4A3D !important;}
+  [data-pdf-capturing="1"] h2{color:#E8620F !important;}
   [data-pdf-capturing="1"] .receipt-meta{color:#555555 !important;}
   [data-pdf-capturing="1"] table.receipt-table th{color:#8A8A8A !important;}
-  [data-pdf-capturing="1"] table.receipt-table tbody tr:nth-child(even){background:#F6F5F1 !important;}
-  [data-pdf-capturing="1"] .receipt-total-row.grand{color:#1E4A3D !important;}
-  [data-pdf-capturing="1"] .badge{background:#F7E9C7 !important; color:#B8842C !important;}
+  [data-pdf-capturing="1"] table.receipt-table tbody tr:nth-child(even){background:#F8F6F3 !important;}
+  [data-pdf-capturing="1"] .receipt-total-row.grand{color:#E8620F !important;}
+  [data-pdf-capturing="1"] .badge{background:#FDF3DE !important; color:#C97F1E !important;}
   [data-pdf-capturing="1"]{background:#ffffff !important;}
   .badge{padding:2px 9px; border-radius:20px; font-size:10.5px; font-weight:700; white-space:nowrap;}
   .badge-paid{background:var(--ok-100); color:var(--ok);}
@@ -556,9 +556,11 @@
           </div>
         </div>
         <div class="card" id="transportParcelSection" style="display:none;box-shadow:none;background:var(--bg);margin:0 0 12px;">
-          <p class="section-label">Whose parcel is this? (optional)</p>
+          <p class="section-label">Whose parcel is this?</p>
           <div class="field"><label for="expLeaderMobile">Leader's mobile</label><input type="tel" id="expLeaderMobile" placeholder="10-digit mobile" maxlength="15" onblur="lookupExpenseLeader_()"></div>
+          <div class="field"><label for="expLeaderName">Leader's name</label><input type="text" id="expLeaderName" placeholder="Name (auto-filled if known — edit if needed)"></div>
           <p class="hint" id="expLeaderInfo" style="margin-bottom:8px;"></p>
+          <div class="field" style="margin-bottom:8px;"><label for="expParcelDestination">Parcel sent to (city/place)</label><input type="text" id="expParcelDestination" placeholder="Where was it sent?"></div>
           <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);cursor:pointer;margin-bottom:0;">
             <input type="checkbox" id="expDeductWallet" style="width:auto;margin:0;"> Deduct this amount from the leader's wallet
           </label>
@@ -3679,7 +3681,9 @@
     document.getElementById('transportParcelSection').style.display = isTransport ? 'block' : 'none';
     if (!isTransport) {
       document.getElementById('expLeaderMobile').value = '';
+      document.getElementById('expLeaderName').value = '';
       document.getElementById('expLeaderInfo').textContent = '';
+      document.getElementById('expParcelDestination').value = '';
       document.getElementById('expDeductWallet').checked = false;
     }
   }
@@ -3691,7 +3695,9 @@
     const { data: cust } = await sb.from('customers').select('name').eq('mobile', mobile).maybeSingle();
     const { data: wallet } = await sb.from('customer_wallets').select('balance').eq('mobile', mobile).maybeSingle();
     const balance = wallet ? Number(wallet.balance) : 0;
-    infoEl.textContent = (cust ? cust.name : 'New customer') + ' — Wallet balance: ' + money(balance);
+    const nameField = document.getElementById('expLeaderName');
+    if (cust && cust.name && !nameField.value.trim()) nameField.value = cust.name;
+    infoEl.textContent = (cust ? 'Found: ' + cust.name : 'New / not in customer list — enter their name above') + ' — Wallet balance: ' + money(balance);
   }
 
   function switchExpenseSubtab(name) {
@@ -3729,19 +3735,16 @@
 
     const isTransport = document.getElementById('expCategory').value.trim().toUpperCase() === 'TRANSPORT';
     const leaderMobile = isTransport ? document.getElementById('expLeaderMobile').value.trim() : '';
+    const leaderName = isTransport ? document.getElementById('expLeaderName').value.trim() : '';
+    const parcelDestination = isTransport ? document.getElementById('expParcelDestination').value.trim() : '';
     const deductWallet = isTransport && document.getElementById('expDeductWallet').checked;
     if (deductWallet && !leaderMobile) { showToast('Enter the leader\'s mobile number first.', true); return; }
-    let leaderName = '';
-    if (leaderMobile) {
-      const { data: cust } = await sb.from('customers').select('name').eq('mobile', leaderMobile).maybeSingle();
-      leaderName = cust ? (cust.name || '') : '';
-    }
 
     const { data, error } = await sb.from('expenses').insert({
       expense_date: document.getElementById('expDate').value || fmtDateInput_(new Date()),
       category: document.getElementById('expCategory').value.trim(), expense_name: name, cash: cash, online: online,
       paid_to: document.getElementById('expPaidTo').value.trim(), payment_done_by: document.getElementById('expPaidBy').value.trim(),
-      leader_mobile: leaderMobile || null, leader_name: leaderName || null, deducted_from_wallet: deductWallet
+      leader_mobile: leaderMobile || null, leader_name: leaderName || null, parcel_destination: parcelDestination || null, deducted_from_wallet: deductWallet
     }).select().single();
     if (error) { showToast(error.message, true); return; }
 
@@ -3823,7 +3826,7 @@
       const clickable = isSuperAdminUser ? ' style="cursor:pointer;" onclick="openEditExpense(expenseRowsById_[' + r.id + '])"' : ' style="cursor:default;"';
       return '<div class="list-row"' + clickable + '><div><div class="result-name">' + escapeHtml(r.expense_name) + '</div>' +
         '<div class="result-meta">' + (r.category ? escapeHtml(r.category) + ' · ' : '') + dateStr + (r.paid_to ? ' · ' + escapeHtml(r.paid_to) : '') +
-        (r.leader_name ? ' · Parcel: ' + escapeHtml(r.leader_name) + (r.deducted_from_wallet ? ' (wallet)' : '') : '') + '</div></div>' +
+        (r.leader_name ? ' · Parcel: ' + escapeHtml(r.leader_name) + (r.parcel_destination ? ' → ' + escapeHtml(r.parcel_destination) : '') + (r.deducted_from_wallet ? ' (wallet)' : '') : '') + '</div></div>' +
         '<div class="cart-amount"><div class="amt">' + money(r.total) + '</div>' + (r.payment_done_by ? '<div class="pts">by ' + escapeHtml(r.payment_done_by) + '</div>' : '') + '</div></div>';
     }).join('');
   }
@@ -5530,7 +5533,7 @@
   function downloadTablePdf(title, headers, rows) {
     const wrap = document.createElement('div');
     wrap.style.cssText = 'padding:14px;font-family:Arial,Helvetica,sans-serif;';
-    wrap.innerHTML = '<h2 style="color:#1E4A3D;margin-bottom:2px;">' + escapeHtml(title) + '</h2>' +
+    wrap.innerHTML = '<h2 style="color:#E8620F;margin-bottom:2px;">' + escapeHtml(title) + '</h2>' +
       '<p style="font-size:10.5px;color:#999;margin:0 0 14px;">Generated ' + new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) + '</p>' +
       '<table style="width:100%;border-collapse:collapse;font-size:11px;"><thead><tr>' +
       headers.map(function (h) { return '<th style="text-align:left;border-bottom:2px solid #333;padding:6px 5px;text-transform:uppercase;color:#555;">' + escapeHtml(h) + '</th>'; }).join('') +
