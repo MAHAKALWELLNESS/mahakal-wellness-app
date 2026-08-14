@@ -299,6 +299,7 @@
       <button class="tab" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
       <button class="tab active" data-tab="newbillmain" onclick="switchTab('newbillmain')">New Bill</button>
       <button class="tab" data-tab="publicorder" onclick="switchTab('publicorder')">Public Order</button>
+      <button class="tab" data-tab="queries" onclick="switchTab('queries')">Queries</button>
       <button class="tab" data-tab="approval" onclick="switchTab('approval')">Bill Approval</button>
       <button class="tab" data-tab="history" onclick="switchTab('history')">Past Bill</button>
       <button class="tab" data-tab="accounting" onclick="switchTab('accounting')">Accounting</button>
@@ -451,6 +452,12 @@
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadPublicOrders()">↻ Refresh</button>
       <div class="card" style="box-shadow:none;background:var(--gold-100);"><p style="color:var(--gold-600);font-weight:700;font-size:13px;margin:0;">These are customer requests from the public order form. Nothing here touches stock or bills until you Approve it.</p></div>
       <div id="publicOrderList"><div class="empty-cart">Loading…</div></div>
+    </section>
+
+    <!-- ============ QUERIES TAB (from the public front panel's Contact Us form) ============ -->
+    <section id="tab-queries" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadQueries()">↻ Refresh</button>
+      <div id="queriesList"><div class="empty-cart">Loading…</div></div>
     </section>
 
     <!-- ============ BILL APPROVAL TAB ============ -->
@@ -2579,6 +2586,7 @@
     if (name === 'stockreport' && !onlineStockLoadedOnce) switchStockSubtab('online');
     if (name === 'wallet') searchWalletCustomers();
     if (name === 'publicorder') loadPublicOrders();
+    if (name === 'queries') loadQueries();
     if (name === 'approval') searchApprovalBills();
     if (name === 'topperformer' && !topProductsLoadedOnce) { topProductsLoadedOnce = true; setTopProductsRange('offline', 'net'); }
     if (name === 'topperformer' && !topCustomersLoadedOnce) { topCustomersLoadedOnce = true; setTopCustomersRange('today'); }
@@ -3210,6 +3218,37 @@
     showToast('Request rejected.');
     document.getElementById('publicOrderDetailModal').classList.remove('show');
     loadPublicOrders();
+  }
+
+  // ---------------- QUERIES (from Contact Us on the public front panel) ----------------
+  async function loadQueries() {
+    const box = document.getElementById('queriesList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const { data, error } = await sb.from('customer_queries').select('*').order('created_at', { ascending: false });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
+    const rows = data || [];
+    if (!rows.length) { box.innerHTML = '<div class="card"><div class="empty-cart">No queries yet.</div></div>'; return; }
+    box.innerHTML = rows.map(function (r) {
+      const dateStr = new Date(r.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      const isNew = r.status === 'New';
+      let digits = String(r.mobile || '').replace(/\D/g, ''); if (digits.length === 10) digits = '91' + digits;
+      return '<div class="card">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">' +
+          '<div><div style="font-weight:700;color:var(--green-800);">' + escapeHtml(r.name || 'Anonymous') + '</div><div class="hint">' + escapeHtml(r.mobile) + ' · ' + dateStr + '</div></div>' +
+          '<span class="badge ' + (isNew ? 'badge-unpaid' : 'badge-paid') + '">' + r.status + '</span>' +
+        '</div>' +
+        '<p style="font-size:13.5px;color:#333;margin:0 0 10px;">' + escapeHtml(r.message) + '</p>' +
+        '<div style="display:flex;gap:8px;">' +
+          '<a class="btn btn-outline" style="flex:1;text-align:center;" href="https://wa.me/' + digits + '">WhatsApp</a>' +
+          (isNew ? '<button class="btn btn-outline" style="flex:1;" onclick="markQueryResponded(' + r.id + ')">Mark Responded</button>' : '') +
+        '</div></div>';
+    }).join('');
+  }
+
+  async function markQueryResponded(id) {
+    const { error } = await sb.rpc('mark_query_responded', { p_id: id });
+    if (error) { showToast(error.message, true); return; }
+    loadQueries();
   }
 
   function searchApprovalBills() {
