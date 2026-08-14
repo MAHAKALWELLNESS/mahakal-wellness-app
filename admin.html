@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Mahakal Wellness — Billing Counter</title>
 <link rel="manifest" href="manifest-staff.json">
-<meta name="theme-color" content="#C74A0C">
+<meta name="theme-color" content="#132E26">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
@@ -18,9 +18,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
   :root{
-    --green-900:#C74A0C; --green-800:#E8620F; --green-700:#F17A2E; --green-100:#FDECDD;
-    --gold-500:#F2A93B; --gold-600:#C97F1E; --gold-100:#FDF3DE;
-    --surface:#FFFFFF; --bg:#F8F6F3; --ink-soft:#555; --ink-faint:#8A8A8A; --line:#EDE6DE;
+    --green-900:#132E26; --green-800:#1E4A3D; --green-700:#2A5C4C; --green-100:#DCE9E3;
+    --gold-500:#D9A441; --gold-600:#B8842C; --gold-100:#F7E9C7;
+    --surface:#FFFFFF; --bg:#F6F5F1; --ink-soft:#555; --ink-faint:#8A8A8A; --line:#E7E4DC;
     --danger:#C0392B; --danger-100:#FBE7E4; --ok:#2E7D4F; --ok-100:#E3F1E8;
   }
   *{box-sizing:border-box;}
@@ -176,12 +176,12 @@
      dynamically injected) since that's the most reliable way for html2canvas
      to pick it up. */
   [data-pdf-capturing="1"], [data-pdf-capturing="1"] *{color:#222222 !important; border-color:#E7E4DC !important;}
-  [data-pdf-capturing="1"] h2{color:#E8620F !important;}
+  [data-pdf-capturing="1"] h2{color:#1E4A3D !important;}
   [data-pdf-capturing="1"] .receipt-meta{color:#555555 !important;}
   [data-pdf-capturing="1"] table.receipt-table th{color:#8A8A8A !important;}
-  [data-pdf-capturing="1"] table.receipt-table tbody tr:nth-child(even){background:#F8F6F3 !important;}
-  [data-pdf-capturing="1"] .receipt-total-row.grand{color:#E8620F !important;}
-  [data-pdf-capturing="1"] .badge{background:#FDF3DE !important; color:#C97F1E !important;}
+  [data-pdf-capturing="1"] table.receipt-table tbody tr:nth-child(even){background:#F6F5F1 !important;}
+  [data-pdf-capturing="1"] .receipt-total-row.grand{color:#1E4A3D !important;}
+  [data-pdf-capturing="1"] .badge{background:#F7E9C7 !important; color:#B8842C !important;}
   [data-pdf-capturing="1"]{background:#ffffff !important;}
   .badge{padding:2px 9px; border-radius:20px; font-size:10.5px; font-weight:700; white-space:nowrap;}
   .badge-paid{background:var(--ok-100); color:var(--ok);}
@@ -5533,7 +5533,7 @@
   function downloadTablePdf(title, headers, rows) {
     const wrap = document.createElement('div');
     wrap.style.cssText = 'padding:14px;font-family:Arial,Helvetica,sans-serif;';
-    wrap.innerHTML = '<h2 style="color:#E8620F;margin-bottom:2px;">' + escapeHtml(title) + '</h2>' +
+    wrap.innerHTML = '<h2 style="color:#1E4A3D;margin-bottom:2px;">' + escapeHtml(title) + '</h2>' +
       '<p style="font-size:10.5px;color:#999;margin:0 0 14px;">Generated ' + new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) + '</p>' +
       '<table style="width:100%;border-collapse:collapse;font-size:11px;"><thead><tr>' +
       headers.map(function (h) { return '<th style="text-align:left;border-bottom:2px solid #333;padding:6px 5px;text-transform:uppercase;color:#555;">' + escapeHtml(h) + '</th>'; }).join('') +
