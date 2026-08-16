@@ -820,6 +820,14 @@
       </div>
 
       <div class="card">
+        <p class="section-label">📲 Send Push Notification</p>
+        <p class="hint" style="margin-bottom:10px;">Sends an instant notification to every device that enabled notifications on the public order form — <strong id="pushSubCount">…</strong> subscribed right now.</p>
+        <div class="field"><label for="pushTitle">Title</label><input type="text" id="pushTitle" placeholder="e.g. New Offer!" maxlength="60"></div>
+        <div class="field" style="margin-bottom:0;"><label for="pushBody">Message</label><textarea id="pushBody" rows="3" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;" placeholder="Type the notification message…" maxlength="150"></textarea></div>
+        <button class="btn btn-gold btn-block" style="margin-top:10px;" id="sendPushBtn" onclick="sendPushNotification()">Send Push Notification</button>
+      </div>
+
+      <div class="card">
         <p class="section-label">Select recipients</p>
         <div style="display:flex;gap:8px;margin-bottom:10px;">
           <button class="btn btn-outline" style="flex:1;" onclick="selectAllBroadcastRecipients(true)">Select All</button>
@@ -2594,7 +2602,7 @@
     if (name === 'topperformer' && !topCustomersLoadedOnce) { topCustomersLoadedOnce = true; setTopCustomersRange('today'); }
     if (name === 'offers') loadOffers();
     if (name === 'offertracking') loadOfferTrackingDropdown();
-    if (name === 'broadcast' && !broadcastLoadedOnce) { broadcastLoadedOnce = true; loadBroadcastCustomers(); }
+    if (name === 'broadcast') { loadPushSubCount_(); if (!broadcastLoadedOnce) { broadcastLoadedOnce = true; loadBroadcastCustomers(); } }
     if (name === 'paymentstatement' && !paymentStmtLoadedOnce) { paymentStmtLoadedOnce = true; setPaymentStmtRange('online', 'today'); setPaymentStmtRange('cash', 'today'); setPaymentStmtRange('deposits', 'today'); }
     if (name === 'companypayout' && !companyPayoutLoadedOnce) { companyPayoutLoadedOnce = true; loadCompanyPayouts(); }
     if (name === 'profitreport') loadProfitReport();
@@ -4468,6 +4476,37 @@
       }
       window.open('https://gemini.google.com/app', '_blank');
     }
+  }
+
+  async function loadPushSubCount_() {
+    const { data, error } = await sb.rpc('get_push_subscriber_count');
+    const el = document.getElementById('pushSubCount');
+    if (el) el.textContent = error ? '?' : data;
+  }
+
+  async function sendPushNotification() {
+    const title = document.getElementById('pushTitle').value.trim();
+    const body = document.getElementById('pushBody').value.trim();
+    if (!title || !body) { showToast('Enter both a title and a message.', true); return; }
+    if (!confirm('Send this push notification to every subscribed device right now?')) return;
+    const btn = document.getElementById('sendPushBtn');
+    btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      const res = await fetch(SUPABASE_URL + '/functions/v1/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (session ? session.access_token : SUPABASE_ANON_KEY) },
+        body: JSON.stringify({ title: title, body: body })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed to send.');
+      showToast('Sent to ' + result.sent + ' of ' + result.total + ' device(s).');
+      document.getElementById('pushTitle').value = ''; document.getElementById('pushBody').value = '';
+      loadPushSubCount_();
+    } catch (err) {
+      showToast('Could not send: ' + err.message, true);
+    }
+    btn.disabled = false; btn.textContent = 'Send Push Notification';
   }
 
   function startBroadcast() {
