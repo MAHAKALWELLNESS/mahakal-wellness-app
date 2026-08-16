@@ -828,6 +828,14 @@
       </div>
 
       <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <p class="section-label" style="margin:0;">Sent notifications</p>
+          <button class="btn btn-outline" style="padding:6px 12px;font-size:12px;" onclick="clearAllNotificationsConfirm()">Clear All</button>
+        </div>
+        <div id="sentNotifList"><div class="empty-cart">Loading…</div></div>
+      </div>
+
+      <div class="card">
         <p class="section-label">Select recipients</p>
         <div style="display:flex;gap:8px;margin-bottom:10px;">
           <button class="btn btn-outline" style="flex:1;" onclick="selectAllBroadcastRecipients(true)">Select All</button>
@@ -1132,6 +1140,19 @@
       <div class="modal-actions">
         <button class="btn btn-outline" onclick="document.getElementById('editExpenseModal').classList.remove('show')">Cancel</button>
         <button class="btn btn-primary" onclick="submitEditExpense()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="editNotifModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:16px;color:var(--green-800);margin-bottom:14px;">Edit Notification</h2>
+      <p class="hint" style="margin-bottom:14px;">This corrects the record shown in the app's notification history. It does not resend or change what already appeared on devices.</p>
+      <div class="field"><label for="enTitle">Title</label><input type="text" id="enTitle" maxlength="60"></div>
+      <div class="field" style="margin-bottom:0;"><label for="enBody">Message</label><textarea id="enBody" rows="3" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;" maxlength="150"></textarea></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('editNotifModal').classList.remove('show')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitEditNotification()">Save</button>
       </div>
     </div>
   </div>
@@ -2602,7 +2623,7 @@
     if (name === 'topperformer' && !topCustomersLoadedOnce) { topCustomersLoadedOnce = true; setTopCustomersRange('today'); }
     if (name === 'offers') loadOffers();
     if (name === 'offertracking') loadOfferTrackingDropdown();
-    if (name === 'broadcast') { loadPushSubCount_(); if (!broadcastLoadedOnce) { broadcastLoadedOnce = true; loadBroadcastCustomers(); } }
+    if (name === 'broadcast') { loadPushSubCount_(); loadSentNotifications_(); if (!broadcastLoadedOnce) { broadcastLoadedOnce = true; loadBroadcastCustomers(); } }
     if (name === 'paymentstatement' && !paymentStmtLoadedOnce) { paymentStmtLoadedOnce = true; setPaymentStmtRange('online', 'today'); setPaymentStmtRange('cash', 'today'); setPaymentStmtRange('deposits', 'today'); }
     if (name === 'companypayout' && !companyPayoutLoadedOnce) { companyPayoutLoadedOnce = true; loadCompanyPayouts(); }
     if (name === 'profitreport') loadProfitReport();
@@ -4506,10 +4527,72 @@
       showToast('Sent to ' + result.sent + ' of ' + result.total + ' device(s).');
       document.getElementById('pushTitle').value = ''; document.getElementById('pushBody').value = '';
       loadPushSubCount_();
+      loadSentNotifications_();
     } catch (err) {
       showToast('Could not send: ' + err.message, true);
     }
     btn.disabled = false; btn.textContent = 'Send Push Notification';
+  }
+
+  let sentNotifsById_ = {};
+  async function loadSentNotifications_() {
+    const box = document.getElementById('sentNotifList');
+    if (!box) return;
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const { data, error } = await sb.rpc('get_recent_notifications', { p_limit: 30 });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; return; }
+    const rows = data || [];
+    if (!rows.length) { box.innerHTML = '<div class="empty-cart">No notifications sent yet.</div>'; return; }
+    sentNotifsById_ = {};
+    rows.forEach(function (r) { sentNotifsById_[r.id] = r; });
+    box.innerHTML = rows.map(function (r) {
+      const dateStr = new Date(r.sent_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      return '<div class="list-row" style="align-items:flex-start;flex-direction:column;gap:6px;">' +
+        '<div style="width:100%;"><div class="result-name">' + escapeHtml(r.title) + '</div>' +
+        '<div class="result-meta">' + escapeHtml(r.body) + '</div>' +
+        '<div class="hint">' + dateStr + '</div></div>' +
+        '<div style="display:flex;gap:8px;width:100%;">' +
+        '<button class="btn btn-outline" style="flex:1;padding:7px;font-size:12px;" onclick="openEditNotification(' + r.id + ')">Edit</button>' +
+        '<button class="btn btn-outline" style="flex:1;padding:7px;font-size:12px;color:var(--danger);border-color:var(--danger);" onclick="deleteNotificationConfirm(' + r.id + ')">Delete</button>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  let currentEditNotifId = null;
+  function openEditNotification(id) {
+    const n = sentNotifsById_[id];
+    if (!n) return;
+    currentEditNotifId = id;
+    document.getElementById('enTitle').value = n.title;
+    document.getElementById('enBody').value = n.body;
+    document.getElementById('editNotifModal').classList.add('show');
+  }
+
+  async function submitEditNotification() {
+    const title = document.getElementById('enTitle').value.trim();
+    const body = document.getElementById('enBody').value.trim();
+    if (!title || !body) { showToast('Enter both a title and a message.', true); return; }
+    const { error } = await sb.rpc('update_sent_notification', { p_id: currentEditNotifId, p_title: title, p_body: body });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Notification updated.');
+    document.getElementById('editNotifModal').classList.remove('show');
+    loadSentNotifications_();
+  }
+
+  async function deleteNotificationConfirm(id) {
+    if (!confirm('Delete this notification from the history? This does not un-send it from devices already notified.')) return;
+    const { error } = await sb.rpc('delete_sent_notification', { p_id: id });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Notification deleted.');
+    loadSentNotifications_();
+  }
+
+  async function clearAllNotificationsConfirm() {
+    if (!confirm('Clear ALL notification history? This cannot be undone.')) return;
+    const { error } = await sb.rpc('clear_all_notifications');
+    if (error) { showToast(error.message, true); return; }
+    showToast('Notification history cleared.');
+    loadSentNotifications_();
   }
 
   function startBroadcast() {

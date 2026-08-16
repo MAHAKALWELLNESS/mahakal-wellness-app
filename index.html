@@ -75,6 +75,7 @@
   </div>
 
   <div id="installWelcome" style="display:none;min-height:90vh;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;">
+    <img src="icon-192.png" alt="Mahakal Wellness" style="width:130px;height:130px;border-radius:50%;box-shadow:0 6px 20px rgba(19,46,38,.18);margin-bottom:18px;">
     <div class="brand">
       <h1>Welcome to Mahakal Wellness</h1>
       <p>Your wellness, our priority</p>
@@ -257,13 +258,26 @@
   }
 
   // ---------------- Notification bell + in-app history ----------------
+  // Read state is tracked per-device as { [notifId]: readAtEpochMs }.
+  function getReadMap_() {
+    try { return JSON.parse(localStorage.getItem('mwReadNotifs') || '{}'); } catch (e) { return {}; }
+  }
+  function markAsRead_(id) {
+    const map = getReadMap_();
+    if (!map[id]) {
+      map[id] = Date.now();
+      localStorage.setItem('mwReadNotifs', JSON.stringify(map));
+    }
+    loadNotifHistory_();
+  }
+
   async function renderNotifBell_() {
     const badge = document.getElementById('notifBadge');
-    const { data, error } = await sb.rpc('get_recent_notifications', { p_limit: 20 });
+    const { data, error } = await sb.rpc('get_recent_notifications', { p_limit: 50 });
     if (error || !data) return;
-    const lastReadId = Number(localStorage.getItem('mwLastReadNotifId') || 0);
-    const unread = data.filter(function (n) { return n.id > lastReadId; }).length;
-    if (unread > 0 && Notification.permission === 'granted') {
+    const readMap = getReadMap_();
+    const unread = data.filter(function (n) { return !readMap[n.id]; }).length;
+    if (unread > 0) {
       badge.textContent = unread > 9 ? '9+' : String(unread);
       badge.style.display = 'block';
     } else {
@@ -285,20 +299,45 @@
   async function loadNotifHistory_() {
     const box = document.getElementById('notifList');
     box.innerHTML = '<div class="footer-note">Loading…</div>';
-    const { data, error } = await sb.rpc('get_recent_notifications', { p_limit: 20 });
+    const { data, error } = await sb.rpc('get_recent_notifications', { p_limit: 50 });
     if (error) { box.innerHTML = '<div class="footer-note">Could not load notifications.</div>'; return; }
-    const rows = data || [];
-    if (!rows.length) { box.innerHTML = '<div class="footer-note">No notifications yet.</div>'; }
-    else {
-      box.innerHTML = rows.map(function (r) {
-        const dateStr = new Date(r.sent_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-        return '<div class="choice-card" style="margin-bottom:8px;padding:14px;">' +
-          '<div style="font-weight:700;color:var(--green-800);font-size:14px;">' + r.title.replace(/</g, '&lt;') + '</div>' +
-          '<div style="font-size:13px;color:#333;margin:4px 0;">' + r.body.replace(/</g, '&lt;') + '</div>' +
-          '<div class="footer-note" style="text-align:left;margin-top:0;">' + dateStr + '</div></div>';
-      }).join('');
-      localStorage.setItem('mwLastReadNotifId', String(Math.max.apply(null, rows.map(function (r) { return r.id; }))));
+    let rows = data || [];
+    const readMap = getReadMap_();
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    // Read items older than 24h (since being read) quietly drop out of the list.
+    rows = rows.filter(function (r) {
+      const readAt = readMap[r.id];
+      return !readAt || (now - readAt) < DAY_MS;
+    });
+
+    const unread = rows.filter(function (r) { return !readMap[r.id]; })
+      .sort(function (a, b) { return new Date(b.sent_at) - new Date(a.sent_at); });
+    const read = rows.filter(function (r) { return readMap[r.id]; })
+      .sort(function (a, b) { return readMap[b.id] - readMap[a.id]; });
+
+    if (!rows.length) { box.innerHTML = '<div class="footer-note">No notifications yet.</div>'; renderNotifBell_(); return; }
+
+    function rowHtml(r, isUnread) {
+      const dateStr = new Date(r.sent_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      return '<div class="choice-card" data-notif-id="' + r.id + '" onclick="markAsRead_(' + r.id + ')" style="margin-bottom:8px;padding:14px;cursor:pointer;text-align:left;' +
+        (isUnread ? 'border-left:4px solid var(--gold-500);background:var(--gold-100);' : 'opacity:.7;') + '">' +
+        '<div style="display:flex;justify-content:space-between;gap:8px;">' +
+        '<div style="font-weight:700;color:var(--green-800);font-size:14px;">' + r.title.replace(/</g, '&lt;') + '</div>' +
+        (isUnread ? '<span style="background:var(--gold-500);color:var(--green-900);font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;flex:none;height:fit-content;">NEW</span>' : '') +
+        '</div>' +
+        '<div style="font-size:13px;color:#333;margin:4px 0;white-space:pre-wrap;">' + r.body.replace(/</g, '&lt;') + '</div>' +
+        '<div class="footer-note" style="text-align:left;margin-top:0;">' + dateStr + '</div></div>';
     }
+
+    let html = '';
+    if (unread.length) html += unread.map(function (r) { return rowHtml(r, true); }).join('');
+    if (read.length) {
+      if (unread.length) html += '<p class="footer-note" style="text-align:left;margin:14px 0 8px;text-transform:uppercase;font-weight:700;letter-spacing:.4px;">Earlier</p>';
+      html += read.map(function (r) { return rowHtml(r, false); }).join('');
+    }
+    box.innerHTML = html;
     renderNotifBell_();
   }
 
