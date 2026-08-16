@@ -4,8 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Mahakal Wellness</title>
+<link rel="manifest" href="manifest-main.json">
 <meta name="theme-color" content="#132E26">
 <link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mahakal Wellness">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -53,7 +59,30 @@
 </style>
 </head>
 <body>
-  <div class="brand">
+  <button id="notifBellBtn" onclick="openNotifPanel_()" style="position:fixed;top:14px;right:14px;background:var(--surface);border:1.5px solid var(--line);color:var(--green-900);width:38px;height:38px;border-radius:50%;font-size:17px;cursor:pointer;z-index:20;">🔔<span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger, #C0392B);color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:8px;line-height:16px;padding:0 3px;"></span></button>
+
+  <div id="notifPanel" style="display:none;position:fixed;inset:0;background:rgba(19,46,38,.45);z-index:60;align-items:flex-end;justify-content:center;">
+    <div style="background:var(--surface);width:100%;max-width:420px;max-height:80vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h2 style="font-size:16px;color:var(--green-800);margin:0;">Notifications</h2>
+        <button onclick="closeNotifPanel_()" style="background:var(--bg);border:1.5px solid var(--line);border-radius:50%;width:30px;height:30px;font-size:14px;cursor:pointer;color:var(--ink-soft);">✕</button>
+      </div>
+      <div id="notifEnableRow" style="display:none;margin-bottom:14px;">
+        <button class="choice-card primary" style="width:100%;text-align:center;padding:12px;cursor:pointer;border:none;" onclick="enablePushNotifications_()">🔔 Enable Notifications</button>
+      </div>
+      <div id="notifList"><div class="footer-note">Loading…</div></div>
+    </div>
+  </div>
+
+  <div id="installWelcome" style="display:none;min-height:90vh;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;">
+    <div class="brand">
+      <h1>Welcome to Mahakal Wellness</h1>
+      <p>Your wellness, our priority</p>
+    </div>
+    <button class="choice-card primary" style="width:100%;max-width:400px;text-align:center;padding:16px;cursor:pointer;border:none;margin-top:14px;" onclick="continueFromWelcome_()">Continue</button>
+  </div>
+
+  <div class="brand" id="mainBrand">
     <h1>Mahakal Wellness</h1>
     <p>WELCOME</p>
   </div>
@@ -174,9 +203,6 @@
     window.location.href = 'admin.html';
   }
 
-  // Register the shared service worker here too (no manifest link - this
-  // page itself stays non-installable, only enables push notifications) and
-  // ask for notification permission right away, on first open.
   const PUSH_VAPID_PUBLIC_KEY = 'BF8D3xu3flEF0NiA6DEQhOtYSe19SwHnlUBNI4wjgA9-kZn9PeUyfl8iFvMEBwVyJLUhedzyqBQ4xW1g_dCiLFQ';
 
   function urlBase64ToUint8Array_(base64String) {
@@ -190,23 +216,94 @@
 
   async function enablePushNotifications_() {
     if (!('Notification' in window) || !('PushManager' in window)) return;
-    if (Notification.permission !== 'default') return; // already decided earlier - don't ask again
+    if (Notification.permission === 'denied') return;
     try {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') return;
       const reg = await navigator.serviceWorker.ready;
-      const subscription = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array_(PUSH_VAPID_PUBLIC_KEY)
-      });
+      let subscription = await reg.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array_(PUSH_VAPID_PUBLIC_KEY)
+        });
+      }
       const json = subscription.toJSON();
       await sb.rpc('save_push_subscription', { p_endpoint: json.endpoint, p_p256dh_key: json.keys.p256dh, p_auth_key: json.keys.auth });
+      renderNotifBell_();
     } catch (err) {}
+  }
+
+  // ---------------- Welcome screen (shown once, only when opened as an installed app) ----------------
+  function checkInstalledWelcome_() {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (isStandalone && !localStorage.getItem('mwWelcomeSeen')) {
+      document.getElementById('installWelcome').style.display = 'flex';
+      document.getElementById('mainBrand').style.display = 'none';
+      document.getElementById('mainChoices').style.display = 'none';
+    }
+  }
+
+  function continueFromWelcome_() {
+    localStorage.setItem('mwWelcomeSeen', '1');
+    document.getElementById('installWelcome').style.display = 'none';
+    document.getElementById('mainBrand').style.display = 'block';
+    document.getElementById('mainChoices').style.display = 'flex';
+    enablePushNotifications_();
+  }
+
+  // ---------------- Notification bell + in-app history ----------------
+  async function renderNotifBell_() {
+    const badge = document.getElementById('notifBadge');
+    const { data, error } = await sb.rpc('get_recent_notifications', { p_limit: 20 });
+    if (error || !data) return;
+    const lastReadId = Number(localStorage.getItem('mwLastReadNotifId') || 0);
+    const unread = data.filter(function (n) { return n.id > lastReadId; }).length;
+    if (unread > 0 && Notification.permission === 'granted') {
+      badge.textContent = unread > 9 ? '9+' : String(unread);
+      badge.style.display = 'block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function openNotifPanel_() {
+    document.getElementById('notifPanel').style.display = 'flex';
+    const supported = ('Notification' in window) && ('PushManager' in window);
+    document.getElementById('notifEnableRow').style.display = (supported && Notification.permission !== 'granted') ? 'block' : 'none';
+    loadNotifHistory_();
+  }
+
+  function closeNotifPanel_() {
+    document.getElementById('notifPanel').style.display = 'none';
+  }
+
+  async function loadNotifHistory_() {
+    const box = document.getElementById('notifList');
+    box.innerHTML = '<div class="footer-note">Loading…</div>';
+    const { data, error } = await sb.rpc('get_recent_notifications', { p_limit: 20 });
+    if (error) { box.innerHTML = '<div class="footer-note">Could not load notifications.</div>'; return; }
+    const rows = data || [];
+    if (!rows.length) { box.innerHTML = '<div class="footer-note">No notifications yet.</div>'; }
+    else {
+      box.innerHTML = rows.map(function (r) {
+        const dateStr = new Date(r.sent_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+        return '<div class="choice-card" style="margin-bottom:8px;padding:14px;">' +
+          '<div style="font-weight:700;color:var(--green-800);font-size:14px;">' + r.title.replace(/</g, '&lt;') + '</div>' +
+          '<div style="font-size:13px;color:#333;margin:4px 0;">' + r.body.replace(/</g, '&lt;') + '</div>' +
+          '<div class="footer-note" style="text-align:left;margin-top:0;">' + dateStr + '</div></div>';
+      }).join('');
+      localStorage.setItem('mwLastReadNotifId', String(Math.max.apply(null, rows.map(function (r) { return r.id; }))));
+    }
+    renderNotifBell_();
   }
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').then(function () { enablePushNotifications_(); }).catch(function () {});
+      navigator.serviceWorker.register('sw.js').then(function () {
+        checkInstalledWelcome_();
+        renderNotifBell_();
+      }).catch(function () {});
     });
   }
 </script>
