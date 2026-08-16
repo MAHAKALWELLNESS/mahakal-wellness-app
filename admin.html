@@ -299,7 +299,6 @@
       <button class="tab" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
       <button class="tab active" data-tab="newbillmain" onclick="switchTab('newbillmain')">New Bill</button>
       <button class="tab" data-tab="publicorder" onclick="switchTab('publicorder')">Public Order</button>
-      <button class="tab" data-tab="queries" onclick="switchTab('queries')">Queries</button>
       <button class="tab" data-tab="approval" onclick="switchTab('approval')">Bill Approval</button>
       <button class="tab" data-tab="history" onclick="switchTab('history')">Past Bill</button>
       <button class="tab" data-tab="accounting" onclick="switchTab('accounting')">Accounting</button>
@@ -313,6 +312,7 @@
       <button class="tab" data-tab="offers" onclick="switchTab('offers')">Offers</button>
       <button class="tab" data-tab="offertracking" onclick="switchTab('offertracking')">Offer Tracking</button>
       <button class="tab" data-tab="broadcast" onclick="switchTab('broadcast')">Broadcast</button>
+      <button class="tab" data-tab="queries" onclick="switchTab('queries')">Queries</button>
       <button class="tab" data-tab="paymentstatement" onclick="switchTab('paymentstatement')">Payment Statement</button>
       <button class="tab" data-tab="companypayout" id="tabBtnCompanyPayout" onclick="switchTab('companypayout')" style="display:none;">Company Payout</button>
       <button class="tab" data-tab="profitreport" id="tabBtnProfitReport" onclick="switchTab('profitreport')" style="display:none;">Profit Report</button>
@@ -3156,7 +3156,8 @@
       const dateStr = new Date(r.invoice_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
       const badges = isCancelled ? '<span class="badge badge-unpaid">Cancelled</span>' :
         '<span class="badge ' + cls + '">' + payLabel + '</span><span class="badge ' + dCls + '">' + (r.delivery_status === 'Partial' ? 'Pending' : 'Delivered') + '</span><span class="badge ' + spCls + '">' + spLabel + '</span>';
-      return '<div class="list-row" data-inv="' + r.invoice_no + '" style="' + (isCancelled ? 'opacity:.6;' : '') + '"><div><div class="result-name">' + r.invoice_no + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div>' +
+      const sourceTag = r.source === 'Public' ? ' <span style="font-size:10px;font-weight:700;color:var(--gold-600);">(Public)</span>' : ' <span style="font-size:10px;font-weight:700;color:var(--ink-faint);">(Staff)</span>';
+      return '<div class="list-row" data-inv="' + r.invoice_no + '" style="' + (isCancelled ? 'opacity:.6;' : '') + '"><div><div class="result-name">' + r.invoice_no + sourceTag + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div>' +
         '<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;">' + badges + '</div></div>' +
         '<div class="cart-amount"><div class="amt">' + money(r.total_dp) + '</div><div class="pts">' + trimNum(r.total_sp) + ' SP</div></div></div>';
     }).join('');
@@ -3278,7 +3279,8 @@
     if (!rows.length) { box.innerHTML = '<div class="empty-cart">Nothing awaiting approval — all caught up.</div>'; return; }
     box.innerHTML = rows.map(function (r) {
       const dateStr = new Date(r.invoice_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-      return '<div class="list-row" data-inv="' + r.invoice_no + '"><div><div class="result-name">' + r.invoice_no + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div></div>' +
+      const sourceTag = r.source === 'Public' ? ' <span style="font-size:10px;font-weight:700;color:var(--gold-600);">(Public)</span>' : ' <span style="font-size:10px;font-weight:700;color:var(--ink-faint);">(Staff)</span>';
+      return '<div class="list-row" data-inv="' + r.invoice_no + '"><div><div class="result-name">' + r.invoice_no + sourceTag + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div></div>' +
         '<div style="text-align:right;"><div class="amt">' + money(r.total_dp) + '</div><span class="badge badge-partial">Pending Approval</span></div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { viewBill(row.dataset.inv, false); }); });
@@ -3607,7 +3609,8 @@
     box.innerHTML = rows.map(function (r) {
       const dateStr = new Date(r.invoice_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
       const due = r.balance < -0.005;
-      return '<div class="list-row" data-inv="' + r.invoice_no + '"><div><div class="result-name">' + r.invoice_no + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div></div>' +
+      const sourceTag = r.source === 'Public' ? ' <span style="font-size:10px;font-weight:700;color:var(--gold-600);">(Public)</span>' : ' <span style="font-size:10px;font-weight:700;color:var(--ink-faint);">(Staff)</span>';
+      return '<div class="list-row" data-inv="' + r.invoice_no + '"><div><div class="result-name">' + r.invoice_no + sourceTag + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div></div>' +
         '<div style="text-align:right;"><div class="amt">' + money(r.total_dp) + '</div><div class="pts" style="color:' + (due ? 'var(--danger)' : 'var(--ok)') + ';">' + (due ? 'Due ' + money(-r.balance) : 'Settled') + '</div></div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { viewBill(row.dataset.inv, true); }); });
