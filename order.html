@@ -68,12 +68,28 @@
 </style>
 </head>
 <body>
-  <header class="topbar">
+  <header class="topbar" style="position:relative;">
+    <button id="notifBellBtn" onclick="openNotifPanel_()" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff;width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;">🔔</button>
     <a href="index.html" style="display:inline-block;margin-bottom:8px;color:var(--green-100);font-size:12px;font-weight:600;text-decoration:none;opacity:.9;">← Back to Main Page</a>
     <h1>Mahakal Wellness</h1>
     <p>Place an Order</p>
     <button onclick="refreshOrderForm()" style="margin-top:10px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;">↻ Refresh</button>
   </header>
+
+  <div class="modal-overlay-notif" id="notifPanel" style="display:none;position:fixed;inset:0;background:rgba(19,46,38,.45);z-index:60;align-items:flex-end;justify-content:center;">
+    <div style="background:var(--surface);width:100%;max-width:520px;max-height:80vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h2 style="font-size:16px;color:var(--green-800);margin:0;">Notifications</h2>
+        <button onclick="closeNotifPanel_()" style="background:var(--bg);border:1.5px solid var(--line);border-radius:50%;width:30px;height:30px;font-size:14px;cursor:pointer;color:var(--ink-soft);">✕</button>
+      </div>
+      <div id="notifEnableRow" style="display:none;margin-bottom:14px;">
+        <button class="btn btn-gold btn-block" onclick="enablePushNotifications_()">🔔 Enable Notifications</button>
+        <p class="hint" id="notifPanelMsg" style="margin-top:6px;"></p>
+      </div>
+      <div id="notifList"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+
   <div style="max-width:520px;margin:14px auto 0;padding:0 16px;display:flex;gap:8px;">
     <button id="tabBtnOrder" onclick="switchOrderFormTab('order')" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--green-800);background:var(--green-800);color:#fff;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;">Place Order</button>
     <button id="tabBtnTrack" onclick="switchOrderFormTab('track')" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--ink-soft);font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;">Track My Bills</button>
@@ -589,26 +605,68 @@
   }
 
   async function enablePushNotifications_() {
-    if (!('Notification' in window) || !('PushManager' in window)) return;
-    if (Notification.permission !== 'default') return; // already decided earlier - don't ask again
+    if (!('Notification' in window) || !('PushManager' in window)) { showToast_('Notifications aren\'t supported on this browser.'); return; }
+    if (Notification.permission === 'denied') { showToast_('Notifications are blocked — enable them from your browser\'s site settings.'); return; }
     try {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') return;
       const reg = await navigator.serviceWorker.ready;
-      const subscription = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array_(PUSH_VAPID_PUBLIC_KEY)
-      });
+      let subscription = await reg.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array_(PUSH_VAPID_PUBLIC_KEY)
+        });
+      }
       const json = subscription.toJSON();
       await sb.rpc('save_push_subscription', { p_endpoint: json.endpoint, p_p256dh_key: json.keys.p256dh, p_auth_key: json.keys.auth });
+      renderNotifBell_();
     } catch (err) {}
   }
 
-  window.addEventListener('appinstalled', function () { enablePushNotifications_(); });
+  function showToast_(msg) {
+    const errBox = document.getElementById('notifPanelMsg');
+    if (errBox) errBox.textContent = msg;
+  }
+
+  function renderNotifBell_() {
+    const btn = document.getElementById('notifBellBtn');
+    if (!btn) return;
+    const supported = ('Notification' in window) && ('PushManager' in window);
+    btn.textContent = (supported && Notification.permission === 'granted') ? '🔔' : '🔕';
+  }
+
+  function openNotifPanel_() {
+    document.getElementById('notifPanel').style.display = 'flex';
+    document.getElementById('notifPanelMsg').textContent = '';
+    const supported = ('Notification' in window) && ('PushManager' in window);
+    document.getElementById('notifEnableRow').style.display = (supported && Notification.permission !== 'granted') ? 'block' : 'none';
+    loadNotifHistory_();
+  }
+
+  function closeNotifPanel_() {
+    document.getElementById('notifPanel').style.display = 'none';
+  }
+
+  async function loadNotifHistory_() {
+    const box = document.getElementById('notifList');
+    box.innerHTML = '<div class="empty">Loading…</div>';
+    const { data, error } = await sb.rpc('get_recent_notifications', { p_limit: 20 });
+    if (error) { box.innerHTML = '<div class="empty">Could not load notifications.</div>'; return; }
+    const rows = data || [];
+    if (!rows.length) { box.innerHTML = '<div class="empty">No notifications yet.</div>'; return; }
+    box.innerHTML = rows.map(function (r) {
+      const dateStr = new Date(r.sent_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      return '<div class="card" style="margin-bottom:8px;">' +
+        '<div style="font-weight:700;color:var(--green-800);font-size:14px;">' + escapeHtml(r.title) + '</div>' +
+        '<div style="font-size:13px;color:#333;margin:4px 0;">' + escapeHtml(r.body) + '</div>' +
+        '<div class="hint">' + dateStr + '</div></div>';
+    }).join('');
+  }
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').then(function () { enablePushNotifications_(); }).catch(function () {});
+      navigator.serviceWorker.register('sw.js').then(function () { renderNotifBell_(); }).catch(function () {});
     });
   }
 </script>
