@@ -242,7 +242,7 @@
   // ---------------- Welcome screen (shown once, only when opened as an installed app) ----------------
   function checkInstalledWelcome_() {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-    if (isStandalone && !localStorage.getItem('mwWelcomeSeen')) {
+    if (isStandalone) {
       document.getElementById('installWelcome').style.display = 'flex';
       document.getElementById('mainBrand').style.display = 'none';
       document.getElementById('mainChoices').style.display = 'none';
@@ -250,7 +250,6 @@
   }
 
   function continueFromWelcome_() {
-    localStorage.setItem('mwWelcomeSeen', '1');
     document.getElementById('installWelcome').style.display = 'none';
     document.getElementById('mainBrand').style.display = 'block';
     document.getElementById('mainChoices').style.display = 'flex';
