@@ -87,6 +87,11 @@
     <p>WELCOME</p>
   </div>
   <div class="choices" id="mainChoices">
+    <button class="choice-card primary" id="installAppBtn" style="display:none;cursor:pointer;border:none;width:100%;text-align:left;" onclick="triggerInstall_()">
+      <div class="choice-icon">📲</div>
+      <div class="choice-title" style="color:#fff;">Install App</div>
+      <div class="choice-desc" style="color:var(--green-100);">Add Mahakal Wellness to your home screen for quick access.</div>
+    </button>
     <a class="choice-card primary" href="order.html">
       <div class="choice-icon">🛒</div>
       <div class="choice-title">Purchase Product</div>
@@ -297,6 +302,30 @@
     }
     renderNotifBell_();
   }
+
+  // ---------------- Install App button (works even when Chrome's automatic
+  // banner is suppressed, e.g. right after an uninstall) ----------------
+  let deferredInstallPrompt_ = null;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredInstallPrompt_ = e;
+    const btn = document.getElementById('installAppBtn');
+    if (btn) btn.style.display = 'block';
+  });
+
+  async function triggerInstall_() {
+    if (!deferredInstallPrompt_) return;
+    document.getElementById('installAppBtn').style.display = 'none';
+    deferredInstallPrompt_.prompt();
+    await deferredInstallPrompt_.userChoice;
+    deferredInstallPrompt_ = null;
+  }
+
+  window.addEventListener('appinstalled', function () {
+    const btn = document.getElementById('installAppBtn');
+    if (btn) btn.style.display = 'none';
+    deferredInstallPrompt_ = null;
+  });
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
