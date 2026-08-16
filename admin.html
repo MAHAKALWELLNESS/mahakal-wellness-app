@@ -822,8 +822,8 @@
       <div class="card">
         <p class="section-label">📲 Send Push Notification</p>
         <p class="hint" style="margin-bottom:10px;">Sends an instant notification to every device that enabled notifications on the public order form — <strong id="pushSubCount">…</strong> subscribed right now.</p>
-        <div class="field"><label for="pushTitle">Title</label><input type="text" id="pushTitle" placeholder="e.g. New Offer!" maxlength="60"></div>
-        <div class="field" style="margin-bottom:0;"><label for="pushBody">Message</label><textarea id="pushBody" rows="3" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;" placeholder="Type the notification message…" maxlength="150"></textarea></div>
+        <div class="field"><label for="pushTitle">Title</label><input type="text" id="pushTitle" placeholder="e.g. New Offer!"></div>
+        <div class="field" style="margin-bottom:0;"><label for="pushBody">Message</label><textarea id="pushBody" rows="5" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;" placeholder="Type the notification message…"></textarea></div>
         <button class="btn btn-gold btn-block" style="margin-top:10px;" id="sendPushBtn" onclick="sendPushNotification()">Send Push Notification</button>
       </div>
 
@@ -1148,8 +1148,8 @@
     <div class="modal-sheet">
       <h2 style="font-size:16px;color:var(--green-800);margin-bottom:14px;">Edit Notification</h2>
       <p class="hint" style="margin-bottom:14px;">This corrects the record shown in the app's notification history. It does not resend or change what already appeared on devices.</p>
-      <div class="field"><label for="enTitle">Title</label><input type="text" id="enTitle" maxlength="60"></div>
-      <div class="field" style="margin-bottom:0;"><label for="enBody">Message</label><textarea id="enBody" rows="3" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;" maxlength="150"></textarea></div>
+      <div class="field"><label for="enTitle">Title</label><input type="text" id="enTitle"></div>
+      <div class="field" style="margin-bottom:0;"><label for="enBody">Message</label><textarea id="enBody" rows="5" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;"></textarea></div>
       <div class="modal-actions">
         <button class="btn btn-outline" onclick="document.getElementById('editNotifModal').classList.remove('show')">Cancel</button>
         <button class="btn btn-primary" onclick="submitEditNotification()">Save</button>

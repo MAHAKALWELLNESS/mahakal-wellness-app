@@ -125,7 +125,10 @@
   </div>
   <div class="code-gate" id="codeGate" style="display:none;">
     <label for="adminCodeInput">Enter Admin Link Code</label>
-    <input type="password" id="adminCodeInput" placeholder="Code" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();verifyAdminCode();}">
+    <div style="position:relative;">
+      <input type="password" id="adminCodeInput" placeholder="Code" autocomplete="off" style="width:100%;padding-right:42px;box-sizing:border-box;" onkeydown="if(event.key==='Enter'){event.preventDefault();verifyAdminCode();}">
+      <button type="button" onclick="toggleAdminCodeVisibility_()" aria-label="Show or hide code" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;padding:6px;line-height:1;color:var(--ink-soft, #555);">👁️</button>
+    </div>
     <p class="err" id="adminCodeError"></p>
     <div class="btn-row">
       <button class="btn-cancel" onclick="hideCodeGate()">Cancel</button>
@@ -175,6 +178,11 @@
     document.getElementById('adminCodeInput').value = '';
     document.getElementById('adminCodeError').textContent = '';
     setTimeout(function () { document.getElementById('adminCodeInput').focus(); }, 60);
+  }
+
+  function toggleAdminCodeVisibility_() {
+    const input = document.getElementById('adminCodeInput');
+    input.type = input.type === 'password' ? 'text' : 'password';
   }
 
   function hideCodeGate() {
