@@ -74,6 +74,15 @@
     </div>
   </div>
 
+  <div id="notifDetailPopup" style="display:none;position:fixed;inset:0;background:rgba(19,46,38,.6);z-index:70;align-items:center;justify-content:center;padding:24px;">
+    <div style="background:var(--surface);width:100%;max-width:380px;border-radius:16px;padding:22px;text-align:center;">
+      <div id="notifDetailTitle" style="font-weight:700;color:var(--green-800);font-size:16px;margin-bottom:10px;"></div>
+      <div id="notifDetailBody" style="font-size:14px;color:#333;white-space:pre-wrap;text-align:left;margin-bottom:8px;"></div>
+      <div id="notifDetailDate" class="footer-note" style="margin-bottom:18px;"></div>
+      <button class="choice-card primary" style="width:100%;text-align:center;padding:13px;cursor:pointer;border:none;color:#fff;font-weight:700;font-size:15px;" onclick="closeNotifDetail_()">OK</button>
+    </div>
+  </div>
+
   <div id="installWelcome" style="display:none;min-height:90vh;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;">
     <img src="icon-192.png" alt="Mahakal Wellness" style="width:130px;height:130px;border-radius:50%;box-shadow:0 6px 20px rgba(19,46,38,.18);margin-bottom:18px;">
     <div class="brand">
@@ -268,7 +277,6 @@
       map[id] = Date.now();
       localStorage.setItem('mwReadNotifs', JSON.stringify(map));
     }
-    loadNotifHistory_();
   }
 
   async function renderNotifBell_() {
@@ -296,6 +304,26 @@
     document.getElementById('notifPanel').style.display = 'none';
   }
 
+  let notifsById_ = {};
+  let currentOpenNotifId_ = null;
+
+  function openNotifDetail_(id) {
+    const r = notifsById_[id];
+    if (!r) return;
+    currentOpenNotifId_ = id;
+    const dateStr = new Date(r.sent_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    document.getElementById('notifDetailTitle').textContent = r.title;
+    document.getElementById('notifDetailBody').textContent = r.body;
+    document.getElementById('notifDetailDate').textContent = dateStr;
+    document.getElementById('notifDetailPopup').style.display = 'flex';
+  }
+
+  function closeNotifDetail_() {
+    if (currentOpenNotifId_ !== null) { markAsRead_(currentOpenNotifId_); currentOpenNotifId_ = null; }
+    document.getElementById('notifDetailPopup').style.display = 'none';
+    loadNotifHistory_();
+  }
+
   async function loadNotifHistory_() {
     const box = document.getElementById('notifList');
     box.innerHTML = '<div class="footer-note">Loading…</div>';
@@ -312,6 +340,9 @@
       return !readAt || (now - readAt) < DAY_MS;
     });
 
+    notifsById_ = {};
+    rows.forEach(function (r) { notifsById_[r.id] = r; });
+
     const unread = rows.filter(function (r) { return !readMap[r.id]; })
       .sort(function (a, b) { return new Date(b.sent_at) - new Date(a.sent_at); });
     const read = rows.filter(function (r) { return readMap[r.id]; })
@@ -321,13 +352,13 @@
 
     function rowHtml(r, isUnread) {
       const dateStr = new Date(r.sent_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-      return '<div class="choice-card" data-notif-id="' + r.id + '" onclick="markAsRead_(' + r.id + ')" style="margin-bottom:8px;padding:14px;cursor:pointer;text-align:left;' +
+      return '<div class="choice-card" data-notif-id="' + r.id + '" onclick="openNotifDetail_(' + r.id + ')" style="margin-bottom:8px;padding:14px;cursor:pointer;text-align:left;' +
         (isUnread ? 'border-left:4px solid var(--gold-500);background:var(--gold-100);' : 'opacity:.7;') + '">' +
         '<div style="display:flex;justify-content:space-between;gap:8px;">' +
         '<div style="font-weight:700;color:var(--green-800);font-size:14px;">' + r.title.replace(/</g, '&lt;') + '</div>' +
         (isUnread ? '<span style="background:var(--gold-500);color:var(--green-900);font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;flex:none;height:fit-content;">NEW</span>' : '') +
         '</div>' +
-        '<div style="font-size:13px;color:#333;margin:4px 0;white-space:pre-wrap;">' + r.body.replace(/</g, '&lt;') + '</div>' +
+        '<div style="font-size:13px;color:#333;margin:4px 0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">' + r.body.replace(/</g, '&lt;') + '</div>' +
         '<div class="footer-note" style="text-align:left;margin-top:0;">' + dateStr + '</div></div>';
     }
 
