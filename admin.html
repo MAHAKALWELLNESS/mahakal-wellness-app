@@ -312,6 +312,7 @@
       <button class="tab" data-tab="offers" onclick="switchTab('offers')">Offers</button>
       <button class="tab" data-tab="offertracking" onclick="switchTab('offertracking')">Offer Tracking</button>
       <button class="tab" data-tab="broadcast" onclick="switchTab('broadcast')">Broadcast</button>
+      <button class="tab" data-tab="hall" id="tabBtnHall" onclick="switchTab('hall')" style="display:none;">Hall Booking</button>
       <button class="tab" data-tab="queries" onclick="switchTab('queries')">Queries</button>
       <button class="tab" data-tab="paymentstatement" onclick="switchTab('paymentstatement')">Payment Statement</button>
       <button class="tab" data-tab="companypayout" id="tabBtnCompanyPayout" onclick="switchTab('companypayout')" style="display:none;">Company Payout</button>
@@ -516,6 +517,20 @@
           </div>
           <div class="stat-card warn" style="margin-top:10px;"><div class="stat-label">Profit</div><div class="stat-value" id="dashMonthProfit">₹0</div></div>
         </div>
+      </div>
+      <div class="card" id="dashboardHallStats" style="display:none;">
+        <p class="section-label">🏛️ Hall Booking</p>
+        <div class="field-row">
+          <div class="field"><label for="dashHallFrom">From</label><input type="date" id="dashHallFrom"></div>
+          <div class="field"><label for="dashHallTo">To</label><input type="date" id="dashHallTo"></div>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="loadDashboardHallSummary_()">Apply</button>
+        <div class="stat-grid" style="margin-top:12px;">
+          <div class="stat-card"><div class="stat-label">Bookings</div><div class="stat-value" id="dashHallBookings">0</div></div>
+          <div class="stat-card"><div class="stat-label">Collected</div><div class="stat-value" id="dashHallCollected">₹0</div></div>
+        </div>
+        <div class="stat-card warn" style="margin-top:10px;"><div class="stat-label">Due</div><div class="stat-value" id="dashHallDue">₹0</div></div>
+        <div id="dashHallList" style="margin-top:10px;"></div>
       </div>
       <div class="card">
         <p class="section-label">Quick range</p>
@@ -861,6 +876,25 @@
       </div>
     </section>
 
+    <!-- ============ HALL BOOKING TAB ============ -->
+    <section id="tab-hall" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="openNewHallBooking()">+ New Booking</button>
+      <div class="card">
+        <p class="section-label">Filter by date</p>
+        <div class="field-row">
+          <div class="field"><label for="hallFilterFrom">From</label><input type="date" id="hallFilterFrom"></div>
+          <div class="field"><label for="hallFilterTo">To</label><input type="date" id="hallFilterTo"></div>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="loadHallBookings()">Apply</button>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-label">Bookings</div><div class="stat-value" id="hallStatBookings">0</div></div>
+        <div class="stat-card"><div class="stat-label">Collected</div><div class="stat-value" id="hallStatCollected">₹0</div></div>
+      </div>
+      <div class="stat-card warn" style="margin-bottom:12px;"><div class="stat-label">Total Due</div><div class="stat-value" id="hallStatDue">₹0</div></div>
+      <div id="hallBookingList"><div class="empty-cart">Loading…</div></div>
+    </section>
+
     <!-- ============ PAYMENT STATEMENT TAB ============ -->
     <section id="tab-paymentstatement" class="tab-panel">
       <div class="subtabs">
@@ -1157,7 +1191,71 @@
     </div>
   </div>
 
-  <!-- ============ DELIVERY QTY MODAL (right after saving) ============ -->
+  <div class="modal-overlay" id="newHallBookingModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:16px;color:var(--green-800);margin-bottom:14px;">New Hall Booking</h2>
+      <div class="field-row">
+        <div class="field"><label for="hbDate">Date</label><input type="date" id="hbDate" onchange="loadHallSlotAvailability_()"></div>
+        <div class="field"><label for="hbSlot">Time Slot</label>
+          <select id="hbSlot" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">
+            <option value="Morning (9:00 AM - 1:00 PM)">Morning (9 AM - 1 PM)</option>
+            <option value="Evening (2:00 PM - 6:00 PM)">Evening (2 PM - 6 PM)</option>
+          </select>
+        </div>
+      </div>
+      <p class="hint" id="hbAvailabilityHint" style="margin-bottom:10px;"></p>
+      <div class="field-row">
+        <div class="field"><label for="hbName">Customer Name</label><input type="text" id="hbName" oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="field"><label for="hbMobile">Mobile</label><input type="tel" id="hbMobile" maxlength="15"></div>
+      </div>
+      <div style="display:flex;gap:16px;margin-bottom:12px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;"><input type="checkbox" id="hbProjector" style="width:auto;" onchange="updateHallRatePreview_()"> Projector</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;"><input type="checkbox" id="hbAc" style="width:auto;" onchange="updateHallRatePreview_()"> AC</label>
+      </div>
+      <div class="receipt-total-row grand" style="margin-bottom:12px;"><span>Total Hall Charge</span><span id="hbRatePreview">₹1500</span></div>
+      <div class="field-row">
+        <div class="field"><label for="hbAdvance">Advance Amount ₹</label><input type="number" id="hbAdvance" min="0" step="1"></div>
+        <div class="field"><label for="hbMethod">Payment Method</label>
+          <select id="hbMethod" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;" onchange="document.getElementById('hbUtrField').style.display=this.value==='Online'?'block':'none';">
+            <option>Cash</option><option>Online</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" id="hbUtrField" style="display:none;"><label for="hbUtr">UTR / Reference No.</label><input type="text" id="hbUtr"></div>
+      <p class="hint" style="margin-bottom:14px;">Advance is non-refundable and gets adjusted against this booking's total.</p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('newHallBookingModal').classList.remove('show')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitNewHallBooking()">Save Booking</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="hallDetailModal">
+    <div class="modal-sheet">
+      <div id="hallDetailArea"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('hallDetailModal').classList.remove('show')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="hallBalancePaymentModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:16px;color:var(--green-800);margin-bottom:2px;">Record Balance Payment</h2>
+      <p class="hint" id="hbpDueText" style="margin-bottom:14px;"></p>
+      <div class="field"><label for="hbpAmount">Amount ₹</label><input type="number" id="hbpAmount" min="0" step="1"></div>
+      <div class="field"><label for="hbpMethod">Payment Method</label>
+        <select id="hbpMethod" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;" onchange="document.getElementById('hbpUtrField').style.display=this.value==='Online'?'block':'none';">
+          <option>Cash</option><option>Online</option>
+        </select>
+      </div>
+      <div class="field" id="hbpUtrField" style="display:none;margin-bottom:0;"><label for="hbpUtr">UTR / Reference No.</label><input type="text" id="hbpUtr"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('hallBalancePaymentModal').classList.remove('show')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitHallBalancePayment()">Save</button>
+      </div>
+    </div>
+  </div>
   <!-- ============ PROCEED FURTHER: STEP 1 - PAYMENT ============ -->
   <div class="modal-overlay" id="paymentStepModal">
     <div class="modal-sheet">
@@ -1764,6 +1862,8 @@
     document.getElementById('tabBtnCompanyPayout').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnProfitReport').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnFranchisee').style.display = isSuperAdmin ? 'block' : 'none';
+    document.getElementById('tabBtnHall').style.display = isSuperAdmin ? 'block' : 'none';
+    document.getElementById('dashboardHallStats').style.display = isSuperAdmin ? 'block' : 'none';
     if (isSuperAdmin) loadDashboardProfitStats_();
   }
 
@@ -2610,7 +2710,19 @@
     if (name === 'history') searchHistory();
     if (name === 'accounting') loadAccounting();
     if (name === 'pending') loadPendingList();
-    if (name === 'dashboard') { if (!dashboardLoadedOnce) { dashboardLoadedOnce = true; setDashboardRange('today'); } else { loadDashboard(); } }
+    if (name === 'dashboard') {
+      if (!dashboardLoadedOnce) {
+        dashboardLoadedOnce = true;
+        setDashboardRange('today');
+        if (isSuperAdminUser) {
+          const today = new Date();
+          document.getElementById('dashHallFrom').value = fmtDateInput_(today);
+          const future = new Date(today); future.setDate(future.getDate() + 30);
+          document.getElementById('dashHallTo').value = fmtDateInput_(future);
+          loadDashboardHallSummary_();
+        }
+      } else { loadDashboard(); }
+    }
     if (name === 'official') loadOfficialPending();
     if (name === 'expense') searchExpenses();
     if (name === 'customers') searchCustomersTab();
@@ -2624,6 +2736,14 @@
     if (name === 'offers') loadOffers();
     if (name === 'offertracking') loadOfferTrackingDropdown();
     if (name === 'broadcast') { loadPushSubCount_(); loadSentNotifications_(); if (!broadcastLoadedOnce) { broadcastLoadedOnce = true; loadBroadcastCustomers(); } }
+    if (name === 'hall' && !hallLoadedOnce) {
+      hallLoadedOnce = true;
+      const today = new Date();
+      document.getElementById('hallFilterFrom').value = fmtDateInput_(today);
+      const future = new Date(today); future.setDate(future.getDate() + 60);
+      document.getElementById('hallFilterTo').value = fmtDateInput_(future);
+      loadHallBookings();
+    }
     if (name === 'paymentstatement' && !paymentStmtLoadedOnce) { paymentStmtLoadedOnce = true; setPaymentStmtRange('online', 'today'); setPaymentStmtRange('cash', 'today'); setPaymentStmtRange('deposits', 'today'); }
     if (name === 'companypayout' && !companyPayoutLoadedOnce) { companyPayoutLoadedOnce = true; loadCompanyPayouts(); }
     if (name === 'profitreport') loadProfitReport();
@@ -3281,6 +3401,166 @@
     const { error } = await sb.rpc('mark_query_responded', { p_id: id });
     if (error) { showToast(error.message, true); return; }
     loadQueries();
+  }
+
+  // ---------------- HALL BOOKING ----------------
+  function hallRate_(projector, ac) {
+    if (ac && projector) return 2500;
+    if (ac) return 2200;
+    if (projector) return 2000;
+    return 1500;
+  }
+
+  let hallBookingsById_ = {};
+  async function loadHallBookings() {
+    const box = document.getElementById('hallBookingList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const from = document.getElementById('hallFilterFrom').value || null;
+    const to = document.getElementById('hallFilterTo').value || null;
+    const { data, error } = await sb.rpc('get_hall_bookings', { p_start_date: from, p_end_date: to });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
+    const rows = data || [];
+    hallBookingsById_ = {};
+    rows.forEach(function (r) { hallBookingsById_[r.id] = r; });
+
+    const activeRows = rows.filter(function (r) { return r.status !== 'Cancelled'; });
+    const collected = activeRows.reduce(function (s, r) { return s + Number(r.advance_amount) + Number(r.balance_paid); }, 0);
+    const due = activeRows.reduce(function (s, r) { return s + (Number(r.balance_amount) - Number(r.balance_paid)); }, 0);
+    document.getElementById('hallStatBookings').textContent = activeRows.length;
+    document.getElementById('hallStatCollected').textContent = money(collected);
+    document.getElementById('hallStatDue').textContent = money(due);
+
+    if (!rows.length) { box.innerHTML = '<div class="card"><div class="empty-cart">No bookings in this range.</div></div>'; return; }
+    const statusColor = { Pending: 'badge-partial', Confirmed: 'badge-paid', Completed: 'badge-paid', Cancelled: 'badge-unpaid' };
+    box.innerHTML = rows.map(function (r) {
+      const dateStr = new Date(r.booking_date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const due = Number(r.balance_amount) - Number(r.balance_paid);
+      const opts = (r.needs_ac ? '❄️ AC ' : '') + (r.needs_projector ? '📽️ Projector' : '');
+      return '<div class="card" style="cursor:pointer;" onclick="viewHallBooking(' + r.id + ')">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
+        '<div><div style="font-weight:700;color:var(--green-800);">' + escapeHtml(r.customer_name) + '</div>' +
+        '<div class="hint">' + dateStr + ' · ' + r.time_slot.split(' (')[0] + '</div>' +
+        '<div class="hint">' + (opts || 'Hall only') + '</div></div>' +
+        '<div style="text-align:right;"><span class="badge ' + (statusColor[r.status] || '') + '">' + r.status + '</span>' +
+        (r.status !== 'Cancelled' && due > 0.5 ? '<div class="pts" style="color:var(--danger);margin-top:4px;">Due ' + money(due) + '</div>' : '') +
+        '</div></div></div>';
+    }).join('');
+  }
+
+  function viewHallBooking(id) {
+    const r = hallBookingsById_[id];
+    if (!r) return;
+    const dateStr = new Date(r.booking_date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const due = Number(r.balance_amount) - Number(r.balance_paid);
+    document.getElementById('hallDetailArea').innerHTML =
+      '<h2 style="font-size:16px;color:var(--green-800);margin-bottom:2px;">' + escapeHtml(r.customer_name) + '</h2>' +
+      '<p class="hint" style="margin-bottom:12px;">' + escapeHtml(r.mobile) + ' · ' + dateStr + ' · ' + r.time_slot + '</p>' +
+      '<div class="receipt-total-row"><span>Projector</span><span>' + (r.needs_projector ? 'Yes' : 'No') + '</span></div>' +
+      '<div class="receipt-total-row"><span>AC</span><span>' + (r.needs_ac ? 'Yes' : 'No') + '</span></div>' +
+      '<div class="receipt-total-row grand" style="margin-top:6px;"><span>Total</span><span>' + money(r.total_amount) + '</span></div>' +
+      '<div class="receipt-total-row"><span>Advance (' + r.advance_method + (r.advance_utr ? ' · ' + escapeHtml(r.advance_utr) : '') + ')</span><span>' + money(r.advance_amount) + '</span></div>' +
+      (Number(r.balance_paid) > 0 ? '<div class="receipt-total-row"><span>Balance paid (' + (r.balance_method || '') + ')</span><span>' + money(r.balance_paid) + '</span></div>' : '') +
+      '<div class="receipt-total-row" style="color:' + (due > 0.5 ? 'var(--danger)' : 'var(--ok)') + ';font-weight:700;"><span>Due</span><span>' + money(due) + '</span></div>' +
+      '<p style="margin-top:10px;">Status: <span class="badge ' + (r.status === 'Cancelled' ? 'badge-unpaid' : 'badge-paid') + '">' + r.status + '</span></p>' +
+      '<div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">' +
+      (r.status === 'Pending' ? '<button class="btn btn-primary" onclick="confirmHallAdvanceAction(' + r.id + ')">Confirm Advance Received</button>' : '') +
+      (r.status !== 'Cancelled' && due > 0.5 ? '<button class="btn btn-primary" onclick="openHallBalancePayment(' + r.id + ')">Record Balance Payment</button>' : '') +
+      (r.status !== 'Cancelled' ? '<button class="btn btn-outline" style="color:var(--danger);border-color:var(--danger);" onclick="cancelHallBookingAction(' + r.id + ')">Cancel Booking</button>' : '') +
+      '</div>';
+    document.getElementById('hallDetailModal').classList.add('show');
+  }
+
+  async function confirmHallAdvanceAction(id) {
+    const { error } = await sb.rpc('confirm_hall_advance', { p_id: id });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Advance confirmed.');
+    document.getElementById('hallDetailModal').classList.remove('show');
+    loadHallBookings();
+  }
+
+  async function cancelHallBookingAction(id) {
+    if (!confirm('Cancel this booking? The advance remains non-refundable, but the slot will be freed up.')) return;
+    const { error } = await sb.rpc('cancel_hall_booking', { p_id: id });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Booking cancelled.');
+    document.getElementById('hallDetailModal').classList.remove('show');
+    loadHallBookings();
+  }
+
+  let currentHallBalanceId_ = null;
+  function openHallBalancePayment(id) {
+    const r = hallBookingsById_[id];
+    if (!r) return;
+    currentHallBalanceId_ = id;
+    const due = Number(r.balance_amount) - Number(r.balance_paid);
+    document.getElementById('hbpDueText').textContent = 'Remaining due: ' + money(due);
+    document.getElementById('hbpAmount').value = due;
+    document.getElementById('hbpAmount').max = due;
+    document.getElementById('hbpMethod').value = 'Cash';
+    document.getElementById('hbpUtrField').style.display = 'none';
+    document.getElementById('hallBalancePaymentModal').classList.add('show');
+  }
+
+  async function submitHallBalancePayment() {
+    const amount = Number(document.getElementById('hbpAmount').value);
+    const method = document.getElementById('hbpMethod').value;
+    const utr = document.getElementById('hbpUtr').value.trim();
+    if (!(amount > 0)) { showToast('Enter a valid amount.', true); return; }
+    const { error } = await sb.rpc('record_hall_balance_payment', { p_id: currentHallBalanceId_, p_amount: amount, p_method: method, p_utr: utr || null });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Payment recorded.');
+    document.getElementById('hallBalancePaymentModal').classList.remove('show');
+    document.getElementById('hallDetailModal').classList.remove('show');
+    loadHallBookings();
+  }
+
+  function openNewHallBooking() {
+    document.getElementById('hbDate').value = fmtDateInput_(new Date());
+    document.getElementById('hbSlot').value = 'Morning (9:00 AM - 1:00 PM)';
+    document.getElementById('hbName').value = ''; document.getElementById('hbMobile').value = '';
+    document.getElementById('hbProjector').checked = false; document.getElementById('hbAc').checked = false;
+    document.getElementById('hbAdvance').value = '';
+    document.getElementById('hbMethod').value = 'Cash';
+    document.getElementById('hbUtrField').style.display = 'none'; document.getElementById('hbUtr').value = '';
+    updateHallRatePreview_();
+    loadHallSlotAvailability_();
+    document.getElementById('newHallBookingModal').classList.add('show');
+  }
+
+  function updateHallRatePreview_() {
+    const rate = hallRate_(document.getElementById('hbProjector').checked, document.getElementById('hbAc').checked);
+    document.getElementById('hbRatePreview').textContent = money(rate);
+  }
+
+  async function loadHallSlotAvailability_() {
+    const date = document.getElementById('hbDate').value;
+    const hint = document.getElementById('hbAvailabilityHint');
+    if (!date) { hint.textContent = ''; return; }
+    const { data, error } = await sb.rpc('get_hall_availability', { p_start_date: date, p_end_date: date });
+    if (error) return;
+    const taken = (data || []).map(function (r) { return r.time_slot; });
+    if (taken.length) hint.textContent = 'Already booked: ' + taken.map(function (s) { return s.split(' (')[0]; }).join(', ');
+    else hint.textContent = 'Both slots available on this date.';
+  }
+
+  async function submitNewHallBooking() {
+    const name = document.getElementById('hbName').value.trim();
+    const mobile = document.getElementById('hbMobile').value.trim();
+    const advance = Number(document.getElementById('hbAdvance').value);
+    const method = document.getElementById('hbMethod').value;
+    const utr = document.getElementById('hbUtr').value.trim();
+    if (!name || !mobile) { showToast('Enter customer name and mobile.', true); return; }
+    if (!(advance > 0)) { showToast('Enter an advance amount.', true); return; }
+    const { data, error } = await sb.rpc('create_hall_booking_staff', {
+      p_booking_date: document.getElementById('hbDate').value, p_time_slot: document.getElementById('hbSlot').value,
+      p_customer_name: name, p_mobile: mobile,
+      p_needs_projector: document.getElementById('hbProjector').checked, p_needs_ac: document.getElementById('hbAc').checked,
+      p_advance_amount: advance, p_advance_method: method, p_advance_utr: utr || null
+    });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Hall booked — balance due ' + money(data.balanceAmount));
+    document.getElementById('newHallBookingModal').classList.remove('show');
+    loadHallBookings();
   }
 
   function searchApprovalBills() {
@@ -4411,6 +4691,7 @@
 
   // ---------------- BROADCAST TAB ----------------
   let broadcastLoadedOnce = false;
+  let hallLoadedOnce = false;
   let broadcastCustomers = [];
   let broadcastSelected = {};
   let broadcastQueue = [];
@@ -5537,6 +5818,27 @@
         '<div class="result-meta">Payout ' + money(r.payout) + ' · Expenses ' + money(r.expenses) + '</div></div>' +
         '<div class="amt" style="color:' + (isPositive ? 'var(--ok)' : 'var(--danger)') + ';">' + money(r.profit) + '</div></div>';
     }).join('');
+  }
+
+  async function loadDashboardHallSummary_() {
+    const from = document.getElementById('dashHallFrom').value;
+    const to = document.getElementById('dashHallTo').value;
+    if (!from || !to) return;
+    const { data: summary, error: sErr } = await sb.rpc('get_hall_dashboard_summary', { p_start_date: from, p_end_date: to });
+    if (!sErr && summary) {
+      document.getElementById('dashHallBookings').textContent = summary.totalBookings;
+      document.getElementById('dashHallCollected').textContent = money(summary.totalCollected);
+      document.getElementById('dashHallDue').textContent = money(summary.totalDue);
+    }
+    const { data: rows, error: rErr } = await sb.rpc('get_hall_bookings', { p_start_date: from, p_end_date: to });
+    const listBox = document.getElementById('dashHallList');
+    if (rErr || !rows || !rows.length) { listBox.innerHTML = '<div class="empty-cart">No bookings in this range.</div>'; return; }
+    listBox.innerHTML = rows.slice(0, 8).map(function (r) {
+      const dateStr = new Date(r.booking_date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+      return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + escapeHtml(r.customer_name) + '</div>' +
+        '<div class="result-meta">' + dateStr + ' · ' + r.time_slot.split(' (')[0] + '</div></div>' +
+        '<span class="badge ' + (r.status === 'Cancelled' ? 'badge-unpaid' : 'badge-paid') + '">' + r.status + '</span></div>';
+    }).join('') + (rows.length > 8 ? '<p class="hint" style="text-align:center;margin-top:6px;">+' + (rows.length - 8) + ' more — see Hall Booking tab</p>' : '');
   }
 
   async function loadDashboardProfitStats_() {

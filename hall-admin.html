@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Hall Booking — Mahakal Wellness</title>
+<meta name="theme-color" content="#132E26">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green-900:#132E26; --green-800:#1E4A3D; --green-700:#2A5C4C; --green-100:#DCE9E3;
+    --gold-500:#D9A441; --gold-600:#B8842C; --gold-100:#F7E9C7;
+    --surface:#FFFFFF; --bg:#F6F5F1; --ink-soft:#555; --ink-faint:#8A8A8A; --line:#E7E4DC;
+    --danger:#C0392B; --danger-100:#FBE7E4; --ok:#2E7D4F; --ok-100:#E3F1E8;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'Inter',sans-serif; background:var(--bg); color:#222; -webkit-font-smoothing:antialiased; padding-bottom:110px;}
+  h1,h2{font-family:'Fraunces',serif; margin:0;}
+
+  .login-overlay{position:fixed; inset:0; z-index:300; display:flex; align-items:center; justify-content:center; background:var(--green-900); padding:20px;}
+  .login-card{background:var(--surface); border-radius:20px; padding:32px 26px; width:100%; max-width:360px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.35);}
+  .login-card h2{font-size:20px; color:var(--green-800); margin-bottom:2px;}
+  .hint{font-size:12.5px; color:var(--ink-faint); margin:0;}
+  .field{margin-bottom:14px; text-align:left;}
+  .field label{display:block; font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:4px;}
+  .field input, .field select{width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; font-size:15px; font-family:inherit; background:#fff;}
+  .field input:focus, .field select:focus{outline:none; border-color:var(--green-700);}
+  .field-row{display:flex; gap:10px;}
+  .field-row .field{flex:1;}
+  .login-error{color:var(--danger); font-size:12.5px; min-height:16px; margin:8px 0 4px;}
+  .login-link{background:none; border:none; color:var(--green-700); font-size:12.5px; font-weight:600; cursor:pointer; margin-top:14px; text-decoration:underline;}
+  .btn{border:none; border-radius:12px; padding:13px 18px; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; transition:transform .1s ease;}
+  .btn:active{transform:scale(.98);}
+  .btn-block{width:100%;}
+  .btn-primary{background:var(--green-800); color:#fff;}
+  .btn-gold{background:var(--gold-500); color:var(--green-900);}
+  .btn-outline{background:#fff; border:1.5px solid var(--line); color:var(--green-800);}
+  .btn:disabled{opacity:.5; cursor:not-allowed;}
+
+  #appRoot{display:none;}
+  .topbar{background:var(--green-900); padding:14px 16px; display:flex; align-items:center; gap:12px;}
+  .brand-mark{width:44px; height:44px; border-radius:50%; flex:none; background:#fff; overflow:hidden; box-shadow:0 0 0 2px var(--gold-500);}
+  .brand-mark img{width:100%; height:100%; object-fit:cover;}
+  .topbar h1{font-size:19px; font-weight:600; color:#fff; line-height:1.2;}
+  .topbar .tagline{margin:1px 0 0; font-size:12px; color:var(--green-100); opacity:.85;}
+  .header-link{background:none; border:none; color:var(--green-100); font-size:11px; text-decoration:underline; cursor:pointer; margin-left:auto;}
+
+  main{padding:14px; max-width:640px; margin:0 auto;}
+  #tab-stockreport.tab-panel.active{
+    width:100vw; max-width:1100px; box-sizing:border-box;
+    position:relative; left:50%; transform:translateX(-50%);
+    padding:0 14px;
+  }
+  .card{background:var(--surface); border-radius:16px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  .card h2{font-size:15px; color:var(--green-800); margin-bottom:10px; font-weight:600; font-family:'Inter',sans-serif;}
+  .section-label{font-size:11px; font-weight:700; text-transform:uppercase; color:var(--ink-faint); letter-spacing:.4px; margin:0 0 8px;}
+
+  .search-wrap{position:relative;}
+  .search-input{width:100%; padding:12px 14px; border:1.5px solid var(--line); border-radius:12px; font-size:15px; font-family:inherit; background:#fff;}
+  .search-input:focus{outline:none; border-color:var(--green-700);}
+  .search-results{position:absolute; top:calc(100% + 4px); left:0; right:0; background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.15); max-height:280px; overflow-y:auto; z-index:20; display:none;}
+  .search-results.show{display:block;}
+  .result-row{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid var(--line); cursor:pointer;}
+  .result-row:last-child{border-bottom:none;}
+  .result-row:hover, .result-row.kbd-active{background:var(--green-100);}
+  .result-name{font-weight:600; font-size:14px;}
+  .result-meta{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+  .result-price{font-weight:700; color:var(--green-800); font-size:14px; white-space:nowrap;}
+  .stock-pill{display:inline-block; margin-left:6px; padding:1px 7px; border-radius:20px; font-size:10.5px; font-weight:700;}
+  .stock-ok{background:var(--ok-100); color:var(--ok);}
+  .stock-low{background:var(--gold-100); color:var(--gold-600);}
+  .stock-out{background:var(--danger-100); color:var(--danger);}
+  .no-results{padding:14px; color:var(--ink-faint); font-size:13px; text-align:center;}
+
+  .cart-header-row{display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:10px;}
+  .cart-header-row h2{margin-bottom:0;}
+  .cart-header-totals{text-align:right; line-height:1.25; flex:none;}
+  .cart-header-amt{font-family:'Fraunces',serif; font-size:16px; font-weight:700; color:var(--green-800);}
+  .cart-header-sp{font-size:11.5px; font-weight:700; color:var(--gold-600);}
+  .empty-cart{padding:20px; text-align:center; color:var(--ink-faint); font-size:13.5px;}
+  .cart-item{border-bottom:1px solid var(--line); padding:12px 0;}
+  .cart-item:last-child{border-bottom:none;}
+  .cart-row-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .cart-name{font-weight:600; font-size:14.5px;}
+  .cart-code{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+  .remove-btn{background:none; border:none; color:var(--danger); font-size:20px; line-height:1; cursor:pointer; padding:2px 6px;}
+  .cart-row-bottom{display:flex; align-items:center; gap:12px; margin-top:8px;}
+  .qty-stepper{display:flex; align-items:center; gap:6px;}
+  .qty-stepper button{width:30px; height:30px; border-radius:8px; border:1.5px solid var(--line); background:#fff; font-size:16px; cursor:pointer;}
+  .qty-stepper input{width:52px; text-align:center; padding:6px; border:1.5px solid var(--line); border-radius:8px; font-size:14px; font-family:inherit;}
+  .cart-amount{margin-left:auto; text-align:right;}
+  .cart-amount .amt{font-weight:700; font-size:14.5px; color:var(--green-800);}
+  .cart-amount .pts{font-size:11.5px; color:var(--gold-600); font-weight:600;}
+
+  .balance-line{display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-radius:10px; font-weight:700; font-size:14px; margin-top:2px;}
+  .balance-due{background:var(--danger-100); color:var(--danger);}
+  .balance-settled{background:var(--ok-100); color:var(--ok);}
+  .quickbtn{background:var(--green-100); color:var(--green-800); border:none; border-radius:8px; padding:6px 10px; font-size:12px; font-weight:600; cursor:pointer; margin-left:8px;}
+
+  .summary-bar{position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--line); padding:12px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; box-shadow:0 -2px 12px rgba(0,0,0,.08); z-index:40;}
+  .summary-totals{line-height:1.15;}
+  .grand-row{display:flex; align-items:baseline; gap:12px;}
+  .grand{font-family:'Fraunces',serif; font-size:24px; font-weight:600; color:var(--green-800);}
+  .grand-sp{font-family:'Fraunces',serif; font-size:17px; font-weight:700; color:var(--gold-600);}
+  .sub{font-size:11.5px; color:var(--ink-faint); font-weight:600;}
+
+  .toast{position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:var(--green-900); color:#fff; padding:10px 18px; border-radius:10px; font-size:13.5px; z-index:200; opacity:0; transition:opacity .2s ease; max-width:88%; text-align:center;}
+  .toast.show{opacity:1;}
+  .toast.error{background:var(--danger);}
+
+  .modal-overlay{position:fixed; inset:0; background:rgba(19,46,38,.45); z-index:50; display:none; align-items:flex-end; justify-content:center;}
+  .modal-overlay.show{display:flex;}
+  .modal-sheet{background:var(--surface); width:100%; max-width:640px; max-height:88vh; overflow-y:auto; border-radius:20px 20px 0 0; padding:20px;}
+  .modal-actions{display:flex; gap:10px; margin-top:16px;}
+  .modal-actions .btn{flex:1;}
+
+  /* ---------- tabs nav ---------- */
+  .tabs-wrap{position:sticky; top:0; z-index:29; display:flex; align-items:stretch; background:var(--surface); border-bottom:1px solid var(--line);}
+  .tabs{flex:1; min-width:0; display:flex; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; -webkit-mask-image:linear-gradient(to right, transparent 0, black 14px, black calc(100% - 14px), transparent 100%); mask-image:linear-gradient(to right, transparent 0, black 14px, black calc(100% - 14px), transparent 100%);}
+  .tab-arrow{display:flex; flex:none; width:30px; align-items:center; justify-content:center; background:var(--surface); border:none; color:var(--green-800); font-size:19px; font-weight:700; cursor:pointer; padding:0;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{flex:none; padding:12px 14px; text-align:center; background:none; border:none; color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap;}
+  .tab.active{color:var(--green-800); border-bottom-color:var(--gold-500);}
+  .subtabs{display:flex; gap:8px; margin-bottom:12px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .subtab{flex:none; padding:8px 14px; border-radius:20px; border:1.5px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap;}
+  .subtab.active{background:var(--green-800); border-color:var(--green-800); color:#fff;}
+  .subtab-panel{display:none;}
+  .subtab-panel.active{display:block;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  /* ---------- stat grid / lists ---------- */
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .stat-card{background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:12px;}
+  .stat-card .stat-label{font-size:11px; color:var(--ink-faint); font-weight:700; text-transform:uppercase; letter-spacing:.3px;}
+  .stat-card .stat-value{font-family:'Fraunces',serif; font-size:20px; color:var(--green-800); margin-top:4px;}
+  .stat-card.warn .stat-value{color:var(--danger);}
+  .list-row{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--line); cursor:pointer;}
+  .list-row:last-child{border-bottom:none;}
+
+  .receipt-head{text-align:center; margin-bottom:14px;}
+  .receipt-head h2{font-size:19px; color:var(--green-800);}
+  .receipt-head p{margin:2px 0; font-size:12.5px; color:var(--ink-soft);}
+  .receipt-meta{display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink-soft); margin:12px 0; border-top:1px dashed var(--line); border-bottom:1px dashed var(--line); padding:10px 0;}
+  table.receipt-table{width:100%; border-collapse:collapse; font-size:13px; margin-bottom:10px;}
+  table.receipt-table th{text-align:left; font-size:11px; text-transform:uppercase; color:var(--ink-faint); padding:0 16px 8px 0; border-bottom:2px solid var(--line); white-space:nowrap;}
+  table.receipt-table td{padding:9px 16px 9px 0; border-bottom:1px solid var(--line); white-space:nowrap;}
+  table.receipt-table td.num, table.receipt-table th.num{text-align:right; padding-right:0;}
+  table.receipt-table th:first-child, table.receipt-table td:first-child{padding-left:12px; white-space:normal;}
+  table.receipt-table th:not(:first-child), table.receipt-table td:not(:first-child){padding-left:16px;}
+  table.receipt-table tbody tr:nth-child(even){background:var(--bg);}
+  .scroll-table-wrap{overflow:auto; max-height:65vh; -webkit-overflow-scrolling:touch; margin-bottom:10px; border:1px solid var(--line); border-radius:10px;}
+  .scroll-table-wrap table.receipt-table{min-width:760px; margin-bottom:0;}
+  .scroll-table-wrap table.receipt-table th:first-child, .scroll-table-wrap table.receipt-table td:first-child{padding-left:14px;}
+  .scroll-table-wrap table.receipt-table th{
+    font-size:13px; font-weight:700; color:var(--green-800); text-transform:uppercase;
+    background:var(--surface); position:sticky; top:0; z-index:2; border-bottom:2px solid var(--green-800); padding-top:10px; padding-bottom:10px;
+  }
+  .receipt-total-row{display:flex; justify-content:space-between; padding:6px 0; font-size:13.5px;}
+  .receipt-total-row.grand{font-weight:700; font-size:16.5px; color:var(--green-800); border-top:1px solid var(--line); margin-top:4px; padding-top:10px;}
+
+  /* PDF capture mode: html2canvas has long-standing bugs resolving CSS custom
+     properties (var(--xxx)); these static, hard-coded-color rules (scoped by
+     a data attribute set only during PDF capture) guarantee real, resolvable
+     colors regardless of that. Kept as a normal stylesheet rule (not
+     dynamically injected) since that's the most reliable way for html2canvas
+     to pick it up. */
+  [data-pdf-capturing="1"], [data-pdf-capturing="1"] *{color:#222222 !important; border-color:#E7E4DC !important;}
+  [data-pdf-capturing="1"] h2{color:#1E4A3D !important;}
+  [data-pdf-capturing="1"] .receipt-meta{color:#555555 !important;}
+  [data-pdf-capturing="1"] table.receipt-table th{color:#8A8A8A !important;}
+  [data-pdf-capturing="1"] table.receipt-table tbody tr:nth-child(even){background:#F6F5F1 !important;}
+  [data-pdf-capturing="1"] .receipt-total-row.grand{color:#1E4A3D !important;}
+  [data-pdf-capturing="1"] .badge{background:#F7E9C7 !important; color:#B8842C !important;}
+  [data-pdf-capturing="1"]{background:#ffffff !important;}
+  .badge{padding:2px 9px; border-radius:20px; font-size:10.5px; font-weight:700; white-space:nowrap;}
+  .badge-paid{background:var(--ok-100); color:var(--ok);}
+  .badge-partial{background:var(--gold-100); color:var(--gold-600);}
+  .badge-unpaid{background:var(--danger-100); color:var(--danger);}
+
+  @media print{
+    @page { size: landscape; margin: 8mm; }
+    body > *:not(#printDuplicateArea){display:none !important;}
+    #printDuplicateArea{display:flex !important; width:100%; padding:0; align-items:stretch; gap:10px;}
+    .print-copy{width:calc(50% - 5px); box-sizing:border-box; padding:14px 16px; border-top:1.5px solid #333; border-bottom:1.5px solid #333;}
+    .print-copy.left{border-left:1.5px solid #333; border-right:1.5px dashed #999;}
+    .print-copy.right{border-right:1.5px solid #333; border-left:1.5px dashed #999;}
+    .print-copy-label{text-align:center; font-size:11px; font-weight:bold; text-transform:uppercase; letter-spacing:1.5px; color:#777; margin:0 0 8px; border-bottom:1px solid #ccc; padding-bottom:6px;}
+    .modal-actions{display:none;}
+    .modal-overlay{position:static; background:none;}
+    .modal-sheet{max-height:none; border-radius:0; box-shadow:none;}
+  }
+</style>
+</head>
+<body>
+
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+      <img src="icon-192.png" alt="Mahakal Wellness logo" style="width:76px;height:76px;border-radius:50%;margin:0 auto 12px;display:block;box-shadow:0 0 0 3px var(--gold-500);">
+      <h2>Hall Booking</h2>
+      <p class="hint" style="margin-bottom:16px;">Mahakal Wellness — Sign in to continue</p>
+      <div class="field">
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" autocomplete="username" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('loginPassword').focus();}">
+      </div>
+      <div class="field">
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();attemptLogin();}">
+      </div>
+      <p class="login-error" id="loginError"></p>
+      <button class="btn btn-primary btn-block" id="loginBtn" onclick="attemptLogin()">Log In</button>
+    </div>
+  </div>
+
+  <div id="appArea" style="display:none;">
+    <header class="topbar" style="background:var(--green-900);padding:16px;text-align:center;position:relative;">
+      <h1 style="font-size:17px;font-weight:600;color:#fff;margin:0;">🏛️ Hall Booking</h1>
+      <p style="margin:2px 0 0;font-size:11.5px;color:var(--green-100);opacity:.85;">Mahakal Wellness</p>
+      <button onclick="hallLogout_()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 12px;border-radius:16px;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;">Logout</button>
+    </header>
+
+    <div style="max-width:520px;margin:0 auto;padding:16px;">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="openNewHallBooking()">+ New Booking</button>
+      <div class="card">
+        <p class="section-label">Filter by date</p>
+        <div class="field-row">
+          <div class="field"><label for="hallFilterFrom">From</label><input type="date" id="hallFilterFrom"></div>
+          <div class="field"><label for="hallFilterTo">To</label><input type="date" id="hallFilterTo"></div>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="loadHallBookings()">Apply</button>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-label">Bookings</div><div class="stat-value" id="hallStatBookings">0</div></div>
+        <div class="stat-card"><div class="stat-label">Collected</div><div class="stat-value" id="hallStatCollected">₹0</div></div>
+      </div>
+      <div class="stat-card warn" style="margin-bottom:12px;"><div class="stat-label">Total Due</div><div class="stat-value" id="hallStatDue">₹0</div></div>
+      <div id="hallBookingList"><div class="empty-cart">Loading…</div></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="newHallBookingModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:16px;color:var(--green-800);margin-bottom:14px;">New Hall Booking</h2>
+      <div class="field-row">
+        <div class="field"><label for="hbDate">Date</label><input type="date" id="hbDate" onchange="loadHallSlotAvailability_()"></div>
+        <div class="field"><label for="hbSlot">Time Slot</label>
+          <select id="hbSlot" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">
+            <option value="Morning (9:00 AM - 1:00 PM)">Morning (9 AM - 1 PM)</option>
+            <option value="Evening (2:00 PM - 6:00 PM)">Evening (2 PM - 6 PM)</option>
+          </select>
+        </div>
+      </div>
+      <p class="hint" id="hbAvailabilityHint" style="margin-bottom:10px;"></p>
+      <div class="field-row">
+        <div class="field"><label for="hbName">Customer Name</label><input type="text" id="hbName" oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="field"><label for="hbMobile">Mobile</label><input type="tel" id="hbMobile" maxlength="15"></div>
+      </div>
+      <div style="display:flex;gap:16px;margin-bottom:12px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;"><input type="checkbox" id="hbProjector" style="width:auto;" onchange="updateHallRatePreview_()"> Projector</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;"><input type="checkbox" id="hbAc" style="width:auto;" onchange="updateHallRatePreview_()"> AC</label>
+      </div>
+      <div class="receipt-total-row grand" style="margin-bottom:12px;"><span>Total Hall Charge</span><span id="hbRatePreview">₹1500</span></div>
+      <div class="field-row">
+        <div class="field"><label for="hbAdvance">Advance Amount ₹</label><input type="number" id="hbAdvance" min="0" step="1"></div>
+        <div class="field"><label for="hbMethod">Payment Method</label>
+          <select id="hbMethod" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;" onchange="document.getElementById('hbUtrField').style.display=this.value==='Online'?'block':'none';">
+            <option>Cash</option><option>Online</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" id="hbUtrField" style="display:none;"><label for="hbUtr">UTR / Reference No.</label><input type="text" id="hbUtr"></div>
+      <p class="hint" style="margin-bottom:14px;">Advance is non-refundable and gets adjusted against this booking's total.</p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('newHallBookingModal').classList.remove('show')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitNewHallBooking()">Save Booking</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="hallDetailModal">
+    <div class="modal-sheet">
+      <div id="hallDetailArea"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('hallDetailModal').classList.remove('show')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="hallBalancePaymentModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:16px;color:var(--green-800);margin-bottom:2px;">Record Balance Payment</h2>
+      <p class="hint" id="hbpDueText" style="margin-bottom:14px;"></p>
+      <div class="field"><label for="hbpAmount">Amount ₹</label><input type="number" id="hbpAmount" min="0" step="1"></div>
+      <div class="field"><label for="hbpMethod">Payment Method</label>
+        <select id="hbpMethod" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;" onchange="document.getElementById('hbpUtrField').style.display=this.value==='Online'?'block':'none';">
+          <option>Cash</option><option>Online</option>
+        </select>
+      </div>
+      <div class="field" id="hbpUtrField" style="display:none;margin-bottom:0;"><label for="hbpUtr">UTR / Reference No.</label><input type="text" id="hbpUtr"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('hallBalancePaymentModal').classList.remove('show')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitHallBalancePayment()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastArea"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://lrrqdmmugvizkbjfwneb.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function money(n) { return '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }); }
+  function fmtDateInput_(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function showToast(msg, isError) {
+    const box = document.createElement('div');
+    box.textContent = msg;
+    box.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:' + (isError ? 'var(--danger)' : 'var(--green-900)') + ';color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.2);';
+    document.getElementById('toastArea').appendChild(box);
+    setTimeout(function () { box.remove(); }, 3000);
+  }
+
+  async function attemptLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errEl = document.getElementById('loginError');
+    errEl.textContent = '';
+    if (!email || !password) { errEl.textContent = 'Enter email and password.'; return; }
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true; btn.textContent = 'Logging in…';
+    const { error } = await sb.auth.signInWithPassword({ email: email, password: password });
+    btn.disabled = false; btn.textContent = 'Log In';
+    if (error) { errEl.textContent = error.message || 'Login failed.'; return; }
+    startHallApp_();
+  }
+
+  async function hallLogout_() {
+    await sb.auth.signOut();
+    document.getElementById('appArea').style.display = 'none';
+    document.getElementById('loginOverlay').style.display = 'flex';
+  }
+
+  async function startHallApp_() {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('appArea').style.display = 'block';
+    const today = new Date();
+    document.getElementById('hallFilterFrom').value = fmtDateInput_(today);
+    const future = new Date(today); future.setDate(future.getDate() + 60);
+    document.getElementById('hallFilterTo').value = fmtDateInput_(future);
+    loadHallBookings();
+  }
+
+  (async function initSession_() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) startHallApp_();
+  })();
+
+  // ---------------- HALL BOOKING ----------------
+  function hallRate_(projector, ac) {
+    if (ac && projector) return 2500;
+    if (ac) return 2200;
+    if (projector) return 2000;
+    return 1500;
+  }
+
+  let hallBookingsById_ = {};
+  async function loadHallBookings() {
+    const box = document.getElementById('hallBookingList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const from = document.getElementById('hallFilterFrom').value || null;
+    const to = document.getElementById('hallFilterTo').value || null;
+    const { data, error } = await sb.rpc('get_hall_bookings', { p_start_date: from, p_end_date: to });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
+    const rows = data || [];
+    hallBookingsById_ = {};
+    rows.forEach(function (r) { hallBookingsById_[r.id] = r; });
+
+    const activeRows = rows.filter(function (r) { return r.status !== 'Cancelled'; });
+    const collected = activeRows.reduce(function (s, r) { return s + Number(r.advance_amount) + Number(r.balance_paid); }, 0);
+    const due = activeRows.reduce(function (s, r) { return s + (Number(r.balance_amount) - Number(r.balance_paid)); }, 0);
+    document.getElementById('hallStatBookings').textContent = activeRows.length;
+    document.getElementById('hallStatCollected').textContent = money(collected);
+    document.getElementById('hallStatDue').textContent = money(due);
+
+    if (!rows.length) { box.innerHTML = '<div class="card"><div class="empty-cart">No bookings in this range.</div></div>'; return; }
+    const statusColor = { Pending: 'badge-partial', Confirmed: 'badge-paid', Completed: 'badge-paid', Cancelled: 'badge-unpaid' };
+    box.innerHTML = rows.map(function (r) {
+      const dateStr = new Date(r.booking_date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const due = Number(r.balance_amount) - Number(r.balance_paid);
+      const opts = (r.needs_ac ? '❄️ AC ' : '') + (r.needs_projector ? '📽️ Projector' : '');
+      return '<div class="card" style="cursor:pointer;" onclick="viewHallBooking(' + r.id + ')">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
+        '<div><div style="font-weight:700;color:var(--green-800);">' + escapeHtml(r.customer_name) + '</div>' +
+        '<div class="hint">' + dateStr + ' · ' + r.time_slot.split(' (')[0] + '</div>' +
+        '<div class="hint">' + (opts || 'Hall only') + '</div></div>' +
+        '<div style="text-align:right;"><span class="badge ' + (statusColor[r.status] || '') + '">' + r.status + '</span>' +
+        (r.status !== 'Cancelled' && due > 0.5 ? '<div class="pts" style="color:var(--danger);margin-top:4px;">Due ' + money(due) + '</div>' : '') +
+        '</div></div></div>';
+    }).join('');
+  }
+
+  function viewHallBooking(id) {
+    const r = hallBookingsById_[id];
+    if (!r) return;
+    const dateStr = new Date(r.booking_date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const due = Number(r.balance_amount) - Number(r.balance_paid);
+    document.getElementById('hallDetailArea').innerHTML =
+      '<h2 style="font-size:16px;color:var(--green-800);margin-bottom:2px;">' + escapeHtml(r.customer_name) + '</h2>' +
+      '<p class="hint" style="margin-bottom:12px;">' + escapeHtml(r.mobile) + ' · ' + dateStr + ' · ' + r.time_slot + '</p>' +
+      '<div class="receipt-total-row"><span>Projector</span><span>' + (r.needs_projector ? 'Yes' : 'No') + '</span></div>' +
+      '<div class="receipt-total-row"><span>AC</span><span>' + (r.needs_ac ? 'Yes' : 'No') + '</span></div>' +
+      '<div class="receipt-total-row grand" style="margin-top:6px;"><span>Total</span><span>' + money(r.total_amount) + '</span></div>' +
+      '<div class="receipt-total-row"><span>Advance (' + r.advance_method + (r.advance_utr ? ' · ' + escapeHtml(r.advance_utr) : '') + ')</span><span>' + money(r.advance_amount) + '</span></div>' +
+      (Number(r.balance_paid) > 0 ? '<div class="receipt-total-row"><span>Balance paid (' + (r.balance_method || '') + ')</span><span>' + money(r.balance_paid) + '</span></div>' : '') +
+      '<div class="receipt-total-row" style="color:' + (due > 0.5 ? 'var(--danger)' : 'var(--ok)') + ';font-weight:700;"><span>Due</span><span>' + money(due) + '</span></div>' +
+      '<p style="margin-top:10px;">Status: <span class="badge ' + (r.status === 'Cancelled' ? 'badge-unpaid' : 'badge-paid') + '">' + r.status + '</span></p>' +
+      '<div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">' +
+      (r.status === 'Pending' ? '<button class="btn btn-primary" onclick="confirmHallAdvanceAction(' + r.id + ')">Confirm Advance Received</button>' : '') +
+      (r.status !== 'Cancelled' && due > 0.5 ? '<button class="btn btn-primary" onclick="openHallBalancePayment(' + r.id + ')">Record Balance Payment</button>' : '') +
+      (r.status !== 'Cancelled' ? '<button class="btn btn-outline" style="color:var(--danger);border-color:var(--danger);" onclick="cancelHallBookingAction(' + r.id + ')">Cancel Booking</button>' : '') +
+      '</div>';
+    document.getElementById('hallDetailModal').classList.add('show');
+  }
+
+  async function confirmHallAdvanceAction(id) {
+    const { error } = await sb.rpc('confirm_hall_advance', { p_id: id });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Advance confirmed.');
+    document.getElementById('hallDetailModal').classList.remove('show');
+    loadHallBookings();
+  }
+
+  async function cancelHallBookingAction(id) {
+    if (!confirm('Cancel this booking? The advance remains non-refundable, but the slot will be freed up.')) return;
+    const { error } = await sb.rpc('cancel_hall_booking', { p_id: id });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Booking cancelled.');
+    document.getElementById('hallDetailModal').classList.remove('show');
+    loadHallBookings();
+  }
+
+  let currentHallBalanceId_ = null;
+  function openHallBalancePayment(id) {
+    const r = hallBookingsById_[id];
+    if (!r) return;
+    currentHallBalanceId_ = id;
+    const due = Number(r.balance_amount) - Number(r.balance_paid);
+    document.getElementById('hbpDueText').textContent = 'Remaining due: ' + money(due);
+    document.getElementById('hbpAmount').value = due;
+    document.getElementById('hbpAmount').max = due;
+    document.getElementById('hbpMethod').value = 'Cash';
+    document.getElementById('hbpUtrField').style.display = 'none';
+    document.getElementById('hallBalancePaymentModal').classList.add('show');
+  }
+
+  async function submitHallBalancePayment() {
+    const amount = Number(document.getElementById('hbpAmount').value);
+    const method = document.getElementById('hbpMethod').value;
+    const utr = document.getElementById('hbpUtr').value.trim();
+    if (!(amount > 0)) { showToast('Enter a valid amount.', true); return; }
+    const { error } = await sb.rpc('record_hall_balance_payment', { p_id: currentHallBalanceId_, p_amount: amount, p_method: method, p_utr: utr || null });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Payment recorded.');
+    document.getElementById('hallBalancePaymentModal').classList.remove('show');
+    document.getElementById('hallDetailModal').classList.remove('show');
+    loadHallBookings();
+  }
+
+  function openNewHallBooking() {
+    document.getElementById('hbDate').value = fmtDateInput_(new Date());
+    document.getElementById('hbSlot').value = 'Morning (9:00 AM - 1:00 PM)';
+    document.getElementById('hbName').value = ''; document.getElementById('hbMobile').value = '';
+    document.getElementById('hbProjector').checked = false; document.getElementById('hbAc').checked = false;
+    document.getElementById('hbAdvance').value = '';
+    document.getElementById('hbMethod').value = 'Cash';
+    document.getElementById('hbUtrField').style.display = 'none'; document.getElementById('hbUtr').value = '';
+    updateHallRatePreview_();
+    loadHallSlotAvailability_();
+    document.getElementById('newHallBookingModal').classList.add('show');
+  }
+
+  function updateHallRatePreview_() {
+    const rate = hallRate_(document.getElementById('hbProjector').checked, document.getElementById('hbAc').checked);
+    document.getElementById('hbRatePreview').textContent = money(rate);
+  }
+
+  async function loadHallSlotAvailability_() {
+    const date = document.getElementById('hbDate').value;
+    const hint = document.getElementById('hbAvailabilityHint');
+    if (!date) { hint.textContent = ''; return; }
+    const { data, error } = await sb.rpc('get_hall_availability', { p_start_date: date, p_end_date: date });
+    if (error) return;
+    const taken = (data || []).map(function (r) { return r.time_slot; });
+    if (taken.length) hint.textContent = 'Already booked: ' + taken.map(function (s) { return s.split(' (')[0]; }).join(', ');
+    else hint.textContent = 'Both slots available on this date.';
+  }
+
+  async function submitNewHallBooking() {
+    const name = document.getElementById('hbName').value.trim();
+    const mobile = document.getElementById('hbMobile').value.trim();
+    const advance = Number(document.getElementById('hbAdvance').value);
+    const method = document.getElementById('hbMethod').value;
+    const utr = document.getElementById('hbUtr').value.trim();
+    if (!name || !mobile) { showToast('Enter customer name and mobile.', true); return; }
+    if (!(advance > 0)) { showToast('Enter an advance amount.', true); return; }
+    const { data, error } = await sb.rpc('create_hall_booking_staff', {
+      p_booking_date: document.getElementById('hbDate').value, p_time_slot: document.getElementById('hbSlot').value,
+      p_customer_name: name, p_mobile: mobile,
+      p_needs_projector: document.getElementById('hbProjector').checked, p_needs_ac: document.getElementById('hbAc').checked,
+      p_advance_amount: advance, p_advance_method: method, p_advance_utr: utr || null
+    });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Hall booked — balance due ' + money(data.balanceAmount));
+    document.getElementById('newHallBookingModal').classList.remove('show');
+    loadHallBookings();
+  }
+</script>
+</body>
+</html>

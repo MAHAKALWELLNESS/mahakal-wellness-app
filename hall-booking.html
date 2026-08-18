@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Book the Hall — Mahakal Wellness</title>
+<meta name="theme-color" content="#132E26">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green-900:#132E26; --green-800:#1E4A3D; --green-700:#2A5C4C; --green-100:#DCE9E3;
+    --gold-500:#D9A441; --gold-600:#B8842C; --gold-100:#F7E9C7;
+    --surface:#FFFFFF; --bg:#F6F5F1; --ink-soft:#555; --ink-faint:#8A8A8A; --line:#E7E4DC;
+    --danger:#C0392B; --danger-100:#FBE7E4; --ok:#2E7D4F; --ok-100:#E3F1E8;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'Inter',sans-serif; background:var(--bg); color:#222; -webkit-font-smoothing:antialiased;}
+  h1,h2{font-family:'Fraunces',serif; margin:0;}
+  .topbar{background:var(--green-900); padding:14px 16px; text-align:center;}
+  .topbar h1{font-size:17px; font-weight:600; color:#fff;}
+  .topbar p{margin:2px 0 0; font-size:11.5px; color:var(--green-100); opacity:.85;}
+  main{max-width:520px; margin:0 auto; padding:16px 16px 90px;}
+  .card{background:var(--surface); border-radius:16px; padding:20px; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  .section-label{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--ink-faint); margin:0 0 10px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block; font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
+  .field input{width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; font-size:15px; font-family:inherit; background:#fff;}
+  .field input:focus{outline:none; border-color:var(--gold-500);}
+  .field-row{display:flex; gap:10px;}
+  .field-row .field{flex:1;}
+  .search-wrap{position:relative;}
+  .search-results{margin-top:8px; max-height:280px; overflow-y:auto;}
+  .search-row{display:flex; justify-content:space-between; align-items:center; padding:11px 4px; border-bottom:1px solid var(--line); cursor:pointer;}
+  .search-row:last-child{border-bottom:none;}
+  .search-row:active{background:var(--bg);}
+  .search-name{font-size:13.5px; font-weight:600;}
+  .search-meta{font-size:11.5px; color:var(--ink-faint);}
+  .search-price{font-size:13.5px; font-weight:700; color:var(--green-800); white-space:nowrap; margin-left:10px;}
+  .cart-row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line);}
+  .cart-row:last-child{border-bottom:none;}
+  .cart-name{font-size:13.5px; font-weight:600;}
+  .cart-price{font-size:11.5px; color:var(--ink-faint);}
+  .qty-ctrl{display:flex; align-items:center; gap:10px;}
+  .qty-btn{width:30px; height:30px; border-radius:8px; border:1.5px solid var(--line); background:#fff; font-size:16px; font-weight:700; color:var(--green-800); cursor:pointer;}
+  .qty-val{min-width:22px; text-align:center; font-weight:700; font-size:14px;}
+  .empty-cart{padding:24px 0; text-align:center; color:var(--ink-faint); font-size:13px;}
+  .total-row{display:flex; justify-content:space-between; align-items:center; padding-top:12px; margin-top:4px; border-top:1px solid var(--line);}
+  .total-row .lbl{font-size:13px; color:var(--ink-soft);}
+  .total-row .val{font-size:20px; font-weight:700; color:var(--green-800);}
+  .btn{display:block; width:100%; padding:14px; border-radius:12px; border:none; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; text-align:center; text-decoration:none;}
+  .btn-gold{background:var(--gold-500); color:var(--green-900);}
+  .btn-gold:disabled{opacity:.5;}
+  .hint{font-size:12.5px; color:var(--ink-faint); margin:0;}
+  .error-msg{font-size:12.5px; color:var(--danger); margin:8px 0 0; min-height:16px;}
+  .empty{padding:40px 20px; text-align:center; color:var(--ink-faint);}
+  .success-icon{width:56px; height:56px; border-radius:50%; background:var(--ok-100); color:var(--ok); font-size:28px; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;}
+  .qr-box{text-align:center; padding:18px 0 6px;}
+  .qr-box img{width:220px; height:220px; border-radius:12px; border:1px solid var(--line);}
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <a href="index.html" style="display:inline-block;margin-bottom:8px;color:var(--green-100);font-size:12px;font-weight:600;text-decoration:none;opacity:.9;">← Back to Main Page</a>
+    <h1>Mahakal Wellness</h1>
+    <p>Book the Meeting Hall</p>
+  </header>
+
+  <div id="mainArea"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://lrrqdmmugvizkbjfwneb.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const BUSINESS_UPI_ID = '8199983834@okbizaxis';
+  const BUSINESS_PAYEE_NAME = 'Mahakal Wellness';
+
+  function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function money(n) { return '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }); }
+  function fmtDateInput_(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function hallRate_(projector, ac) {
+    if (ac && projector) return 2500;
+    if (ac) return 2200;
+    if (projector) return 2000;
+    return 1500;
+  }
+
+  function renderForm() {
+    document.getElementById('mainArea').innerHTML =
+      '<div class="card">' +
+        '<p class="section-label">Your details</p>' +
+        '<div class="field"><label for="hbName">Name</label><input type="text" id="hbName" placeholder="Your name" oninput="this.value=this.value.toUpperCase()"></div>' +
+        '<div class="field" style="margin-bottom:0;"><label for="hbMobile">Mobile</label><input type="tel" id="hbMobile" placeholder="10-digit mobile" maxlength="15"></div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<p class="section-label">Hall details</p>' +
+        '<p class="hint" style="margin-bottom:10px;">Capacity: 100 people · 1 Projector · 2 AC available</p>' +
+        '<div class="field"><label for="hbDate">Date</label><input type="date" id="hbDate" onchange="checkAvailability_()"></div>' +
+        '<div class="field" style="margin-bottom:0;"><label for="hbSlot">Time Slot</label>' +
+          '<select id="hbSlot" onchange="checkAvailability_()" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">' +
+            '<option value="Morning (9:00 AM - 1:00 PM)">Morning (9:00 AM - 1:00 PM)</option>' +
+            '<option value="Evening (2:00 PM - 6:00 PM)">Evening (2:00 PM - 6:00 PM)</option>' +
+          '</select>' +
+        '</div>' +
+        '<p class="hint" id="availabilityHint" style="margin-top:8px;"></p>' +
+      '</div>' +
+      '<div class="card">' +
+        '<p class="section-label">What do you need?</p>' +
+        '<div style="display:flex;gap:20px;margin-bottom:4px;">' +
+          '<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;"><input type="checkbox" id="hbProjector" style="width:auto;" onchange="updateRatePreview_()"> 📽️ Projector</label>' +
+          '<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;"><input type="checkbox" id="hbAc" style="width:auto;" onchange="updateRatePreview_()"> ❄️ AC</label>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="total-row" style="border-top:none;padding-top:0;"><span class="lbl">Total Hall Charge</span><span class="val" id="ratePreview">₹1500</span></div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<p class="section-label">Advance payment</p>' +
+        '<p class="hint" style="margin-bottom:10px;">A booking is confirmed only after an advance is paid. The advance is <strong>non-refundable</strong> and is adjusted against your total hall charge — the rest can be paid before or on the day of the event.</p>' +
+        '<div class="field"><label for="hbAdvance">Advance Amount ₹</label><input type="number" id="hbAdvance" min="1" placeholder="e.g. 500"></div>' +
+        '<div class="field" style="margin-bottom:0;"><label for="hbMethod">Payment Method</label>' +
+          '<select id="hbMethod" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">' +
+            '<option value="Cash">Pay Cash at the office</option>' +
+            '<option value="Online">Pay Online (UPI)</option>' +
+          '</select>' +
+        '</div>' +
+      '</div>' +
+      '<button class="btn btn-gold" id="submitBookingBtn" onclick="proceedBooking_()">Continue</button>' +
+      '<p class="error-msg" id="formError"></p>';
+    document.getElementById('hbDate').value = fmtDateInput_(new Date());
+    checkAvailability_();
+  }
+
+  async function checkAvailability_() {
+    const date = document.getElementById('hbDate').value;
+    const hint = document.getElementById('availabilityHint');
+    if (!date) { hint.textContent = ''; return; }
+    const { data, error } = await sb.rpc('get_hall_availability', { p_start_date: date, p_end_date: date });
+    if (error) return;
+    const taken = (data || []).map(function (r) { return r.time_slot; });
+    const selectedSlot = document.getElementById('hbSlot').value;
+    if (taken.includes(selectedSlot)) {
+      hint.textContent = '⚠️ This slot is already booked — please choose another date or slot.';
+      hint.style.color = 'var(--danger)';
+    } else {
+      hint.textContent = '✓ This slot is available.';
+      hint.style.color = 'var(--green-800)';
+    }
+  }
+
+  function updateRatePreview_() {
+    const rate = hallRate_(document.getElementById('hbProjector').checked, document.getElementById('hbAc').checked);
+    document.getElementById('ratePreview').textContent = money(rate);
+  }
+
+  async function proceedBooking_() {
+    const errBox = document.getElementById('formError');
+    errBox.textContent = '';
+    const name = document.getElementById('hbName').value.trim();
+    const mobile = document.getElementById('hbMobile').value.trim();
+    const date = document.getElementById('hbDate').value;
+    const slot = document.getElementById('hbSlot').value;
+    const projector = document.getElementById('hbProjector').checked;
+    const ac = document.getElementById('hbAc').checked;
+    const advance = Number(document.getElementById('hbAdvance').value);
+    const method = document.getElementById('hbMethod').value;
+    const total = hallRate_(projector, ac);
+
+    if (!name) { errBox.textContent = 'Please enter your name.'; return; }
+    if (!mobile || mobile.replace(/\D/g, '').length < 10) { errBox.textContent = 'Please enter a valid 10-digit mobile number.'; return; }
+    if (!date) { errBox.textContent = 'Please choose a date.'; return; }
+    if (!(advance > 0)) { errBox.textContent = 'Please enter an advance amount.'; return; }
+    if (advance > total) { errBox.textContent = 'Advance cannot be more than the total hall charge of ' + money(total) + '.'; return; }
+
+    const draft = { name: name, mobile: mobile, date: date, slot: slot, projector: projector, ac: ac, advance: advance, total: total };
+    if (method === 'Cash') { submitHallBooking_(draft, null); return; }
+    showHallPaymentQr_(draft);
+  }
+
+  function showHallPaymentQr_(draft) {
+    const upiUrl = 'upi://pay?pa=' + encodeURIComponent(BUSINESS_UPI_ID) + '&pn=' + encodeURIComponent(BUSINESS_PAYEE_NAME) +
+      '&am=' + encodeURIComponent(draft.advance.toFixed(2)) + '&cu=INR&tn=' + encodeURIComponent('Hall booking advance');
+    const qrImgUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(upiUrl);
+    document.getElementById('mainArea').innerHTML =
+      '<div class="card" style="text-align:center;">' +
+        '<h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Pay advance via UPI</h2>' +
+        '<p class="hint">' + money(draft.advance) + '</p>' +
+        '<div class="qr-box"><img src="' + qrImgUrl + '" alt="UPI QR code"></div>' +
+      '</div>' +
+      '<div class="card" style="text-align:center;">' +
+        '<a class="btn" style="background:transparent;border:1.5px solid var(--line);color:var(--green-800);" href="' + escapeHtml(upiUrl) + '">Or tap here to open your UPI app</a>' +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="field" style="margin-bottom:0;"><label for="hbUtr">Your UPI transaction ref. (UTR) — required</label><input type="text" id="hbUtr" placeholder="As shown in your UPI app after payment"></div>' +
+        '<p class="error-msg" id="utrError"></p>' +
+      '</div>' +
+      '<button class="btn btn-gold" id="confirmHallPaidBtn" onclick="confirmHallPaid_()">I\'ve completed the payment</button>';
+    window.__hallDraft = draft;
+  }
+
+  function confirmHallPaid_() {
+    const utr = document.getElementById('hbUtr').value.trim();
+    if (!utr) { document.getElementById('utrError').textContent = 'Please enter your UPI transaction reference (UTR).'; return; }
+    submitHallBooking_(window.__hallDraft, utr);
+  }
+
+  async function submitHallBooking_(draft, utr) {
+    document.getElementById('mainArea').innerHTML = '<div class="empty">Booking the hall…</div>';
+    const { data, error } = await sb.rpc('create_hall_booking', {
+      p_booking_date: draft.date, p_time_slot: draft.slot, p_customer_name: draft.name, p_mobile: draft.mobile,
+      p_needs_projector: draft.projector, p_needs_ac: draft.ac,
+      p_advance_amount: draft.advance, p_advance_method: utr ? 'Online' : 'Cash', p_advance_utr: utr
+    });
+    if (error) {
+      document.getElementById('mainArea').innerHTML = '<div class="card"><p class="error-msg" style="display:block;">' + escapeHtml(error.message) + '</p></div>' +
+        '<button class="btn btn-gold" onclick="renderForm()">← Try Again</button>';
+      return;
+    }
+    document.getElementById('mainArea').innerHTML =
+      '<div class="card" style="text-align:center;">' +
+        '<div class="success-icon">✓</div>' +
+        '<h2 style="font-size:18px;color:var(--green-800);margin-bottom:4px;">Hall Booked!</h2>' +
+        '<p class="hint">' + escapeHtml(draft.date) + ' · ' + escapeHtml(draft.slot) + '</p>' +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="total-row" style="border-top:none;padding-top:0;"><span class="lbl">Total Hall Charge</span><span class="val">' + money(data.totalAmount) + '</span></div>' +
+        '<div class="total-row"><span class="lbl">Advance Paid</span><span class="val" style="color:var(--ok);">' + money(draft.advance) + '</span></div>' +
+        '<div class="total-row"><span class="lbl">Balance Due</span><span class="val" style="color:var(--danger);">' + money(data.balanceAmount) + '</span></div>' +
+      '</div>' +
+      '<p class="hint" style="text-align:center;margin-bottom:14px;">Our team will confirm your booking shortly. The balance can be paid before or on the day of the event.</p>' +
+      '<button class="btn btn-gold" onclick="renderForm()">← Book Another Slot</button>';
+  }
+
+  renderForm();
+</script>
+</body>
+</html>
