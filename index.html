@@ -37,6 +37,11 @@
   .choice-card.primary{background:var(--green-900); border-color:var(--green-900);}
   .choice-card.primary .choice-title{color:#fff;}
   .choice-card.primary .choice-desc{color:var(--green-100);}
+  #mainChoices{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  #mainChoices .choice-card{display:flex; flex-direction:column; align-items:center; text-align:center; border-radius:14px; padding:18px 10px;}
+  #mainChoices .choice-icon{font-size:24px; margin-bottom:8px;}
+  #mainChoices .choice-title{font-size:13px; margin-bottom:0; line-height:1.3;}
+  #mainChoices .choice-desc{display:none;}
   .footer-note{margin-top:32px; font-size:11.5px; color:var(--ink-faint); text-align:center;}
   .code-gate{background:var(--surface); border-radius:18px; padding:24px 22px; box-shadow:0 1px 4px rgba(0,0,0,.07); border:1.5px solid var(--line); width:100%;}
   .code-gate label{display:block; font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:6px;}
@@ -92,47 +97,49 @@
     <button class="choice-card primary" style="width:100%;max-width:400px;text-align:center;padding:16px;cursor:pointer;border:none;margin-top:14px;color:#fff;font-weight:700;font-size:15px;" onclick="continueFromWelcome_()">Continue</button>
   </div>
 
-  <div class="brand" id="mainBrand">
+  <div class="brand" id="mainBrand" style="display:none;">
     <h1>Mahakal Wellness</h1>
     <p>WELCOME</p>
   </div>
-  <div class="choices" id="mainChoices">
-    <button class="choice-card primary" id="installAppBtn" style="display:none;cursor:pointer;border:none;width:100%;text-align:left;" onclick="triggerInstall_()">
+  <div class="choices" id="mainChoices" style="display:none;">
+    <button class="choice-card primary" id="installAppBtn" style="display:none;cursor:pointer;border:none;grid-column:1 / -1;" onclick="triggerInstall_()">
       <div class="choice-icon">📲</div>
       <div class="choice-title" style="color:#fff;">Install App</div>
-      <div class="choice-desc" style="color:var(--green-100);">Add Mahakal Wellness to your home screen for quick access.</div>
     </button>
     <a class="choice-card primary" href="order.html">
       <div class="choice-icon">🛒</div>
-      <div class="choice-title">Purchase Product</div>
-      <div class="choice-desc">Browse products and place your order directly.</div>
+      <div class="choice-title">Purchase</div>
     </a>
     <a class="choice-card" href="hall-booking.html">
       <div class="choice-icon">🏛️</div>
-      <div class="choice-title">Book the Hall</div>
-      <div class="choice-desc">100-seat hall with projector &amp; AC — check dates and book.</div>
+      <div class="choice-title">Book Hall</div>
     </a>
     <a class="choice-card" href="https://g.page/r/CXW1eHkbHgTSEBE/review" target="_blank" rel="noopener">
       <div class="choice-icon">⭐</div>
-      <div class="choice-title">Rate Us on Google</div>
-      <div class="choice-desc">Loved our service? Share your rating and review.</div>
+      <div class="choice-title">Rate Us</div>
     </a>
     <button class="choice-card" onclick="showContactUs()">
       <div class="choice-icon">📞</div>
-      <div class="choice-title">Contact Us</div>
-      <div class="choice-desc">Address, call, WhatsApp, map, and send us a message.</div>
+      <div class="choice-title">Contact</div>
     </button>
     <a class="choice-card" href="hall-admin.html">
       <div class="choice-icon">🗝️</div>
-      <div class="choice-title">Hall Admin Login</div>
-      <div class="choice-desc">For Hall Booking staff only.</div>
+      <div class="choice-title">Hall Admin</div>
     </a>
     <button class="choice-card" onclick="showCodeGate()">
       <div class="choice-icon">🔒</div>
-      <div class="choice-title">Admin Login</div>
-      <div class="choice-desc">For Mahakal Wellness staff — billing counter access.</div>
+      <div class="choice-title">Mahakal Admin</div>
     </button>
   </div>
+  <script>
+    // Runs immediately, before the browser paints anything below - decides
+    // welcome-screen vs normal choices with zero flash of the wrong one.
+    (function () {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      document.getElementById(isStandalone ? 'installWelcome' : 'mainBrand').style.display = isStandalone ? 'flex' : 'block';
+      if (!isStandalone) document.getElementById('mainChoices').style.display = 'flex';
+    })();
+  </script>
   <div class="code-gate" id="codeGate" style="display:none;">
     <label for="adminCodeInput">Enter Admin Link Code</label>
     <div style="position:relative;">
@@ -265,16 +272,6 @@
       await sb.rpc('save_push_subscription', { p_endpoint: json.endpoint, p_p256dh_key: json.keys.p256dh, p_auth_key: json.keys.auth });
       renderNotifBell_();
     } catch (err) {}
-  }
-
-  // ---------------- Welcome screen (shown once, only when opened as an installed app) ----------------
-  function checkInstalledWelcome_() {
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-    if (isStandalone) {
-      document.getElementById('installWelcome').style.display = 'flex';
-      document.getElementById('mainBrand').style.display = 'none';
-      document.getElementById('mainChoices').style.display = 'none';
-    }
   }
 
   function continueFromWelcome_() {
@@ -417,7 +414,6 @@
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
       navigator.serviceWorker.register('sw.js').then(function () {
-        checkInstalledWelcome_();
         renderNotifBell_();
       }).catch(function () {});
     });
