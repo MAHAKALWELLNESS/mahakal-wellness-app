@@ -348,6 +348,14 @@
   }
 
   async function startHallApp_() {
+    const { data: restriction, error: restrictionErr } = await sb.rpc('check_my_account_restriction');
+    if (restrictionErr || restriction !== 'hall_only') {
+      await sb.auth.signOut();
+      document.getElementById('appArea').style.display = 'none';
+      document.getElementById('loginOverlay').style.display = 'flex';
+      document.getElementById('loginError').textContent = 'This account is not set up for Hall Booking access.';
+      return;
+    }
     document.getElementById('loginOverlay').style.display = 'none';
     document.getElementById('appArea').style.display = 'block';
     const today = new Date();
