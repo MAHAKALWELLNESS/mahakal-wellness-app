@@ -210,6 +210,7 @@
 
   <div class="login-overlay" id="loginOverlay">
     <div class="login-card">
+      <a href="index.html" style="display:inline-block;margin-bottom:12px;color:var(--ink-soft);font-size:12px;font-weight:600;text-decoration:none;">← Back to Main Page</a>
       <img src="" id="loginLogoImg" alt="Mahakal Wellness logo" style="width:76px;height:76px;border-radius:50%;margin:0 auto 12px;display:block;box-shadow:0 0 0 3px var(--gold-500);">
       <h2>Mahakal Wellness</h2>
       <p class="hint" style="margin-bottom:16px;">Sign in to continue</p>
@@ -288,6 +289,7 @@
     <header class="topbar">
       <div class="brand-mark"><img src="" id="logoImg" alt="Mahakal Wellness logo"></div>
       <div><h1>Mahakal Wellness</h1><p class="tagline">Billing Counter</p></div>
+      <a class="header-link" href="index.html" style="text-decoration:none;display:inline-block;">← Main Page</a>
       <button class="header-link" onclick="openChangePassword()">Change password</button>
       <button class="header-link" id="changeAdminCodeBtn" style="display:none;margin-left:10px;" onclick="openChangeAdminCode()">Change admin link code</button>
       <button class="header-link" style="margin-left:10px;" onclick="logout()">Logout</button>
@@ -1848,6 +1850,13 @@
   }
 
   async function startApp() {
+    const { data: restriction, error: restrictionErr } = await sb.rpc('check_my_account_restriction');
+    if (!restrictionErr && restriction === 'hall_only') {
+      await sb.auth.signOut();
+      document.getElementById('loginOverlay').style.display = 'flex';
+      document.getElementById('loginError').textContent = 'This account is for Hall Booking only. Please use the Hall Booking login page instead.';
+      return;
+    }
     document.getElementById('appRoot').style.display = 'block';
     await loadSettings();
     await loadProducts();

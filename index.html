@@ -37,7 +37,10 @@
   .choice-card.primary{background:var(--green-900); border-color:var(--green-900);}
   .choice-card.primary .choice-title{color:#fff;}
   .choice-card.primary .choice-desc{color:var(--green-100);}
-  #mainChoices{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  #mainChoices{display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px;}
+  @media (min-width:700px){
+    .choices{max-width:700px;}
+  }
   #mainChoices .choice-card{display:flex; flex-direction:column; align-items:center; text-align:center; border-radius:14px; padding:18px 10px;}
   #mainChoices .choice-icon{font-size:24px; margin-bottom:8px;}
   #mainChoices .choice-title{font-size:13px; margin-bottom:0; line-height:1.3;}
@@ -137,7 +140,7 @@
     (function () {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
       document.getElementById(isStandalone ? 'installWelcome' : 'mainBrand').style.display = isStandalone ? 'flex' : 'block';
-      if (!isStandalone) document.getElementById('mainChoices').style.display = 'flex';
+      if (!isStandalone) document.getElementById('mainChoices').style.display = 'grid';
     })();
   </script>
   <div class="code-gate" id="codeGate" style="display:none;">
@@ -204,7 +207,7 @@
 
   function hideCodeGate() {
     document.getElementById('codeGate').style.display = 'none';
-    document.getElementById('mainChoices').style.display = 'flex';
+    document.getElementById('mainChoices').style.display = 'grid';
   }
 
   function showContactUs() {
@@ -214,7 +217,7 @@
 
   function hideContactUs() {
     document.getElementById('contactUs').style.display = 'none';
-    document.getElementById('mainChoices').style.display = 'flex';
+    document.getElementById('mainChoices').style.display = 'grid';
   }
 
   async function submitQuery() {
@@ -277,7 +280,7 @@
   function continueFromWelcome_() {
     document.getElementById('installWelcome').style.display = 'none';
     document.getElementById('mainBrand').style.display = 'block';
-    document.getElementById('mainChoices').style.display = 'flex';
+    document.getElementById('mainChoices').style.display = 'grid';
     enablePushNotifications_();
   }
 
