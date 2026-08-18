@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Book the Hall — Mahakal Wellness</title>
+<title>Hall Booking Request — Mahakal Wellness</title>
 <meta name="theme-color" content="#132E26">
 <link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -64,7 +64,7 @@
   <header class="topbar">
     <a href="index.html" style="display:inline-block;margin-bottom:8px;color:var(--green-100);font-size:12px;font-weight:600;text-decoration:none;opacity:.9;">← Back to Main Page</a>
     <h1>Mahakal Wellness</h1>
-    <p>Book the Meeting Hall</p>
+    <p>Hall Booking Request</p>
   </header>
 
   <div id="mainArea"></div>
@@ -118,7 +118,7 @@
       '</div>' +
       '<div class="card">' +
         '<p class="section-label">Advance payment</p>' +
-        '<p class="hint" style="margin-bottom:10px;">A booking is confirmed only after an advance is paid. The advance is <strong>non-refundable</strong> and is adjusted against your total hall charge — the rest can be paid before or on the day of the event.</p>' +
+        '<p class="hint" style="margin-bottom:10px;">Submitting this request requires an advance payment. The advance is <strong>non-refundable</strong> and is adjusted against your total hall charge. Your request will then be reviewed and confirmed by our team — the rest of the amount can be paid before or on the day of the event.</p>' +
         '<div class="field"><label for="hbAdvance">Advance Amount ₹</label><input type="number" id="hbAdvance" min="1" placeholder="e.g. 500"></div>' +
         '<div class="field" style="margin-bottom:0;"><label for="hbMethod">Payment Method</label>' +
           '<select id="hbMethod" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">' +
@@ -127,7 +127,7 @@
           '</select>' +
         '</div>' +
       '</div>' +
-      '<button class="btn btn-gold" id="submitBookingBtn" onclick="proceedBooking_()">Continue</button>' +
+      '<button class="btn btn-gold" id="submitBookingBtn" onclick="proceedBooking_()">Submit Request</button>' +
       '<p class="error-msg" id="formError"></p>';
     document.getElementById('hbDate').value = fmtDateInput_(new Date());
     checkAvailability_();
@@ -207,7 +207,7 @@
   }
 
   async function submitHallBooking_(draft, utr) {
-    document.getElementById('mainArea').innerHTML = '<div class="empty">Booking the hall…</div>';
+    document.getElementById('mainArea').innerHTML = '<div class="empty">Sending your request…</div>';
     const { data, error } = await sb.rpc('create_hall_booking', {
       p_booking_date: draft.date, p_time_slot: draft.slot, p_customer_name: draft.name, p_mobile: draft.mobile,
       p_needs_projector: draft.projector, p_needs_ac: draft.ac,
@@ -221,16 +221,17 @@
     document.getElementById('mainArea').innerHTML =
       '<div class="card" style="text-align:center;">' +
         '<div class="success-icon">✓</div>' +
-        '<h2 style="font-size:18px;color:var(--green-800);margin-bottom:4px;">Hall Booked!</h2>' +
+        '<h2 style="font-size:18px;color:var(--green-800);margin-bottom:4px;">Request Submitted!</h2>' +
         '<p class="hint">' + escapeHtml(draft.date) + ' · ' + escapeHtml(draft.slot) + '</p>' +
+        '<p class="hint" style="margin-top:8px;color:var(--gold-600);font-weight:600;">Awaiting confirmation from our team</p>' +
       '</div>' +
       '<div class="card">' +
         '<div class="total-row" style="border-top:none;padding-top:0;"><span class="lbl">Total Hall Charge</span><span class="val">' + money(data.totalAmount) + '</span></div>' +
         '<div class="total-row"><span class="lbl">Advance Paid</span><span class="val" style="color:var(--ok);">' + money(draft.advance) + '</span></div>' +
         '<div class="total-row"><span class="lbl">Balance Due</span><span class="val" style="color:var(--danger);">' + money(data.balanceAmount) + '</span></div>' +
       '</div>' +
-      '<p class="hint" style="text-align:center;margin-bottom:14px;">Our team will confirm your booking shortly. The balance can be paid before or on the day of the event.</p>' +
-      '<button class="btn btn-gold" onclick="renderForm()">← Book Another Slot</button>';
+      '<p class="hint" style="text-align:center;margin-bottom:14px;">This slot is now reserved for you while we review your request. We\'ll confirm your booking on WhatsApp shortly. The balance can be paid before or on the day of the event.</p>' +
+      '<button class="btn btn-gold" onclick="renderForm()">← Request Another Slot</button>';
   }
 
   renderForm();

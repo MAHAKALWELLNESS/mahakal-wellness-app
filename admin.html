@@ -3472,17 +3472,65 @@
       '<div class="receipt-total-row" style="color:' + (due > 0.5 ? 'var(--danger)' : 'var(--ok)') + ';font-weight:700;"><span>Due</span><span>' + money(due) + '</span></div>' +
       '<p style="margin-top:10px;">Status: <span class="badge ' + (r.status === 'Cancelled' ? 'badge-unpaid' : 'badge-paid') + '">' + r.status + '</span></p>' +
       '<div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">' +
-      (r.status === 'Pending' ? '<button class="btn btn-primary" onclick="confirmHallAdvanceAction(' + r.id + ')">Confirm Advance Received</button>' : '') +
+      (r.status === 'Pending' ? '<button class="btn btn-primary" onclick="confirmHallAdvanceAction(' + r.id + ')">Approve Request</button>' : '') +
       (r.status !== 'Cancelled' && due > 0.5 ? '<button class="btn btn-primary" onclick="openHallBalancePayment(' + r.id + ')">Record Balance Payment</button>' : '') +
+      '<button class="btn btn-outline" onclick="sendHallWhatsApp_(' + r.id + ')">📲 Send WhatsApp Message</button>' +
       (r.status !== 'Cancelled' ? '<button class="btn btn-outline" style="color:var(--danger);border-color:var(--danger);" onclick="cancelHallBookingAction(' + r.id + ')">Cancel Booking</button>' : '') +
       '</div>';
     document.getElementById('hallDetailModal').classList.add('show');
   }
 
+  function sendHallWhatsApp_(id) {
+    const r = hallBookingsById_[id];
+    if (!r) return;
+    const dateStr = new Date(r.booking_date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const due = Number(r.balance_amount) - Number(r.balance_paid);
+    const options = [];
+    if (r.needs_projector) options.push('Projector');
+    if (r.needs_ac) options.push('AC');
+    let lines;
+    if (r.status === 'Confirmed' || r.status === 'Completed') {
+      lines = [
+        'Hi ' + r.customer_name + ',',
+        '',
+        'Your Hall Booking with Mahakal Wellness is *confirmed*!',
+        '',
+        'Date: ' + dateStr,
+        'Time: ' + r.time_slot,
+        (options.length ? 'Includes: ' + options.join(', ') : 'Hall only'),
+        '',
+        'Total: ' + money(r.total_amount),
+        'Advance paid: ' + money(r.advance_amount),
+        (due > 0.5 ? 'Balance due: ' + money(due) : 'Fully paid'),
+        '',
+        'See you then!',
+        '- Mahakal Wellness'
+      ];
+    } else if (r.status === 'Pending') {
+      lines = [
+        'Hi ' + r.customer_name + ',',
+        '',
+        'We\'ve received your Hall Booking request for ' + dateStr + ' (' + r.time_slot + '). It is currently *awaiting confirmation* from our team — we\'ll update you shortly.',
+        '',
+        '- Mahakal Wellness'
+      ];
+    } else {
+      lines = [
+        'Hi ' + r.customer_name + ',',
+        '',
+        'Regarding your Hall Booking request for ' + dateStr + ' (' + r.time_slot + ') — this has been cancelled. Please contact us if you have any questions.',
+        '',
+        '- Mahakal Wellness'
+      ];
+    }
+    let digits = String(r.mobile || '').replace(/\D/g, ''); if (digits.length === 10) digits = '91' + digits;
+    window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(lines.join('\n')), '_blank');
+  }
+
   async function confirmHallAdvanceAction(id) {
     const { error } = await sb.rpc('confirm_hall_advance', { p_id: id });
     if (error) { showToast(error.message, true); return; }
-    showToast('Advance confirmed.');
+    showToast('Request approved.');
     document.getElementById('hallDetailModal').classList.remove('show');
     loadHallBookings();
   }
