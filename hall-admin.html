@@ -247,8 +247,8 @@
         <div class="field"><label for="hbDate">Date</label><input type="date" id="hbDate" onchange="loadHallSlotAvailability_()"></div>
         <div class="field"><label for="hbSlot">Time Slot</label>
           <select id="hbSlot" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">
-            <option value="Morning (9:00 AM - 1:00 PM)">Morning (9 AM - 1 PM)</option>
-            <option value="Evening (2:00 PM - 6:00 PM)">Evening (2 PM - 6 PM)</option>
+            <option value="Morning (10:00 AM - 2:00 PM)">Morning (10 AM - 2 PM)</option>
+            <option value="Evening (2:30 PM - 6:30 PM)">Evening (2:30 PM - 6:30 PM)</option>
           </select>
         </div>
       </div>
@@ -473,7 +473,7 @@
 
   function openNewHallBooking() {
     document.getElementById('hbDate').value = fmtDateInput_(new Date());
-    document.getElementById('hbSlot').value = 'Morning (9:00 AM - 1:00 PM)';
+    document.getElementById('hbSlot').value = 'Morning (10:00 AM - 2:00 PM)';
     document.getElementById('hbName').value = ''; document.getElementById('hbMobile').value = '';
     document.getElementById('hbProjector').checked = false; document.getElementById('hbAc').checked = false;
     document.getElementById('hbAdvance').value = '';
