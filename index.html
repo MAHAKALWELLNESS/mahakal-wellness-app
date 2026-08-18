@@ -151,6 +151,7 @@
     })();
   </script>
   <div class="code-gate" id="codeGate" style="display:none;">
+    <a href="index.html" onclick="hideCodeGate();return false;" style="display:inline-block;margin-bottom:12px;color:var(--ink-soft);font-size:12px;font-weight:600;text-decoration:none;">← Back to Main Page</a>
     <label for="adminCodeInput">Enter Admin Link Code</label>
     <div style="position:relative;">
       <input type="password" id="adminCodeInput" placeholder="Code" autocomplete="off" style="width:100%;padding-right:42px;box-sizing:border-box;" onkeydown="if(event.key==='Enter'){event.preventDefault();verifyAdminCode();}">
