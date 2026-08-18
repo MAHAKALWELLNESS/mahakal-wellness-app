@@ -522,6 +522,11 @@
       </div>
       <div class="card" id="dashboardHallStats" style="display:none;">
         <p class="section-label">🏛️ Hall Booking</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="quickbtn" type="button" onclick="setDashboardHallRange_('today')">Today</button>
+          <button class="quickbtn" type="button" onclick="setDashboardHallRange_('week')">This week</button>
+          <button class="quickbtn" type="button" onclick="setDashboardHallRange_('month')">This month</button>
+        </div>
         <div class="field-row">
           <div class="field"><label for="dashHallFrom">From</label><input type="date" id="dashHallFrom"></div>
           <div class="field"><label for="dashHallTo">To</label><input type="date" id="dashHallTo"></div>
@@ -5875,6 +5880,18 @@
         '<div class="result-meta">Payout ' + money(r.payout) + ' · Expenses ' + money(r.expenses) + '</div></div>' +
         '<div class="amt" style="color:' + (isPositive ? 'var(--ok)' : 'var(--danger)') + ';">' + money(r.profit) + '</div></div>';
     }).join('');
+  }
+
+  function setDashboardHallRange_(preset) {
+    const now = new Date();
+    let from = new Date(now);
+    if (preset === 'week') {
+      const day = now.getDay(); const daysSinceThursday = (day - 4 + 7) % 7;
+      from = new Date(now); from.setDate(now.getDate() - daysSinceThursday);
+    } else if (preset === 'month') { from = new Date(now.getFullYear(), now.getMonth(), 1); }
+    document.getElementById('dashHallFrom').value = fmtDateInput_(from);
+    document.getElementById('dashHallTo').value = fmtDateInput_(now);
+    loadDashboardHallSummary_();
   }
 
   async function loadDashboardHallSummary_() {

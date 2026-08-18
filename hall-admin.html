@@ -224,21 +224,55 @@
     </header>
 
     <div style="max-width:520px;margin:0 auto;padding:16px;">
-      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="openNewHallBooking()">+ New Booking</button>
-      <div class="card">
-        <p class="section-label">Filter by date</p>
-        <div class="field-row">
-          <div class="field"><label for="hallFilterFrom">From</label><input type="date" id="hallFilterFrom"></div>
-          <div class="field"><label for="hallFilterTo">To</label><input type="date" id="hallFilterTo"></div>
+      <div class="subtabs">
+        <button class="subtab active" data-subtab="bookings" onclick="switchHallAdminTab_('bookings')">Bookings</button>
+        <button class="subtab" data-subtab="accounting" onclick="switchHallAdminTab_('accounting')">Accounting</button>
+      </div>
+
+      <div id="hsub-bookings" class="subtab-panel active">
+        <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="openNewHallBooking()">+ New Booking</button>
+        <div class="card">
+          <p class="section-label">Filter by date</p>
+          <div class="field-row">
+            <div class="field"><label for="hallFilterFrom">From</label><input type="date" id="hallFilterFrom"></div>
+            <div class="field"><label for="hallFilterTo">To</label><input type="date" id="hallFilterTo"></div>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="loadHallBookings()">Apply</button>
         </div>
-        <button class="btn btn-primary btn-block" onclick="loadHallBookings()">Apply</button>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-label">Bookings</div><div class="stat-value" id="hallStatBookings">0</div></div>
+          <div class="stat-card"><div class="stat-label">Collected</div><div class="stat-value" id="hallStatCollected">₹0</div></div>
+        </div>
+        <div class="stat-card warn" style="margin-bottom:12px;"><div class="stat-label">Total Due</div><div class="stat-value" id="hallStatDue">₹0</div></div>
+        <div id="hallBookingList"><div class="empty-cart">Loading…</div></div>
       </div>
-      <div class="stat-grid">
-        <div class="stat-card"><div class="stat-label">Bookings</div><div class="stat-value" id="hallStatBookings">0</div></div>
-        <div class="stat-card"><div class="stat-label">Collected</div><div class="stat-value" id="hallStatCollected">₹0</div></div>
+
+      <div id="hsub-accounting" class="subtab-panel">
+        <div class="card">
+          <p class="section-label">Quick range</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <button class="quickbtn" type="button" onclick="setHallAcctRange_('today')">Today</button>
+            <button class="quickbtn" type="button" onclick="setHallAcctRange_('week')">This week</button>
+            <button class="quickbtn" type="button" onclick="setHallAcctRange_('month')">This month</button>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="acctFrom">From</label><input type="date" id="acctFrom"></div>
+            <div class="field"><label for="acctTo">To</label><input type="date" id="acctTo"></div>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="loadHallAccounting_()">Apply</button>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-label">Bookings</div><div class="stat-value" id="acctBookings">0</div></div>
+          <div class="stat-card"><div class="stat-label">Collected</div><div class="stat-value" id="acctCollected">₹0</div></div>
+        </div>
+        <div class="stat-grid" style="margin-top:10px;">
+          <div class="stat-card"><div class="stat-label">Cash</div><div class="stat-value" id="acctCash">₹0</div></div>
+          <div class="stat-card"><div class="stat-label">Online</div><div class="stat-value" id="acctOnline">₹0</div></div>
+        </div>
+        <div class="stat-card warn" style="margin:10px 0 14px;"><div class="stat-label">Due</div><div class="stat-value" id="acctDue">₹0</div></div>
+        <p class="section-label">Date-wise breakdown</p>
+        <div id="acctList"><div class="empty-cart">Loading…</div></div>
       </div>
-      <div class="stat-card warn" style="margin-bottom:12px;"><div class="stat-label">Total Due</div><div class="stat-value" id="hallStatDue">₹0</div></div>
-      <div id="hallBookingList"><div class="empty-cart">Loading…</div></div>
     </div>
   </div>
 
@@ -379,6 +413,74 @@
   }
 
   let hallBookingsById_ = {};
+  function switchHallAdminTab_(name) {
+    document.querySelectorAll('.subtab').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
+    document.querySelectorAll('.subtab-panel').forEach(function (p) { p.classList.remove('active'); });
+    document.getElementById('hsub-' + name).classList.add('active');
+    if (name === 'accounting' && !hallAcctLoadedOnce_) { hallAcctLoadedOnce_ = true; setHallAcctRange_('month'); }
+  }
+  let hallAcctLoadedOnce_ = false;
+
+  function setHallAcctRange_(preset) {
+    const now = new Date();
+    let from = new Date(now);
+    if (preset === 'week') {
+      const day = now.getDay(); const daysSinceThursday = (day - 4 + 7) % 7;
+      from = new Date(now); from.setDate(now.getDate() - daysSinceThursday);
+    } else if (preset === 'month') { from = new Date(now.getFullYear(), now.getMonth(), 1); }
+    document.getElementById('acctFrom').value = fmtDateInput_(from);
+    document.getElementById('acctTo').value = fmtDateInput_(now);
+    loadHallAccounting_();
+  }
+
+  async function loadHallAccounting_() {
+    const from = document.getElementById('acctFrom').value, to = document.getElementById('acctTo').value;
+    if (!from || !to) return;
+    const listBox = document.getElementById('acctList');
+    listBox.innerHTML = '<div class="empty-cart">Loading…</div>';
+
+    const { data: summary } = await sb.rpc('get_hall_dashboard_summary', { p_start_date: from, p_end_date: to });
+    if (summary) {
+      document.getElementById('acctBookings').textContent = summary.totalBookings;
+      document.getElementById('acctCollected').textContent = money(summary.totalCollected);
+      document.getElementById('acctDue').textContent = money(summary.totalDue);
+    }
+
+    const { data: rows, error } = await sb.rpc('get_hall_bookings', { p_start_date: from, p_end_date: to });
+    if (error || !rows) { listBox.innerHTML = '<div class="empty-cart">Could not load.</div>'; return; }
+    const active = rows.filter(function (r) { return r.status !== 'Cancelled'; });
+
+    let cash = 0, online = 0;
+    active.forEach(function (r) {
+      if (r.advance_method === 'Cash') cash += Number(r.advance_amount); else online += Number(r.advance_amount);
+      if (Number(r.balance_paid) > 0) { if (r.balance_method === 'Cash') cash += Number(r.balance_paid); else online += Number(r.balance_paid); }
+    });
+    document.getElementById('acctCash').textContent = money(cash);
+    document.getElementById('acctOnline').textContent = money(online);
+
+    if (!rows.length) { listBox.innerHTML = '<div class="empty-cart">No bookings in this range.</div>'; return; }
+
+    const byDate = {};
+    rows.forEach(function (r) { (byDate[r.booking_date] = byDate[r.booking_date] || []).push(r); });
+    const dates = Object.keys(byDate).sort().reverse();
+    listBox.innerHTML = dates.map(function (d) {
+      const dayRows = byDate[d];
+      const dayTotal = dayRows.filter(function (r) { return r.status !== 'Cancelled'; })
+        .reduce(function (s, r) { return s + Number(r.advance_amount) + Number(r.balance_paid); }, 0);
+      const dateStr = new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const rowsHtml = dayRows.map(function (r) {
+        const due = Number(r.balance_amount) - Number(r.balance_paid);
+        return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + escapeHtml(r.customer_name) + '</div>' +
+          '<div class="result-meta">' + r.time_slot.split(' (')[0] + ' · ' + r.status + '</div></div>' +
+          '<div style="text-align:right;"><div class="amt">' + money(Number(r.advance_amount) + Number(r.balance_paid)) + '</div>' +
+          (r.status !== 'Cancelled' && due > 0.5 ? '<div class="pts" style="color:var(--danger);">Due ' + money(due) + '</div>' : '') + '</div></div>';
+      }).join('');
+      return '<div class="card" style="margin-bottom:10px;">' +
+        '<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-weight:700;color:var(--green-800);font-size:13px;">' + dateStr + '</span><span style="font-weight:700;color:var(--ok, #2E7D4F);font-size:13px;">' + money(dayTotal) + '</span></div>' +
+        rowsHtml + '</div>';
+    }).join('');
+  }
+
   async function loadHallBookings() {
     const box = document.getElementById('hallBookingList');
     box.innerHTML = '<div class="empty-cart">Loading…</div>';
