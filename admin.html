@@ -473,6 +473,19 @@
     <!-- ============ PAST BILLS TAB ============ -->
     <section id="tab-history" class="tab-panel">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="searchHistory()">↻ Refresh</button>
+      <div class="card">
+        <p class="section-label">Filter by date</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="quickbtn" type="button" onclick="setHistoryRange_('today')">Today</button>
+          <button class="quickbtn" type="button" onclick="setHistoryRange_('week')">This week</button>
+          <button class="quickbtn" type="button" onclick="setHistoryRange_('month')">This month</button>
+          <button class="quickbtn" type="button" onclick="setHistoryRange_('prevmonth')">Prev month</button>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="historyFrom">From</label><input type="date" id="historyFrom" onchange="searchHistory()"></div>
+          <div class="field" style="margin-bottom:0;"><label for="historyTo">To</label><input type="date" id="historyTo" onchange="searchHistory()"></div>
+        </div>
+      </div>
       <div class="card"><p class="section-label">Find a bill</p><input type="text" id="historySearch" class="search-input" placeholder="Invoice no, name or mobile…" oninput="searchHistory()"></div>
       <div class="card"><div id="historyList"><div class="empty-cart">Type above, or leave blank to see recent bills.</div></div></div>
     </section>
@@ -621,6 +634,19 @@
     <!-- ============ OFFICIAL TAB ============ -->
     <section id="tab-official" class="tab-panel">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadOfficialPending()">↻ Refresh</button>
+      <div class="card">
+        <p class="section-label">Filter by date</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="quickbtn" type="button" onclick="setOfficialRange_('today')">Today</button>
+          <button class="quickbtn" type="button" onclick="setOfficialRange_('week')">This week</button>
+          <button class="quickbtn" type="button" onclick="setOfficialRange_('month')">This month</button>
+          <button class="quickbtn" type="button" onclick="setOfficialRange_('prevmonth')">Prev month</button>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="officialFrom">From</label><input type="date" id="officialFrom" onchange="loadOfficialPending()"></div>
+          <div class="field" style="margin-bottom:0;"><label for="officialTo">To</label><input type="date" id="officialTo" onchange="loadOfficialPending()"></div>
+        </div>
+      </div>
       <div class="card"><p class="section-label">Search by bill no</p><input type="text" id="officialSearch" class="search-input" placeholder="Bill no…" oninput="searchOfficialBills()"></div>
       <div class="card"><h2 id="officialListHeading">Pending SP allocation</h2><div id="officialList"><div class="empty-cart">Loading…</div></div></div>
     </section>
@@ -2758,6 +2784,8 @@
       document.getElementById('hallFilterTo').value = fmtDateInput_(future);
       loadHallBookings();
     }
+    if (name === 'history' && !historyLoadedOnce) { historyLoadedOnce = true; setHistoryRange_('week'); }
+    if (name === 'official' && !officialLoadedOnce) { officialLoadedOnce = true; setOfficialRange_('week'); }
     if (name === 'paymentstatement' && !paymentStmtLoadedOnce) { paymentStmtLoadedOnce = true; setPaymentStmtRange('online', 'today'); setPaymentStmtRange('cash', 'today'); setPaymentStmtRange('deposits', 'today'); }
     if (name === 'companypayout' && !companyPayoutLoadedOnce) { companyPayoutLoadedOnce = true; loadCompanyPayouts(); }
     if (name === 'profitreport') loadProfitReport();
@@ -3279,11 +3307,36 @@
 
   // ---------------- PAST BILLS ----------------
   let historySearchDebounce = null;
+  function computeRangePreset_(preset) {
+    const now = new Date();
+    let from = new Date(now), to = new Date(now);
+    if (preset === 'week') {
+      const day = now.getDay(); const daysSinceThursday = (day - 4 + 7) % 7;
+      from = new Date(now); from.setDate(now.getDate() - daysSinceThursday);
+    } else if (preset === 'month') {
+      from = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (preset === 'prevmonth') {
+      from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      to = new Date(now.getFullYear(), now.getMonth(), 0);
+    }
+    return { from: fmtDateInput_(from), to: fmtDateInput_(to) };
+  }
+
+  function setHistoryRange_(preset) {
+    const r = computeRangePreset_(preset);
+    document.getElementById('historyFrom').value = r.from;
+    document.getElementById('historyTo').value = r.to;
+    searchHistory();
+  }
+
   function searchHistory() {
     clearTimeout(historySearchDebounce);
     historySearchDebounce = setTimeout(async function () {
       const q = document.getElementById('historySearch').value.trim();
-      let query = sb.from('invoices').select('*').neq('bill_status', 'Pending').order('invoice_date', { ascending: false }).limit(50);
+      const from = document.getElementById('historyFrom').value, to = document.getElementById('historyTo').value;
+      let query = sb.from('invoices').select('*').neq('bill_status', 'Pending').order('invoice_date', { ascending: false }).limit(200);
+      if (from) query = query.gte('invoice_date', from + 'T00:00:00');
+      if (to) query = query.lte('invoice_date', to + 'T23:59:59');
       if (q) query = query.or('invoice_no.ilike.%' + q + '%,customer_name.ilike.%' + q + '%,mobile.ilike.%' + q + '%');
       const { data, error } = await query;
       if (error) { showToast(error.message, true); return; }
@@ -4754,6 +4807,8 @@
   // ---------------- BROADCAST TAB ----------------
   let broadcastLoadedOnce = false;
   let hallLoadedOnce = false;
+  let historyLoadedOnce = false;
+  let officialLoadedOnce = false;
   let broadcastCustomers = [];
   let broadcastSelected = {};
   let broadcastQueue = [];
@@ -5013,11 +5068,22 @@
   let officialCurrentBill = null, officialSessionItems = [], officialSource = 'Manual', officialPendingProduct = null;
   let officialQtyExceedFocusTarget = null, officialQtyExceedPopupOpen = false;
 
+  function setOfficialRange_(preset) {
+    const r = computeRangePreset_(preset);
+    document.getElementById('officialFrom').value = r.from;
+    document.getElementById('officialTo').value = r.to;
+    loadOfficialPending();
+  }
+
   async function loadOfficialPending() {
     document.getElementById('officialListHeading').textContent = 'Pending SP allocation';
     const box = document.getElementById('officialList');
     box.innerHTML = '<div class="empty-cart">Loading…</div>';
-    const { data: invoices, error } = await sb.from('invoices').select('*').gt('total_sp', 0).eq('bill_status', 'Active').order('invoice_date', { ascending: false });
+    const from = document.getElementById('officialFrom').value, to = document.getElementById('officialTo').value;
+    let q = sb.from('invoices').select('*').gt('total_sp', 0).eq('bill_status', 'Active').order('invoice_date', { ascending: false });
+    if (from) q = q.gte('invoice_date', from + 'T00:00:00');
+    if (to) q = q.lte('invoice_date', to + 'T23:59:59');
+    const { data: invoices, error } = await q;
     if (error) { box.innerHTML = '<div class="empty-cart">Could not load bills.</div>'; return; }
     const spUsedByInvoice = await fetchSpUsedByInvoice_((invoices || []).map(function (h) { return h.invoice_no; }));
     const rows = [];
