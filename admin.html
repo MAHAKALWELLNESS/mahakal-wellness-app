@@ -2923,6 +2923,9 @@
         document.getElementById('purchaseRemark').value = String(data.invoice_number).toUpperCase();
         checkInvoiceNoLive();
       }
+      if (data.invoice_date && /^\d{4}-\d{2}-\d{2}$/.test(data.invoice_date) && !document.getElementById('purchaseDateInput').value) {
+        document.getElementById('purchaseDateInput').value = data.invoice_date;
+      }
       renderPurchaseCart();
 
       let msg = '<div class="card" style="box-shadow:none;background:var(--green-100);"><strong>✓ ' + matchedCount + ' item(s) added to the cart below.</strong> Please review quantities before saving.</div>';
