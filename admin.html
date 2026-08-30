@@ -392,6 +392,9 @@
         </div>
         <div class="field"><label for="billDate">Bill date (leave blank for today)</label><input type="date" id="billDate"></div>
         <div class="field" id="transportChargesField" style="display:none;"><label for="transportCharges">Transport/Bus Charges ₹ (optional)</label><input type="number" id="transportCharges" min="0" step="0.01" placeholder="0" oninput="renderTotals()"></div>
+        <div class="field"><label for="cashMemoNo">Cash Memo No. (optional)</label><input type="text" id="cashMemoNo" placeholder="e.g. 1024" oninput="this.value=this.value.toUpperCase(); checkCashMemoLive();">
+          <p class="login-error" id="cashMemoError" style="min-height:0;margin:4px 0 0;"></p>
+        </div>
         <div class="field" style="margin-bottom:0;"><label for="remark">Remark (optional)</label><input type="text" id="remark" placeholder="Any note for this bill"></div>
       </div>
       </div>
@@ -462,6 +465,20 @@
     <section id="tab-publicorder" class="tab-panel">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadPublicOrders()">↻ Refresh</button>
       <div class="card" style="box-shadow:none;background:var(--gold-100);"><p style="color:var(--gold-600);font-weight:700;font-size:13px;margin:0;">These are customer requests from the public order form. Nothing here touches stock or bills until you Approve it.</p></div>
+      <div class="card">
+        <p class="section-label">Filter by date</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="quickbtn" type="button" onclick="setPublicOrderRange_('today')">Today</button>
+          <button class="quickbtn" type="button" onclick="setPublicOrderRange_('week')">This week</button>
+          <button class="quickbtn" type="button" onclick="setPublicOrderRange_('month')">This month</button>
+          <button class="quickbtn" type="button" onclick="setPublicOrderRange_('prevmonth')">Prev month</button>
+          <button class="quickbtn" type="button" onclick="setPublicOrderRange_('all')">All</button>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="publicOrderFrom">From</label><input type="date" id="publicOrderFrom" onchange="loadPublicOrders()"></div>
+          <div class="field" style="margin-bottom:0;"><label for="publicOrderTo">To</label><input type="date" id="publicOrderTo" onchange="loadPublicOrders()"></div>
+        </div>
+      </div>
       <div id="publicOrderList"><div class="empty-cart">Loading…</div></div>
     </section>
 
@@ -594,8 +611,10 @@
         <p class="section-label">Record an expense</p>
         <div class="field-row">
           <div class="field"><label for="expDate">Date</label><input type="date" id="expDate"></div>
-          <div class="field"><label for="expCategory">Category</label><input type="text" id="expCategory" list="expenseCategoryOptions" placeholder="e.g. Rent, Transport" oninput="this.value=this.value.toUpperCase(); toggleTransportSection_();">
-            <datalist id="expenseCategoryOptions"></datalist>
+          <div class="field"><label for="expCategory">Category</label>
+            <select id="expCategory" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;" onchange="handleCategorySelect_(this, 'toggleTransportSection_')">
+              <option value="" selected disabled>Choose category…</option>
+            </select>
           </div>
         </div>
         <div class="card" id="transportParcelSection" style="display:none;box-shadow:none;background:var(--bg);margin:0 0 12px;">
@@ -1201,7 +1220,11 @@
       <h2 style="font-size:16px;color:var(--green-800);margin-bottom:14px;">Edit Expense</h2>
       <div class="field-row">
         <div class="field"><label for="eexDate">Date</label><input type="date" id="eexDate"></div>
-        <div class="field"><label for="eexCategory">Category</label><input type="text" id="eexCategory" list="expenseCategoryOptions" oninput="this.value=this.value.toUpperCase();"></div>
+        <div class="field"><label for="eexCategory">Category</label>
+          <select id="eexCategory" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;" onchange="handleCategorySelect_(this)">
+            <option value="" selected disabled>Choose category…</option>
+          </select>
+        </div>
       </div>
       <div class="field"><label for="eexName">Expense name</label><input type="text" id="eexName"></div>
       <div class="field-row">
@@ -2197,11 +2220,14 @@
       p_items: cartSnapshot.map(function (c) { return { code: c.code, name: c.name, qty: c.qty, dp: c.dp, sp: c.sp, mrp: c.mrp || 0 }; }),
       p_bill_date: billDateIso,
       p_transport_charges: transportCharges,
-      p_city: document.getElementById('custCity').value.trim()
+      p_city: document.getElementById('custCity').value.trim(),
+      p_cash_memo_no: document.getElementById('cashMemoNo').value.trim() || null
     };
     const { data: invoiceNo, error } = await sb.rpc('save_invoice', payload);
     btn.disabled = false; btn.textContent = 'Save & Print';
     if (error) { showToast('Could not save: ' + error.message, true); return; }
+    document.getElementById('cashMemoNo').value = '';
+    document.getElementById('cashMemoError').textContent = '';
 
     const { data: tokenRow } = await sb.from('invoices').select('share_token').eq('invoice_no', invoiceNo).maybeSingle();
 
@@ -2239,6 +2265,8 @@
     document.getElementById('idNo').value = '';
     document.getElementById('referenceName').value = '';
     document.getElementById('referenceMobile').value = '';
+    document.getElementById('cashMemoNo').value = '';
+    document.getElementById('cashMemoError').textContent = '';
     toggleRetailDiscount();
     renderCart();
   }
@@ -2256,6 +2284,8 @@
     document.getElementById('referenceMobile').value = '';
     document.getElementById('billDate').value = '';
     document.getElementById('transportCharges').value = '';
+    document.getElementById('cashMemoNo').value = '';
+    document.getElementById('cashMemoError').textContent = '';
     toggleRetailDiscount();
     renderCart();
     showToast('Form reset.');
@@ -3058,6 +3088,19 @@
 
   const INVOICE_NO_PATTERN = /^[A-Z]+\/[0-9]{6}\/[0-9]{2}-[0-9]{2}$/;
   let invoiceCheckDebounce = null;
+  let cashMemoCheckDebounce = null;
+  function checkCashMemoLive() {
+    clearTimeout(cashMemoCheckDebounce);
+    const errBox = document.getElementById('cashMemoError');
+    const val = document.getElementById('cashMemoNo').value.trim();
+    errBox.textContent = '';
+    if (!val) return;
+    cashMemoCheckDebounce = setTimeout(async function () {
+      const { data: available } = await sb.rpc('check_cash_memo_available', { p_cash_memo_no: val });
+      if (available === false) errBox.textContent = 'Cash memo ' + val + ' is already used.';
+    }, 400);
+  }
+
   function checkInvoiceNoLive() {
     clearTimeout(invoiceCheckDebounce);
     const errBox = document.getElementById('purchaseRemarkError');
@@ -3515,7 +3558,8 @@
       const badges = isCancelled ? '<span class="badge badge-unpaid">Cancelled</span>' :
         '<span class="badge ' + cls + '">' + payLabel + '</span><span class="badge ' + dCls + '">' + (r.delivery_status === 'Partial' ? 'Pending' : 'Delivered') + '</span><span class="badge ' + spCls + '">' + spLabel + '</span>';
       const sourceTag = r.source === 'Public' ? ' <span style="font-size:10px;font-weight:700;color:var(--gold-600);">(Public)</span>' : ' <span style="font-size:10px;font-weight:700;color:var(--ink-faint);">(Staff)</span>';
-      return '<div class="list-row" data-inv="' + r.invoice_no + '" style="' + (isCancelled ? 'opacity:.6;' : '') + '"><div><div class="result-name">' + r.invoice_no + sourceTag + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div>' +
+      const cashMemoTag = r.cash_memo_no ? ' <span style="font-size:10px;font-weight:700;color:var(--green-700);">CM#' + escapeHtml(r.cash_memo_no) + '</span>' : '';
+      return '<div class="list-row" data-inv="' + r.invoice_no + '" style="' + (isCancelled ? 'opacity:.6;' : '') + '"><div><div class="result-name">' + r.invoice_no + sourceTag + cashMemoTag + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div>' +
         '<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;">' + badges + '</div></div>' +
         '<div class="cart-amount"><div class="amt">' + money(r.total_dp) + '</div><div class="pts">' + trimNum(r.total_sp) + ' SP</div></div></div>';
     }).join('');
@@ -3525,10 +3569,24 @@
   let approvalSearchDebounce = null;
   // ---------------- PUBLIC ORDER (ghost bills — zero effect until approved) ----------------
   let publicOrdersById_ = {};
+  function setPublicOrderRange_(preset) {
+    if (preset === 'all') {
+      document.getElementById('publicOrderFrom').value = '';
+      document.getElementById('publicOrderTo').value = '';
+    } else {
+      const r = computeRangePreset_(preset);
+      document.getElementById('publicOrderFrom').value = r.from;
+      document.getElementById('publicOrderTo').value = r.to;
+    }
+    loadPublicOrders();
+  }
+
   async function loadPublicOrders() {
     const box = document.getElementById('publicOrderList');
     box.innerHTML = '<div class="empty-cart">Loading…</div>';
-    const { data, error } = await sb.rpc('get_pending_public_orders');
+    const from = document.getElementById('publicOrderFrom').value || null;
+    const to = document.getElementById('publicOrderTo').value || null;
+    const { data, error } = await sb.rpc('get_pending_public_orders', { p_start_date: from, p_end_date: to });
     if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
     const rows = data || [];
     if (!rows.length) { box.innerHTML = '<div class="card"><div class="empty-cart">No pending requests.</div></div>'; return; }
@@ -3846,7 +3904,8 @@
     box.innerHTML = rows.map(function (r) {
       const dateStr = new Date(r.invoice_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
       const sourceTag = r.source === 'Public' ? ' <span style="font-size:10px;font-weight:700;color:var(--gold-600);">(Public)</span>' : ' <span style="font-size:10px;font-weight:700;color:var(--ink-faint);">(Staff)</span>';
-      return '<div class="list-row" data-inv="' + r.invoice_no + '"><div><div class="result-name">' + r.invoice_no + sourceTag + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div></div>' +
+      const cashMemoTag = r.cash_memo_no ? ' <span style="font-size:10px;font-weight:700;color:var(--green-700);">CM#' + escapeHtml(r.cash_memo_no) + '</span>' : '';
+      return '<div class="list-row" data-inv="' + r.invoice_no + '"><div><div class="result-name">' + r.invoice_no + sourceTag + cashMemoTag + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div></div>' +
         '<div style="text-align:right;"><div class="amt">' + money(r.total_dp) + '</div><span class="badge badge-partial">Pending Approval</span></div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { viewBill(row.dataset.inv, false); }); });
@@ -4176,7 +4235,8 @@
       const dateStr = new Date(r.invoice_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
       const due = r.balance < -0.005;
       const sourceTag = r.source === 'Public' ? ' <span style="font-size:10px;font-weight:700;color:var(--gold-600);">(Public)</span>' : ' <span style="font-size:10px;font-weight:700;color:var(--ink-faint);">(Staff)</span>';
-      return '<div class="list-row" data-inv="' + r.invoice_no + '"><div><div class="result-name">' + r.invoice_no + sourceTag + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div></div>' +
+      const cashMemoTag = r.cash_memo_no ? ' <span style="font-size:10px;font-weight:700;color:var(--green-700);">CM#' + escapeHtml(r.cash_memo_no) + '</span>' : '';
+      return '<div class="list-row" data-inv="' + r.invoice_no + '"><div><div class="result-name">' + r.invoice_no + sourceTag + cashMemoTag + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div></div>' +
         '<div style="text-align:right;"><div class="amt">' + money(r.total_dp) + '</div><div class="pts" style="color:' + (due ? 'var(--danger)' : 'var(--ok)') + ';">' + (due ? 'Due ' + money(-r.balance) : 'Settled') + '</div></div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { viewBill(row.dataset.inv, true); }); });
@@ -4343,10 +4403,31 @@
   }
 
   async function loadExpenseCategories_() {
-    const { data, error } = await sb.from('expenses').select('category').not('category', 'is', null);
+    const { data, error } = await sb.from('expense_categories').select('name').order('name');
     if (error || !data) return;
-    const unique = Array.from(new Set(data.map(function (r) { return r.category; }).filter(Boolean))).sort();
-    document.getElementById('expenseCategoryOptions').innerHTML = unique.map(function (c) { return '<option value="' + escapeHtml(c) + '"></option>'; }).join('');
+    const names = data.map(function (r) { return r.name; });
+    const optionsHtml = names.map(function (c) { return '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>'; }).join('')
+      + '<option value="__add_new__">+ Add New Category…</option>';
+    ['expCategory', 'eexCategory'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const current = el.value;
+      el.innerHTML = '<option value="" disabled' + (current ? '' : ' selected') + '>Choose category…</option>' + optionsHtml;
+      if (current && names.indexOf(current) > -1) el.value = current;
+    });
+  }
+
+  async function handleCategorySelect_(selectEl, afterFnName) {
+    if (selectEl.value === '__add_new__') {
+      const newName = prompt('Enter the new category name:');
+      if (!newName || !newName.trim()) { selectEl.value = ''; return; }
+      const { error } = await sb.rpc('add_expense_category', { p_name: newName });
+      if (error) { showToast(error.message, true); selectEl.value = ''; return; }
+      await loadExpenseCategories_();
+      selectEl.value = newName.trim().toUpperCase();
+      showToast('Category added.');
+    }
+    if (afterFnName && typeof window[afterFnName] === 'function') window[afterFnName]();
   }
 
   let currentEditExpenseId = null;
