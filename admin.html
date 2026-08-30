@@ -417,6 +417,7 @@
             <input type="text" id="stockSearchInput" class="search-input" placeholder="Product name or code…" autocomplete="off">
             <div id="stockSearchResults" class="search-results"></div>
           </div>
+          <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="openAddProductModal()">+ Add New Product (not in system yet)</button>
         </div>
         <div class="card">
           <h2 id="pcartHeading">Purchase items (0)</h2>
@@ -1542,6 +1543,30 @@
       <div class="modal-actions">
         <button class="btn btn-outline" onclick="document.getElementById('addCustomerModal').classList.remove('show')">Cancel</button>
         <button class="btn btn-primary" onclick="submitAddCustomer()">Save Customer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="addProductModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Add New Product</h2>
+      <p class="hint" id="addProductHint" style="margin-bottom:12px;"></p>
+      <div class="field-row">
+        <div class="field"><label for="newProdCode">Product Code</label><input type="text" id="newProdCode" placeholder="e.g. 530"></div>
+        <div class="field"><label for="newProdName">Product Name</label><input type="text" id="newProdName" placeholder="Product name" oninput="this.value = this.value.toUpperCase();"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="newProdDp">DP / Purchase Rate ₹</label><input type="number" id="newProdDp" min="0" step="0.01" placeholder="0"></div>
+        <div class="field"><label for="newProdMrp">MRP ₹</label><input type="number" id="newProdMrp" min="0" step="0.01" placeholder="Optional"></div>
+      </div>
+      <div class="field-row" style="margin-bottom:0;">
+        <div class="field" style="margin-bottom:0;"><label for="newProdSp">SP (Sales Points)</label><input type="number" id="newProdSp" min="0" step="0.01" placeholder="0"></div>
+        <div class="field" style="margin-bottom:0;"><label for="newProdCategory">Category</label><input type="text" id="newProdCategory" placeholder="Optional"></div>
+      </div>
+      <p class="login-error" id="addProductError" style="min-height:0;margin:8px 0 0;"></p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('addProductModal').classList.remove('show')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitAddProduct()">Save Product</button>
       </div>
     </div>
   </div>
@@ -2902,6 +2927,7 @@
 
       let matchedCount = 0;
       const unmatched = [];
+      window._unmatchedBillItems = [];
       (data.items || []).forEach(function (item) {
         const qty = Math.round(Number(item.qty)) || 0;
         if (qty <= 0) return;
@@ -2915,7 +2941,14 @@
           if (existing) existing.qty += qty; else PURCHASE_CART.push({ code: p.code, name: p.name, dp: Number(p.dp), sp: Number(p.sp), qty: qty });
           matchedCount++;
         } else {
-          unmatched.push(escapeHtml(item.extracted_name || 'Unknown item') + ' (qty ' + qty + ')' + (item.bracket_code ? ' - bill showed code [' + escapeHtml(String(item.bracket_code)) + '], not found in system' : ''));
+          const idx = window._unmatchedBillItems.length;
+          window._unmatchedBillItems.push({ code: item.bracket_code || '', name: item.extracted_name || '', dp: Number(item.rate) || '', qty: qty });
+          unmatched.push(
+            '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;">' +
+            '<span>' + escapeHtml(item.extracted_name || 'Unknown item') + ' (qty ' + qty + ')' + (item.bracket_code ? ' - bill code [' + escapeHtml(String(item.bracket_code)) + '] not in system' : '') + '</span>' +
+            '<button class="quickbtn" type="button" style="flex:none;" onclick="openAddProductModal(window._unmatchedBillItems[' + idx + '])">+ Add</button>' +
+            '</div>'
+          );
         }
       });
 
@@ -2930,7 +2963,7 @@
 
       let msg = '<div class="card" style="box-shadow:none;background:var(--green-100);"><strong>✓ ' + matchedCount + ' item(s) added to the cart below.</strong> Please review quantities before saving.</div>';
       if (unmatched.length) {
-        msg += '<div class="card" style="box-shadow:none;background:var(--gold-100);margin-top:8px;"><strong style="color:var(--gold-600);">⚠️ ' + unmatched.length + ' item(s) need manual add</strong> (no confident match found):<br>' + unmatched.join('<br>') + '</div>';
+        msg += '<div class="card" style="box-shadow:none;background:var(--gold-100);margin-top:8px;"><strong style="color:var(--gold-600);">⚠️ ' + unmatched.length + ' item(s) need manual add</strong> (no confident match found - probably a new product not yet in the system):' + unmatched.join('') + '</div>';
       }
       msg += '<div class="card" style="box-shadow:none;background:#EEE;margin-top:8px;font-size:11px;color:#666;">Debug: catalog sent had ' + (data._debug_catalog_size || 0) + ' products. Sample: ' + escapeHtml((data._debug_catalog_sample || []).join(' | ')) + '</div>';
       statusBox.innerHTML = msg;
@@ -4404,6 +4437,51 @@
     showToast('Customer saved.');
     document.getElementById('addCustomerModal').classList.remove('show');
     searchCustomersTab();
+  }
+
+  // ---------------- ADD NEW PRODUCT (manual, or from an unmatched bill-scan item) ----------------
+  let pendingNewProductQty_ = null;
+  function openAddProductModal(prefill) {
+    document.getElementById('newProdCode').value = (prefill && prefill.code) || '';
+    document.getElementById('newProdName').value = (prefill && prefill.name) || '';
+    document.getElementById('newProdDp').value = (prefill && prefill.dp) || '';
+    document.getElementById('newProdMrp').value = '';
+    document.getElementById('newProdSp').value = '';
+    document.getElementById('newProdCategory').value = '';
+    document.getElementById('addProductError').textContent = '';
+    document.getElementById('addProductHint').textContent = (prefill && prefill.qty)
+      ? 'From the scanned bill - once saved, this will be added to the purchase cart with qty ' + prefill.qty + '.'
+      : '';
+    pendingNewProductQty_ = (prefill && prefill.qty) || null;
+    document.getElementById('addProductModal').classList.add('show');
+  }
+
+  async function submitAddProduct() {
+    const code = document.getElementById('newProdCode').value.trim();
+    const name = document.getElementById('newProdName').value.trim();
+    const dp = Number(document.getElementById('newProdDp').value) || 0;
+    const mrp = document.getElementById('newProdMrp').value ? Number(document.getElementById('newProdMrp').value) : null;
+    const sp = Number(document.getElementById('newProdSp').value) || 0;
+    const category = document.getElementById('newProdCategory').value.trim();
+    const errBox = document.getElementById('addProductError');
+    errBox.textContent = '';
+    if (!code) { errBox.textContent = 'Product code is required.'; return; }
+    if (!name) { errBox.textContent = 'Product name is required.'; return; }
+
+    const { error } = await sb.rpc('add_new_product', { p_code: code, p_name: name, p_dp: dp, p_sp: sp, p_mrp: mrp, p_category: category || null });
+    if (error) { errBox.textContent = error.message; return; }
+
+    const newProduct = { code: code, name: name.toUpperCase(), dp: dp, sp: sp, mrp: mrp, category: category || null, status: 'Active', physical_stock: 0, online_stock: 0 };
+    PRODUCTS.push(newProduct);
+    showToast('Product added.');
+    document.getElementById('addProductModal').classList.remove('show');
+
+    if (pendingNewProductQty_ && document.getElementById('nbmsub-purchase')) {
+      const existing = PURCHASE_CART.find(function (c) { return c.code === newProduct.code; });
+      if (existing) existing.qty += pendingNewProductQty_; else PURCHASE_CART.push({ code: newProduct.code, name: newProduct.name, dp: newProduct.dp, sp: newProduct.sp, qty: pendingNewProductQty_ });
+      renderPurchaseCart();
+      pendingNewProductQty_ = null;
+    }
   }
 
   function searchCustomersTab() {
