@@ -2905,13 +2905,17 @@
       (data.items || []).forEach(function (item) {
         const qty = Math.round(Number(item.qty)) || 0;
         if (qty <= 0) return;
-        const p = item.code ? PRODUCTS.find(function (x) { return String(x.code) === String(item.code); }) : null;
+        // Prefer the bracket code the bill itself printed - a direct, exact
+        // lookup here is far more reliable than asking the AI to also
+        // cross-reference a large catalog text block on its own.
+        let p = item.bracket_code ? PRODUCTS.find(function (x) { return String(x.code) === String(item.bracket_code).trim(); }) : null;
+        if (!p && item.name_matched_code) p = PRODUCTS.find(function (x) { return String(x.code) === String(item.name_matched_code); });
         if (p) {
           const existing = PURCHASE_CART.find(function (c) { return c.code === p.code; });
           if (existing) existing.qty += qty; else PURCHASE_CART.push({ code: p.code, name: p.name, dp: Number(p.dp), sp: Number(p.sp), qty: qty });
           matchedCount++;
         } else {
-          unmatched.push(escapeHtml(item.extracted_name || 'Unknown item') + ' (qty ' + qty + ')');
+          unmatched.push(escapeHtml(item.extracted_name || 'Unknown item') + ' (qty ' + qty + ')' + (item.bracket_code ? ' - bill showed code [' + escapeHtml(String(item.bracket_code)) + '], not found in system' : ''));
         }
       });
 
@@ -2925,6 +2929,7 @@
       if (unmatched.length) {
         msg += '<div class="card" style="box-shadow:none;background:var(--gold-100);margin-top:8px;"><strong style="color:var(--gold-600);">⚠️ ' + unmatched.length + ' item(s) need manual add</strong> (no confident match found):<br>' + unmatched.join('<br>') + '</div>';
       }
+      msg += '<div class="card" style="box-shadow:none;background:#EEE;margin-top:8px;font-size:11px;color:#666;">Debug: catalog sent had ' + (data._debug_catalog_size || 0) + ' products. Sample: ' + escapeHtml((data._debug_catalog_sample || []).join(' | ')) + '</div>';
       statusBox.innerHTML = msg;
     } catch (err) {
       statusBox.innerHTML = '<div class="empty-cart">Something went wrong: ' + escapeHtml(String(err)) + '</div>';
