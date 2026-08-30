@@ -405,6 +405,13 @@
       <div id="psub-new" class="subtab-panel active">
         <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="resetPurchaseForm()">↻ Refresh / Start Fresh</button>
         <div class="card">
+          <p class="section-label">📷 Auto-fill from bill photo</p>
+          <p class="hint" style="margin-bottom:10px;">Upload a photo or PDF of the company's purchase bill - products and quantities will be added to the cart below automatically.</p>
+          <input type="file" id="billPhotoInput" accept="image/*,.pdf" style="display:none;" onchange="handleBillPhotoUpload(event)">
+          <button class="btn btn-primary btn-block" id="billScanBtn" onclick="document.getElementById('billPhotoInput').click()">Upload Purchase Bill Photo / PDF</button>
+          <div id="billScanStatus" style="display:none;margin-top:10px;"></div>
+        </div>
+        <div class="card">
           <p class="section-label">Search &amp; add product</p>
           <div class="search-wrap">
             <input type="text" id="stockSearchInput" class="search-input" placeholder="Product name or code…" autocomplete="off">
@@ -2802,6 +2809,8 @@
     document.getElementById('purchaseRemarkError').textContent = '';
     document.getElementById('purchaseDateInput').value = '';
     document.getElementById('stockSearchInput').value = '';
+    document.getElementById('billScanStatus').style.display = 'none';
+    document.getElementById('billScanStatus').innerHTML = '';
     renderPurchaseCart();
     showToast('Form reset.');
   }
@@ -2822,6 +2831,97 @@
     document.getElementById('psub-' + name).classList.add('active');
     if (name === 'bills') searchPurchases();
     if (name === 'remaining') loadRemainingList();
+  }
+
+  function fileToBase64_(file) {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onload = function () { resolve(reader.result.split(',')[1]); };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Resizes a photo client-side before upload - keeps requests fast and
+  // avoids sending an unnecessarily huge phone-camera image.
+  function resizeImageFile_(file, maxDim) {
+    return new Promise(function (resolve, reject) {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        let w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          const scale = maxDim / Math.max(w, h);
+          w = Math.round(w * scale); h = Math.round(h * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(function (blob) {
+          const reader = new FileReader();
+          reader.onload = function () { resolve(reader.result.split(',')[1]); };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        }, 'image/jpeg', 0.85);
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  async function handleBillPhotoUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const btn = document.getElementById('billScanBtn');
+    const statusBox = document.getElementById('billScanStatus');
+    btn.disabled = true;
+    statusBox.style.display = 'block';
+    statusBox.innerHTML = '<div class="empty-cart">🔍 Reading the bill… this can take up to 15-20 seconds.</div>';
+
+    try {
+      const isPdf = file.type === 'application/pdf';
+      const base64 = isPdf ? await fileToBase64_(file) : await resizeImageFile_(file, 1568);
+      const mediaType = isPdf ? 'application/pdf' : 'image/jpeg';
+
+      const { data, error } = await sb.functions.invoke('extract-purchase-bill', {
+        body: { image_base64: base64, media_type: mediaType }
+      });
+
+      if (error) { statusBox.innerHTML = '<div class="empty-cart">Could not read the bill: ' + escapeHtml(error.message || String(error)) + '</div>'; btn.disabled = false; e.target.value = ''; return; }
+      if (data && data.error) { statusBox.innerHTML = '<div class="empty-cart">' + escapeHtml(data.error) + '</div>'; btn.disabled = false; e.target.value = ''; return; }
+
+      let matchedCount = 0;
+      const unmatched = [];
+      (data.items || []).forEach(function (item) {
+        const qty = Math.round(Number(item.qty)) || 0;
+        if (qty <= 0) return;
+        const p = item.code ? PRODUCTS.find(function (x) { return String(x.code) === String(item.code); }) : null;
+        if (p) {
+          const existing = PURCHASE_CART.find(function (c) { return c.code === p.code; });
+          if (existing) existing.qty += qty; else PURCHASE_CART.push({ code: p.code, name: p.name, dp: Number(p.dp), sp: Number(p.sp), qty: qty });
+          matchedCount++;
+        } else {
+          unmatched.push(escapeHtml(item.extracted_name || 'Unknown item') + ' (qty ' + qty + ')');
+        }
+      });
+
+      if (data.invoice_number && !document.getElementById('purchaseRemark').value.trim()) {
+        document.getElementById('purchaseRemark').value = String(data.invoice_number).toUpperCase();
+        checkInvoiceNoLive();
+      }
+      renderPurchaseCart();
+
+      let msg = '<div class="card" style="box-shadow:none;background:var(--green-100);"><strong>✓ ' + matchedCount + ' item(s) added to the cart below.</strong> Please review quantities before saving.</div>';
+      if (unmatched.length) {
+        msg += '<div class="card" style="box-shadow:none;background:var(--gold-100);margin-top:8px;"><strong style="color:var(--gold-600);">⚠️ ' + unmatched.length + ' item(s) need manual add</strong> (no confident match found):<br>' + unmatched.join('<br>') + '</div>';
+      }
+      statusBox.innerHTML = msg;
+    } catch (err) {
+      statusBox.innerHTML = '<div class="empty-cart">Something went wrong: ' + escapeHtml(String(err)) + '</div>';
+    }
+    btn.disabled = false;
+    e.target.value = '';
   }
 
   function wirePurchaseSearch() {
