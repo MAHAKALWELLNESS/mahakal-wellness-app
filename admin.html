@@ -392,7 +392,7 @@
         </div>
         <div class="field"><label for="billDate">Bill date (leave blank for today)</label><input type="date" id="billDate"></div>
         <div class="field" id="transportChargesField" style="display:none;"><label for="transportCharges">Transport/Bus Charges ₹ (optional)</label><input type="number" id="transportCharges" min="0" step="0.01" placeholder="0" oninput="renderTotals()"></div>
-        <div class="field"><label for="cashMemoNo">Cash Memo No. (optional)</label><input type="text" id="cashMemoNo" placeholder="e.g. 1024" oninput="this.value=this.value.toUpperCase(); checkCashMemoLive();">
+        <div class="field"><label for="cashMemoNo">Cash Memo No.</label><input type="text" id="cashMemoNo" placeholder="e.g. 1024" oninput="this.value=this.value.toUpperCase(); checkCashMemoLive();">
           <p class="login-error" id="cashMemoError" style="min-height:0;margin:4px 0 0;"></p>
         </div>
         <div class="field" style="margin-bottom:0;"><label for="remark">Remark (optional)</label><input type="text" id="remark" placeholder="Any note for this bill"></div>
@@ -2190,7 +2190,15 @@
       document.getElementById('retailDiscountAmt').textContent = money(discountAmount) + (discountPercent ? ' (' + discountPercent + '%)' : '');
       document.getElementById('retailNetAmt').textContent = money(netAmount);
     }
-    document.getElementById('saveBtn').disabled = CART.length === 0;
+    updateSaveBtnState_();
+  }
+
+  // Cash Memo No. is mandatory for a Sale bill and must not duplicate one
+  // already used - the Save button stays disabled until both the cart has
+  // items AND the entered cash memo is non-empty and confirmed available.
+  let cashMemoValid_ = false;
+  function updateSaveBtnState_() {
+    document.getElementById('saveBtn').disabled = CART.length === 0 || !cashMemoValid_;
   }
 
   async function saveBill() {
@@ -2228,6 +2236,7 @@
     if (error) { showToast('Could not save: ' + error.message, true); return; }
     document.getElementById('cashMemoNo').value = '';
     document.getElementById('cashMemoError').textContent = '';
+    cashMemoValid_ = false;
 
     const { data: tokenRow } = await sb.from('invoices').select('share_token').eq('invoice_no', invoiceNo).maybeSingle();
 
@@ -2267,6 +2276,7 @@
     document.getElementById('referenceMobile').value = '';
     document.getElementById('cashMemoNo').value = '';
     document.getElementById('cashMemoError').textContent = '';
+    cashMemoValid_ = false;
     toggleRetailDiscount();
     renderCart();
   }
@@ -2286,6 +2296,7 @@
     document.getElementById('transportCharges').value = '';
     document.getElementById('cashMemoNo').value = '';
     document.getElementById('cashMemoError').textContent = '';
+    cashMemoValid_ = false;
     toggleRetailDiscount();
     renderCart();
     showToast('Form reset.');
@@ -3094,10 +3105,18 @@
     const errBox = document.getElementById('cashMemoError');
     const val = document.getElementById('cashMemoNo').value.trim();
     errBox.textContent = '';
-    if (!val) return;
+    cashMemoValid_ = false;
+    updateSaveBtnState_();
+    if (!val) { errBox.textContent = 'Cash Memo No. is required.'; return; }
     cashMemoCheckDebounce = setTimeout(async function () {
       const { data: available } = await sb.rpc('check_cash_memo_available', { p_cash_memo_no: val });
-      if (available === false) errBox.textContent = 'Cash memo ' + val + ' is already used.';
+      if (available === false) {
+        errBox.textContent = 'Cash memo ' + val + ' is already used.';
+        cashMemoValid_ = false;
+      } else {
+        cashMemoValid_ = true;
+      }
+      updateSaveBtnState_();
     }, 400);
   }
 
