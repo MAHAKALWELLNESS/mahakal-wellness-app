@@ -2888,7 +2888,16 @@
         body: { image_base64: base64, media_type: mediaType }
       });
 
-      if (error) { statusBox.innerHTML = '<div class="empty-cart">Could not read the bill: ' + escapeHtml(error.message || String(error)) + '</div>'; btn.disabled = false; e.target.value = ''; return; }
+      if (error) {
+        let detail = error.message || String(error);
+        // supabase-js hides the actual response body behind error.context on
+        // a non-2xx reply - read it directly so the real cause shows up.
+        if (error.context && typeof error.context.json === 'function') {
+          try { const body = await error.context.json(); if (body && body.error) detail = body.error; } catch (e2) {}
+        }
+        statusBox.innerHTML = '<div class="empty-cart">Could not read the bill: ' + escapeHtml(detail) + '</div>';
+        btn.disabled = false; e.target.value = ''; return;
+      }
       if (data && data.error) { statusBox.innerHTML = '<div class="empty-cart">' + escapeHtml(data.error) + '</div>'; btn.disabled = false; e.target.value = ''; return; }
 
       let matchedCount = 0;
