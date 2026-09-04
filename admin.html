@@ -3278,7 +3278,7 @@
       const matches = rankProducts(input.value);
       if (!matches.length) { box.classList.remove('show'); box.innerHTML = ''; return; }
       box.innerHTML = matches.map(function (p) {
-        return '<div class="result-row" data-code="' + p.code + '"><div><div class="result-name">' + escapeHtml(p.name) + '</div><div class="result-meta">#' + p.code + '</div></div><div class="result-price">' + money(p.dp) + '</div></div>';
+        return '<div class="result-row" data-code="' + p.code + '"><div><div class="result-name">' + escapeHtml(p.name) + '</div><div class="result-meta">#' + p.code + ' ' + stockBadge(p) + '</div></div><div class="result-price">' + money(p.dp) + '</div></div>';
       }).join('');
       box.classList.add('show');
       Array.from(box.querySelectorAll('.result-row')).forEach(function (row) {
