@@ -1303,6 +1303,21 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="marketQtyModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:16px;color:var(--green-800);margin-bottom:2px;" id="mqtyModalName"></h2>
+      <p class="hint" id="mqtyModalMeta" style="margin-bottom:14px;"></p>
+      <div class="field" style="margin-bottom:16px;">
+        <label for="mqtyModalInput">Quantity</label>
+        <input type="number" id="mqtyModalInput" min="1" step="1" inputmode="numeric" placeholder="Enter qty" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmMarketQtyModal();}">
+      </div>
+      <div class="modal-actions" style="margin-top:0;">
+        <button class="btn btn-outline" onclick="cancelMarketQtyModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmMarketQtyModal()">Add</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="editTransportChargesModal">
     <div class="modal-sheet">
       <h2 style="font-size:16px;color:var(--green-800);margin-bottom:2px;">Edit Transport/Bus Charges</h2>
@@ -3293,13 +3308,41 @@
         row.addEventListener('click', function () {
           const p = PRODUCTS.find(function (x) { return String(x.code) === row.dataset.code; });
           if (!p) return;
-          const existing = MARKET_CART.find(function (c) { return c.code === p.code; });
-          if (existing) existing.qty += 1; else MARKET_CART.push({ code: p.code, name: p.name, dp: Number(p.dp), qty: 1 });
-          renderMarketCart();
+          promptMarketQty(p);
           input.value = ''; box.classList.remove('show'); box.innerHTML = '';
         });
       });
     });
+  }
+
+  let pendingMarketProduct = null;
+  function promptMarketQty(p) {
+    pendingMarketProduct = p;
+    document.getElementById('mqtyModalName').textContent = p.name;
+    document.getElementById('mqtyModalMeta').textContent = '#' + p.code + ' · ' + money(p.dp) + ' each';
+    const input = document.getElementById('mqtyModalInput');
+    input.value = '1';
+    document.getElementById('marketQtyModal').classList.add('show');
+    setTimeout(function () { input.focus(); input.select(); }, 60);
+  }
+
+  function confirmMarketQtyModal() {
+    const qty = Math.round(Number(document.getElementById('mqtyModalInput').value));
+    if (!(qty > 0)) { showToast('Enter a valid quantity.', true); return; }
+    const p = pendingMarketProduct;
+    if (!p) return;
+    const existing = MARKET_CART.find(function (c) { return c.code === p.code; });
+    if (existing) existing.qty += qty; else MARKET_CART.push({ code: p.code, name: p.name, dp: Number(p.dp), qty: qty });
+    renderMarketCart();
+    document.getElementById('marketQtyModal').classList.remove('show');
+    document.getElementById('mpSearchInput').value = '';
+    document.getElementById('mpSearchInput').focus();
+  }
+
+  function cancelMarketQtyModal() {
+    pendingMarketProduct = null;
+    document.getElementById('marketQtyModal').classList.remove('show');
+    document.getElementById('mpSearchInput').focus();
   }
 
   function renderMarketCart() {
