@@ -174,7 +174,7 @@
     <a href="index.html" onclick="hideCodeGate();return false;" style="display:inline-block;margin-bottom:12px;color:var(--ink-soft);font-size:12px;font-weight:600;text-decoration:none;">← Back to Main Page</a>
     <label for="adminCodeInput">Enter Admin Link Code</label>
     <div style="position:relative;">
-      <input type="password" id="adminCodeInput" placeholder="Code" autocomplete="off" style="width:100%;padding-right:42px;box-sizing:border-box;" onkeydown="if(event.key==='Enter'){event.preventDefault();verifyAdminCode();}">
+      <input type="text" id="adminCodeInput" placeholder="Code" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" style="width:100%;padding-right:42px;box-sizing:border-box;-webkit-text-security:disc;text-security:disc;" onkeydown="if(event.key==='Enter'){event.preventDefault();verifyAdminCode();}">
       <button type="button" onclick="toggleAdminCodeVisibility_()" aria-label="Show or hide code" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;padding:6px;line-height:1;color:var(--ink-soft, #555);">👁️</button>
     </div>
     <p class="err" id="adminCodeError"></p>
@@ -230,7 +230,9 @@
 
   function toggleAdminCodeVisibility_() {
     const input = document.getElementById('adminCodeInput');
-    input.type = input.type === 'password' ? 'text' : 'password';
+    const masked = input.style.webkitTextSecurity !== 'none';
+    input.style.webkitTextSecurity = masked ? 'none' : 'disc';
+    input.style.textSecurity = masked ? 'none' : 'disc';
   }
 
   function hideCodeGate() {
