@@ -604,6 +604,7 @@
       <div class="subtabs">
         <button class="subtab active" data-subtab="add" onclick="switchExpenseSubtab('add')">Add Expense</button>
         <button class="subtab" data-subtab="report" onclick="switchExpenseSubtab('report')">Report</button>
+        <button class="subtab" data-subtab="ledger" onclick="switchExpenseSubtab('ledger')">Ledger</button>
       </div>
 
       <div id="esub-add" class="subtab-panel active">
@@ -663,6 +664,39 @@
           <div class="receipt-total-row grand"><span>Total (all categories)</span><span id="expReportGrandTotal">₹0</span></div>
         </div>
         <div class="card"><p class="section-label">By category</p><div id="expReportList"><div class="empty-cart">Loading…</div></div></div>
+      </div>
+
+      <div id="esub-ledger" class="subtab-panel">
+        <div class="card">
+          <p class="section-label">Filter</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <button class="quickbtn" type="button" onclick="setExpenseLedgerRange_('today')">Today</button>
+            <button class="quickbtn" type="button" onclick="setExpenseLedgerRange_('week')">This week</button>
+            <button class="quickbtn" type="button" onclick="setExpenseLedgerRange_('month')">This month</button>
+            <button class="quickbtn" type="button" onclick="setExpenseLedgerRange_('prevmonth')">Prev month</button>
+            <button class="quickbtn" type="button" onclick="setExpenseLedgerRange_('all')">All time</button>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="expLedgerFrom">From</label><input type="date" id="expLedgerFrom"></div>
+            <div class="field"><label for="expLedgerTo">To</label><input type="date" id="expLedgerTo"></div>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="loadExpenseLedger()">Apply</button>
+        </div>
+        <div class="card">
+          <div class="stat-grid">
+            <div class="stat-card"><div class="stat-label">Entries</div><div class="stat-value" id="ledgerCount">0</div></div>
+            <div class="stat-card"><div class="stat-label">Total Spent</div><div class="stat-value" id="ledgerTotal">₹0</div></div>
+          </div>
+        </div>
+        <div class="card" style="padding:0;overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap;">
+            <thead><tr style="background:var(--bg);text-align:left;">
+              <th style="padding:8px 10px;">Date</th><th style="padding:8px 10px;">Category</th><th style="padding:8px 10px;">Name</th>
+              <th style="padding:8px 10px;">Paid To</th><th style="padding:8px 10px;text-align:right;">Amount</th><th style="padding:8px 10px;text-align:right;">Running Total</th>
+            </tr></thead>
+            <tbody id="ledgerTableBody"><tr><td colspan="6" style="padding:16px;text-align:center;color:var(--ink-faint);">Loading…</td></tr></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -1142,6 +1176,20 @@
           <div class="receipt-total-row"><span>Total DP (normal rate)</span><span id="mpTotalDp">₹0</span></div>
           <div class="receipt-total-row"><span>Discount</span><span id="mpDiscountAmt" style="color:var(--danger);">- ₹0</span></div>
           <div class="receipt-total-row grand"><span>You Paid</span><span id="mpFinalTotal">₹0</span></div>
+        </div>
+        <div class="card">
+          <p class="section-label">Payment Split</p>
+          <div class="field-row">
+            <div class="field"><label for="mpMahakalAmount">Payment from Mahakal ₹</label><input type="number" id="mpMahakalAmount" min="0" step="0.01" value="0" oninput="renderMarketCart()"></div>
+            <div class="field"><label for="mpSelfAmount">Payment from Self Account ₹</label><input type="number" id="mpSelfAmount" min="0" step="0.01" value="0" oninput="renderMarketCart()"></div>
+          </div>
+          <div class="field" style="margin-bottom:0;"><label for="mpMahakalMethod">Mahakal portion paid via</label>
+            <select id="mpMahakalMethod" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">
+              <option value="Cash">Cash</option>
+              <option value="Online">Online</option>
+            </select>
+          </div>
+          <p class="hint" id="mpAllocationHint" style="margin-top:8px;margin-bottom:0;"></p>
         </div>
         <button class="btn btn-gold btn-block" id="mpSaveBtn" onclick="saveMarketPurchase()" disabled>Save Market Purchase</button>
       </div>
@@ -3270,7 +3318,16 @@
     document.getElementById('mpTotalDp').textContent = money(totalDp);
     document.getElementById('mpDiscountAmt').textContent = '- ' + money(discountAmt);
     document.getElementById('mpFinalTotal').textContent = money(finalTotal);
-    document.getElementById('mpSaveBtn').disabled = MARKET_CART.length === 0;
+
+    const mahakalAmt = Number(document.getElementById('mpMahakalAmount').value) || 0;
+    const selfAmt = Number(document.getElementById('mpSelfAmount').value) || 0;
+    const remaining = finalTotal - mahakalAmt - selfAmt;
+    const hintEl = document.getElementById('mpAllocationHint');
+    if (Math.abs(remaining) < 1) { hintEl.textContent = '✓ Fully allocated.'; hintEl.style.color = 'var(--ok, #2E7D4F)'; }
+    else if (remaining > 0) { hintEl.textContent = money(remaining) + ' still unallocated.'; hintEl.style.color = 'var(--gold-600)'; }
+    else { hintEl.textContent = 'Over-allocated by ' + money(-remaining) + '.'; hintEl.style.color = 'var(--danger)'; }
+
+    document.getElementById('mpSaveBtn').disabled = MARKET_CART.length === 0 || Math.abs(remaining) >= 1;
   }
 
   function resetMarketPurchaseForm() {
@@ -3280,6 +3337,9 @@
     document.getElementById('mpRemark').value = '';
     document.getElementById('mpPurchaseDate').value = '';
     document.getElementById('mpSearchInput').value = '';
+    document.getElementById('mpMahakalAmount').value = '0';
+    document.getElementById('mpSelfAmount').value = '0';
+    document.getElementById('mpMahakalMethod').value = 'Cash';
     renderMarketCart();
     showToast('Form reset.');
   }
@@ -3295,6 +3355,9 @@
       p_remark: document.getElementById('mpRemark').value.trim() || null,
       p_items: items,
       p_discount_percent: Number(document.getElementById('mpDiscountPercent').value) || 0,
+      p_mahakal_amount: Number(document.getElementById('mpMahakalAmount').value) || 0,
+      p_self_amount: Number(document.getElementById('mpSelfAmount').value) || 0,
+      p_mahakal_payment_method: document.getElementById('mpMahakalMethod').value,
       p_purchase_date: dateVal ? new Date(dateVal + 'T12:00:00').toISOString() : null
     });
     btn.disabled = false; btn.textContent = 'Save Market Purchase';
@@ -3315,8 +3378,12 @@
     box.innerHTML = data.map(function (r) {
       const dateStr = new Date(r.purchase_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
       const itemCount = (r.items || []).length;
+      const paymentBits = [];
+      if (Number(r.mahakal_amount) > 0) paymentBits.push('Mahakal ' + money(r.mahakal_amount) + ' (' + (r.mahakal_payment_method || '') + ')');
+      if (Number(r.self_amount) > 0) paymentBits.push('Self ' + money(r.self_amount));
       return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + escapeHtml(r.purchase_no) + '</div>' +
-        '<div class="result-meta">' + dateStr + (r.seller_name ? ' · ' + escapeHtml(r.seller_name) : '') + ' · ' + itemCount + ' item(s)' + (r.discount_percent > 0 ? ' · ' + r.discount_percent + '% off' : '') + '</div></div>' +
+        '<div class="result-meta">' + dateStr + (r.seller_name ? ' · ' + escapeHtml(r.seller_name) : '') + ' · ' + itemCount + ' item(s)' + (r.discount_percent > 0 ? ' · ' + r.discount_percent + '% off' : '') + '</div>' +
+        (paymentBits.length ? '<div class="result-meta">' + paymentBits.join(' + ') + '</div>' : '') + '</div>' +
         '<div class="amt">' + money(r.discounted_total) + '</div></div>';
     }).join('');
   }
@@ -4550,8 +4617,10 @@
     c.querySelectorAll('.subtab-panel').forEach(function (p) { p.classList.remove('active'); });
     document.getElementById('esub-' + name).classList.add('active');
     if (name === 'report' && !expenseReportLoadedOnce) { expenseReportLoadedOnce = true; loadExpenseReport(); }
+    if (name === 'ledger' && !expenseLedgerLoadedOnce) { expenseLedgerLoadedOnce = true; loadExpenseLedger(); }
   }
   let expenseReportLoadedOnce = false;
+  let expenseLedgerLoadedOnce = false;
 
   function setExpenseReportRange_(preset) {
     if (preset === 'all') {
@@ -4581,6 +4650,53 @@
         '<div class="result-meta">' + c.count + ' entr' + (c.count === 1 ? 'y' : 'ies') + ' - tap to view</div></div>' +
         '<div class="amt">' + money(c.total) + '</div></div>';
     }).join('');
+  }
+
+  function setExpenseLedgerRange_(preset) {
+    if (preset === 'all') {
+      document.getElementById('expLedgerFrom').value = '';
+      document.getElementById('expLedgerTo').value = '';
+    } else {
+      const r = computeRangePreset_(preset);
+      document.getElementById('expLedgerFrom').value = r.from;
+      document.getElementById('expLedgerTo').value = r.to;
+    }
+    loadExpenseLedger();
+  }
+
+  async function loadExpenseLedger() {
+    const tbody = document.getElementById('ledgerTableBody');
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--ink-faint);">Loading…</td></tr>';
+    const from = document.getElementById('expLedgerFrom').value || null;
+    const to = document.getElementById('expLedgerTo').value || null;
+    let q = sb.from('expenses').select('*').order('expense_date', { ascending: true }).order('id', { ascending: true });
+    if (from) q = q.gte('expense_date', from);
+    if (to) q = q.lte('expense_date', to);
+    const { data: rows, error } = await q;
+    if (error) { tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--danger);">Could not load.</td></tr>'; return; }
+    if (!rows || !rows.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--ink-faint);">No expenses in this range.</td></tr>';
+      document.getElementById('ledgerCount').textContent = '0';
+      document.getElementById('ledgerTotal').textContent = '₹0';
+      return;
+    }
+    let running = 0;
+    const rowsHtml = rows.map(function (r) {
+      const amt = Number(r.cash || 0) + Number(r.online || 0);
+      running += amt;
+      const dateStr = new Date(r.expense_date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      return '<tr style="border-top:1px solid var(--line);">' +
+        '<td style="padding:8px 10px;">' + dateStr + '</td>' +
+        '<td style="padding:8px 10px;">' + escapeHtml(r.category || '-') + '</td>' +
+        '<td style="padding:8px 10px;">' + escapeHtml(r.expense_name || '-') + '</td>' +
+        '<td style="padding:8px 10px;">' + escapeHtml(r.paid_to || '-') + '</td>' +
+        '<td style="padding:8px 10px;text-align:right;">' + money(amt) + '</td>' +
+        '<td style="padding:8px 10px;text-align:right;font-weight:700;">' + money(running) + '</td>' +
+        '</tr>';
+    }).join('');
+    tbody.innerHTML = rowsHtml;
+    document.getElementById('ledgerCount').textContent = rows.length;
+    document.getElementById('ledgerTotal').textContent = money(running);
   }
 
   async function openExpenseCategoryDetail_(encodedCategory) {
