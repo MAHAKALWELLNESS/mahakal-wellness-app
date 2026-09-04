@@ -1341,6 +1341,7 @@
         <div class="field"><label for="eexPaidTo">Paid to</label><input type="text" id="eexPaidTo"></div>
         <div class="field" style="margin-bottom:0;"><label for="eexPaidBy">Payment done by</label><input type="text" id="eexPaidBy"></div>
       </div>
+      <button class="btn btn-outline btn-block" style="color:var(--danger);border-color:var(--danger);margin-top:6px;" onclick="deleteExpenseEntry()">Delete This Expense</button>
       <div class="modal-actions">
         <button class="btn btn-outline" onclick="document.getElementById('editExpenseModal').classList.remove('show')">Cancel</button>
         <button class="btn btn-primary" onclick="submitEditExpense()">Save</button>
@@ -4820,6 +4821,15 @@
     showToast('Expense updated.');
     document.getElementById('editExpenseModal').classList.remove('show');
     loadExpenseCategories_();
+    searchExpenses();
+  }
+
+  async function deleteExpenseEntry() {
+    if (!confirm('Delete this expense entry? This cannot be undone.')) return;
+    const { error } = await sb.rpc('delete_expense', { p_id: currentEditExpenseId });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Expense deleted.');
+    document.getElementById('editExpenseModal').classList.remove('show');
     searchExpenses();
   }
 
