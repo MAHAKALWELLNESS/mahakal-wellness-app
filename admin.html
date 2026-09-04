@@ -318,6 +318,7 @@
       <button class="tab" data-tab="queries" onclick="switchTab('queries')">Queries</button>
       <button class="tab" data-tab="paymentstatement" onclick="switchTab('paymentstatement')">Payment Statement</button>
       <button class="tab" data-tab="companypayout" id="tabBtnCompanyPayout" onclick="switchTab('companypayout')" style="display:none;">Company Payout</button>
+      <button class="tab" data-tab="marketpurchase" id="tabBtnMarketPurchase" onclick="switchTab('marketpurchase')" style="display:none;">Market Purchase</button>
       <button class="tab" data-tab="profitreport" id="tabBtnProfitReport" onclick="switchTab('profitreport')" style="display:none;">Profit Report</button>
       <button class="tab" data-tab="franchiseeinvestment" id="tabBtnFranchisee" onclick="switchTab('franchiseeinvestment')" style="display:none;">Franchisee Investment</button>
     </nav>
@@ -645,6 +646,13 @@
       <div id="esub-report" class="subtab-panel">
         <div class="card">
           <p class="section-label">Filter</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <button class="quickbtn" type="button" onclick="setExpenseReportRange_('today')">Today</button>
+            <button class="quickbtn" type="button" onclick="setExpenseReportRange_('week')">This week</button>
+            <button class="quickbtn" type="button" onclick="setExpenseReportRange_('month')">This month</button>
+            <button class="quickbtn" type="button" onclick="setExpenseReportRange_('prevmonth')">Prev month</button>
+            <button class="quickbtn" type="button" onclick="setExpenseReportRange_('all')">All time</button>
+          </div>
           <div class="field-row">
             <div class="field"><label for="expReportFrom">From</label><input type="date" id="expReportFrom"></div>
             <div class="field"><label for="expReportTo">To</label><input type="date" id="expReportTo"></div>
@@ -1101,6 +1109,56 @@
       </div>
     </section>
 
+    <!-- ============ MARKET PURCHASE TAB (Super Admin only) ============ -->
+    <section id="tab-marketpurchase" class="tab-panel">
+      <div class="card" style="box-shadow:none;background:var(--gold-100);"><p style="color:var(--gold-600);font-weight:700;font-size:13px;margin:0;">For stock bought from OTHER PEOPLE (not the company) at a discount, to clear their excess. Adds only to Physical Stock - Online Stock is never touched.</p></div>
+      <div class="subtabs">
+        <button class="subtab active" data-subtab="mpnew" onclick="switchMarketPurchaseSubtab('mpnew')">New Purchase</button>
+        <button class="subtab" data-subtab="mphistory" onclick="switchMarketPurchaseSubtab('mphistory')">History</button>
+      </div>
+
+      <div id="mpsub-mpnew" class="subtab-panel active">
+        <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="resetMarketPurchaseForm()">↻ Refresh / Start Fresh</button>
+        <div class="card">
+          <p class="section-label">Search &amp; add product</p>
+          <div class="search-wrap">
+            <input type="text" id="mpSearchInput" class="search-input" placeholder="Product name or code…" autocomplete="off">
+            <div id="mpSearchResults" class="search-results"></div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Items (<span id="mpCartCount">0</span>)</h2>
+          <div id="mpCartList"><div class="empty-cart">Search above and tap a product to add it.</div></div>
+        </div>
+        <div class="card">
+          <div class="field-row">
+            <div class="field"><label for="mpSellerName">Seller Name (optional)</label><input type="text" id="mpSellerName" placeholder="Who you bought it from"></div>
+            <div class="field"><label for="mpDiscountPercent">Discount %</label><input type="number" id="mpDiscountPercent" min="0" max="100" step="0.1" value="0" oninput="renderMarketCart()"></div>
+          </div>
+          <div class="field"><label for="mpRemark">Remark (optional)</label><input type="text" id="mpRemark" placeholder="Any note"></div>
+          <div class="field" style="margin-bottom:0;"><label for="mpPurchaseDate">Purchase date (leave blank for today)</label><input type="date" id="mpPurchaseDate"></div>
+        </div>
+        <div class="card">
+          <div class="receipt-total-row"><span>Total DP (normal rate)</span><span id="mpTotalDp">₹0</span></div>
+          <div class="receipt-total-row"><span>Discount</span><span id="mpDiscountAmt" style="color:var(--danger);">- ₹0</span></div>
+          <div class="receipt-total-row grand"><span>You Paid</span><span id="mpFinalTotal">₹0</span></div>
+        </div>
+        <button class="btn btn-gold btn-block" id="mpSaveBtn" onclick="saveMarketPurchase()" disabled>Save Market Purchase</button>
+      </div>
+
+      <div id="mpsub-mphistory" class="subtab-panel">
+        <div class="card">
+          <p class="section-label">Filter by date</p>
+          <div class="field-row">
+            <div class="field"><label for="mpHistFrom">From</label><input type="date" id="mpHistFrom"></div>
+            <div class="field"><label for="mpHistTo">To</label><input type="date" id="mpHistTo"></div>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="loadMarketPurchaseHistory()">Apply</button>
+        </div>
+        <div class="card"><div id="mpHistoryList"><div class="empty-cart">Loading…</div></div></div>
+      </div>
+    </section>
+
     <!-- ============ PROFIT REPORT TAB (Super Admin only) ============ -->
     <section id="tab-profitreport" class="tab-panel">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadProfitReport()">↻ Refresh</button>
@@ -1299,6 +1357,17 @@
       <div id="hallDetailArea"></div>
       <div class="modal-actions">
         <button class="btn btn-outline" onclick="document.getElementById('hallDetailModal').classList.remove('show')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="expCatDetailModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:16px;color:var(--green-800);margin-bottom:2px;" id="expCatDetailTitle"></h2>
+      <p class="hint" style="margin-bottom:12px;">Total: <strong id="expCatDetailTotal">₹0</strong></p>
+      <div id="expCatDetailList"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('expCatDetailModal').classList.remove('show')">Close</button>
       </div>
     </div>
   </div>
@@ -1955,6 +2024,7 @@
     isSuperAdminUser = isSuperAdmin;
     document.getElementById('changeAdminCodeBtn').style.display = isSuperAdmin ? 'inline-block' : 'none';
     document.getElementById('tabBtnCompanyPayout').style.display = isSuperAdmin ? 'block' : 'none';
+    document.getElementById('tabBtnMarketPurchase').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnProfitReport').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnFranchisee').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnHall').style.display = isSuperAdmin ? 'block' : 'none';
@@ -2861,6 +2931,7 @@
     if (name === 'official' && !officialLoadedOnce) { officialLoadedOnce = true; setOfficialRange_('week'); }
     if (name === 'paymentstatement' && !paymentStmtLoadedOnce) { paymentStmtLoadedOnce = true; setPaymentStmtRange('online', 'today'); setPaymentStmtRange('cash', 'today'); setPaymentStmtRange('deposits', 'today'); }
     if (name === 'companypayout' && !companyPayoutLoadedOnce) { companyPayoutLoadedOnce = true; loadCompanyPayouts(); }
+    if (name === 'marketpurchase' && !marketPurchaseWired_) { marketPurchaseWired_ = true; wireMarketSearch(); }
     if (name === 'profitreport') loadProfitReport();
     if (name === 'franchiseeinvestment' && !franchiseeLoadedOnce) { franchiseeLoadedOnce = true; loadFranchiseeEntries(); }
   }
@@ -3131,6 +3202,123 @@
       const { data: available } = await sb.rpc('check_invoice_no_available', { p_invoice_no: val });
       if (available === false) errBox.textContent = 'This Company Invoice Number has already been used.';
     }, 400);
+  }
+
+  // ---------------- MARKET PURCHASE (Super Admin only) ----------------
+  let MARKET_CART = [];
+  let marketPurchaseWired_ = false;
+
+  function switchMarketPurchaseSubtab(name) {
+    document.querySelectorAll('#tab-marketpurchase .subtab').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
+    document.querySelectorAll('#tab-marketpurchase .subtab-panel').forEach(function (p) { p.classList.remove('active'); });
+    document.getElementById('mpsub-' + name).classList.add('active');
+    if (name === 'mphistory') {
+      const today = new Date();
+      if (!document.getElementById('mpHistFrom').value) {
+        document.getElementById('mpHistFrom').value = fmtDateInput_(new Date(today.getFullYear(), today.getMonth(), 1));
+        document.getElementById('mpHistTo').value = fmtDateInput_(today);
+      }
+      loadMarketPurchaseHistory();
+    }
+  }
+
+  function wireMarketSearch() {
+    const input = document.getElementById('mpSearchInput');
+    const box = document.getElementById('mpSearchResults');
+    input.addEventListener('input', function () {
+      const matches = rankProducts(input.value);
+      if (!matches.length) { box.classList.remove('show'); box.innerHTML = ''; return; }
+      box.innerHTML = matches.map(function (p) {
+        return '<div class="result-row" data-code="' + p.code + '"><div><div class="result-name">' + escapeHtml(p.name) + '</div><div class="result-meta">#' + p.code + '</div></div><div class="result-price">' + money(p.dp) + '</div></div>';
+      }).join('');
+      box.classList.add('show');
+      Array.from(box.querySelectorAll('.result-row')).forEach(function (row) {
+        row.addEventListener('click', function () {
+          const p = PRODUCTS.find(function (x) { return String(x.code) === row.dataset.code; });
+          if (!p) return;
+          const existing = MARKET_CART.find(function (c) { return c.code === p.code; });
+          if (existing) existing.qty += 1; else MARKET_CART.push({ code: p.code, name: p.name, dp: Number(p.dp), qty: 1 });
+          renderMarketCart();
+          input.value = ''; box.classList.remove('show'); box.innerHTML = '';
+        });
+      });
+    });
+  }
+
+  function renderMarketCart() {
+    const list = document.getElementById('mpCartList');
+    document.getElementById('mpCartCount').textContent = MARKET_CART.length;
+    if (!MARKET_CART.length) { list.innerHTML = '<div class="empty-cart">Search above and tap a product to add it.</div>'; }
+    else {
+      list.innerHTML = MARKET_CART.map(function (c) {
+        return '<div class="cart-item"><div class="cart-row-top"><div><div class="cart-name">' + escapeHtml(c.name) + '</div><div class="cart-code">#' + c.code + ' · ' + money(c.dp) + ' each</div></div>' +
+          '<button class="remove-btn" data-mremove="' + c.code + '">&times;</button></div>' +
+          '<div class="cart-row-bottom"><div class="qty-stepper"><button data-mdelta="-1" data-code="' + c.code + '">&minus;</button>' +
+          '<input type="number" class="pqtyInput" data-code="' + c.code + '" min="1" step="1" value="' + c.qty + '">' +
+          '<button data-mdelta="1" data-code="' + c.code + '">&plus;</button></div>' +
+          '<div class="cart-amount"><div class="amt">' + money(c.qty * c.dp) + '</div></div></div></div>';
+      }).join('');
+      Array.from(list.querySelectorAll('[data-mremove]')).forEach(function (btn) { btn.addEventListener('click', function () { MARKET_CART = MARKET_CART.filter(function (c) { return c.code !== btn.dataset.mremove; }); renderMarketCart(); }); });
+      Array.from(list.querySelectorAll('[data-mdelta]')).forEach(function (btn) { btn.addEventListener('click', function () { const item = MARKET_CART.find(function (c) { return c.code === btn.dataset.code; }); item.qty = Math.max(1, item.qty + Number(btn.dataset.mdelta)); renderMarketCart(); }); });
+      Array.from(list.querySelectorAll('.pqtyInput')).forEach(function (input) { input.addEventListener('input', function () { const item = MARKET_CART.find(function (c) { return c.code === input.dataset.code; }); const v = Math.round(Number(input.value)); item.qty = (isFinite(v) && v > 0) ? v : item.qty; renderMarketCart(); }); });
+    }
+    let totalDp = 0;
+    MARKET_CART.forEach(function (c) { totalDp += c.qty * c.dp; });
+    const discountPct = Number(document.getElementById('mpDiscountPercent').value) || 0;
+    const discountAmt = totalDp * discountPct / 100;
+    const finalTotal = totalDp - discountAmt;
+    document.getElementById('mpTotalDp').textContent = money(totalDp);
+    document.getElementById('mpDiscountAmt').textContent = '- ' + money(discountAmt);
+    document.getElementById('mpFinalTotal').textContent = money(finalTotal);
+    document.getElementById('mpSaveBtn').disabled = MARKET_CART.length === 0;
+  }
+
+  function resetMarketPurchaseForm() {
+    MARKET_CART = [];
+    document.getElementById('mpSellerName').value = '';
+    document.getElementById('mpDiscountPercent').value = '0';
+    document.getElementById('mpRemark').value = '';
+    document.getElementById('mpPurchaseDate').value = '';
+    document.getElementById('mpSearchInput').value = '';
+    renderMarketCart();
+    showToast('Form reset.');
+  }
+
+  async function saveMarketPurchase() {
+    if (!MARKET_CART.length) { showToast('Add at least one product.', true); return; }
+    const btn = document.getElementById('mpSaveBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    const items = MARKET_CART.map(function (c) { return { code: c.code, qty: c.qty, dp: c.dp }; });
+    const dateVal = document.getElementById('mpPurchaseDate').value;
+    const { data: purchaseNo, error } = await sb.rpc('save_market_purchase', {
+      p_seller_name: document.getElementById('mpSellerName').value.trim() || null,
+      p_remark: document.getElementById('mpRemark').value.trim() || null,
+      p_items: items,
+      p_discount_percent: Number(document.getElementById('mpDiscountPercent').value) || 0,
+      p_purchase_date: dateVal ? new Date(dateVal + 'T12:00:00').toISOString() : null
+    });
+    btn.disabled = false; btn.textContent = 'Save Market Purchase';
+    if (error) { showToast(error.message, true); return; }
+    MARKET_CART.forEach(function (c) { const p = PRODUCTS.find(function (x) { return x.code === c.code; }); if (p) p.physical_stock = Number(p.physical_stock || 0) + c.qty; });
+    showToast('Saved as ' + purchaseNo + '. Physical stock updated.');
+    resetMarketPurchaseForm();
+  }
+
+  async function loadMarketPurchaseHistory() {
+    const box = document.getElementById('mpHistoryList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const from = document.getElementById('mpHistFrom').value || null;
+    const to = document.getElementById('mpHistTo').value || null;
+    const { data, error } = await sb.rpc('get_market_purchases', { p_start_date: from, p_end_date: to });
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; return; }
+    if (!data || !data.length) { box.innerHTML = '<div class="empty-cart">No market purchases in this range.</div>'; return; }
+    box.innerHTML = data.map(function (r) {
+      const dateStr = new Date(r.purchase_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const itemCount = (r.items || []).length;
+      return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + escapeHtml(r.purchase_no) + '</div>' +
+        '<div class="result-meta">' + dateStr + (r.seller_name ? ' · ' + escapeHtml(r.seller_name) : '') + ' · ' + itemCount + ' item(s)' + (r.discount_percent > 0 ? ' · ' + r.discount_percent + '% off' : '') + '</div></div>' +
+        '<div class="amt">' + money(r.discounted_total) + '</div></div>';
+    }).join('');
   }
 
   async function savePurchase() {
@@ -4365,6 +4553,18 @@
   }
   let expenseReportLoadedOnce = false;
 
+  function setExpenseReportRange_(preset) {
+    if (preset === 'all') {
+      document.getElementById('expReportFrom').value = '';
+      document.getElementById('expReportTo').value = '';
+    } else {
+      const r = computeRangePreset_(preset);
+      document.getElementById('expReportFrom').value = r.from;
+      document.getElementById('expReportTo').value = r.to;
+    }
+    loadExpenseReport();
+  }
+
   async function loadExpenseReport() {
     const box = document.getElementById('expReportList');
     box.innerHTML = '<div class="empty-cart">Loading…</div>';
@@ -4374,11 +4574,38 @@
     if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
     document.getElementById('expReportGrandTotal').textContent = money(data.grandTotal);
     const cats = data.categories || [];
+    window._expReportRange = { from: from, to: to };
     if (!cats.length) { box.innerHTML = '<div class="empty-cart">No expenses in this range.</div>'; return; }
     box.innerHTML = cats.map(function (c) {
-      return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + escapeHtml(c.category) + '</div>' +
-        '<div class="result-meta">' + c.count + ' entr' + (c.count === 1 ? 'y' : 'ies') + '</div></div>' +
+      return '<div class="list-row" onclick="openExpenseCategoryDetail_(\'' + encodeURIComponent(c.category) + '\')"><div><div class="result-name">' + escapeHtml(c.category) + '</div>' +
+        '<div class="result-meta">' + c.count + ' entr' + (c.count === 1 ? 'y' : 'ies') + ' - tap to view</div></div>' +
         '<div class="amt">' + money(c.total) + '</div></div>';
+    }).join('');
+  }
+
+  async function openExpenseCategoryDetail_(encodedCategory) {
+    const category = decodeURIComponent(encodedCategory);
+    const range = window._expReportRange || {};
+    document.getElementById('expCatDetailTitle').textContent = category;
+    const box = document.getElementById('expCatDetailList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    document.getElementById('expCatDetailModal').classList.add('show');
+
+    let q = sb.from('expenses').select('*').eq('category', category).order('expense_date', { ascending: false });
+    if (range.from) q = q.gte('expense_date', range.from);
+    if (range.to) q = q.lte('expense_date', range.to);
+    const { data: rows, error } = await q;
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; return; }
+    if (!rows || !rows.length) { box.innerHTML = '<div class="empty-cart">No entries found.</div>'; return; }
+
+    const total = rows.reduce(function (s, r) { return s + Number(r.cash || 0) + Number(r.online || 0); }, 0);
+    document.getElementById('expCatDetailTotal').textContent = money(total);
+    box.innerHTML = rows.map(function (r) {
+      const dateStr = new Date(r.expense_date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const amt = Number(r.cash || 0) + Number(r.online || 0);
+      return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + escapeHtml(r.expense_name || '(no name)') + '</div>' +
+        '<div class="result-meta">' + dateStr + (r.paid_to ? ' · ' + escapeHtml(r.paid_to) : '') + (Number(r.cash) > 0 && Number(r.online) > 0 ? ' · Cash ' + money(r.cash) + ' + Online ' + money(r.online) : (Number(r.online) > 0 ? ' · Online' : ' · Cash')) + '</div></div>' +
+        '<div class="amt">' + money(amt) + '</div></div>';
     }).join('');
   }
 
