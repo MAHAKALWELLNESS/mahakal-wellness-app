@@ -620,11 +620,11 @@
           </div>
         </div>
         <div class="card" id="transportParcelSection" style="display:none;box-shadow:none;background:var(--bg);margin:0 0 12px;">
-          <p class="section-label">Whose parcel is this?</p>
-          <div class="field"><label for="expLeaderMobile">Leader's mobile</label><input type="tel" id="expLeaderMobile" placeholder="10-digit mobile" maxlength="15" onblur="lookupExpenseLeader_()"></div>
+          <p class="section-label" id="transportSectionHeading">Whose parcel is this?</p>
+          <div class="field"><label for="expLeaderMobile" id="expLeaderMobileLabel">Leader's mobile</label><input type="tel" id="expLeaderMobile" placeholder="10-digit mobile" maxlength="15" onblur="lookupExpenseLeader_()"></div>
           <div class="field"><label for="expLeaderName">Leader's name</label><input type="text" id="expLeaderName" placeholder="Name (auto-filled if known — edit if needed)"></div>
           <p class="hint" id="expLeaderInfo" style="margin-bottom:8px;"></p>
-          <div class="field" style="margin-bottom:8px;"><label for="expParcelDestination">Parcel sent to (city/place)</label><input type="text" id="expParcelDestination" placeholder="Where was it sent?"></div>
+          <div class="field" style="margin-bottom:8px;"><label for="expParcelDestination" id="expParcelDestinationLabel">Parcel sent to (city/place)</label><input type="text" id="expParcelDestination" placeholder="Where was it sent?"></div>
           <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);cursor:pointer;margin-bottom:0;">
             <input type="checkbox" id="expDeductWallet" style="width:auto;margin:0;"> Deduct this amount from the leader's wallet
           </label>
@@ -4306,6 +4306,7 @@
       '<div class="field-row"><div class="field"><label>Mode</label><select id="payEditMode" onchange="togglePayEditUtr()"><option>Cash</option><option>Online</option></select></div>' +
       '<div class="field"><label>Amount received</label><input type="number" id="payEditAmount" min="0" step="0.01" placeholder="0"></div></div>' +
       '<div class="field" id="payEditUtrField" style="display:none;"><label>UTR Number</label><input type="text" id="payEditUtr" placeholder="Transaction reference number"></div>' +
+      '<div class="field"><label>Payment date (leave blank for today)</label><input type="date" id="payEditDate"></div>' +
       '<button class="btn btn-primary btn-block" id="recordPaymentBtn" type="button">Record payment</button>' +
       '<button class="btn btn-outline btn-block" id="sendReminderBtn" type="button" style="margin-top:8px;">Send Payment Reminder on WhatsApp</button></div>';
     document.getElementById('recordPaymentBtn').addEventListener('click', function () { submitPaymentEdit(bill.invoiceNo); });
@@ -4498,7 +4499,8 @@
     if (!(amount > 0)) { showToast('Enter a valid amount.', true); return; }
     const utrNo = document.getElementById('payEditUtr') ? document.getElementById('payEditUtr').value.trim() : '';
     if (mode === 'Online' && !utrNo) { showToast('UTR number is required for online payments.', true); return; }
-    const { data, error } = await sb.rpc('add_payment', { p_invoice_no: invoiceNo, p_mode: mode, p_amount: amount, p_utr_no: utrNo || null });
+    const dateVal = document.getElementById('payEditDate') ? document.getElementById('payEditDate').value : '';
+    const { data, error } = await sb.rpc('add_payment', { p_invoice_no: invoiceNo, p_mode: mode, p_amount: amount, p_utr_no: utrNo || null, p_payment_date: dateVal ? new Date(dateVal + 'T12:00:00').toISOString() : null });
     if (error) { showToast(error.message, true); return; }
     showToast(data.status === 'PAID' ? 'Fully settled.' : 'Payment recorded.');
     viewBill(invoiceNo, true);
@@ -4642,9 +4644,15 @@
 
   // ---------------- EXPENSE TAB ----------------
   function toggleTransportSection_() {
-    const isTransport = document.getElementById('expCategory').value.trim().toUpperCase() === 'TRANSPORT';
+    const cat = document.getElementById('expCategory').value.trim().toUpperCase();
+    const isTransport = cat === 'TRANSPORT' || cat === 'BUS CHARGES';
     document.getElementById('transportParcelSection').style.display = isTransport ? 'block' : 'none';
-    if (!isTransport) {
+    if (isTransport) {
+      const isBus = cat === 'BUS CHARGES';
+      document.getElementById('transportSectionHeading').textContent = isBus ? 'Bus trip details' : 'Whose parcel is this?';
+      document.getElementById('expLeaderMobileLabel').textContent = isBus ? 'Phone Number' : "Leader's mobile";
+      document.getElementById('expParcelDestinationLabel').textContent = isBus ? 'City' : 'Parcel sent to (city/place)';
+    } else {
       document.getElementById('expLeaderMobile').value = '';
       document.getElementById('expLeaderName').value = '';
       document.getElementById('expLeaderInfo').textContent = '';
@@ -4906,7 +4914,7 @@
     rows.forEach(function (r) { expenseRowsById_[r.id] = r; });
     box.innerHTML = rows.map(function (r) {
       const dateStr = new Date(r.expense_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-      const clickable = isSuperAdminUser ? ' style="cursor:pointer;" onclick="openEditExpense(expenseRowsById_[' + r.id + '])"' : ' style="cursor:default;"';
+      const clickable = ' style="cursor:pointer;" onclick="openEditExpense(expenseRowsById_[' + r.id + '])"';
       return '<div class="list-row"' + clickable + '><div><div class="result-name">' + escapeHtml(r.expense_name) + '</div>' +
         '<div class="result-meta">' + (r.category ? escapeHtml(r.category) + ' · ' : '') + dateStr + (r.paid_to ? ' · ' + escapeHtml(r.paid_to) : '') +
         (r.leader_name ? ' · Parcel: ' + escapeHtml(r.leader_name) + (r.parcel_destination ? ' → ' + escapeHtml(r.parcel_destination) : '') + (r.deducted_from_wallet ? ' (wallet)' : '') : '') + '</div></div>' +
