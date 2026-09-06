@@ -4778,10 +4778,11 @@
 
     const total = rows.reduce(function (s, r) { return s + Number(r.cash || 0) + Number(r.online || 0); }, 0);
     document.getElementById('expCatDetailTotal').textContent = money(total);
-    box.innerHTML = rows.map(function (r) {
+    window._expCatDetailRows = rows;
+    box.innerHTML = rows.map(function (r, idx) {
       const dateStr = new Date(r.expense_date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
       const amt = Number(r.cash || 0) + Number(r.online || 0);
-      return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + escapeHtml(r.expense_name || '(no name)') + '</div>' +
+      return '<div class="list-row" style="cursor:pointer;" onclick="openEditExpenseFromReport_(' + idx + ')"><div><div class="result-name">' + escapeHtml(r.expense_name || '(no name)') + '</div>' +
         '<div class="result-meta">' + dateStr + (r.paid_to ? ' · ' + escapeHtml(r.paid_to) : '') + (Number(r.cash) > 0 && Number(r.online) > 0 ? ' · Cash ' + money(r.cash) + ' + Online ' + money(r.online) : (Number(r.online) > 0 ? ' · Online' : ' · Cash')) + '</div></div>' +
         '<div class="amt">' + money(amt) + '</div></div>';
     }).join('');
@@ -4867,6 +4868,13 @@
     document.getElementById('editExpenseModal').classList.add('show');
   }
 
+  function openEditExpenseFromReport_(idx) {
+    const row = (window._expCatDetailRows || [])[idx];
+    if (!row) return;
+    document.getElementById('expCatDetailModal').classList.remove('show');
+    openEditExpense(row);
+  }
+
   async function submitEditExpense() {
     const { error } = await sb.rpc('update_expense', {
       p_id: currentEditExpenseId,
@@ -4883,6 +4891,7 @@
     document.getElementById('editExpenseModal').classList.remove('show');
     loadExpenseCategories_();
     searchExpenses();
+    if (expenseReportLoadedOnce) loadExpenseReport();
   }
 
   async function deleteExpenseEntry() {
@@ -4892,6 +4901,7 @@
     showToast('Expense deleted.');
     document.getElementById('editExpenseModal').classList.remove('show');
     searchExpenses();
+    if (expenseReportLoadedOnce) loadExpenseReport();
   }
 
   let expenseSearchDebounce = null;
