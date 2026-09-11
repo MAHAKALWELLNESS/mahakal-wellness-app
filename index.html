@@ -83,6 +83,10 @@
   .qform-input{width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; font-size:14px; font-family:inherit; margin-bottom:10px;}
   .qform-input:focus{outline:none; border-color:var(--gold-500);}
 </style>
+<script type="module">
+  import { injectSpeedInsights } from 'https://cdn.jsdelivr.net/npm/@vercel/speed-insights@2.0.0/dist/index.mjs';
+  injectSpeedInsights();
+</script>
 </head>
 <body>
   <button id="notifBellBtn" onclick="openNotifPanel_()" style="position:fixed;top:14px;right:14px;background:var(--surface);border:1.5px solid var(--line);color:var(--green-900);width:38px;height:38px;border-radius:50%;font-size:17px;cursor:pointer;z-index:20;">🔔<span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger, #C0392B);color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:8px;line-height:16px;padding:0 3px;"></span></button>
