@@ -63,6 +63,16 @@
   function money(n) { return '₹' + (Number(n) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }); }
   function trimNum(n) { n = Math.round((Number(n) || 0) * 100) / 100; return n.toLocaleString('en-IN'); }
   function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function renderOfficialSection_(rows) {
+    rows = rows || [];
+    if (!rows.length) return '';
+    return '<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px;"><p style="font-size:11px;font-weight:700;color:var(--green-800);margin:0 0 4px;">Official / SP Allocation</p>' +
+      rows.map(function (h) {
+        const leadNo = h.companyInvoiceNo ? escapeHtml(h.companyInvoiceNo) : '';
+        return '<p style="font-size:10.5px;color:var(--ink-soft);margin:2px 0;">' + (leadNo ? leadNo + ' — ' : '') + new Date(h.sessionDate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) + ' — DS ID ' +
+          escapeHtml(h.dsId) + (h.dsName ? ' (' + escapeHtml(h.dsName) + ')' : '') + ' · ' + h.orderType + (h.saoSgo ? ' ' + h.saoSgo : '') + ' · ' + trimNum(h.totalSpUsed) + ' SP</p>';
+      }).join('') + '</div>';
+  }
 
   function numberToWordsIndian(num) {
     num = Math.round(Number(num) || 0);
@@ -160,6 +170,7 @@
           '<div class="receipt-total-row"><span>Online</span><span>' + money(data.online) + '</span></div>' +
           '<div class="receipt-total-row"><span>Balance</span><span>' + (data.balance < -0.005 ? 'Due ' + money(-data.balance) : 'Settled') + '</span></div>' +
           (showAdvance && data.balance > 0.005 ? '<div class="receipt-total-row"><span>Advance Payment</span><span>' + money(data.balance) + '</span></div>' : '')) +
+        renderOfficialSection_(data.officialSessions) +
         '<p style="font-size:11px;color:var(--ink-soft);margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;">Rs. (in words): ' + numberToWordsIndian((isRetail ? data.netAmount : data.totalDP) + (Number(data.transportCharges) || 0)) + '</p>' +
         (data.salesman ? '<p style="font-size:11.5px;color:var(--ink-faint);margin-top:6px;">Billed by ' + escapeHtml(data.salesman) + '</p>' : '') +
         '<div style="font-size:10.5px;color:var(--ink-faint);margin-top:14px;line-height:1.7;">' +
