@@ -1522,7 +1522,7 @@
   <div class="modal-overlay" id="deliveryModal">
     <div class="modal-sheet">
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Step 2 of 3: How much was delivered now?</h2>
-      <p class="hint" style="margin-bottom:12px;">Defaults to fully delivered. Reduce a quantity only if something wasn't handed over yet.</p>
+      <p class="hint" style="margin-bottom:12px;">Defaults to 0 - enter how much is actually being handed over now. Whatever's left stays pending, or tap "Deliver All" for a full item.</p>
       <div class="field"><label for="deliveryDateInput">Delivery date (leave blank for today)</label><input type="date" id="deliveryDateInput"></div>
       <div id="deliveryItemsList"></div>
       <div class="modal-actions">
@@ -2628,7 +2628,7 @@
       return '<div class="cart-item" data-code="' + it.code + '" data-qty="' + it.qty + '">' +
         '<div class="cart-row-top"><div class="cart-name">' + escapeHtml(it.name) + '</div><div class="cart-code">Billed qty: ' + trimNum(it.qty) + '</div></div>' +
         '<div class="cart-row-bottom"><div class="field" style="margin-bottom:0;flex:1;"><label>Delivered now</label>' +
-        '<input type="number" class="deliveredInput" min="0" max="' + it.qty + '" step="1" value="' + it.qty + '" oninput="capDeliveredInput_(this)" onfocus="this.select()"></div>' +
+        '<input type="number" class="deliveredInput" min="0" max="' + it.qty + '" step="1" value="0" oninput="capDeliveredInput_(this)" onfocus="this.select()"></div>' +
         '<button class="quickbtn" type="button" onclick="const c=this.closest(\'.cart-item\'); c.querySelector(\'.deliveredInput\').value=c.dataset.qty;">Deliver All</button></div></div>';
     }).join('');
   }
