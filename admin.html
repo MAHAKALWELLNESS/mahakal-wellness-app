@@ -4431,7 +4431,7 @@
     if (error) { showToast(error.message, true); return; }
     showToast('Transport/Bus Charges updated.');
     document.getElementById('editTransportChargesModal').classList.remove('show');
-    viewBill(invoiceNo, false);
+    await viewBill(invoiceNo, false);
   }
 
   async function deleteBillConfirm(invoiceNo) {
@@ -4451,7 +4451,7 @@
     const { error } = await sb.rpc('cancel_bill', { p_invoice_no: invoiceNo });
     if (error) { showToast(error.message, true); return; }
     showToast('Bill ' + invoiceNo + ' cancelled.');
-    viewBill(invoiceNo, false);
+    await viewBill(invoiceNo, false);
     searchHistory();
   }
 
@@ -4584,7 +4584,7 @@
       else renderReceipt(lastSavedBill, 'printArea');
       document.getElementById('printModal').classList.add('show');
     } else {
-      viewBill(bill.invoiceNo, false);
+      await viewBill(bill.invoiceNo, false);
       searchHistory();
     }
   }
@@ -4603,7 +4603,7 @@
     const { data, error } = await sb.rpc('add_payment', { p_invoice_no: invoiceNo, p_mode: mode, p_amount: amount, p_utr_no: utrNo || null, p_payment_date: dateVal ? new Date(dateVal + 'T12:00:00').toISOString() : null });
     if (error) { showToast(error.message, true); return; }
     showToast(data.status === 'PAID' ? 'Fully settled.' : 'Payment recorded.');
-    viewBill(invoiceNo, true);
+    await viewBill(invoiceNo, true);
     searchHistory();
     if (document.getElementById('tab-accounting').classList.contains('active')) loadAccounting();
   }
