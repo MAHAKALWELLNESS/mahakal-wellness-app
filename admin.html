@@ -1830,7 +1830,7 @@
       </div>
       <div id="officialBillReference" style="display:none;margin-bottom:14px;"></div>
       <div class="field-row">
-        <div class="field"><label for="officialDsId">DS ID</label><input type="text" id="officialDsId" placeholder="Distributor ID" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('officialDsName').focus();}"></div>
+        <div class="field"><label for="officialDsId">DS ID</label><input type="text" id="officialDsId" placeholder="Distributor ID" onblur="lookupOfficialDsName_()" onkeydown="if(event.key==='Enter'){event.preventDefault();lookupOfficialDsName_();document.getElementById('officialDsName').focus();}"></div>
         <div class="field"><label for="officialDsName">Name</label><input type="text" id="officialDsName" placeholder="Distributor name" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('officialOrderType').focus();}"></div>
       </div>
       <div class="field-row">
@@ -1839,7 +1839,7 @@
       </div>
       <div class="field">
         <label for="officialCompanyInvoiceNo">Company invoice no. (optional)</label>
-        <input type="text" id="officialCompanyInvoiceNo" placeholder="As shown on the company panel" onkeydown="officialCompanyInvoiceKeyNav(event)" onblur="officialCompanyInvoiceBlurCheck()">
+        <input type="text" id="officialCompanyInvoiceNo" placeholder="As shown on the company panel" oninput="this.value = this.value.replace(/^\s+/, '');" onkeydown="officialCompanyInvoiceKeyNav(event)" onblur="this.value = this.value.trim(); officialCompanyInvoiceBlurCheck()">
         <p class="login-error" id="officialCompanyInvoiceWarning" style="min-height:0;margin:4px 0 0;"></p>
       </div>
       <div class="field"><label for="officialWorkDateInput">Work date (leave blank for today)</label><input type="date" id="officialWorkDateInput"></div>
@@ -6060,6 +6060,19 @@
     officialCompanyInvoiceCheck_(focusOfficialNextField);
   }
   function officialCompanyInvoiceBlurCheck() { officialCompanyInvoiceCheck_(null); }
+
+  let officialDsLookupDebounce_;
+  function lookupOfficialDsName_() {
+    clearTimeout(officialDsLookupDebounce_);
+    const dsId = document.getElementById('officialDsId').value.trim();
+    const nameInput = document.getElementById('officialDsName');
+    if (!dsId || nameInput.value.trim()) return; // don't overwrite a name already typed in
+    officialDsLookupDebounce_ = setTimeout(async function () {
+      if (nameInput.value.trim()) return; // check again - may have been typed while waiting
+      const { data } = await sb.from('official_sessions').select('ds_name').eq('ds_id', dsId).not('ds_name', 'is', null).order('session_date', { ascending: false }).limit(1).maybeSingle();
+      if (data && data.ds_name && !nameInput.value.trim()) nameInput.value = data.ds_name;
+    }, 250);
+  }
 
   function toggleOfficialSaoSgo() { document.getElementById('officialSaoSgoField').style.display = document.getElementById('officialOrderType').value === 'Repurchase' ? 'block' : 'none'; }
   function focusOfficialNextField() {
