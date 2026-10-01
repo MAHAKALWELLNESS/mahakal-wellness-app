@@ -1309,6 +1309,21 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="editBillQtyModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:16px;color:var(--green-800);margin-bottom:2px;" id="eqtyModalName"></h2>
+      <p class="hint" id="eqtyModalMeta" style="margin-bottom:14px;"></p>
+      <div class="field" style="margin-bottom:16px;">
+        <label for="eqtyModalInput">Quantity</label>
+        <input type="number" id="eqtyModalInput" min="1" step="1" inputmode="numeric" placeholder="Enter qty" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmEditBillQtyModal();}">
+      </div>
+      <div class="modal-actions" style="margin-top:0;">
+        <button class="btn btn-outline" onclick="cancelEditBillQtyModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmEditBillQtyModal()">Add</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="marketQtyModal">
     <div class="modal-sheet">
       <h2 style="font-size:16px;color:var(--green-800);margin-bottom:2px;" id="mqtyModalName"></h2>
@@ -4317,7 +4332,7 @@
       '<button class="btn btn-outline btn-block" id="sendReminderBtn" type="button" style="margin-top:8px;">Send Payment Reminder on WhatsApp</button></div>';
     document.getElementById('recordPaymentBtn').addEventListener('click', function () { submitPaymentEdit(bill.invoiceNo); });
     document.getElementById('sendReminderBtn').addEventListener('click', function () {
-      sendPaymentReminder({ invoiceNo: bill.invoiceNo, date: bill.date, mobile: bill.mobile, customerName: bill.customerName, due: -bill.balance });
+      sendPaymentReminder({ invoiceNo: bill.invoiceNo, date: bill.date, mobile: bill.mobile, customerName: bill.customerName, due: -bill.balance, totalDP: bill.totalDP, totalSP: bill.totalSP });
     });
   }
 
@@ -4327,7 +4342,10 @@
     if (digits.length === 10) digits = '91' + digits;
     const dateStr = info.date ? new Date(info.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
     const text = 'Hi ' + (info.customerName || '') + ', this is a payment reminder from Mahakal Wellness.\n\n' +
-      'Bill: ' + info.invoiceNo + (dateStr ? '\nDate: ' + dateStr : '') + '\nAmount Due: ' + money(info.due) + '\n\n' +
+      'Bill: ' + info.invoiceNo + (dateStr ? '\nDate: ' + dateStr : '') +
+      (info.totalDP != null ? '\nBill Amount: ' + money(info.totalDP) : '') +
+      (info.totalSP != null ? '\nBill SP: ' + trimNum(info.totalSP) : '') +
+      '\nAmount Due: ' + money(info.due) + '\n\n' +
       'Please clear this at your earliest convenience. Thank you!';
     window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(text), '_blank');
   }
@@ -4443,12 +4461,39 @@
       row.addEventListener('click', function () {
         const p = PRODUCTS.find(function (x) { return String(x.code) === row.dataset.code; });
         if (!p) return;
-        const existing = EDIT_CART.find(function (c) { return c.code === p.code; });
-        if (existing) existing.qty += 1; else EDIT_CART.push({ code: p.code, name: p.name, dp: Number(p.dp), sp: Number(p.sp), mrp: Number(p.mrp) || 0, qty: 1 });
-        renderEditBillItemsList();
+        promptEditBillQty(p);
         document.getElementById('editBillSearchInput').value = ''; box.classList.remove('show');
       });
     });
+  }
+
+  let pendingEditBillProduct = null;
+  function promptEditBillQty(p) {
+    pendingEditBillProduct = p;
+    document.getElementById('eqtyModalName').textContent = p.name;
+    document.getElementById('eqtyModalMeta').textContent = '#' + p.code + ' · ' + money(p.dp) + ' each';
+    const input = document.getElementById('eqtyModalInput');
+    input.value = '1';
+    document.getElementById('editBillQtyModal').classList.add('show');
+    setTimeout(function () { input.focus(); input.select(); }, 60);
+  }
+
+  function confirmEditBillQtyModal() {
+    const qty = Math.round(Number(document.getElementById('eqtyModalInput').value));
+    if (!(qty > 0)) { showToast('Enter a valid quantity.', true); return; }
+    const p = pendingEditBillProduct;
+    if (!p) return;
+    const existing = EDIT_CART.find(function (c) { return c.code === p.code; });
+    if (existing) existing.qty += qty; else EDIT_CART.push({ code: p.code, name: p.name, dp: Number(p.dp), sp: Number(p.sp), mrp: Number(p.mrp) || 0, qty: qty });
+    renderEditBillItemsList();
+    document.getElementById('editBillQtyModal').classList.remove('show');
+    document.getElementById('editBillSearchInput').focus();
+  }
+
+  function cancelEditBillQtyModal() {
+    pendingEditBillProduct = null;
+    document.getElementById('editBillQtyModal').classList.remove('show');
+    document.getElementById('editBillSearchInput').focus();
   }
 
   async function saveEditedBill() {
@@ -4535,11 +4580,11 @@
     const el = document.getElementById(preparePdfCapture_(sourceId));
     await waitForRender_(sourceId);
     pauseScrollLock();
-    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, useCORS: true, allowTaint: true, logging: true } }).from(el).save().then(function () {
+    html2pdf().set({ margin: 8, filename: currentDetailInvoice + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, useCORS: true, allowTaint: true, logging: true } }).from(el).save().then(async function () {
       hidePdfCapture_();
       resumeScrollLock();
       let digits = String(currentDetailMobile || '').replace(/\D/g, ''); if (digits.length === 10) digits = '91' + digits;
-      const text = buildBillShareText_(currentDetailInvoice, currentDetailShareToken, null, lastShowAdvanceChoice);
+      const text = await buildBillShareText_(currentDetailInvoice, currentDetailShareToken, null, lastShowAdvanceChoice);
       const waUrl = digits ? 'https://wa.me/' + digits + '?text=' + encodeURIComponent(text) : 'https://wa.me/?text=' + encodeURIComponent(text);
       setTimeout(function () { window.open(waUrl, '_blank'); }, 900);
     }).catch(function (err) { hidePdfCapture_(); resumeScrollLock(); showToast('PDF failed: ' + (err && err.message ? err.message : 'unknown error'), true); });
@@ -6835,9 +6880,18 @@
     html2pdf().set({ margin: 8, filename: title.replace(/\s+/g, '_') + '.pdf', jsPDF: { unit: 'mm', format: 'a4' } }).from(wrap).save().then(function () { document.body.removeChild(wrap); resumeScrollLock(); });
   }
 
-  function buildBillShareText_(invoiceNo, shareToken, totalDP, showAdvance) {
+  async function buildBillShareText_(invoiceNo, shareToken, totalDP, showAdvance) {
+    // Always pull the authoritative amount + SP straight from the database,
+    // regardless of what the caller passed in - this guarantees both are
+    // present in the message at every stage (even if the bill was edited
+    // after a caller captured an older totalDP value).
+    let amount = totalDP, totalSP = null;
+    const { data: inv } = await sb.from('invoices').select('total_dp, total_sp').eq('invoice_no', invoiceNo).maybeSingle();
+    if (inv) { amount = Number(inv.total_dp); totalSP = Number(inv.total_sp) || 0; }
+
     const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-    let text = 'Hi! Your Mahakal Wellness bill ' + invoiceNo + (totalDP ? ' (' + money(totalDP) + ')' : '') + ' is ready.';
+    let text = 'Hi! Your Mahakal Wellness bill ' + invoiceNo + ' is ready.' +
+      '\nAmount: ' + money(amount) + (totalSP !== null ? '\nTotal SP: ' + trimNum(totalSP) : '');
     if (shareToken) text += '\nView bill status anytime: ' + baseUrl + 'bill.html?token=' + shareToken + (showAdvance ? '&showAdvance=1' : '');
     text += '\n\nMAHAKAL SP BILLING FORMAT:\n' +
       'CASH MEMO NO ( IF GIVEN):____\n' +
@@ -6870,13 +6924,13 @@
     const el = document.getElementById(preparePdfCapture_('printArea'));
     await waitForRender_('printArea');
     pauseScrollLock();
-    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, useCORS: true, allowTaint: true, logging: true } }).from(el).save().then(function () {
+    html2pdf().set({ margin: 8, filename: lastSavedBill.invoiceNo + '.pdf', jsPDF: { unit: 'mm', format: 'a5' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.receipt-total-row', 'img'] }, html2canvas: { scrollX: 0, scrollY: 0, useCORS: true, allowTaint: true, logging: true } }).from(el).save().then(async function () {
       hidePdfCapture_();
       resumeScrollLock();
       let digits = String(lastSavedBill.mobile || '').replace(/\D/g, '');
       if (digits.length === 10) digits = '91' + digits;
       const grandTotal = (lastSavedBill.customerType === 'Retail' ? lastSavedBill.netAmount : lastSavedBill.totalDP) + (Number(lastSavedBill.transportCharges) || 0);
-      const text = buildBillShareText_(lastSavedBill.invoiceNo, lastSavedBill.shareToken, grandTotal, lastShowAdvanceChoice);
+      const text = await buildBillShareText_(lastSavedBill.invoiceNo, lastSavedBill.shareToken, grandTotal, lastShowAdvanceChoice);
       const waUrl = digits ? 'https://wa.me/' + digits + '?text=' + encodeURIComponent(text) : 'https://wa.me/?text=' + encodeURIComponent(text);
       showToast(digits ? 'PDF downloaded — opening their chat…' : 'PDF downloaded — pick a contact in WhatsApp.');
       setTimeout(function () { window.open(waUrl, '_blank'); }, 900);
