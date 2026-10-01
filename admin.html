@@ -6136,11 +6136,17 @@
     else if (e.key === 'ArrowUp' && officialSearchMatches.length) { e.preventDefault(); setOfficialSearchActive(Math.max(officialSearchActiveIdx - 1, 0)); }
     else if (e.key === 'Enter' && officialSearchMatches.length) { e.preventDefault(); promptOfficialQty(officialSearchMatches[officialSearchActiveIdx > -1 ? officialSearchActiveIdx : 0]); }
   }
+  function officialLiveRemaining_(it) {
+    const already = officialSessionItems.find(function (s) { return s.code === it.code; });
+    return it.maxQty - (already ? already.qty : 0);
+  }
+
   function rankBillItems_(query) {
     const q = query.toLowerCase();
-    return officialAvailableItems.filter(function (it) {
-      return it.name.toLowerCase().indexOf(q) > -1 || String(it.code).indexOf(q) > -1;
-    });
+    return officialAvailableItems
+      .filter(function (it) { return officialLiveRemaining_(it) > 0.0001; })
+      .filter(function (it) { return it.name.toLowerCase().indexOf(q) > -1 || String(it.code).indexOf(q) > -1; })
+      .map(function (it) { return Object.assign({}, it, { maxQty: officialLiveRemaining_(it) }); });
   }
 
   function renderOfficialSearchResults(query) {
@@ -6156,7 +6162,7 @@
     box.classList.add('show'); setOfficialSearchActive(0);
     Array.from(box.querySelectorAll('.result-row')).forEach(function (row, idx) {
       row.addEventListener('click', function () {
-        const p = officialSource === 'Same' ? officialAvailableItems.find(function (x) { return x.code === row.dataset.code; }) : PRODUCTS.find(function (x) { return x.code === row.dataset.code; });
+        const p = officialSource === 'Same' ? matches.find(function (x) { return x.code === row.dataset.code; }) : PRODUCTS.find(function (x) { return x.code === row.dataset.code; });
         if (p) promptOfficialQty(p);
       });
       row.addEventListener('mouseenter', function () { setOfficialSearchActive(idx); });
@@ -6164,15 +6170,22 @@
   }
 
   function promptOfficialQty(p) {
-    officialPendingProduct = p;
+    const existing = officialSessionItems.find(function (it) { return it.code === p.code; });
+    // p.maxQty may already have this item's own session qty subtracted out
+    // (from the live-filtered search list) - when re-editing that same
+    // item, the real ceiling is the bill's original remaining, not that
+    // reduced figure, since the new value replaces (not adds to) it.
+    const original = officialSource === 'Same' ? officialAvailableItems.find(function (x) { return x.code === p.code; }) : null;
+    const effectiveMax = existing && original ? original.maxQty : p.maxQty;
+
+    officialPendingProduct = Object.assign({}, p, { maxQty: effectiveMax });
     document.getElementById('oqtyModalName').textContent = p.name;
     document.getElementById('oqtyModalMeta').textContent = officialSource === 'Same'
-      ? '#' + p.code + ' · Total in bill: ' + trimNum(p.billQty) + ' · Remaining: ' + trimNum(p.maxQty) + ' · ' + trimNum(p.sp) + ' SP/unit'
+      ? '#' + p.code + ' · Total in bill: ' + trimNum(p.billQty) + ' · Remaining: ' + trimNum(effectiveMax) + ' · ' + trimNum(p.sp) + ' SP/unit'
       : '#' + p.code + ' · ' + trimNum(p.sp) + ' SP/unit · Online: ' + trimNum(p.online_stock);
     const input = document.getElementById('oqtyModalInput');
-    const existing = officialSessionItems.find(function (it) { return it.code === p.code; });
-    input.value = existing ? String(existing.qty) : (officialSource === 'Same' ? String(p.maxQty) : '1');
-    if (officialSource === 'Same') input.max = p.maxQty; else input.removeAttribute('max');
+    input.value = existing ? String(existing.qty) : (officialSource === 'Same' ? String(effectiveMax) : '1');
+    if (officialSource === 'Same') input.max = effectiveMax; else input.removeAttribute('max');
     document.getElementById('officialQtyModal').classList.add('show');
     setTimeout(function () { input.focus(); input.select(); }, 60);
   }
