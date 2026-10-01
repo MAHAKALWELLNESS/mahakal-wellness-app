@@ -1521,13 +1521,13 @@
 
   <div class="modal-overlay" id="deliveryModal">
     <div class="modal-sheet">
-      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Step 2 of 3: How much was delivered now?</h2>
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Step 2 of 2: How much was delivered now?</h2>
       <p class="hint" style="margin-bottom:12px;">Defaults to 0 - enter how much is actually being handed over now. Whatever's left stays pending, or tap "Deliver All" for a full item.</p>
       <div class="field"><label for="deliveryDateInput">Delivery date (leave blank for today)</label><input type="date" id="deliveryDateInput"></div>
       <div id="deliveryItemsList"></div>
       <div class="modal-actions">
         <button class="btn btn-outline" onclick="backToPaymentStep()">← Back</button>
-        <button class="btn btn-primary" onclick="goToOfficialPrefillStep()">Next: Official Work →</button>
+        <button class="btn btn-primary" onclick="finishApprovalFlow()">Confirm &amp; Finish</button>
       </div>
     </div>
   </div>
@@ -2639,9 +2639,9 @@
     if (Number(input.value) < 0) input.value = 0;
   }
 
-  async function goToOfficialPrefillStep() {
+  function extractDeliveryItemsFromModal_() {
     const rows = document.querySelectorAll('#deliveryItemsList .cart-item');
-    proceedFurtherDeliveryItems = Array.from(rows).map(function (row) {
+    return Array.from(rows).map(function (row) {
       const input = row.querySelector('.deliveredInput');
       const totalQty = Number(row.dataset.qty) || 0;
       let delivered = Math.round(Number(input.value));
@@ -2649,6 +2649,17 @@
       if (delivered > totalQty) delivered = totalQty;
       return { code: row.dataset.code, delivered_qty: delivered };
     });
+  }
+
+  // Official Work (DS ID/SP allocation) now only happens from the dedicated
+  // Official tab - approval just records payment + delivery and finishes.
+  function finishApprovalFlow() {
+    proceedFurtherDeliveryItems = extractDeliveryItemsFromModal_();
+    confirmDeliveryFlow();
+  }
+
+  async function goToOfficialPrefillStep() {
+    proceedFurtherDeliveryItems = extractDeliveryItemsFromModal_();
     document.getElementById('deliveryModal').classList.remove('show');
     document.getElementById('prefillTotalSp').textContent = trimNum(currentDetailBill.totalSP);
     document.getElementById('prefillSpAmount').max = currentDetailBill.totalSP;
