@@ -1698,6 +1698,7 @@
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Edit <span id="editBillInvoiceNo"></span></h2>
       <p class="hint" style="margin-bottom:12px;">Only bills with no payment, delivery, or SP work yet can be edited.</p>
       <div class="field" id="editBillDateField" style="display:none;"><label for="editBillDate">Bill date</label><input type="date" id="editBillDate"></div>
+      <div class="field"><label for="editBillMobile">Customer Mobile</label><input type="tel" id="editBillMobile" placeholder="10-digit mobile" maxlength="15"></div>
       <div class="field"><label for="editBillTransport">Transport/Bus Charges ₹ (optional)</label><input type="number" id="editBillTransport" min="0" step="0.01" placeholder="0"></div>
       <div class="search-wrap" style="margin-bottom:12px;">
         <input type="text" id="editBillSearchInput" class="search-input" placeholder="Add a product…" autocomplete="off" oninput="renderEditBillSearchResults(this.value)">
@@ -1732,6 +1733,29 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="editCustomerModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:14px;">Edit Customer Profile</h2>
+      <div class="field-row">
+        <div class="field"><label for="editCustMobile">Mobile</label><input type="tel" id="editCustMobile" placeholder="10-digit mobile" maxlength="15"></div>
+        <div class="field"><label for="editCustName">Name</label><input type="text" id="editCustName" placeholder="Customer name" oninput="this.value = this.value.toUpperCase();"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="editCustIdName">ID Name</label><input type="text" id="editCustIdName" placeholder="Optional"></div>
+        <div class="field"><label for="editCustIdNo">DS ID No.</label><input type="text" id="editCustIdNo" placeholder="Optional"></div>
+      </div>
+      <div class="field-row" style="margin-bottom:0;">
+        <div class="field" style="margin-bottom:0;"><label for="editCustRefName">Reference/Upline name</label><input type="text" id="editCustRefName" placeholder="Optional"></div>
+        <div class="field" style="margin-bottom:0;"><label for="editCustRefMobile">Reference/Upline mobile</label><input type="tel" id="editCustRefMobile" placeholder="Optional"></div>
+      </div>
+      <p class="login-error" id="editCustError" style="min-height:0;margin:8px 0 0;"></p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('editCustomerModal').classList.remove('show')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitEditCustomerProfile()">Save</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="addProductModal">
     <div class="modal-sheet">
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Add New Product</h2>
@@ -1758,8 +1782,11 @@
 
   <div class="modal-overlay" id="customerDetailModal">
     <div class="modal-sheet">
-      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;" id="customerDetailName"></h2>
-      <p class="hint" id="customerDetailMobile" style="margin-bottom:6px;"></p>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div><h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;" id="customerDetailName"></h2>
+        <p class="hint" id="customerDetailMobile" style="margin-bottom:6px;"></p></div>
+        <button class="btn btn-outline" style="flex:none;padding:6px 12px;font-size:12.5px;" onclick="openEditCustomerProfile()">✎ Edit Profile</button>
+      </div>
       <div id="customerDetailExtra" style="display:none;margin-bottom:14px;background:var(--gold-100);border:1.5px solid var(--gold-500);border-radius:8px;padding:8px 10px;font-size:12.5px;font-weight:700;color:var(--green-900);"></div>
       <p class="section-label">Quick range</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
@@ -4435,6 +4462,7 @@
     document.getElementById('editBillInvoiceNo').textContent = currentDetailBill.invoiceNo;
     document.getElementById('editBillSearchInput').value = '';
     document.getElementById('editBillSearchResults').classList.remove('show');
+    document.getElementById('editBillMobile').value = currentDetailBill.mobile || '';
     document.getElementById('editBillTransport').value = Number(currentDetailBill.transportCharges) || 0;
     const dateField = document.getElementById('editBillDateField');
     if (isSuperAdminUser) {
@@ -4528,7 +4556,7 @@
       if (dateVal) billDateIso = new Date(dateVal + 'T' + new Date(bill.date).toTimeString().slice(0, 8)).toISOString();
     }
     const { error } = await sb.rpc('edit_bill', {
-      p_invoice_no: bill.invoiceNo, p_customer_name: bill.customerName, p_mobile: bill.mobile, p_customer_type: bill.customerType,
+      p_invoice_no: bill.invoiceNo, p_customer_name: bill.customerName, p_mobile: document.getElementById('editBillMobile').value.trim(), p_customer_type: bill.customerType,
       p_salesman: bill.salesman, p_remark: bill.remark, p_id_name: bill.idName, p_id_no: bill.idNo,
       p_reference_name: bill.referenceName, p_reference_mobile: bill.referenceMobile, p_discount_percent: bill.discountPercent,
       p_items: EDIT_CART.map(function (c) { return { code: c.code, name: c.name, qty: c.qty, dp: c.dp, sp: c.sp, mrp: c.mrp }; }),
@@ -5032,6 +5060,45 @@
     if (error) { showToast(error.message, true); return; }
     showToast('Customer saved.');
     document.getElementById('addCustomerModal').classList.remove('show');
+    searchCustomersTab();
+  }
+
+  let editCustomerOriginalMobile_ = '';
+  async function openEditCustomerProfile() {
+    if (!currentCustomerMobile) return;
+    const { data, error } = await sb.from('customers').select('*').eq('mobile', currentCustomerMobile).maybeSingle();
+    if (error || !data) { showToast('Could not load customer details.', true); return; }
+    editCustomerOriginalMobile_ = data.mobile;
+    document.getElementById('editCustMobile').value = data.mobile || '';
+    document.getElementById('editCustName').value = data.name || '';
+    document.getElementById('editCustIdName').value = data.id_name || '';
+    document.getElementById('editCustIdNo').value = data.id_no || '';
+    document.getElementById('editCustRefName').value = data.reference_name || '';
+    document.getElementById('editCustRefMobile').value = data.reference_mobile || '';
+    document.getElementById('editCustError').textContent = '';
+    document.getElementById('editCustomerModal').classList.add('show');
+  }
+
+  async function submitEditCustomerProfile() {
+    const newMobile = document.getElementById('editCustMobile').value.trim();
+    const errBox = document.getElementById('editCustError');
+    errBox.textContent = '';
+    if (!newMobile) { errBox.textContent = 'Mobile number is required.'; return; }
+    const { error } = await sb.rpc('update_customer_profile', {
+      p_old_mobile: editCustomerOriginalMobile_, p_new_mobile: newMobile,
+      p_name: document.getElementById('editCustName').value.trim(),
+      p_id_name: document.getElementById('editCustIdName').value.trim(),
+      p_id_no: document.getElementById('editCustIdNo').value.trim(),
+      p_reference_name: document.getElementById('editCustRefName').value.trim(),
+      p_reference_mobile: document.getElementById('editCustRefMobile').value.trim()
+    });
+    if (error) { errBox.textContent = error.message; return; }
+    showToast('Customer profile updated.');
+    document.getElementById('editCustomerModal').classList.remove('show');
+    currentCustomerMobile = newMobile;
+    currentCustomerName = document.getElementById('editCustName').value.trim();
+    document.getElementById('customerDetailName').textContent = (currentCustomerName || 'Customer').toUpperCase();
+    document.getElementById('customerDetailMobile').textContent = currentCustomerMobile;
     searchCustomersTab();
   }
 
