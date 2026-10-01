@@ -5836,6 +5836,7 @@
 
   // ---------------- OFFICIAL WORK TAB ----------------
   let officialCurrentBill = null, officialSessionItems = [], officialSource = 'Manual', officialPendingProduct = null;
+  let officialAvailableItems = []; // this bill's remaining products, searched against when officialSource === 'Same'
   let officialQtyExceedFocusTarget = null, officialQtyExceedPopupOpen = false;
 
   function setOfficialRange_(preset) {
@@ -5980,8 +5981,9 @@
 
   function chooseOfficialSame() {
     officialSource = 'Same';
-    officialSessionItems = officialCurrentBill.items.filter(function (it) { return (Number(it.qtyRemaining) || 0) > 0.0001; })
-      .map(function (it) { return { code: it.code, name: it.name, dp: Number(it.dp) || 0, sp: Number(it.sp) || 0, qty: 0, maxQty: Number(it.qtyRemaining) || 0 }; });
+    officialAvailableItems = officialCurrentBill.items.filter(function (it) { return (Number(it.qtyRemaining) || 0) > 0.0001; })
+      .map(function (it) { return { code: it.code, name: it.name, dp: Number(it.dp) || 0, sp: Number(it.sp) || 0, billQty: Number(it.qty) || 0, maxQty: Number(it.qtyRemaining) || 0 }; });
+    officialSessionItems = [];
     document.getElementById('officialSourceModal').classList.remove('show');
     openOfficialWorkModal();
   }
@@ -6006,7 +6008,8 @@
       document.getElementById('officialOrderType').value = 'Greening'; document.getElementById('officialSaoSgoField').style.display = 'none';
     }
     document.getElementById('officialCompanyInvoiceNo').value = ''; document.getElementById('officialCompanyInvoiceWarning').textContent = '';
-    document.getElementById('officialManualSearchWrap').style.display = officialSource === 'Manual' ? 'block' : 'none';
+    document.getElementById('officialManualSearchWrap').style.display = 'block';
+    document.getElementById('officialSearchInput').placeholder = officialSource === 'Same' ? 'Search this bill\'s products for SP…' : 'Search product for SP…';
     document.getElementById('officialSearchInput').value = '';
     renderOfficialBillReference(); renderOfficialItemsList();
     document.getElementById('officialWorkModal').classList.add('show');
@@ -6049,8 +6052,7 @@
 
   function toggleOfficialSaoSgo() { document.getElementById('officialSaoSgoField').style.display = document.getElementById('officialOrderType').value === 'Repurchase' ? 'block' : 'none'; }
   function focusOfficialNextField() {
-    if (officialSource === 'Manual') document.getElementById('officialSearchInput').focus();
-    else { const firstQty = document.querySelector('#officialItemsList input[type="number"]'); if (firstQty) { firstQty.focus(); firstQty.select(); } }
+    document.getElementById('officialSearchInput').focus();
   }
   function officialRemainingSP() { return officialCurrentBill.header.totalSP - officialCurrentBill.usedSP; }
   function officialRoundSpTotal() { let t = 0; officialSessionItems.forEach(function (it) { t += (Number(it.qty) || 0) * (Number(it.sp) || 0); }); return t; }
@@ -6067,7 +6069,7 @@
   function renderOfficialItemsList() {
     const box = document.getElementById('officialItemsList');
     if (!officialSessionItems.length) {
-      box.innerHTML = '<div class="empty-cart">' + (officialSource === 'Manual' ? 'Search above and add products.' : 'All products on this bill have already been fully allocated.') + '</div>';
+      box.innerHTML = '<div class="empty-cart">' + (officialSource === 'Same' && !officialAvailableItems.length ? 'All products on this bill have already been fully allocated.' : 'Search above and add products.') + '</div>';
       updateOfficialTotalsDisplay(); return;
     }
     box.innerHTML = officialSessionItems.map(function (it) {
@@ -6134,15 +6136,29 @@
     else if (e.key === 'ArrowUp' && officialSearchMatches.length) { e.preventDefault(); setOfficialSearchActive(Math.max(officialSearchActiveIdx - 1, 0)); }
     else if (e.key === 'Enter' && officialSearchMatches.length) { e.preventDefault(); promptOfficialQty(officialSearchMatches[officialSearchActiveIdx > -1 ? officialSearchActiveIdx : 0]); }
   }
+  function rankBillItems_(query) {
+    const q = query.toLowerCase();
+    return officialAvailableItems.filter(function (it) {
+      return it.name.toLowerCase().indexOf(q) > -1 || String(it.code).indexOf(q) > -1;
+    });
+  }
+
   function renderOfficialSearchResults(query) {
     const box = document.getElementById('officialSearchResults'); query = (query || '').trim();
     if (!query) { box.classList.remove('show'); box.innerHTML = ''; officialSearchMatches = []; return; }
-    const matches = rankProducts(query); officialSearchMatches = matches;
+    const matches = officialSource === 'Same' ? rankBillItems_(query) : rankProducts(query);
+    officialSearchMatches = matches;
     if (!matches.length) { box.innerHTML = '<div class="no-results">No product matches "' + escapeHtml(query) + '"</div>'; box.classList.add('show'); return; }
-    box.innerHTML = matches.map(function (p) { return '<div class="result-row" data-code="' + p.code + '"><div><div class="result-name">' + escapeHtml(p.name) + '</div><div class="result-meta">#' + p.code + ' · Online: ' + trimNum(p.online_stock) + '</div></div><div class="result-price">' + trimNum(p.sp) + ' SP</div></div>'; }).join('');
+    box.innerHTML = matches.map(function (p) {
+      const metaRight = officialSource === 'Same' ? 'Total ' + trimNum(p.billQty) + ' · Rem. ' + trimNum(p.maxQty) : 'Online: ' + trimNum(p.online_stock);
+      return '<div class="result-row" data-code="' + p.code + '"><div><div class="result-name">' + escapeHtml(p.name) + '</div><div class="result-meta">#' + p.code + ' · ' + metaRight + '</div></div><div class="result-price">' + trimNum(p.sp) + ' SP</div></div>';
+    }).join('');
     box.classList.add('show'); setOfficialSearchActive(0);
     Array.from(box.querySelectorAll('.result-row')).forEach(function (row, idx) {
-      row.addEventListener('click', function () { const p = PRODUCTS.find(function (x) { return x.code === row.dataset.code; }); if (p) promptOfficialQty(p); });
+      row.addEventListener('click', function () {
+        const p = officialSource === 'Same' ? officialAvailableItems.find(function (x) { return x.code === row.dataset.code; }) : PRODUCTS.find(function (x) { return x.code === row.dataset.code; });
+        if (p) promptOfficialQty(p);
+      });
       row.addEventListener('mouseenter', function () { setOfficialSearchActive(idx); });
     });
   }
@@ -6150,8 +6166,13 @@
   function promptOfficialQty(p) {
     officialPendingProduct = p;
     document.getElementById('oqtyModalName').textContent = p.name;
-    document.getElementById('oqtyModalMeta').textContent = '#' + p.code + ' · ' + trimNum(p.sp) + ' SP/unit · Online: ' + trimNum(p.online_stock);
-    const input = document.getElementById('oqtyModalInput'); input.value = '1';
+    document.getElementById('oqtyModalMeta').textContent = officialSource === 'Same'
+      ? '#' + p.code + ' · Total in bill: ' + trimNum(p.billQty) + ' · Remaining: ' + trimNum(p.maxQty) + ' · ' + trimNum(p.sp) + ' SP/unit'
+      : '#' + p.code + ' · ' + trimNum(p.sp) + ' SP/unit · Online: ' + trimNum(p.online_stock);
+    const input = document.getElementById('oqtyModalInput');
+    const existing = officialSessionItems.find(function (it) { return it.code === p.code; });
+    input.value = existing ? String(existing.qty) : (officialSource === 'Same' ? String(p.maxQty) : '1');
+    if (officialSource === 'Same') input.max = p.maxQty; else input.removeAttribute('max');
     document.getElementById('officialQtyModal').classList.add('show');
     setTimeout(function () { input.focus(); input.select(); }, 60);
   }
@@ -6159,8 +6180,9 @@
     const qty = Math.round(Number(document.getElementById('oqtyModalInput').value));
     if (!(qty > 0)) { showToast('Enter a valid quantity.', true); return; }
     const p = officialPendingProduct; if (!p) return;
+    if (officialSource === 'Same' && qty > p.maxQty) { showToast('Only ' + trimNum(p.maxQty) + ' remaining for ' + p.name + '.', true); return; }
     const existing = officialSessionItems.find(function (it) { return it.code === p.code; });
-    if (existing) existing.qty += qty; else officialSessionItems.push({ code: p.code, name: p.name, dp: p.dp, sp: p.sp, qty: qty });
+    if (existing) existing.qty = qty; else officialSessionItems.push({ code: p.code, name: p.name, dp: p.dp, sp: p.sp, qty: qty, maxQty: p.maxQty });
     renderOfficialItemsList();
     document.getElementById('officialQtyModal').classList.remove('show');
     document.getElementById('officialSearchInput').value = ''; document.getElementById('officialSearchResults').classList.remove('show');
