@@ -192,13 +192,19 @@
     @page { size: landscape; margin: 8mm; }
     body > *:not(#printDuplicateArea){display:none !important;}
     #printDuplicateArea{display:flex !important; width:100%; padding:0; align-items:stretch; gap:10px;}
-    .print-copy{width:calc(50% - 5px); box-sizing:border-box; padding:14px 16px; border-top:1.5px solid #333; border-bottom:1.5px solid #333;}
+    .print-copy{width:calc(50% - 5px); box-sizing:border-box; padding:14px 16px; border-top:1.5px solid #333; border-bottom:1.5px solid #333; overflow:hidden;}
     .print-copy.left{border-left:1.5px solid #333; border-right:1.5px dashed #999;}
     .print-copy.right{border-right:1.5px solid #333; border-left:1.5px dashed #999;}
     .print-copy-label{text-align:center; font-size:11px; font-weight:bold; text-transform:uppercase; letter-spacing:1.5px; color:#777; margin:0 0 8px; border-bottom:1px solid #ccc; padding-bottom:6px;}
     .modal-actions{display:none;}
     .modal-overlay{position:static; background:none;}
     .modal-sheet{max-height:none; border-radius:0; box-shadow:none;}
+    /* Each copy only gets ~half the landscape page, so force the receipt
+       table to fit that width instead of growing with long item names -
+       this is what was cutting off the rightmost (SP) column. */
+    .print-copy table.receipt-table{table-layout:fixed; width:100% !important; font-size:10.5px;}
+    .print-copy table.receipt-table th:first-child, .print-copy table.receipt-table td:first-child{white-space:normal; word-break:break-word; width:34%;}
+    .print-copy table.receipt-table th:not(:first-child), .print-copy table.receipt-table td:not(:first-child){white-space:nowrap; width:16.5%; padding-left:6px; overflow:hidden; text-overflow:ellipsis;}
   }
 </style>
 </head>
