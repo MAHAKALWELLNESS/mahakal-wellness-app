@@ -63,12 +63,6 @@
   function money(n) { return '₹' + (Number(n) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }); }
   function trimNum(n) { n = Math.round((Number(n) || 0) * 100) / 100; return n.toLocaleString('en-IN'); }
   function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function renderDeliveryStatusLine_(d) {
-    const pendingItems = (d.items || []).filter(function (it) { return (Number(it.pendingQty) || 0) > 0.0001; });
-    if (!pendingItems.length) return '<div class="receipt-total-row"><span>Delivery</span><span>Fully Delivered</span></div>';
-    const list = pendingItems.map(function (it) { return escapeHtml(it.name) + ' (' + trimNum(it.pendingQty) + ')'; }).join(', ');
-    return '<div class="receipt-total-row" style="align-items:flex-start;"><span>Delivery Pending</span><span style="text-align:right;max-width:60%;">' + list + '</span></div>';
-  }
 
   function numberToWordsIndian(num) {
     num = Math.round(Number(num) || 0);
@@ -165,8 +159,7 @@
           '<div class="receipt-total-row"><span>Cash</span><span>' + money(data.cash) + '</span></div>' +
           '<div class="receipt-total-row"><span>Online</span><span>' + money(data.online) + '</span></div>' +
           '<div class="receipt-total-row"><span>Balance</span><span>' + (data.balance < -0.005 ? 'Due ' + money(-data.balance) : 'Settled') + '</span></div>' +
-          (showAdvance && data.balance > 0.005 ? '<div class="receipt-total-row"><span>Advance Payment</span><span>' + money(data.balance) + '</span></div>' : '') +
-          renderDeliveryStatusLine_(data)) +
+          (showAdvance && data.balance > 0.005 ? '<div class="receipt-total-row"><span>Advance Payment</span><span>' + money(data.balance) + '</span></div>' : '')) +
         '<p style="font-size:11px;color:var(--ink-soft);margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;">Rs. (in words): ' + numberToWordsIndian((isRetail ? data.netAmount : data.totalDP) + (Number(data.transportCharges) || 0)) + '</p>' +
         (data.salesman ? '<p style="font-size:11.5px;color:var(--ink-faint);margin-top:6px;">Billed by ' + escapeHtml(data.salesman) + '</p>' : '') +
         '<div style="font-size:10.5px;color:var(--ink-faint);margin-top:14px;line-height:1.7;">' +
