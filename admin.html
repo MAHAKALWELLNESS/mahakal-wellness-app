@@ -342,7 +342,7 @@
       <div class="card">
         <p class="section-label">Customer/Distributor</p>
         <div class="field-row">
-          <div class="field"><label for="custMobile">Mobile</label><input type="tel" id="custMobile" placeholder="10-digit mobile" maxlength="15" onblur="loadCustomerWalletForBill()"></div>
+          <div class="field"><label for="custMobile">Mobile</label><input type="tel" id="custMobile" placeholder="10-digit mobile" maxlength="15" oninput="onBillMobileInput_()" onblur="lookupBillCustomer_()"></div>
           <div class="field"><label for="custName">Name</label><input type="text" id="custName" placeholder="Walk-in customer" oninput="this.value = this.value.toUpperCase();"></div>
         </div>
         <div class="field-row">
@@ -2013,15 +2013,6 @@
     const { data: { session } } = await sb.auth.getSession();
     if (session) { startApp(); } else { document.getElementById('loginOverlay').style.display = 'flex'; }
 
-    document.getElementById('custMobile').addEventListener('blur', async function () {
-      const mobile = this.value.trim();
-      if (mobile.length < 6) return;
-      const { data } = await sb.from('customers').select('name, reference_name, reference_mobile').eq('mobile', mobile).maybeSingle();
-      if (!data) return;
-      if (data.name) document.getElementById('custName').value = data.name;
-      if (data.reference_name && !document.getElementById('referenceName').value) document.getElementById('referenceName').value = data.reference_name;
-      if (data.reference_mobile && !document.getElementById('referenceMobile').value) document.getElementById('referenceMobile').value = data.reference_mobile;
-    });
   });
 
   async function attemptLogin() {
@@ -2209,6 +2200,56 @@
     });
     scored.sort(function (a, b) { return a.tier !== b.tier ? a.tier - b.tier : a.codeLen - b.codeLen; });
     return scored.slice(0, 8).map(function (x) { return x.p; });
+  }
+
+  // ---------------- Mobile-first customer auto-fill (New Bill) ----------------
+  // Staff type the mobile first; as soon as it looks complete, the customer's saved
+  // details are pulled in. A field is only overwritten if it's empty or still holds a
+  // value WE auto-filled (so anything staff typed themselves is never clobbered, and
+  // switching to a different customer doesn't leave the previous one's details behind).
+  let billAutoFilled_ = {};
+  let billLookupTimer_ = null;
+  let billLookedUpMobile_ = '';
+
+  function onBillMobileInput_() {
+    clearTimeout(billLookupTimer_);
+    if (document.getElementById('custMobile').value.trim().length < 10) return;
+    billLookupTimer_ = setTimeout(lookupBillCustomer_, 350);
+  }
+
+  async function lookupBillCustomer_() {
+    clearTimeout(billLookupTimer_);
+    const mobile = document.getElementById('custMobile').value.trim();
+    if (mobile.length < 10 || mobile === billLookedUpMobile_) return;
+    billLookedUpMobile_ = mobile;
+
+    const results = await Promise.all([
+      sb.from('customers').select('name, city, id_name, id_no, reference_name, reference_mobile').eq('mobile', mobile).maybeSingle(),
+      sb.from('invoices').select('customer_type').eq('mobile', mobile).order('invoice_date', { ascending: false }).limit(1)
+    ]);
+    if (document.getElementById('custMobile').value.trim() !== mobile) return; // number was changed while loading
+    const c = results[0].data;
+    const lastType = results[1].data && results[1].data[0] ? results[1].data[0].customer_type : null;
+
+    const fieldMap = {
+      custName: c && c.name, custCity: c && c.city, idName: c && c.id_name, idNo: c && c.id_no,
+      referenceName: c && c.reference_name, referenceMobile: c && c.reference_mobile
+    };
+    Object.keys(fieldMap).forEach(function (id) {
+      const el = document.getElementById(id);
+      const newVal = fieldMap[id] ? String(fieldMap[id]) : '';
+      const untouched = !el.value.trim() || el.value === billAutoFilled_[id];
+      if (!untouched) return;
+      el.value = newVal;
+      if (newVal) billAutoFilled_[id] = newVal; else delete billAutoFilled_[id];
+    });
+
+    // Customer type: only pre-select when nothing is chosen yet (changing it
+    // under an existing cart would silently reprice it).
+    const typeEl = document.getElementById('custType');
+    if (!typeEl.value && lastType) { typeEl.value = lastType; toggleRetailDiscount(); }
+
+    if (c) showToast('Customer details loaded.');
   }
 
   function wireSearch() {
@@ -2462,6 +2503,7 @@
     document.getElementById('printModal').classList.remove('show');
     CART = [];
     document.getElementById('custMobile').value = '';
+    billLookedUpMobile_ = ''; billAutoFilled_ = {};
     document.getElementById('custName').value = '';
     document.getElementById('custCity').value = '';
     document.getElementById('custType').value = '';
@@ -2480,6 +2522,7 @@
   function resetNewBillForm() {
     CART = [];
     document.getElementById('custMobile').value = '';
+    billLookedUpMobile_ = ''; billAutoFilled_ = {};
     document.getElementById('custName').value = '';
     document.getElementById('custCity').value = '';
     document.getElementById('custType').value = '';

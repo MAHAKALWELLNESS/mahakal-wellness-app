@@ -198,12 +198,59 @@
     await init();
   }
 
+  // ---------------- Mobile-first auto-fill for returning customers ----------------
+  // Only fields that are empty (or still hold a value WE filled in) are ever
+  // overwritten, so nothing the customer typed themselves gets clobbered, and
+  // changing the mobile to a different person doesn't leave the old details behind.
+  let orderAutoFilled_ = {};
+  let orderLookupTimer_ = null;
+  let orderLookedUpMobile_ = '';
+
+  function onOrderMobileInput_() {
+    clearTimeout(orderLookupTimer_);
+    if (document.getElementById('custMobile').value.trim().length < 10) return;
+    orderLookupTimer_ = setTimeout(lookupOrderCustomer_, 350);
+  }
+
+  async function lookupOrderCustomer_() {
+    clearTimeout(orderLookupTimer_);
+    const mobile = document.getElementById('custMobile').value.trim();
+    if (mobile.length < 10 || mobile === orderLookedUpMobile_) return;
+    orderLookedUpMobile_ = mobile;
+
+    const { data } = await sb.rpc('get_customer_for_order', { p_mobile: mobile });
+    if (document.getElementById('custMobile').value.trim() !== mobile) return; // number was changed while loading
+    const found = !!(data && data.found);
+
+    const fieldMap = {
+      custName: found && data.name, custCity: found && data.city,
+      custIdName: found && data.idName, custDsId: found && data.dsId
+    };
+    Object.keys(fieldMap).forEach(function (id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const newVal = fieldMap[id] ? String(fieldMap[id]).toUpperCase() : '';
+      const untouched = !el.value.trim() || el.value === orderAutoFilled_[id];
+      if (!untouched) return;
+      el.value = newVal;
+      if (newVal) orderAutoFilled_[id] = newVal; else delete orderAutoFilled_[id];
+    });
+
+    const hint = document.getElementById('custLookupHint');
+    if (hint) {
+      hint.textContent = found ? '✓ Your saved details were filled in — please check them and update anything that has changed.' : '';
+      hint.style.display = found ? 'block' : 'none';
+    }
+  }
+
   function renderForm() {
+    orderAutoFilled_ = {}; orderLookedUpMobile_ = '';
     document.getElementById('mainArea').innerHTML =
       '<div class="card">' +
         '<p class="section-label">Your details</p>' +
+        '<div class="field"><label for="custMobile">Mobile</label><input type="tel" id="custMobile" placeholder="10-digit mobile — enter this first" maxlength="15" oninput="onOrderMobileInput_()" onblur="lookupOrderCustomer_()"></div>' +
+        '<p id="custLookupHint" style="display:none;margin:-6px 0 12px;font-size:12px;font-weight:600;color:var(--green-700);"></p>' +
         '<div class="field"><label for="custName">Name</label><input type="text" id="custName" placeholder="Your name" oninput="this.value=this.value.toUpperCase()"></div>' +
-        '<div class="field"><label for="custMobile">Mobile</label><input type="tel" id="custMobile" placeholder="10-digit mobile" maxlength="15"></div>' +
         '<div class="field"><label for="custCity">City</label><input type="text" id="custCity" placeholder="Your city" oninput="this.value=this.value.toUpperCase()"></div>' +
         '<div class="field" style="margin-bottom:0;"><label for="custType">Customer type</label>' +
           '<select id="custType" onchange="onCustomerTypeChange()" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">' +
