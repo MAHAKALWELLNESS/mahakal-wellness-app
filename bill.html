@@ -38,6 +38,8 @@
   table.receipt-table td{padding:7px 8px 7px 0; border-bottom:1px solid var(--line);}
   table.receipt-table td.num, table.receipt-table th.num{text-align:right; padding-right:0;}
   table.receipt-table th:first-child, table.receipt-table td:first-child{padding-left:0;}
+  table.receipt-table th:not(:first-child), table.receipt-table td:not(:first-child){padding-left:12px;}
+  table.receipt-table td.num{white-space:nowrap;}
   .receipt-total-row{display:flex; justify-content:space-between; padding:6px 0; font-size:13.5px;}
   .receipt-total-row.grand{font-weight:700; font-size:16.5px; color:var(--green-800); border-top:1px solid var(--line); margin-top:4px; padding-top:10px;}
   .hint{font-size:12.5px; color:var(--ink-faint);}
@@ -128,12 +130,11 @@
         '<td class="num">' + trimNum(it.qty * sp) + '</td></tr>';
     }).join('');
 
-    const idLine = (data.idName || data.idNo || data.referenceName || data.referenceMobile) ?
+    const idLine = (data.idName || data.idNo || data.referenceName) ?
       '<div style="background:var(--gold-100);border:1.5px solid var(--gold-500);border-radius:8px;padding:8px 10px;margin:8px 0;font-size:12.5px;font-weight:700;color:var(--green-900);">' +
         (data.idName ? 'ID Name: ' + escapeHtml(data.idName) + '&nbsp;&nbsp; ' : '') +
         (data.idNo ? 'ID No: ' + escapeHtml(data.idNo) + '&nbsp;&nbsp; ' : '') +
-        (data.referenceName || data.referenceMobile ? 'Reference/Upline: ' + escapeHtml(data.referenceName || '') +
-          (data.referenceMobile ? ' (' + escapeHtml(String(data.referenceMobile)) + ')' : '') : '') +
+        (data.referenceName ? 'Reference/Upline: ' + escapeHtml(data.referenceName) : '') +
       '</div>' : '';
 
     main.innerHTML =
@@ -152,7 +153,7 @@
         '<p>' + escapeHtml(s['Address'] || '') + '</p><p>' + escapeHtml(s['Mobile'] || '') + (s['Mobile 2'] ? ' / ' + escapeHtml(s['Mobile 2']) : '') + '</p></div>' +
         '<div class="receipt-meta"><span>Bill No: <strong>' + data.invoiceNo + '</strong></span><span>' + dateStr + '</span></div>' +
         (data.customerName || data.mobile ? '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 4px;">' +
-          escapeHtml(data.customerName || 'Customer') + (data.mobile ? ' · ' + escapeHtml(data.mobile) : '') + '</p>' : '') +
+          escapeHtml(data.customerName || 'Customer') + (data.mobile ? ' · ' + escapeHtml(data.mobile) : '') + (data.city ? ' · City: ' + escapeHtml(data.city) : '') + '</p>' : '') +
         (data.customerType ? '<p style="font-size:11px;font-weight:700;color:var(--green-800);text-transform:uppercase;margin:0 0 10px;">Customer Type: ' + escapeHtml(data.customerType) + '</p>' : '') +
         idLine +
         '<table class="receipt-table"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">' + (isRetail ? 'MRP' : 'Rate') + '</th><th class="num">Amount</th><th class="num">SP</th></tr></thead>' +
@@ -161,8 +162,8 @@
         (isRetail ? '<div class="receipt-total-row"><span>Total MRP</span><span>' + money(data.totalMrp) + '</span></div>' +
           '<div class="receipt-total-row"><span>Discount (' + trimNum(data.discountPercent) + '%)</span><span>' + money(data.discountAmount) + '</span></div>' +
           '<div class="receipt-total-row"><span>Net Amount</span><span>' + money(data.netAmount) + '</span></div>'
-          : '<div class="receipt-total-row"><span>Total</span><span>' + money(data.totalDP) + '</span></div>') +
-        (Number(data.transportCharges) > 0.005 ? '<div class="receipt-total-row"><span>Transport/Bus Charges</span><span>' + money(data.transportCharges) + '</span></div>' : '') +
+          : '<div class="receipt-total-row"><span>' + (Number(data.transportCharges) > 0.005 ? 'Items Total' : 'Total') + '</span><span>' + money(data.totalDP) + '</span></div>') +
+        (Number(data.transportCharges) > 0.005 ? '<div class="receipt-total-row"><span>Rapido/Bus/Transport Charges</span><span>' + money(data.transportCharges) + '</span></div>' : '') +
         '<div class="receipt-total-row grand"><span>Grand Total</span><span>' + money((isRetail ? data.netAmount : data.totalDP) + (Number(data.transportCharges) || 0)) + '</span></div>' +
         '<div class="receipt-total-row"><span>Total SP</span><span>' + trimNum(data.totalSP) + '</span></div>' +
         (isPending ? '' :
