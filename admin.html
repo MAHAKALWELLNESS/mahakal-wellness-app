@@ -326,6 +326,7 @@
       <button class="tab" data-tab="pending" onclick="switchTab('pending')">Delivery Update</button>
       <button class="tab" data-tab="expense" onclick="switchTab('expense')">Expense</button>
       <button class="tab" data-tab="official" onclick="switchTab('official')">Official</button>
+      <button class="tab" data-tab="spsets" onclick="switchTab('spsets')">SP Sets</button>
       <button class="tab" data-tab="customers" onclick="switchTab('customers')">Customers</button>
       <button class="tab" data-tab="stockreport" onclick="switchTab('stockreport')">Stock</button>
       <button class="tab" data-tab="wallet" onclick="switchTab('wallet')">Wallet</button>
@@ -737,6 +738,51 @@
       </div>
       <div class="card"><p class="section-label">Search by bill no</p><input type="text" id="officialSearch" class="search-input" placeholder="Bill no…" oninput="searchOfficialBills()"></div>
       <div class="card"><h2 id="officialListHeading">Pending SP allocation</h2><div id="officialList"><div class="empty-cart">Loading…</div></div></div>
+    </section>
+
+    <!-- ============ SP SETS TAB ============ -->
+    <section id="tab-spsets" class="tab-panel">
+      <div class="card" id="spsPickCard">
+        <h2>SP Sets</h2>
+        <p class="hint">Bill chuno, batao kitne SP ke kitne set chahiye - exact SP ke sets ban jaayenge. Phir kisi bhi set ko Official mein use karo. Jo set use nahi karoge wo bill ka remaining SP hi rahega.</p>
+        <p class="section-label">1. Bill chuno</p>
+        <input type="text" id="spsBillSearch" class="search-input" placeholder="Bill no ya customer ka naam…" oninput="searchSpsBills_()">
+        <div id="spsBillList" style="margin-top:8px;"><div class="empty-cart">Loading…</div></div>
+      </div>
+
+      <div id="spsWork" style="display:none;">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;">
+            <h2 id="spsBillTitle" style="margin:0;"></h2>
+            <button class="btn btn-outline" style="flex:none;padding:6px 12px;font-size:12.5px;" onclick="spsChangeBill_()">↺ Change bill</button>
+          </div>
+          <div id="spsSummary"></div>
+        </div>
+
+        <div class="card">
+          <p class="section-label">2. Kya chahiye? (AI ko likho)</p>
+          <textarea id="spsCommand" class="search-input" rows="3" style="resize:vertical;font-family:inherit;" placeholder="Jaise: 100 SP ke 5 set banao"></textarea>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px;">
+            <button class="quickbtn" type="button" onclick="spsFillExample_('100 SP ke 5 set banao')">100 SP ke 5 set</button>
+            <button class="quickbtn" type="button" onclick="spsFillExample_('50 SP ke jitne ho sake utne set banao')">50 SP ke jitne ho sake</button>
+            <button class="quickbtn" type="button" onclick="spsFillExample_('3 set 100 SP ke aur baaki 60 SP ke set')">3×100 + baaki 60</button>
+          </div>
+          <p class="hint" style="margin-bottom:6px;">Ya seedha bharo (AI ke bina):</p>
+          <div class="field-row">
+            <div class="field"><label for="spsTarget">Target SP per set</label><input type="number" id="spsTarget" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 100"></div>
+            <div class="field"><label for="spsCount">Kitne set (khali = jitne ban sake)</label><input type="number" id="spsCount" min="1" step="1" inputmode="numeric" placeholder="max"></div>
+          </div>
+          <button class="btn btn-primary btn-block" id="spsBuildBtn" onclick="buildSpSetsClicked_()">Sets banao</button>
+          <div id="spsPlanNote" style="margin-top:10px;"></div>
+        </div>
+
+        <div id="spsPreviewCard" class="card" style="display:none;"></div>
+
+        <div class="card">
+          <h2>Saved sets</h2>
+          <div id="spsSavedList"><div class="empty-cart">Abhi koi set save nahi hua.</div></div>
+        </div>
+      </div>
     </section>
 
     <!-- ============ CUSTOMERS TAB ============ -->
@@ -3132,6 +3178,7 @@
       } else { loadDashboard(); }
     }
     if (name === 'official') loadOfficialPending();
+    if (name === 'spsets') initSpSetsTab_();
     if (name === 'expense') searchExpenses();
     if (name === 'customers') searchCustomersTab();
     if (name === 'stockreport' && !onlineStockLoadedOnce) switchStockSubtab('online');
@@ -6092,6 +6139,7 @@
   }
 
   async function openOfficialBill(invoiceNo) {
+    spsPendingUse_ = null; // a normal Official entry - not started from an SP set
     const { data: header } = await sb.from('invoices').select('*').eq('invoice_no', invoiceNo).maybeSingle();
     if (!header) { showToast('Bill not found.', true); return; }
     const { data: items } = await sb.from('invoice_items').select('*').eq('invoice_no', invoiceNo);
@@ -6164,6 +6212,7 @@
   }
 
   function chooseOfficialSame() {
+    spsPendingUse_ = null;
     officialSource = 'Same';
     officialAvailableItems = officialCurrentBill.items.filter(function (it) { return (Number(it.qtyRemaining) || 0) > 0.0001; })
       .map(function (it) { return { code: it.code, name: it.name, dp: Number(it.dp) || 0, sp: Number(it.sp) || 0, billQty: Number(it.qty) || 0, maxQty: Number(it.qtyRemaining) || 0 }; });
@@ -6172,6 +6221,7 @@
     openOfficialWorkModal();
   }
   function chooseOfficialManual() {
+    spsPendingUse_ = null;
     officialSource = 'Manual'; officialSessionItems = [];
     document.getElementById('officialSourceModal').classList.remove('show');
     openOfficialWorkModal();
@@ -6476,6 +6526,546 @@
     document.getElementById('officialWorkDateInput').value = '';
     await loadProducts();
     loadOfficialPending();
+    await spsAfterOfficialSave_(data.officialNo, payload.billNo);
+  }
+
+  // <<SP_SOLVER_START>>
+  // ---------------- SP SET SOLVER (pure functions - no DOM, no network) ----------------
+  // Builds "sets" of products whose SP adds up to an exact target. This is accounting
+  // data, so it is done in code with scaled INTEGERS (SP can have decimals like 0.25) -
+  // never with floating point sums and never by asking an AI to do the arithmetic.
+  // The AI's only job is to turn the staff's typed request into the `spec` below.
+  //
+  // pool: [{ code, name, sp, dp, qty }]   (qty = whole units still free to use)
+  // spec: { specs: [{ count: <int>|'max', targetSp }], mode: 'exact'|'closest', tolerance,
+  //         strategy: 'auto'|'fewest_products'|'large_first'|'small_first',
+  //         excludeCodes: [], onlyCodes: [], maxProductsPerSet: <int>|null }
+  function spDecimals_(n) {
+    const s = String(Math.round(Number(n) * 1000) / 1000);
+    const i = s.indexOf('.');
+    return i === -1 ? 0 : s.length - i - 1;
+  }
+  function spGcd_(a, b) { while (b) { const t = a % b; a = b; b = t; } return a; }
+
+  // Bounded-knapsack reachability, then rebuild one combination taking as much as
+  // possible of the items earliest in `order`. Returns { counts, total } or null.
+  function spDpFind_(s, q, order, T, closest, minAccept) {
+    const n = order.length, W = T + 1;
+    if ((n + 1) * W > 8000000) return { tooBig: true };
+    const reach = new Array(n + 1);
+    reach[n] = new Uint8Array(W); reach[n][0] = 1;
+    const cnt = new Int32Array(W);
+    for (let i = n - 1; i >= 0; i--) {
+      const idx = order[i], si = s[idx], qi = q[idx];
+      const nxt = reach[i + 1], cur = new Uint8Array(W);
+      for (let j = 0; j < W; j++) {
+        if (nxt[j]) { cur[j] = 1; cnt[j] = 0; }
+        else if (j >= si && cur[j - si] && cnt[j - si] < qi) { cur[j] = 1; cnt[j] = cnt[j - si] + 1; }
+        else { cur[j] = 0; cnt[j] = 0; }
+      }
+      reach[i] = cur;
+    }
+    let target = -1;
+    if (!closest) { if (!reach[0][T]) return null; target = T; }
+    else { for (let j = T; j >= Math.max(1, minAccept); j--) { if (reach[0][j]) { target = j; break; } } if (target < 1) return null; }
+    const counts = new Array(s.length).fill(0);
+    let j = target;
+    for (let i = 0; i < n; i++) {
+      const idx = order[i], si = s[idx];
+      let c = Math.min(q[idx], Math.floor(j / si));
+      while (c > 0 && !reach[i + 1][j - c * si]) c--;
+      counts[idx] = c; j -= c * si;
+    }
+    return j === 0 ? { counts: counts, total: target } : null;
+  }
+
+  // Looks for a combination using as FEW distinct products as possible (up to maxP),
+  // so each set has few lines to type into the company panel. Exact target only.
+  function spFewestFind_(s, q, T, maxP, rank, minS) {
+    const n = rank.length;
+    let budget = 3000000;
+    for (let p = 1; p <= maxP && p <= n; p++) {
+      const chosen = [];
+      const rec = function (startPos, left, remaining) {
+        if (left === 1) {
+          for (let pos = startPos; pos < n; pos++) {
+            const idx = rank[pos];
+            if (remaining % s[idx] === 0) {
+              const c = remaining / s[idx];
+              if (c >= 1 && c <= q[idx]) { chosen.push([idx, c]); return true; }
+            }
+            if (--budget < 0) return false;
+          }
+          return false;
+        }
+        for (let pos = startPos; pos <= n - left; pos++) {
+          const idx = rank[pos];
+          const maxC = Math.min(q[idx], Math.floor((remaining - (left - 1) * minS) / s[idx]));
+          for (let c = maxC; c >= 1; c--) {
+            chosen.push([idx, c]);
+            if (rec(pos + 1, left - 1, remaining - c * s[idx])) return true;
+            chosen.pop();
+            if (--budget < 0) return false;
+          }
+        }
+        return false;
+      };
+      if (rec(0, p, T)) {
+        const counts = new Array(s.length).fill(0);
+        chosen.forEach(function (pair) { counts[pair[0]] = pair[1]; });
+        return { counts: counts, total: T };
+      }
+      if (budget < 0) return null;
+    }
+    return null;
+  }
+
+  function spBuildWithStrategy_(base, specs, strategy, opts) {
+    const s = base.s, q = base.q.slice(), n = s.length;
+    const byDesc = s.map(function (_, i) { return i; }).sort(function (a, b) { return s[b] - s[a] || q[b] - q[a]; });
+    const byAsc = byDesc.slice().reverse();
+    const sets = [], shortfalls = [];
+    const minS = Math.min.apply(null, s);
+    let tooBig = false;
+    specs.forEach(function (sp) {
+      const want = sp.count === 'max' ? 300 : sp.count;
+      let built = 0;
+      while (built < want && sets.length < 300) {
+        let res = null;
+        const useFewest = strategy === 'fewest_products' || opts.maxProductsPerSet;
+        if (useFewest) {
+          const rank = s.map(function (_, i) { return i; }).sort(function (a, b) { return q[b] * s[b] - q[a] * s[a] || s[b] - s[a]; });
+          res = spFewestFind_(s, q, sp.T, opts.maxProductsPerSet || 4, rank, minS);
+        }
+        if (!res && !opts.maxProductsPerSet) {
+          const order = strategy === 'small_first' ? byAsc : byDesc;
+          const dp = spDpFind_(s, q, order, sp.T, opts.closest, sp.minAccept);
+          if (dp && dp.tooBig) { tooBig = true; break; }
+          res = dp;
+        }
+        if (!res) break;
+        for (let i = 0; i < n; i++) q[i] -= res.counts[i];
+        sets.push({ counts: res.counts, total: res.total, specT: sp.T, specTarget: sp.target });
+        built++;
+      }
+      if (sp.count !== 'max' && built < sp.count) shortfalls.push({ target: sp.target, requested: sp.count, built: built });
+    });
+    return { sets: sets, leftoverQ: q, shortfalls: shortfalls, tooBig: tooBig, strategy: strategy };
+  }
+
+  // Main entry. Returns { sets, leftover, shortfalls, strategyUsed, warnings, remainingSp }.
+  function spBuildSets_(pool, spec) {
+    const warnings = [];
+    let items = pool.filter(function (p) { return (Number(p.qty) || 0) > 0 && (Number(p.sp) || 0) > 0; });
+    if (spec.onlyCodes && spec.onlyCodes.length) items = items.filter(function (p) { return spec.onlyCodes.indexOf(String(p.code)) > -1; });
+    if (spec.excludeCodes && spec.excludeCodes.length) items = items.filter(function (p) { return spec.excludeCodes.indexOf(String(p.code)) === -1; });
+    if (!items.length) return { sets: [], leftover: [], shortfalls: [], strategyUsed: null, warnings: ['Is bill mein ab koi SP wala product free nahi bacha.'], remainingSp: 0 };
+
+    let d = 0;
+    items.forEach(function (p) { d = Math.max(d, spDecimals_(p.sp)); });
+    spec.specs.forEach(function (sp) { d = Math.max(d, spDecimals_(sp.targetSp)); });
+    d = Math.min(d, 3);
+    const scale = Math.pow(10, d);
+    const sInt = items.map(function (p) { return Math.round(Number(p.sp) * scale); });
+    let g = 0; sInt.forEach(function (v) { g = spGcd_(g, v); }); g = g || 1;
+    const closest = spec.mode === 'closest';
+    const tol = Math.max(0, Number(spec.tolerance) || 0);
+
+    const specs = [];
+    spec.specs.forEach(function (sp) {
+      const Tfull = Math.round(Number(sp.targetSp) * scale);
+      if (!closest && Tfull % g !== 0) { warnings.push(sp.targetSp + ' SP exact banana possible nahi hai - in products ke SP ' + trimNum(g / scale) + ' ke multiples mein hi jud sakte hain.'); return; }
+      specs.push({ count: sp.count, target: Number(sp.targetSp), T: Math.floor(Tfull / g), minAccept: Math.max(1, Math.ceil(Math.round((Number(sp.targetSp) - tol) * scale) / g)) });
+    });
+    // fixed-count requests first, "as many as possible" last, so a 'max' never starves the others
+    specs.sort(function (a, b) { return (a.count === 'max' ? 1 : 0) - (b.count === 'max' ? 1 : 0); });
+
+    const base = { s: sInt.map(function (v) { return v / g; }), q: items.map(function (p) { return Math.floor(Number(p.qty)); }) };
+    const opts = { closest: closest, maxProductsPerSet: spec.maxProductsPerSet || null };
+    const requested = spec.strategy && spec.strategy !== 'auto' ? [spec.strategy] : ['fewest_products', 'large_first', 'small_first'];
+    let best = null;
+    requested.forEach(function (st) {
+      const r = spBuildWithStrategy_(base, specs, st, opts);
+      if (r.tooBig) { warnings.push('Target bahut bada hai ya products bahut zyada - is combination ko calculate nahi kar paaya.'); return; }
+      const used = r.sets.reduce(function (t, x) { return t + x.total; }, 0);
+      const lines = r.sets.reduce(function (t, x) { return t + x.counts.filter(function (c) { return c > 0; }).length; }, 0);
+      r.score = [r.sets.length, used, -lines];
+      if (!best || r.score[0] > best.score[0] || (r.score[0] === best.score[0] && (r.score[1] > best.score[1] || (r.score[1] === best.score[1] && r.score[2] > best.score[2])))) best = r;
+    });
+    if (!best) return { sets: [], leftover: [], shortfalls: [], strategyUsed: null, warnings: warnings, remainingSp: 0 };
+
+    const outSets = best.sets.map(function (st) {
+      const lines = [];
+      st.counts.forEach(function (c, i) { if (c > 0) lines.push({ code: items[i].code, name: items[i].name, sp: Number(items[i].sp), dp: Number(items[i].dp) || 0, qty: c }); });
+      return { targetSp: st.specTarget, totalSp: (st.total * g) / scale, items: lines };
+    });
+    const leftover = [];
+    let remainingSp = 0;
+    items.forEach(function (p, i) { if (best.leftoverQ[i] > 0) { leftover.push({ code: p.code, name: p.name, sp: Number(p.sp), qty: best.leftoverQ[i] }); remainingSp += best.leftoverQ[i] * sInt[i]; } });
+    return { sets: outSets, leftover: leftover, shortfalls: best.shortfalls, strategyUsed: best.strategy, warnings: warnings, remainingSp: remainingSp / scale };
+  }
+
+  // Independent re-check of a finished plan (does not reuse any solver internals).
+  function spVerifyPlan_(pool, plan, spec) {
+    const problems = [];
+    const have = {};
+    pool.forEach(function (p) { have[String(p.code)] = (have[String(p.code)] || 0) + (Number(p.qty) || 0); });
+    const used = {};
+    plan.sets.forEach(function (st, k) {
+      let sum = 0;
+      st.items.forEach(function (it) {
+        if (!(it.qty > 0) || Math.floor(it.qty) !== it.qty) problems.push('Set ' + (k + 1) + ': qty galat (' + it.name + ')');
+        used[String(it.code)] = (used[String(it.code)] || 0) + it.qty;
+        sum += Math.round(it.qty * it.sp * 1000);
+      });
+      if (sum !== Math.round(st.totalSp * 1000)) problems.push('Set ' + (k + 1) + ': total SP match nahi karta.');
+      if (spec.mode !== 'closest' && sum !== Math.round(st.targetSp * 1000)) problems.push('Set ' + (k + 1) + ': target ' + st.targetSp + ' SP exact nahi hai.');
+      if (spec.mode === 'closest' && (sum > Math.round(st.targetSp * 1000) || sum < Math.round((st.targetSp - (Number(spec.tolerance) || 0)) * 1000))) problems.push('Set ' + (k + 1) + ': target range ke bahar hai.');
+    });
+    Object.keys(used).forEach(function (code) { if (used[code] > (have[code] || 0)) problems.push('Product ' + code + ': free qty se zyada use ho gaya.'); });
+    return problems;
+  }
+
+  // Checks/cleans a spec coming from the AI (or anywhere else) before it is trusted.
+  function spNormalizeSpec_(raw) {
+    if (!raw || typeof raw !== 'object') return { error: 'Request samajh nahi aayi.' };
+    const specs = [];
+    (Array.isArray(raw.specs) ? raw.specs : []).slice(0, 10).forEach(function (x) {
+      const target = Number(x && x.targetSp);
+      let count = x && x.count;
+      if (count !== 'max') { count = Math.floor(Number(count)); if (!(count >= 1)) return; count = Math.min(count, 300); }
+      if (target > 0 && target <= 100000) specs.push({ count: count, targetSp: target });
+    });
+    if (!specs.length) return { error: 'Kitne SP ke set chahiye ye samajh nahi aaya.' };
+    const strategies = ['auto', 'fewest_products', 'large_first', 'small_first'];
+    const cleanCodes = function (a) { return Array.isArray(a) ? a.map(String).slice(0, 200) : []; };
+    let mpp = raw.maxProductsPerSet == null ? null : Math.floor(Number(raw.maxProductsPerSet));
+    if (!(mpp >= 1 && mpp <= 6)) mpp = null;
+    return {
+      specs: specs, mode: raw.mode === 'closest' ? 'closest' : 'exact', tolerance: Math.max(0, Number(raw.tolerance) || 0),
+      strategy: strategies.indexOf(raw.strategy) > -1 ? raw.strategy : 'auto',
+      excludeCodes: cleanCodes(raw.excludeCodes), onlyCodes: cleanCodes(raw.onlyCodes), maxProductsPerSet: mpp
+    };
+  }
+
+  // Plain-text fallback for the most common phrasings, used if the AI is unavailable.
+  function spParseCommandFallback_(text) {
+    const words = { ek: 1, one: 1, do: 2, two: 2, teen: 3, three: 3, char: 4, chaar: 4, four: 4, paanch: 5, panch: 5, five: 5, chhe: 6, six: 6, saat: 7, seven: 7, aath: 8, eight: 8, nau: 9, nine: 9, das: 10, ten: 10 };
+    const t = String(text || '').toLowerCase().replace(/\b(ek|one|do|two|teen|three|char|chaar|four|paanch|panch|five|chhe|six|saat|seven|aath|eight|nau|nine|das|ten)\s+sets?\b/g, function (m, w) { return words[w] + ' set'; });
+    const spM = t.match(/(\d+(?:\.\d+)?)\s*sp\b/);
+    if (!spM) return null;
+    const target = Number(spM[1]);
+    let count = null;
+    const c1 = t.match(/(\d+)\s*(?:sets?|set)\b/);
+    const c2 = t.match(/\bsets?\s*(?:of|x|×)?\s*(\d+)\b(?!\s*sp)/);
+    if (c1 && Number(c1[1]) !== target) count = Number(c1[1]);
+    else if (c2 && Number(c2[1]) !== target) count = Number(c2[1]);
+    if (count === null && /jitne|maximum|\bmax\b|\bsab\b|\ball\b|poore|pura|as many/.test(t)) count = 'max';
+    if (count === null) count = 'max';
+    return { specs: [{ count: count, targetSp: target }], mode: 'exact', tolerance: 0, strategy: 'auto', excludeCodes: [], onlyCodes: [], maxProductsPerSet: null };
+  }
+  // <<SP_SOLVER_END>>
+
+  // ---------------- SP SETS TAB ----------------
+  let spsState_ = null;       // the bill currently open in the tab
+  let spsPreview_ = null;     // sets just built but not saved yet
+  let spsPendingUse_ = null;  // { setId, invoiceNo } while an Official entry that started from a set is open
+  let spsSearchDebounce_ = null;
+
+  function initSpSetsTab_() { if (!spsState_) loadSpsBillList_(document.getElementById('spsBillSearch').value.trim()); }
+
+  function searchSpsBills_() {
+    clearTimeout(spsSearchDebounce_);
+    spsSearchDebounce_ = setTimeout(function () { loadSpsBillList_(document.getElementById('spsBillSearch').value.trim()); }, 250);
+  }
+
+  async function loadSpsBillList_(q) {
+    const box = document.getElementById('spsBillList');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    let query = sb.from('invoices').select('invoice_no, invoice_date, customer_name, total_sp').gt('total_sp', 0).neq('bill_status', 'Cancelled')
+      .order('invoice_date', { ascending: false }).limit(q ? 20 : 40);
+    if (q) { const safe = q.replace(/[%,()]/g, ' '); query = query.or('invoice_no.ilike.%' + safe + '%,customer_name.ilike.%' + safe + '%'); }
+    const { data, error } = await query;
+    if (error) { box.innerHTML = '<div class="empty-cart">' + escapeHtml(error.message) + '</div>'; return; }
+    const used = await fetchSpUsedByInvoice_((data || []).map(function (h) { return h.invoice_no; }));
+    let rows = (data || []).map(function (h) {
+      return { invoiceNo: h.invoice_no, date: h.invoice_date, customer: h.customer_name, totalSP: Number(h.total_sp), remainingSP: Number(h.total_sp) - (used[h.invoice_no] || 0) };
+    });
+    if (!q) rows = rows.filter(function (r) { return r.remainingSP > 0.0001; }).slice(0, 15);
+    if (!rows.length) { box.innerHTML = '<div class="empty-cart">' + (q ? 'Koi bill nahi mila.' : 'Abhi kisi bill mein SP baaki nahi hai.') + '</div>'; return; }
+    box.innerHTML = rows.map(function (r) {
+      const dateStr = new Date(r.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+      return '<div class="list-row" data-inv="' + escapeHtml(r.invoiceNo) + '"><div><div class="result-name">' + escapeHtml(r.invoiceNo) + '</div><div class="result-meta">' + escapeHtml(r.customer || 'Walk-in') + ' · ' + dateStr + '</div></div>' +
+        '<div style="text-align:right;"><div class="cart-amount"><div class="amt">' + trimNum(r.remainingSP) + ' SP left</div><div class="pts">of ' + trimNum(r.totalSP) + ' total</div></div></div></div>';
+    }).join('');
+    Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { selectSpsBill_(row.dataset.inv); }); });
+  }
+
+  function spsChangeBill_() {
+    spsState_ = null; spsPreview_ = null;
+    document.getElementById('spsWork').style.display = 'none';
+    document.getElementById('spsPickCard').style.display = 'block';
+    loadSpsBillList_(document.getElementById('spsBillSearch').value.trim());
+  }
+
+  async function selectSpsBill_(invoiceNo) {
+    spsPreview_ = null;
+    document.getElementById('spsPlanNote').innerHTML = '';
+    const ok = await refreshSpsState_(invoiceNo);
+    if (!ok) return;
+    document.getElementById('spsPickCard').style.display = 'none';
+    document.getElementById('spsWork').style.display = 'block';
+    document.getElementById('spsPreviewCard').style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Loads the bill, what Official already used, and any saved sets, then works out
+  // how many units of each product are still FREE (not used, not held by an open set).
+  async function refreshSpsState_(invoiceNo) {
+    const r = await Promise.all([
+      sb.from('invoices').select('invoice_no, customer_name, total_sp').eq('invoice_no', invoiceNo).maybeSingle(),
+      sb.from('invoice_items').select('product_code, product_name, qty, dp, sp').eq('invoice_no', invoiceNo),
+      sb.from('official_items').select('product_code, qty').eq('invoice_no', invoiceNo),
+      sb.from('official_sessions').select('total_sp_used').eq('invoice_no', invoiceNo),
+      sb.from('sp_sets').select('*').eq('invoice_no', invoiceNo).order('set_no', { ascending: true }).order('id', { ascending: true })
+    ]);
+    const header = r[0].data;
+    if (!header) { showToast('Bill nahi mila.', true); return false; }
+    if (r[4].error) { showToast('SP Sets table ready nahi hai - sp_sets.sql Run karo. (' + r[4].error.message + ')', true); return false; }
+    const usedByCode = {};
+    (r[2].data || []).forEach(function (o) { const c = String(o.product_code); usedByCode[c] = (usedByCode[c] || 0) + Number(o.qty); });
+    const sets = r[4].data || [];
+    const reservedByCode = {};
+    sets.filter(function (s) { return s.status === 'Open'; }).forEach(function (s) {
+      (s.items || []).forEach(function (it) { const c = String(it.code); reservedByCode[c] = (reservedByCode[c] || 0) + Number(it.qty); });
+    });
+    const byCode = {}, order = [];
+    (r[1].data || []).forEach(function (it) {
+      const c = String(it.product_code);
+      if (!byCode[c]) { byCode[c] = { code: c, name: it.product_name, qty: 0, dp: Number(it.dp), sp: Number(it.sp) }; order.push(c); }
+      byCode[c].qty += Number(it.qty);
+    });
+    const items = order.map(function (c) {
+      const b = byCode[c], used = usedByCode[c] || 0, reserved = reservedByCode[c] || 0;
+      return Object.assign({}, b, { used: used, reserved: reserved, free: Math.max(0, Math.floor(b.qty - used - reserved + 0.0001)) });
+    });
+    const usedSp = (r[3].data || []).reduce(function (t, o) { return t + Number(o.total_sp_used); }, 0);
+    const reservedSp = sets.filter(function (s) { return s.status === 'Open'; }).reduce(function (t, s) { return t + Number(s.total_sp); }, 0);
+    spsState_ = { invoiceNo: header.invoice_no, customer: header.customer_name, billSp: Number(header.total_sp), usedSp: usedSp, reservedSp: reservedSp, items: items, sets: sets };
+    renderSpsSummary_(); renderSpsSavedSets_();
+    return true;
+  }
+
+  function spsPool_() {
+    return spsState_.items.filter(function (i) { return i.free > 0 && i.sp > 0; }).map(function (i) { return { code: i.code, name: i.name, sp: i.sp, dp: i.dp, qty: i.free }; });
+  }
+
+  function renderSpsSummary_() {
+    const s = spsState_;
+    document.getElementById('spsBillTitle').textContent = s.invoiceNo + ' · ' + (s.customer || 'Walk-in');
+    const freeSp = Math.max(0, s.billSp - s.usedSp - s.reservedSp);
+    document.getElementById('spsSummary').innerHTML =
+      '<div class="stat-grid">' +
+        '<div class="stat-card"><div class="stat-label">Bill SP</div><div class="stat-value">' + trimNum(s.billSp) + '</div></div>' +
+        '<div class="stat-card"><div class="stat-label">Official mein use</div><div class="stat-value">' + trimNum(s.usedSp) + '</div></div>' +
+        '<div class="stat-card"><div class="stat-label">Saved sets mein</div><div class="stat-value">' + trimNum(s.reservedSp) + '</div></div>' +
+        '<div class="stat-card warn"><div class="stat-label">Naye sets ke liye free</div><div class="stat-value">' + trimNum(freeSp) + '</div></div>' +
+      '</div>';
+  }
+
+  function spsFillExample_(text) {
+    document.getElementById('spsCommand').value = text;
+    document.getElementById('spsTarget').value = ''; document.getElementById('spsCount').value = '';
+  }
+
+  // AI reads the request; if it is unavailable or fails, plain-text parsing is the fallback.
+  async function spsInterpret_(cmd, pool) {
+    try {
+      const resp = await sb.functions.invoke('plan-sp-sets', { body: { command: cmd, items: pool.map(function (p) { return { code: p.code, name: p.name, sp: p.sp, free: p.qty }; }) } });
+      if (!resp.error && resp.data && !resp.data.error) {
+        const d = resp.data;
+        const spec = spNormalizeSpec_(d.spec);
+        if (!spec.error) return { spec: spec, note: d.summary || '', via: 'AI' };
+        if (d.question) return { question: d.question };
+      }
+    } catch (e) { /* fall through to the plain-text parser */ }
+    const fb = spParseCommandFallback_(cmd);
+    if (fb) return { spec: spNormalizeSpec_(fb), note: 'AI abhi available nahi tha - simple parsing se samjha', via: 'text' };
+    return { error: 'Samajh nahi aaya. "Target SP per set" box mein SP likh do, ya request ko aur saaf likho (jaise "100 SP ke 5 set").' };
+  }
+
+  async function buildSpSetsClicked_() {
+    if (!spsState_) return;
+    const pool = spsPool_();
+    const noteBox = document.getElementById('spsPlanNote');
+    if (!pool.length) { noteBox.innerHTML = '<p class="login-error">Is bill mein ab koi free product nahi bacha (sab Official mein use ho chuka ya saved sets mein hai).</p>'; return; }
+    const cmd = document.getElementById('spsCommand').value.trim();
+    const manualTarget = Number(document.getElementById('spsTarget').value);
+    const manualCountRaw = document.getElementById('spsCount').value.trim();
+    if (!(manualTarget > 0) && !cmd) { showToast('Request likho ya Target SP daalo.', true); return; }
+
+    const btn = document.getElementById('spsBuildBtn');
+    btn.disabled = true; btn.textContent = 'Soch raha hoon…';
+    noteBox.innerHTML = '';
+    let spec, note = '', via = 'manual';
+    if (manualTarget > 0) {
+      spec = spNormalizeSpec_({ specs: [{ count: manualCountRaw ? Number(manualCountRaw) : 'max', targetSp: manualTarget }] });
+      note = 'Aapke bhare hue numbers se.';
+    } else {
+      const r = await spsInterpret_(cmd, pool);
+      if (r.question) { noteBox.innerHTML = '<p class="hint" style="color:var(--green-800);font-weight:600;">AI poochh raha hai: ' + escapeHtml(r.question) + '</p>'; btn.disabled = false; btn.textContent = 'Sets banao'; return; }
+      if (r.error) { noteBox.innerHTML = '<p class="login-error">' + escapeHtml(r.error) + '</p>'; btn.disabled = false; btn.textContent = 'Sets banao'; return; }
+      spec = r.spec; note = r.note; via = r.via;
+    }
+    btn.disabled = false; btn.textContent = 'Sets banao';
+    if (spec.error) { noteBox.innerHTML = '<p class="login-error">' + escapeHtml(spec.error) + '</p>'; return; }
+
+    const plan = spBuildSets_(pool, spec);
+    const problems = spVerifyPlan_(pool, plan, spec);
+    if (problems.length) { noteBox.innerHTML = '<p class="login-error">Hisaab verify nahi hua, isliye sets nahi dikha raha: ' + escapeHtml(problems.slice(0, 2).join(' ')) + '</p>'; return; }
+
+    const specText = spec.specs.map(function (x) { return (x.count === 'max' ? 'jitne ban sake' : x.count) + ' set × ' + trimNum(x.targetSp) + ' SP'; }).join(' + ');
+    noteBox.innerHTML = '<p class="hint" style="margin:0;">' + (via === 'AI' ? '🤖 ' : '') + 'Samjha: <strong>' + escapeHtml(specText) + '</strong>' + (spec.mode === 'closest' ? ' (lagbhag, kam SP chalega)' : ' (exact)') +
+      (note ? '<br>' + escapeHtml(note) : '') + '</p>';
+    spsPreview_ = { plan: plan, spec: spec, commandText: cmd || ('manual: ' + specText) };
+    renderSpsPreview_();
+  }
+
+  function spsLinesHtml_(items) {
+    return items.map(function (it) {
+      return '<div class="receipt-total-row"><span>' + escapeHtml(it.name) + ' × ' + trimNum(it.qty) + '</span><span>' + trimNum(it.qty * it.sp) + ' SP</span></div>';
+    }).join('');
+  }
+
+  function renderSpsPreview_() {
+    const card = document.getElementById('spsPreviewCard');
+    const p = spsPreview_.plan;
+    let html = '<h2>Preview - abhi save nahi hua</h2>';
+    if (!p.sets.length) {
+      html += '<div class="empty-cart">Is request ke hisaab se koi set nahi ban paaya.</div>';
+    } else {
+      const usedSp = p.sets.reduce(function (t, s) { return t + s.totalSp; }, 0);
+      html += '<p class="hint" style="margin-bottom:10px;"><strong>' + p.sets.length + ' set</strong> ban gaye · ' + trimNum(usedSp) + ' SP · bacha ' + trimNum(p.remainingSp) + ' SP</p>';
+      html += p.sets.map(function (s, i) {
+        const exact = Math.abs(s.totalSp - s.targetSp) < 0.0001;
+        return '<div class="card" style="box-shadow:none;border:1px solid var(--line);padding:12px 14px;margin-bottom:10px;"><div style="font-weight:700;color:var(--green-800);margin-bottom:6px;">Set ' + (i + 1) + ' · ' + trimNum(s.totalSp) + ' SP ' + (exact ? '✓' : '(target ' + trimNum(s.targetSp) + ')') + '</div>' + spsLinesHtml_(s.items) + '</div>';
+      }).join('');
+    }
+    p.shortfalls.forEach(function (f) { html += '<p class="login-error" style="min-height:0;">' + trimNum(f.target) + ' SP ke ' + f.requested + ' set maange the, sirf ' + f.built + ' ban paaye (products ka exact combination nahi mila ya SP kam pad gaya).</p>'; });
+    p.warnings.forEach(function (w) { html += '<p class="login-error" style="min-height:0;">' + escapeHtml(w) + '</p>'; });
+    if (p.leftover.length) {
+      html += '<details style="margin:8px 0 12px;"><summary class="hint" style="cursor:pointer;">Bacha hua (' + trimNum(p.remainingSp) + ' SP) - dekho</summary>' + spsLinesHtml_(p.leftover) + '</details>';
+    }
+    if (p.sets.length) {
+      html += '<div class="modal-actions" style="margin-top:6px;"><button class="btn btn-outline" onclick="spsDiscardPreview_()">Discard</button><button class="btn btn-primary" id="spsSaveBtn" onclick="saveSpsPreview_()">Save ' + p.sets.length + ' set' + (p.sets.length > 1 ? 's' : '') + '</button></div>';
+    }
+    card.innerHTML = html; card.style.display = 'block';
+  }
+
+  function spsDiscardPreview_() { spsPreview_ = null; document.getElementById('spsPreviewCard').style.display = 'none'; }
+
+  async function saveSpsPreview_() {
+    if (!spsPreview_ || !spsState_) return;
+    const btn = document.getElementById('spsSaveBtn'); btn.disabled = true; btn.textContent = 'Saving…';
+    const payload = spsPreview_.plan.sets.map(function (s) {
+      return { targetSp: s.targetSp, totalSp: s.totalSp, items: s.items.map(function (i) { return { code: i.code, name: i.name, sp: i.sp, dp: i.dp, qty: i.qty }; }) };
+    });
+    const { data, error } = await sb.rpc('save_sp_sets', { p_invoice_no: spsState_.invoiceNo, p_sets: payload, p_command_text: spsPreview_.commandText });
+    if (error) { showToast(error.message, true); btn.disabled = false; btn.textContent = 'Save'; return; }
+    showToast(data + ' set save ho gaye.');
+    spsPreview_ = null;
+    document.getElementById('spsPreviewCard').style.display = 'none';
+    document.getElementById('spsPlanNote').innerHTML = '';
+    await refreshSpsState_(spsState_.invoiceNo);
+  }
+
+  function renderSpsSavedSets_() {
+    const box = document.getElementById('spsSavedList');
+    const sets = spsState_.sets;
+    if (!sets.length) { box.innerHTML = '<div class="empty-cart">Abhi koi set save nahi hua.</div>'; return; }
+    box.innerHTML = sets.map(function (s) {
+      const open = s.status === 'Open';
+      const usedNote = open ? '' : '<p class="hint" style="margin:6px 0 0;">Use hua: ' + escapeHtml(s.official_no || '') + (s.used_at ? ' · ' + new Date(s.used_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '') + '</p>';
+      return '<div class="card" style="box-shadow:none;border:1px solid var(--line);padding:12px 14px;margin-bottom:10px;' + (open ? '' : 'opacity:.7;') + '">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><strong style="color:var(--green-800);">Set #' + s.set_no + ' · ' + trimNum(s.total_sp) + ' SP</strong>' +
+        '<span class="badge ' + (open ? 'badge-partial' : 'badge-paid') + '">' + (open ? 'Open' : 'Used') + '</span></div>' +
+        spsLinesHtml_(s.items || []) + usedNote +
+        (open ? '<div class="modal-actions" style="margin-top:10px;"><button class="btn btn-outline" onclick="deleteSpSet_(' + s.id + ')">Delete</button><button class="btn btn-gold" onclick="useSpSetInOfficial_(' + s.id + ')">Use in Official →</button></div>' : '') +
+        '</div>';
+    }).join('');
+  }
+
+  async function deleteSpSet_(setId) {
+    if (!confirm('Is set ko delete karein? Iske products dobara free ho jaayenge.')) return;
+    const { error } = await sb.rpc('delete_sp_set', { p_set_id: setId });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Set delete ho gaya.');
+    await refreshSpsState_(spsState_.invoiceNo);
+  }
+
+  // Same bill data the Official tab builds when a bill is opened there.
+  async function loadOfficialBillState_(invoiceNo) {
+    const { data: header } = await sb.from('invoices').select('*').eq('invoice_no', invoiceNo).maybeSingle();
+    if (!header) return null;
+    const { data: items } = await sb.from('invoice_items').select('*').eq('invoice_no', invoiceNo);
+    const { data: official } = await sb.from('official_sessions').select('total_sp_used').eq('invoice_no', invoiceNo);
+    const usedSP = (official || []).reduce(function (s, o) { return s + Number(o.total_sp_used); }, 0);
+    const usedByCode = {};
+    const { data: officialItems } = await sb.from('official_items').select('product_code, qty').eq('invoice_no', invoiceNo);
+    (officialItems || []).forEach(function (r) { usedByCode[r.product_code] = (usedByCode[r.product_code] || 0) + Number(r.qty); });
+    return {
+      header: { invoiceNo: header.invoice_no, customer: header.customer_name, totalDP: header.total_dp, totalSP: header.total_sp },
+      usedSP: usedSP, remainingSP: header.total_sp - usedSP,
+      items: (items || []).map(function (it) {
+        const used = usedByCode[it.product_code] || 0;
+        return { code: it.product_code, name: it.product_name, qty: it.qty, dp: it.dp, sp: it.sp, qtyRemaining: Math.max(0, it.qty - used) };
+      })
+    };
+  }
+
+  // Opens the normal Official page with this set's products already filled in. Staff add
+  // DS ID, name, order type etc. and save as usual; the set is marked Used only after that save.
+  async function useSpSetInOfficial_(setId) {
+    const set = spsState_ && spsState_.sets.find(function (s) { return s.id === setId; });
+    if (!set || set.status !== 'Open') return;
+    const live = await loadOfficialBillState_(spsState_.invoiceNo);
+    if (!live) { showToast('Bill nahi mila.', true); return; }
+
+    const adjusted = [], prefilled = [];
+    (set.items || []).forEach(function (si) {
+      const li = live.items.find(function (x) { return String(x.code) === String(si.code); });
+      const remaining = li ? Math.floor(Number(li.qtyRemaining) + 0.0001) : 0;
+      const qty = Math.min(Number(si.qty), remaining);
+      if (qty < Number(si.qty)) adjusted.push(si.name + ' (' + trimNum(qty) + '/' + trimNum(si.qty) + ')');
+      if (qty > 0) prefilled.push({ code: li.code, name: li.name, dp: Number(li.dp) || 0, sp: Number(li.sp) || 0, qty: qty, maxQty: Number(li.qtyRemaining) || 0 });
+    });
+    if (!prefilled.length) { showToast('Is set ke products ab bill mein bache nahi (Official mein use ho chuke).', true); return; }
+
+    officialCurrentBill = live;
+    officialUsingPrefill = false; officialPrefillData = null; officialCameFromPrefillChoice = false;
+    officialSource = 'Same';
+    officialAvailableItems = live.items.filter(function (it) { return (Number(it.qtyRemaining) || 0) > 0.0001; })
+      .map(function (it) { return { code: it.code, name: it.name, dp: Number(it.dp) || 0, sp: Number(it.sp) || 0, billQty: Number(it.qty) || 0, maxQty: Number(it.qtyRemaining) || 0 }; });
+    officialSessionItems = prefilled;
+    spsPendingUse_ = { setId: setId, invoiceNo: live.header.invoiceNo };
+    openOfficialWorkModal();
+    // land staff on the first thing they still have to fill in (the bill's long product
+    // reference sits above it and would otherwise hide it below the fold)
+    setTimeout(function () { const f = document.getElementById('officialDsId'); if (f) { f.scrollIntoView({ block: 'start', behavior: 'smooth' }); f.focus({ preventScroll: true }); } }, 200);
+    showToast(adjusted.length ? 'Set load hua, par kuch qty kam ho gayi: ' + adjusted.join(', ') : 'Set #' + set.set_no + ' load ho gaya - DS ID, name, order type bharke save karo.', adjusted.length > 0);
+  }
+
+  // Called right after an Official entry saves. If it started from a set, that set is
+  // now marked Used; either way the tab's numbers are refreshed if it is open on this bill.
+  async function spsAfterOfficialSave_(officialNo, invoiceNo) {
+    try {
+      if (spsPendingUse_ && spsPendingUse_.invoiceNo === invoiceNo) {
+        const pending = spsPendingUse_; spsPendingUse_ = null;
+        const { error } = await sb.rpc('mark_sp_set_used', { p_set_id: pending.setId, p_official_no: officialNo });
+        if (error) showToast('Official save ho gaya, par set ko "Used" mark nahi kar paaya (' + error.message + ') - us set ko delete kar do.', true);
+      }
+      if (spsState_ && spsState_.invoiceNo === invoiceNo) await refreshSpsState_(invoiceNo);
+    } catch (e) { /* the Official save itself already succeeded - never block on this */ }
   }
 
   // ---------------- STOCK TAB ----------------
