@@ -1337,6 +1337,17 @@
     </div>
   </div>
 
+  <!-- ============ PAYMENT SCREENSHOT (from the Order Form) ============ -->
+  <div class="modal-overlay" id="paymentProofModal" style="z-index:70;">
+    <div class="modal-sheet">
+      <h2 style="font-size:16px;color:var(--green-800);margin-bottom:8px;">Payment screenshot</h2>
+      <div id="paymentProofBody" style="text-align:center;max-height:70vh;overflow:auto;"></div>
+      <div class="modal-actions" style="margin-top:12px;">
+        <button class="btn btn-outline" type="button" onclick="closePaymentProof_()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ QTY MODAL (replaces browser prompt, matches billQtyModal) ============ -->
   <div class="modal-overlay" id="billQtyModal">
     <div class="modal-sheet">
@@ -1954,6 +1965,28 @@
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { persistSession: true, autoRefreshToken: true, storage: window.sessionStorage }
   });
+
+  // ---------------------------------------------------------------------------
+  // ONE GUARD FOR EVERY SAVE. If the exact same write (same function, same data) is already
+  // on its way to the server, a second tap/click does NOT send a second copy - it waits for,
+  // and gets, the first one's answer. This protects every save/update/delete on this page at
+  // once (including ones added later), so "tapped twice while it was still saving" can never
+  // again record a payment, a delivery or a stock change twice. Read-only lookups
+  // (get_/check_/search_...) are left alone.
+  (function installRpcGuard_() {
+    const readOnly = /^(get|check|search|list|lookup|find|fetch|load|sum|count)_/;
+    const rawRpc = sb.rpc.bind(sb);
+    const inFlight = new Map();
+    sb.rpc = function (name, args, options) {
+      if (readOnly.test(String(name))) return rawRpc(name, args, options);
+      const key = name + '|' + JSON.stringify(args === undefined ? null : args);
+      if (inFlight.has(key)) return inFlight.get(key);
+      const request = Promise.resolve(rawRpc(name, args, options)).finally(function () { inFlight.delete(key); });
+      inFlight.set(key, request);
+      return request;
+    };
+  })();
+
 
   let PRODUCTS = [];
   let CART = [];
@@ -2622,8 +2655,17 @@
       document.getElementById('paymentStepOnline').value = paymentIntent.amount;
       if (paymentIntent.utr_no) document.getElementById('paymentStepUtr').value = paymentIntent.utr_no;
       document.getElementById('paymentStepUtrField').style.display = 'block';
-      document.getElementById('paymentStepCustomerNote').textContent = 'Customer reported paying ' + money(paymentIntent.amount) + ' via UPI on the Order Form — please verify before confirming.';
-      document.getElementById('paymentStepCustomerNote').style.display = 'block';
+      const noteEl = document.getElementById('paymentStepCustomerNote');
+      noteEl.textContent = 'Customer reported paying ' + money(paymentIntent.amount) + ' via UPI on the Order Form — please verify before confirming.';
+      noteEl.style.display = 'block';
+      // how / when they paid and the screenshot (only orders placed with the new payment screen have these)
+      const { data: po } = await sb.from('public_orders').select('pay_method, paid_at, paid_at_source, proof_path').eq('approved_invoice_no', bill.invoiceNo).maybeSingle();
+      if (po && po.pay_method) {
+        noteEl.innerHTML = 'Customer reported paying ' + money(paymentIntent.amount) + ' via <strong>' + escapeHtml(po.pay_method) + '</strong> on the Order Form' +
+          (po.paid_at ? ' — ' + escapeHtml(paidWhenText_(po)) : '') + '. Please verify before confirming.' +
+          (po.proof_path ? '<button class="btn btn-outline btn-block" type="button" style="margin-top:8px;" data-proof="' + escapeHtml(po.proof_path) + '">View payment screenshot</button>' : '');
+        wireProofButtons_(noteEl);
+      }
     }
 
     if (bill.mobile && bill.mobile.trim()) {
@@ -4050,6 +4092,55 @@
     loadPublicOrders();
   }
 
+  // ---- what the customer reported on the Order Form: how / when they paid, the UTR, and the screenshot -------------------
+  function fmtWhen_(iso) { return new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }); }
+  function paidWhenText_(r) {
+    const how = r.paid_at_source === 'system' ? 'noted by our system when the customer came back from the app'
+      : (r.paid_at_source === 'screenshot' ? 'read from the screenshot' : 'typed by the customer');
+    return fmtWhen_(r.paid_at) + ' (' + how + ')';
+  }
+  function paymentRowHtml_(k, v) {
+    return '<div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:3px 0;"><span style="color:var(--ink-soft);">' + k + '</span><strong style="text-align:right;word-break:break-word;">' + v + '</strong></div>';
+  }
+  function publicOrderPaymentHtml_(r) {
+    if (!r.payment_reported) return '';
+    const paid = Number(r.reported_amount) || 0, total = Number(r.total_amount) || 0;
+    if (!r.pay_method) {   // reported before the screenshot flow existed
+      return '<div class="card" style="box-shadow:none;background:var(--gold-100);margin-bottom:10px;"><p style="color:var(--gold-600);font-weight:700;font-size:13px;margin:0;">Customer reported paying ' + money(paid) + ' via UPI — UTR: ' + escapeHtml(r.utr_no || '') + '. Please verify before approving.</p></div>';
+    }
+    const pr = r.proof_read || {}, read = pr.read || null, notes = [];
+    if (Math.abs(paid - total) > 0.5) notes.push(['var(--danger)', 'Customer paid ' + money(paid) + ' but the order total is ' + money(total) + ' (' + money(Math.abs(total - paid)) + (paid < total ? ' short' : ' extra') + ').']);
+    if (!r.proof_path) notes.push(['#7a5617', 'No screenshot is attached' + (pr.reading === 'manual' ? ' — the reader was unavailable, so the customer typed the details.' : '.')]);
+    if (pr.edited_by_customer) notes.push(['#7a5617', 'The customer changed what was read from the screenshot — compare with the screenshot.']);
+    if (read && (read.status === 'failed' || read.status === 'pending')) notes.push(['var(--danger)', 'The screenshot shows the payment as ' + read.status + '.']);
+    if (read) {
+      const payee = ((read.payee_name || '') + ' ' + (read.payee_upi_id || '')).toLowerCase();
+      if (payee.trim() && payee.indexOf('mahakal') < 0 && payee.indexOf('eazypay') < 0) notes.push(['var(--danger)', 'The screenshot shows the money went to "' + escapeHtml(read.payee_name || read.payee_upi_id) + '", not to your account.']);
+    }
+    return '<div class="card" style="box-shadow:none;background:var(--gold-100);margin-bottom:10px;">' +
+      '<p style="color:var(--gold-600);font-weight:700;font-size:13px;margin:0 0 6px;">Customer\'s payment — please verify in your bank before approving</p>' +
+      paymentRowHtml_('Paid via', escapeHtml(r.pay_method)) +
+      paymentRowHtml_('Amount', money(paid) + (Math.abs(paid - total) <= 0.5 ? ' <span style="color:var(--ok);">✓ matches the total</span>' : '')) +
+      paymentRowHtml_('UTR', escapeHtml(r.utr_no || '')) +
+      paymentRowHtml_('Paid on', escapeHtml(paidWhenText_(r))) +
+      (read ? paymentRowHtml_('Screenshot reading', escapeHtml((read.utr || '—') + ' · ' + (read.amount ? money(read.amount) : '—') + ' · ' + ((read.date || '—') + ' ' + (read.time || '')).trim() + ' · ' + (read.status || ''))) : '') +
+      notes.map(function (n) { return '<p style="font-size:12px;font-weight:600;color:' + n[0] + ';margin:6px 0 0;">⚠ ' + n[1] + '</p>'; }).join('') +
+      (r.proof_path ? '<button class="btn btn-outline btn-block" type="button" style="margin-top:8px;" data-proof="' + escapeHtml(r.proof_path) + '">View payment screenshot</button>' : '') +
+    '</div>';
+  }
+  function wireProofButtons_(container) {
+    Array.from(container.querySelectorAll('[data-proof]')).forEach(function (b) { b.onclick = function () { viewPaymentProof_(b.dataset.proof); }; });
+  }
+  async function viewPaymentProof_(path) {
+    const body = document.getElementById('paymentProofBody');
+    body.innerHTML = '<div class="empty-cart">Opening…</div>';
+    document.getElementById('paymentProofModal').classList.add('show');
+    const { data, error } = await sb.storage.from('payment-proofs').createSignedUrl(path, 900);
+    if (error || !data) { body.innerHTML = '<div class="empty-cart">Could not open the screenshot' + (error ? ': ' + escapeHtml(error.message) : '') + '</div>'; return; }
+    body.innerHTML = '<img alt="Payment screenshot" style="max-width:100%;border-radius:10px;border:1px solid var(--line);" src="' + escapeHtml(data.signedUrl) + '">';
+  }
+  function closePaymentProof_() { document.getElementById('paymentProofModal').classList.remove('show'); }
+
   async function loadPublicOrders() {
     const box = document.getElementById('publicOrderList');
     box.innerHTML = '<div class="empty-cart">Loading…</div>';
@@ -4068,7 +4159,7 @@
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
         '<div><div style="font-weight:700;color:var(--green-800);">' + escapeHtml(r.customer_name || 'Walk-in') + '</div>' +
         '<div class="hint">' + escapeHtml(r.mobile) + ' · ' + escapeHtml(r.customer_type) + ' · ' + itemCount + ' item(s)</div>' +
-        '<div class="hint">' + dateStr + (r.payment_reported ? ' · <span style="color:var(--ok);font-weight:700;">UPI reported</span>' : '') + '</div></div>' +
+        '<div class="hint">' + dateStr + (r.payment_reported ? ' · <span style="color:var(--ok);font-weight:700;">' + (r.pay_method ? escapeHtml(r.pay_method) + ' · ' + money(r.reported_amount) + (Math.abs(Number(r.reported_amount) - Number(r.total_amount)) > 0.5 ? ' ⚠' : '') : 'UPI reported') + '</span>' : '') + '</div></div>' +
         '<div style="font-weight:700;font-size:15px;">' + money(r.total_amount) + '</div></div></div>';
     }).join('');
   }
@@ -4086,10 +4177,11 @@
     document.getElementById('publicOrderDetailArea').innerHTML =
       '<h2 style="font-size:16px;color:var(--green-800);margin-bottom:2px;">' + escapeHtml(r.customer_name || 'Walk-in') + '</h2>' +
       '<p class="hint" style="margin-bottom:10px;">' + escapeHtml(r.mobile) + ' · ' + escapeHtml(r.customer_type) + ' · ' + dateStr + '</p>' +
-      (r.payment_reported ? '<div class="card" style="box-shadow:none;background:var(--gold-100);margin-bottom:10px;"><p style="color:var(--gold-600);font-weight:700;font-size:13px;margin:0;">Customer reported paying ' + money(r.reported_amount) + ' via UPI — UTR: ' + escapeHtml(r.utr_no || '') + '. Please verify before approving.</p></div>' : '') +
+      publicOrderPaymentHtml_(r) +
       rows +
       '<div class="receipt-total-row grand" style="margin-top:6px;"><span>Total</span><span>' + money(r.total_amount) + '</span></div>' +
       '<div class="receipt-total-row"><span>Total SP</span><span>' + trimNum(r.total_sp) + '</span></div>';
+    wireProofButtons_(document.getElementById('publicOrderDetailArea'));
     document.getElementById('publicOrderDetailModal').classList.add('show');
   }
 
@@ -4963,6 +5055,7 @@
   }
 
   async function submitExpense() {
+    return runLocked_('expense', async function () {
     const name = document.getElementById('expName').value.trim();
     const cash = Number(document.getElementById('expCash').value) || 0;
     const online = Number(document.getElementById('expOnline').value) || 0;
@@ -4999,6 +5092,7 @@
     toggleTransportSection_();
     loadExpenseCategories_();
     searchExpenses();
+    });
   }
 
   async function loadExpenseCategories_() {
@@ -5627,6 +5721,7 @@
   let allOffersList = [];
 
   async function saveOffer() {
+    return runLocked_('offer', async function () {
     const title = document.getElementById('offerTitle').value.trim();
     const startDate = document.getElementById('offerStartDate').value;
     const endDate = document.getElementById('offerEndDate').value;
@@ -5646,6 +5741,7 @@
     showToast(editingOfferId ? 'Offer updated.' : 'Offer created.');
     cancelOfferEdit();
     loadOffers();
+    });
   }
 
   function editOffer() {
@@ -7340,6 +7436,7 @@
   }
 
   async function submitCashDeposit() {
+    return runLocked_('cash-deposit', async function () {
     const date = document.getElementById('depositDate').value || fmtDateInput_(new Date());
     const amount = Number(document.getElementById('depositAmount').value);
     if (!(amount > 0)) { showToast('Enter a valid amount.', true); return; }
@@ -7351,6 +7448,7 @@
     document.getElementById('depositDate').value = ''; document.getElementById('depositAmount').value = '';
     document.getElementById('depositBy').value = ''; document.getElementById('depositNote').value = '';
     loadCashDeposits();
+    });
   }
 
   async function loadCashDeposits() {
