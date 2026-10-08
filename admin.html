@@ -2768,6 +2768,20 @@
     return val ? new Date(val + 'T' + new Date().toTimeString().slice(0, 8)).toISOString() : null;
   }
 
+  // One save at a time per action: a second tap while the first is still running is ignored,
+  // instead of recording the same payment / credit / entry twice. (The tapped button, if the
+  // browser focused it, is greyed out and shows "Saving…" until the save finishes.)
+  const submitLocks_ = {};
+  async function runLocked_(key, fn) {
+    if (submitLocks_[key]) return;
+    submitLocks_[key] = true;
+    const btn = (document.activeElement && document.activeElement.tagName === 'BUTTON') ? document.activeElement : null;
+    const label = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    try { return await fn(); }
+    finally { submitLocks_[key] = false; if (btn) { btn.disabled = false; btn.innerHTML = label; } }
+  }
+
   let approvalSaving_ = false;
 
   function closeApprovalFlowModals_() {
@@ -4652,6 +4666,7 @@
   }
 
   async function submitPaymentEdit(invoiceNo) {
+    return runLocked_('payment:' + invoiceNo, async function () {
     const mode = document.getElementById('payEditMode').value;
     const amount = Number(document.getElementById('payEditAmount').value);
     if (!(amount > 0)) { showToast('Enter a valid amount.', true); return; }
@@ -4664,6 +4679,7 @@
     await viewBill(invoiceNo, true);
     searchHistory();
     if (document.getElementById('tab-accounting').classList.contains('active')) loadAccounting();
+    });
   }
 
   function hideDetail() { document.getElementById('detailModal').classList.remove('show'); }
@@ -5410,6 +5426,7 @@
   }
 
   async function submitWalletAddCredit() {
+    return runLocked_('wallet-credit', async function () {
     const cash = Number(document.getElementById('walletAddCash').value) || 0;
     const online = Number(document.getElementById('walletAddOnline').value) || 0;
     if (cash + online <= 0) { showToast('Enter Cash and/or Online amount.', true); return; }
@@ -5427,6 +5444,7 @@
     document.getElementById('walletAddNote').value = '';
     await refreshWalletDetail();
     searchWalletCustomers();
+    });
   }
 
   async function submitWalletWithdraw() {
@@ -7540,6 +7558,7 @@
 
   // ---------------- FRANCHISEE INVESTMENT (Super Admin only) ----------------
   async function submitFranchiseeEntry() {
+    return runLocked_('franchisee-entry', async function () {
     const type = document.getElementById('franchiseeType').value;
     const cash = Number(document.getElementById('franchiseeCash').value) || 0;
     const online = Number(document.getElementById('franchiseeOnline').value) || 0;
@@ -7555,6 +7574,7 @@
     document.getElementById('franchiseeUtr').value = ''; document.getElementById('franchiseeUtrField').style.display = 'none';
     document.getElementById('franchiseeDate').value = ''; document.getElementById('franchiseeNote').value = '';
     loadFranchiseeEntries();
+    });
   }
 
   let franchiseeYearsPopulated_ = false;
