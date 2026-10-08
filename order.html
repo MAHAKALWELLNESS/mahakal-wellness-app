@@ -65,6 +65,14 @@
   .success-icon{width:56px; height:56px; border-radius:50%; background:var(--ok-100); color:var(--ok); font-size:28px; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;}
   .qr-box{text-align:center; padding:18px 0 6px;}
   .qr-box img{width:220px; height:220px; border-radius:12px; border:1px solid var(--line);}
+  .search-row.kbd-active{background:var(--bg);}
+  .btn-outline{background:transparent; border:1.5px solid var(--line); color:var(--green-800);}
+  .qty-modal-overlay{display:none; position:fixed; inset:0; background:rgba(19,46,38,.45); z-index:70; align-items:flex-end; justify-content:center;}
+  .qty-modal-overlay.show{display:flex;}
+  .qty-modal-sheet{background:var(--surface); width:100%; max-width:520px; border-radius:20px 20px 0 0; padding:20px 20px 24px;}
+  .qty-modal-sheet h2{font-size:16px; color:var(--green-800);}
+  .qty-modal-actions{display:flex; gap:10px;}
+  .qty-modal-actions .btn{flex:1;}
 </style>
 </head>
 <body>
@@ -90,6 +98,22 @@
     </div>
   </div>
 
+  <!-- Quantity popup: opens as soon as a product is chosen (same flow as New Bill) -->
+  <div class="qty-modal-overlay" id="orderQtyModal">
+    <div class="qty-modal-sheet">
+      <h2 id="oqtyName" style="margin-bottom:2px;"></h2>
+      <p class="hint" id="oqtyMeta" style="margin-bottom:14px;"></p>
+      <div class="field" style="margin-bottom:16px;">
+        <label for="oqtyInput">Quantity</label>
+        <input type="number" id="oqtyInput" min="1" step="1" inputmode="numeric" placeholder="Enter qty" onkeydown="orderQtyKeydown(event)">
+      </div>
+      <div class="qty-modal-actions">
+        <button class="btn btn-outline" type="button" onclick="cancelOrderQtyModal()">Cancel</button>
+        <button class="btn btn-gold" type="button" onclick="confirmOrderQtyModal()">Add</button>
+      </div>
+    </div>
+  </div>
+
   <div style="max-width:520px;margin:14px auto 0;padding:0 16px;display:flex;gap:8px;">
     <button id="tabBtnOrder" onclick="switchOrderFormTab('order')" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--green-800);background:var(--green-800);color:#fff;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;">Place Order</button>
     <button id="tabBtnTrack" onclick="switchOrderFormTab('track')" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--ink-soft);font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;">Track My Bills</button>
@@ -104,6 +128,28 @@
   const SUPABASE_URL = 'https://lrrqdmmugvizkbjfwneb.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP';
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ---------------------------------------------------------------------------
+  // ONE GUARD FOR EVERY SAVE. If the exact same write (same function, same data) is already
+  // on its way to the server, a second tap/click does NOT send a second copy - it waits for,
+  // and gets, the first one's answer. This protects every save/update/delete on this page at
+  // once (including ones added later), so "tapped twice while it was still saving" can never
+  // again record a payment, a delivery or a stock change twice. Read-only lookups
+  // (get_/check_/search_...) are left alone.
+  (function installRpcGuard_() {
+    const readOnly = /^(get|check|search|list|lookup|find|fetch|load|sum|count)_/;
+    const rawRpc = sb.rpc.bind(sb);
+    const inFlight = new Map();
+    sb.rpc = function (name, args, options) {
+      if (readOnly.test(String(name))) return rawRpc(name, args, options);
+      const key = name + '|' + JSON.stringify(args === undefined ? null : args);
+      if (inFlight.has(key)) return inFlight.get(key);
+      const request = Promise.resolve(rawRpc(name, args, options)).finally(function () { inFlight.delete(key); });
+      inFlight.set(key, request);
+      return request;
+    };
+  })();
+
 
   // ⚠️ REPLACE THIS with the business's real UPI ID (VPA) once you have it -
   // e.g. 'mahakalwellness@okaxis'. Without a real one here, the QR code on
@@ -270,7 +316,7 @@
       '<div class="card">' +
         '<p class="section-label">Search products by code or name</p>' +
         '<div class="search-wrap">' +
-          '<input type="text" id="searchInput" class="field" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;" placeholder="e.g. product code…" autocomplete="off" oninput="renderSearchResults(this.value)">' +
+          '<input type="text" id="searchInput" class="field" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;" placeholder="e.g. product code…" autocomplete="off" oninput="renderSearchResults(this.value)" onkeydown="searchKeydown(event)">' +
           '<div id="searchResults" class="search-results"></div>' +
         '</div>' +
       '</div>' +
@@ -302,9 +348,26 @@
     return document.getElementById('custType') && document.getElementById('custType').value === 'Distributor' ? 'dp' : 'mrp';
   }
 
+  let SEARCH_MATCHES = [];   // products currently listed under the search box
+  let SEARCH_ACTIVE = -1;    // the highlighted one (Enter picks it)
+  let pendingOrderProduct = null;
+
+  function setSearchActive(idx) {
+    SEARCH_ACTIVE = idx;
+    Array.from(document.querySelectorAll('#searchResults .search-row')).forEach(function (r, i) { r.classList.toggle('kbd-active', i === idx); });
+  }
+
+  function searchKeydown(e) {
+    if (!SEARCH_MATCHES.length) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); setSearchActive(Math.min(SEARCH_ACTIVE + 1, SEARCH_MATCHES.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setSearchActive(Math.max(SEARCH_ACTIVE - 1, 0)); }
+    else if (e.key === 'Enter') { e.preventDefault(); promptOrderQty(SEARCH_MATCHES[SEARCH_ACTIVE > -1 ? SEARCH_ACTIVE : 0].code); }
+  }
+
   function renderSearchResults(q) {
     const box = document.getElementById('searchResults');
     q = (q || '').trim().toLowerCase();
+    SEARCH_MATCHES = []; SEARCH_ACTIVE = -1;
     if (!q) { box.innerHTML = ''; return; }
     const priceField = currentPriceField();
     const matches = ALL_PRODUCTS.filter(function (p) {
@@ -316,19 +379,63 @@
         '<div><div class="search-name">' + escapeHtml(p.name) + '</div><div class="search-meta">#' + escapeHtml(p.code) + ' · ' + trimNum(p.sp) + ' SP</div></div>' +
         '<div class="search-price">' + money(p[priceField]) + '</div></div>';
     }).join('');
-    Array.from(box.querySelectorAll('.search-row')).forEach(function (row) {
-      row.addEventListener('click', function () { addToCart(row.dataset.code); });
+    SEARCH_MATCHES = matches;
+    Array.from(box.querySelectorAll('.search-row')).forEach(function (row, idx) {
+      row.addEventListener('click', function () { promptOrderQty(row.dataset.code); });
+      row.addEventListener('mouseenter', function () { setSearchActive(idx); });
     });
+    setSearchActive(0);
   }
 
-  function addToCart(code) {
+  // A product was chosen: ask for the quantity first (same as New Bill), then add it.
+  function promptOrderQty(code) {
+    const typeEl = document.getElementById('custType');
+    if (!typeEl.value) { document.getElementById('formError').textContent = 'Please choose a customer type first.'; return; }
+    const p = ALL_PRODUCTS.find(function (x) { return x.code === code; });
+    if (!p) return;
+    const err = document.getElementById('formError');
+    if (err.textContent === 'Please choose a customer type first.') err.textContent = '';
+    pendingOrderProduct = p;
+    document.getElementById('oqtyName').textContent = p.name;
+    document.getElementById('oqtyMeta').textContent = '#' + p.code + ' · ' + trimNum(p.sp) + ' SP · ' + money(p[currentPriceField()]) + ' each';
+    const input = document.getElementById('oqtyInput');
+    input.value = '1';
+    document.getElementById('orderQtyModal').classList.add('show');
+    setTimeout(function () { input.focus(); input.select(); }, 60);
+  }
+
+  function orderQtyKeydown(e) {
+    if (e.key === 'Enter') { e.preventDefault(); confirmOrderQtyModal(); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelOrderQtyModal(); }
+  }
+
+  function confirmOrderQtyModal() {
+    const qty = Math.round(Number(document.getElementById('oqtyInput').value));
+    if (!(qty > 0)) { document.getElementById('oqtyInput').focus(); document.getElementById('oqtyInput').select(); return; }
+    const p = pendingOrderProduct;
+    if (!p) return;
+    pendingOrderProduct = null;
+    document.getElementById('orderQtyModal').classList.remove('show');
+    addToCart(p.code, qty);
+    document.getElementById('searchInput').focus();   // straight back to the search box for the next product
+  }
+
+  function cancelOrderQtyModal() {
+    pendingOrderProduct = null;
+    document.getElementById('orderQtyModal').classList.remove('show');
+    document.getElementById('searchInput').focus();
+  }
+
+  function addToCart(code, qty) {
+    qty = qty > 0 ? qty : 1;
     if (!document.getElementById('custType').value) { document.getElementById('formError').textContent = 'Please choose a customer type first.'; return; }
     const p = ALL_PRODUCTS.find(function (x) { return x.code === code; });
     if (!p) return;
-    if (CART[code]) CART[code].qty += 1;
-    else CART[code] = { code: p.code, name: p.name, mrp: p.mrp, dp: p.dp, sp: p.sp, qty: 1 };
+    if (CART[code]) CART[code].qty += qty;
+    else CART[code] = { code: p.code, name: p.name, mrp: p.mrp, dp: p.dp, sp: p.sp, qty: qty };
     document.getElementById('searchInput').value = '';
     document.getElementById('searchResults').innerHTML = '';
+    SEARCH_MATCHES = []; SEARCH_ACTIVE = -1;
     renderCart();
   }
 
