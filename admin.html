@@ -115,6 +115,7 @@
   .sub{font-size:11.5px; color:var(--ink-faint); font-weight:600;}
 
   .toast{position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:var(--green-900); color:#fff; padding:10px 18px; border-radius:10px; font-size:13.5px; z-index:200; opacity:0; transition:opacity .2s ease; max-width:88%; text-align:center;}
+  .toast{pointer-events:none;}   /* a message never blocks the button underneath it (e.g. Save in the Edit Bill window) */
   .toast.show{opacity:1;}
   .toast.error{background:var(--danger);}
 
@@ -123,6 +124,19 @@
   .modal-sheet{background:var(--surface); width:100%; max-width:640px; max-height:88vh; overflow-y:auto; border-radius:20px 20px 0 0; padding:20px;}
   .modal-actions{display:flex; gap:10px; margin-top:16px;}
   .modal-actions .btn{flex:1;}
+  /* Edit Bill: total + SP stay in view while the product list scrolls, and Save stays reachable.
+     (-20px = the sheet's own padding, so the bars sit flush with its top and bottom edges) */
+  .edit-summary{position:sticky; top:-20px; z-index:5; background:var(--surface); margin:0 -20px 10px; padding:10px 20px 8px; border-bottom:1px solid var(--line); box-shadow:0 6px 10px -8px rgba(0,0,0,.35);}
+  .edit-summary .es-main{display:flex; align-items:baseline; justify-content:space-between; gap:10px;}
+  .edit-summary .es-lbl{font-size:12px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.4px;}
+  .edit-summary .es-total{font-size:24px; font-weight:700; color:var(--green-800); line-height:1.1;}
+  .edit-summary .es-sp{font-size:16px; font-weight:700; color:var(--gold-600); white-space:nowrap;}
+  .edit-summary .es-sub{font-size:11.5px; color:var(--ink-soft); margin-top:3px;}
+  .edit-summary .es-was{font-size:11.5px; font-weight:600; margin-top:2px;}
+  .edit-actions{position:sticky; bottom:-20px; z-index:5; background:var(--surface); margin:14px -20px -20px; padding:12px 20px 16px; border-top:1px solid var(--line);}
+  #editBillItemsList .cart-item{scroll-margin-top:130px; scroll-margin-bottom:90px;}
+  .cart-item.just-changed{animation:editFlash 1.3s ease-out;}
+  @keyframes editFlash{0%{background:var(--gold-100);}100%{background:transparent;}}
 
   /* ---------- tabs nav ---------- */
   .tabs-wrap{position:sticky; top:0; z-index:29; display:flex; align-items:stretch; background:var(--surface); border-bottom:1px solid var(--line);}
@@ -1733,19 +1747,24 @@
   </div>
 
   <div class="modal-overlay" id="editBillModal">
-    <div class="modal-sheet">
+    <div class="modal-sheet" id="editBillSheet">
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Edit <span id="editBillInvoiceNo"></span></h2>
-      <p class="hint" style="margin-bottom:12px;">Only bills with no payment, delivery, or SP work yet can be edited.</p>
+      <p class="hint" style="margin-bottom:10px;">Only bills with no payment, delivery, or SP work yet can be edited.</p>
+      <!-- stays in view while the product list scrolls; updates on every change -->
+      <div class="edit-summary" id="editBillSummary">
+        <div class="es-main"><span class="es-lbl">Total</span><span class="es-total" id="editBillTotal">₹0</span><span class="es-sp" id="editBillSP">0 SP</span></div>
+        <div class="es-sub" id="editBillSub"></div>
+        <div class="es-was" id="editBillWas"></div>
+      </div>
       <div class="field" id="editBillDateField" style="display:none;"><label for="editBillDate">Bill date</label><input type="date" id="editBillDate"></div>
       <div class="field"><label for="editBillMobile">Customer Mobile</label><input type="tel" id="editBillMobile" placeholder="10-digit mobile" maxlength="15"></div>
-      <div class="field"><label for="editBillTransport">Rapido/Bus/Transport Charges ₹ (optional)</label><input type="number" id="editBillTransport" min="0" step="0.01" placeholder="0"></div>
+      <div class="field"><label for="editBillTransport">Rapido/Bus/Transport Charges ₹ (optional)</label><input type="number" id="editBillTransport" min="0" step="0.01" placeholder="0" oninput="updateEditBillTotals_()"></div>
       <div class="search-wrap" style="margin-bottom:12px;">
         <input type="text" id="editBillSearchInput" class="search-input" placeholder="Add a product…" autocomplete="off" oninput="renderEditBillSearchResults(this.value)">
         <div id="editBillSearchResults" class="search-results"></div>
       </div>
       <div id="editBillItemsList"></div>
-      <div class="receipt-total-row grand" style="margin-top:10px;"><span>Total</span><span id="editBillTotal">₹0</span></div>
-      <div class="modal-actions"><button class="btn btn-outline" onclick="document.getElementById('editBillModal').classList.remove('show')">Cancel</button><button class="btn btn-primary" id="editBillSaveBtn" onclick="saveEditedBill()">Save Changes</button></div>
+      <div class="modal-actions edit-actions"><button class="btn btn-outline" onclick="document.getElementById('editBillModal').classList.remove('show')">Cancel</button><button class="btn btn-primary" id="editBillSaveBtn" onclick="saveEditedBill()">Save Changes</button></div>
     </div>
   </div>
 
@@ -2606,7 +2625,7 @@
     if (!lastSavedBill) return;
     document.getElementById('printModal').classList.remove('show');
     currentDetailBill = lastSavedBill;
-    openEditBill();
+    openEditBill('review');
   }
 
   async function cancelPendingBill() {
@@ -4072,7 +4091,7 @@
       const cashMemoTag = r.cash_memo_no ? ' <span style="font-size:10px;font-weight:700;color:var(--green-700);">CM#' + escapeHtml(r.cash_memo_no) + '</span>' : '';
       return '<div class="list-row" data-inv="' + r.invoice_no + '" style="' + (isCancelled ? 'opacity:.6;' : '') + '"><div><div class="result-name">' + r.invoice_no + sourceTag + cashMemoTag + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div>' +
         '<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;">' + badges + '</div></div>' +
-        '<div class="cart-amount"><div class="amt">' + money(r.total_dp) + '</div><div class="pts">' + trimNum(r.total_sp) + ' SP</div></div></div>';
+        '<div class="cart-amount"><div class="amt">' + money(billGrand_(r)) + '</div><div class="pts">' + trimNum(r.total_sp) + ' SP</div></div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { viewBill(row.dataset.inv, false); }); });
   }
@@ -4443,6 +4462,22 @@
     loadHallBookings();
   }
 
+  // The amount a bill row stands for = the bill's Grand Total: items total (Retail: after discount) + transport charges.
+  function billGrand_(r) {
+    const retailNet = Number(r.net_amount);
+    const base = (r.customer_type === 'Retail' && r.net_amount !== null && r.net_amount !== undefined && isFinite(retailNet)) ? retailNet : Number(r.total_dp);
+    return base + (Number(r.transport_charges) || 0);
+  }
+
+  // After a bill's amount / SP / status changes from a pop-up, reload the list that is on screen behind it so nobody has to
+  // press Refresh. (Every other tab already reloads itself when it is opened - see switchTab.)
+  function refreshActiveBillList_() {
+    const panel = document.querySelector('.tab-panel.active'); if (!panel) return;
+    const loaders = { approval: searchApprovalBills, history: searchHistory, pending: loadPendingList, accounting: loadAccounting, official: loadOfficialPending, dashboard: loadDashboard };
+    const load = loaders[panel.id.replace(/^tab-/, '')];
+    if (load) load();
+  }
+
   function searchApprovalBills() {
     clearTimeout(approvalSearchDebounce);
     approvalSearchDebounce = setTimeout(async function () {
@@ -4463,7 +4498,7 @@
       const sourceTag = r.source === 'Public' ? ' <span style="font-size:10px;font-weight:700;color:var(--gold-600);">(Public)</span>' : ' <span style="font-size:10px;font-weight:700;color:var(--ink-faint);">(Staff)</span>';
       const cashMemoTag = r.cash_memo_no ? ' <span style="font-size:10px;font-weight:700;color:var(--green-700);">CM#' + escapeHtml(r.cash_memo_no) + '</span>' : '';
       return '<div class="list-row" data-inv="' + r.invoice_no + '"><div><div class="result-name">' + r.invoice_no + sourceTag + cashMemoTag + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div></div>' +
-        '<div style="text-align:right;"><div class="amt">' + money(r.total_dp) + '</div><span class="badge badge-partial">Pending Approval</span></div></div>';
+        '<div style="text-align:right;"><div class="cart-amount"><div class="amt">' + money(billGrand_(r)) + '</div><div class="pts">' + trimNum(r.total_sp) + ' SP</div></div><span class="badge badge-partial">Pending Approval</span></div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { viewBill(row.dataset.inv, false); }); });
   }
@@ -4596,6 +4631,7 @@
     showToast('Rapido/Bus/Transport Charges updated.');
     document.getElementById('editTransportChargesModal').classList.remove('show');
     await viewBill(invoiceNo, false);
+    refreshActiveBillList_();
   }
 
   async function deleteBillConfirm(invoiceNo) {
@@ -4616,13 +4652,59 @@
     if (error) { showToast(error.message, true); return; }
     showToast('Bill ' + invoiceNo + ' cancelled.');
     await viewBill(invoiceNo, false);
-    searchHistory();
+    refreshActiveBillList_();
   }
 
   let EDIT_CART = [];
-  function openEditBill() {
+  let EDIT_BASE = { total: 0, sp: 0 };      // what the bill was worth when Edit was opened
+  let editBillOrigin_ = 'detail';           // 'review' = opened from New Bill's receipt screen, 'detail' = from a bill's detail view
+
+  // <<EDIT_TOTALS_START>>
+  // Totals for an item list, worked out exactly like the server does when it saves (and like New Bill):
+  // Distributor = sum of DP; Retail = MRP total less the discount, rounded to a whole rupee; transport is added on top.
+  function editTotalsOf_(items, customerType, discountPercent, transport) {
+    let qty = 0, dp = 0, sp = 0, mrp = 0;
+    items.forEach(function (c) { qty += c.qty; dp += c.qty * c.dp; sp += c.qty * c.sp; mrp += c.qty * (c.mrp || 0); });
+    dp = Math.round(dp * 100) / 100; sp = Math.round(sp * 100) / 100;
+    const mrpPaise = Math.round(mrp * 100);                       // work in paise so decimals can never tip a .5 rounding
+    mrp = mrpPaise / 100;
+    const isRetail = customerType === 'Retail';
+    const pct = isRetail ? (Number(discountPercent) || 0) : 0;
+    const net = isRetail ? Math.round(mrpPaise * (100 - pct) / 10000) : 0;
+    const discount = isRetail ? Math.round((mrp - net) * 100) / 100 : 0;
+    const tr = Number(transport) || 0;
+    const itemsTotal = isRetail ? net : dp;
+    return { count: items.length, qty: qty, dp: dp, sp: sp, mrp: mrp, pct: pct, net: net, discount: discount, transport: tr, itemsTotal: itemsTotal, grand: itemsTotal + tr };
+  }
+  // <<EDIT_TOTALS_END>>
+
+  function editRate_(c) { return currentDetailBill && currentDetailBill.customerType === 'Retail' ? (c.mrp || 0) : c.dp; }
+
+  // The sticky bar at the top: total + SP right now, what is inside it, and how far it is from the saved bill.
+  function updateEditBillTotals_() {
+    const bill = currentDetailBill; if (!bill) return;
+    const t = editTotalsOf_(EDIT_CART, bill.customerType, bill.discountPercent, document.getElementById('editBillTransport').value);
+    const isRetail = bill.customerType === 'Retail';
+    document.getElementById('editBillTotal').textContent = money(t.grand);
+    document.getElementById('editBillSP').textContent = trimNum(t.sp) + ' SP';
+    let sub = t.count + (t.count === 1 ? ' item' : ' items') + ' · ' + trimNum(t.qty) + ' qty';
+    if (isRetail) sub += ' · MRP ' + money(t.mrp) + ' − discount ' + money(t.discount) + (t.pct ? ' (' + trimNum(t.pct) + '%)' : '') + ' = ' + money(t.net);
+    if (t.transport > 0.005) sub += (isRetail ? '' : ' · items ' + money(t.itemsTotal)) + ' + transport ' + money(t.transport);
+    document.getElementById('editBillSub').textContent = sub;
+    const dTotal = Math.round((t.grand - EDIT_BASE.total) * 100) / 100, dSp = Math.round((t.sp - EDIT_BASE.sp) * 100) / 100;
+    const was = document.getElementById('editBillWas');
+    if (dTotal === 0 && dSp === 0) { was.textContent = 'No change from the saved bill yet.'; was.style.color = 'var(--ink-faint)'; }
+    else {
+      was.textContent = 'Was ' + money(EDIT_BASE.total) + ' · ' + trimNum(EDIT_BASE.sp) + ' SP  →  ' + (dTotal < 0 ? '−' : '+') + money(Math.abs(dTotal)) + ', ' + (dSp < 0 ? '−' : '+') + trimNum(Math.abs(dSp)) + ' SP';
+      was.style.color = 'var(--gold-600)';
+    }
+    document.getElementById('editBillSaveBtn').disabled = !EDIT_CART.length;
+  }
+
+  function openEditBill(origin) {
     if (!currentDetailBill) return;
-    EDIT_CART = currentDetailBill.items.map(function (it) { return { code: it.code, name: it.name, dp: it.dp, sp: it.sp, mrp: it.mrp || 0, qty: it.qty }; });
+    editBillOrigin_ = origin === 'review' ? 'review' : 'detail';
+    EDIT_CART = currentDetailBill.items.map(function (it) { return { code: it.code, name: it.name, dp: Number(it.dp), sp: Number(it.sp), mrp: Number(it.mrp) || 0, qty: Number(it.qty) }; });
     document.getElementById('editBillInvoiceNo').textContent = currentDetailBill.invoiceNo;
     document.getElementById('editBillSearchInput').value = '';
     document.getElementById('editBillSearchResults').classList.remove('show');
@@ -4635,32 +4717,67 @@
     } else {
       dateField.style.display = 'none';
     }
+    const base = editTotalsOf_(EDIT_CART, currentDetailBill.customerType, currentDetailBill.discountPercent, document.getElementById('editBillTransport').value);
+    EDIT_BASE = { total: base.grand, sp: base.sp };
     renderEditBillItemsList();
     document.getElementById('editBillModal').classList.add('show');
+    document.getElementById('editBillSheet').scrollTop = 0;
   }
 
-  function renderEditBillItemsList() {
+  function editRowOf_(code) {
+    return Array.from(document.querySelectorAll('#editBillItemsList .cart-item')).find(function (r) { return r.dataset.code === code; });
+  }
+  // Change one row's numbers in place (no re-draw, so a box you are typing in keeps the cursor).
+  function editRowRefresh_(code) {
+    const c = EDIT_CART.find(function (x) { return x.code === code; }), row = editRowOf_(code);
+    if (!c || !row) return;
+    row.querySelector('.amt').textContent = money(c.qty * editRate_(c));
+    row.querySelector('.pts').textContent = trimNum(c.qty * c.sp) + ' SP';
+    const inp = row.querySelector('.ebQty'); if (document.activeElement !== inp) inp.value = c.qty;
+  }
+  function flashEditRow_(code) {
+    const row = editRowOf_(code); if (!row) return;
+    row.classList.remove('just-changed'); void row.offsetWidth; row.classList.add('just-changed');
+    if (row.scrollIntoView) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    setTimeout(function () { row.classList.remove('just-changed'); }, 1400);
+  }
+
+  function renderEditBillItemsList(changedCode) {
     const box = document.getElementById('editBillItemsList');
-    if (!EDIT_CART.length) { box.innerHTML = '<div class="empty-cart">No items — add at least one product.</div>'; document.getElementById('editBillTotal').textContent = money(0); return; }
+    const isRetail = !!currentDetailBill && currentDetailBill.customerType === 'Retail';
+    if (!EDIT_CART.length) { box.innerHTML = '<div class="empty-cart">No items — add at least one product.</div>'; updateEditBillTotals_(); return; }
     box.innerHTML = EDIT_CART.map(function (c) {
-      return '<div class="cart-item" data-code="' + c.code + '"><div class="cart-row-top"><div><div class="cart-name">' + escapeHtml(c.name) + '</div><div class="cart-code">#' + c.code + ' · ' + money(c.dp) + ' each</div></div>' +
+      const rate = editRate_(c);
+      return '<div class="cart-item" data-code="' + c.code + '"><div class="cart-row-top"><div><div class="cart-name">' + escapeHtml(c.name) + '</div><div class="cart-code">#' + c.code + ' · ' + money(rate) + ' each' + (isRetail ? ' (MRP)' : '') + '</div></div>' +
         '<button class="remove-btn ebRemove" type="button">&times;</button></div>' +
         '<div class="cart-row-bottom"><div class="qty-stepper"><button class="ebDelta" data-delta="-1" data-code="' + c.code + '">&minus;</button>' +
         '<input type="number" class="ebQty" data-code="' + c.code + '" min="1" step="1" value="' + c.qty + '">' +
         '<button class="ebDelta" data-delta="1" data-code="' + c.code + '">&plus;</button></div>' +
-        '<div class="cart-amount"><div class="amt">' + money(c.qty * c.dp) + '</div><div class="pts">' + trimNum(c.qty * c.sp) + ' SP</div></div></div></div>';
+        '<div class="cart-amount"><div class="amt">' + money(c.qty * rate) + '</div><div class="pts">' + trimNum(c.qty * c.sp) + ' SP</div></div></div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.ebRemove')).forEach(function (btn) {
       btn.addEventListener('click', function () { const code = btn.closest('.cart-item').dataset.code; EDIT_CART = EDIT_CART.filter(function (c) { return c.code !== code; }); renderEditBillItemsList(); });
     });
     Array.from(box.querySelectorAll('.ebDelta')).forEach(function (btn) {
-      btn.addEventListener('click', function () { const item = EDIT_CART.find(function (c) { return c.code === btn.dataset.code; }); item.qty = Math.max(1, roundQty(item.qty + Number(btn.dataset.delta))); renderEditBillItemsList(); });
+      btn.addEventListener('click', function () {
+        const item = EDIT_CART.find(function (c) { return c.code === btn.dataset.code; });
+        item.qty = Math.max(1, roundQty(item.qty + Number(btn.dataset.delta)));
+        editRowRefresh_(item.code); updateEditBillTotals_();
+      });
     });
     Array.from(box.querySelectorAll('.ebQty')).forEach(function (input) {
-      input.addEventListener('input', function () { const item = EDIT_CART.find(function (c) { return c.code === input.dataset.code; }); const v = Math.round(Number(input.value)); item.qty = (isFinite(v) && v > 0) ? v : item.qty; renderEditBillItemsList(); });
+      input.addEventListener('input', function () {
+        const item = EDIT_CART.find(function (c) { return c.code === input.dataset.code; });
+        const v = Math.round(Number(input.value));
+        if (isFinite(v) && v > 0) { item.qty = v; editRowRefresh_(item.code); updateEditBillTotals_(); }   // live, without re-drawing the box you are typing in
+      });
+      input.addEventListener('blur', function () {   // an empty / zero box goes back to the last good number
+        const item = EDIT_CART.find(function (c) { return c.code === input.dataset.code; });
+        if (item) input.value = item.qty;
+      });
     });
-    let total = 0; EDIT_CART.forEach(function (c) { total += c.qty * c.dp; });
-    document.getElementById('editBillTotal').textContent = money(total);
+    updateEditBillTotals_();
+    if (changedCode) flashEditRow_(changedCode);
   }
 
   function renderEditBillSearchResults(query) {
@@ -4698,7 +4815,7 @@
     if (!p) return;
     const existing = EDIT_CART.find(function (c) { return c.code === p.code; });
     if (existing) existing.qty += qty; else EDIT_CART.push({ code: p.code, name: p.name, dp: Number(p.dp), sp: Number(p.sp), mrp: Number(p.mrp) || 0, qty: qty });
-    renderEditBillItemsList();
+    renderEditBillItemsList(p.code);
     document.getElementById('editBillQtyModal').classList.remove('show');
     document.getElementById('editBillSearchInput').focus();
   }
@@ -4719,6 +4836,7 @@
       const dateVal = document.getElementById('editBillDate').value;
       if (dateVal) billDateIso = new Date(dateVal + 'T' + new Date(bill.date).toTimeString().slice(0, 8)).toISOString();
     }
+    const savedTotals = editTotalsOf_(EDIT_CART, bill.customerType, bill.discountPercent, document.getElementById('editBillTransport').value);
     const { error } = await sb.rpc('edit_bill', {
       p_invoice_no: bill.invoiceNo, p_customer_name: bill.customerName, p_mobile: document.getElementById('editBillMobile').value.trim(), p_customer_type: bill.customerType,
       p_salesman: bill.salesman, p_remark: bill.remark, p_id_name: bill.idName, p_id_no: bill.idNo,
@@ -4729,11 +4847,11 @@
     });
     btn.disabled = false; btn.textContent = 'Save Changes';
     if (error) { showToast(error.message, true); return; }
-    showToast('Bill updated.');
+    showToast('Bill updated · ' + money(savedTotals.grand) + ' · ' + trimNum(savedTotals.sp) + ' SP');
     document.getElementById('editBillModal').classList.remove('show');
 
-    if (bill.billStatus === 'Pending') {
-      // Came from New Bill's post-save review screen - go back there, not Past Bill's detail view.
+    if (editBillOrigin_ === 'review') {
+      // Opened from New Bill's post-save review screen - go back there, not to a bill detail view.
       const { data: header } = await sb.from('invoices').select('*').eq('invoice_no', bill.invoiceNo).maybeSingle();
       lastSavedBill = {
         invoiceNo: header.invoice_no, date: header.invoice_date, totalQty: header.total_qty, totalDP: header.total_dp, totalSP: header.total_sp,
@@ -4748,9 +4866,9 @@
       else renderReceipt(lastSavedBill, 'printArea');
       document.getElementById('printModal').classList.add('show');
     } else {
-      await viewBill(bill.invoiceNo, false);
-      searchHistory();
+      await viewBill(bill.invoiceNo, false);   // the bill's detail shows the new total and SP at once
     }
+    refreshActiveBillList_();                   // and so does whatever list is on screen behind it - no Refresh button needed
   }
 
   function togglePayEditUtr() {
@@ -4769,8 +4887,7 @@
     if (error) { showToast(error.message, true); return; }
     showToast(data.status === 'PAID' ? 'Fully settled.' : 'Payment recorded.');
     await viewBill(invoiceNo, true);
-    searchHistory();
-    if (document.getElementById('tab-accounting').classList.contains('active')) loadAccounting();
+    refreshActiveBillList_();
     });
   }
 
@@ -4833,7 +4950,7 @@
       const sourceTag = r.source === 'Public' ? ' <span style="font-size:10px;font-weight:700;color:var(--gold-600);">(Public)</span>' : ' <span style="font-size:10px;font-weight:700;color:var(--ink-faint);">(Staff)</span>';
       const cashMemoTag = r.cash_memo_no ? ' <span style="font-size:10px;font-weight:700;color:var(--green-700);">CM#' + escapeHtml(r.cash_memo_no) + '</span>' : '';
       return '<div class="list-row" data-inv="' + r.invoice_no + '"><div><div class="result-name">' + r.invoice_no + sourceTag + cashMemoTag + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div></div>' +
-        '<div style="text-align:right;"><div class="amt">' + money(r.total_dp) + '</div><div class="pts" style="color:' + (due ? 'var(--danger)' : 'var(--ok)') + ';">' + (due ? 'Due ' + money(-r.balance) : 'Settled') + '</div></div></div>';
+        '<div style="text-align:right;"><div class="amt">' + money(billGrand_(r)) + '</div><div class="pts" style="color:' + (due ? 'var(--danger)' : 'var(--ok)') + ';">' + (due ? 'Due ' + money(-r.balance) : 'Settled') + '</div></div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { viewBill(row.dataset.inv, true); }); });
   }
