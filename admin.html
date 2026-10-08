@@ -1586,38 +1586,7 @@
       <div id="deliveryItemsList"></div>
       <div class="modal-actions">
         <button class="btn btn-outline" onclick="backToPaymentStep()">← Back</button>
-        <button class="btn btn-primary" onclick="finishApprovalFlow()">Confirm &amp; Finish</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ PROCEED FURTHER: STEP 3 - OFFICIAL WORK PRE-FILL ============ -->
-  <div class="modal-overlay" id="officialPrefillModal">
-    <div class="modal-sheet">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
-        <h2 style="font-size:17px;color:var(--green-800);margin:0;">Step 3 of 3: Official Work</h2>
-        <div style="background:var(--gold-500);color:var(--green-900);border-radius:10px;padding:6px 12px;text-align:center;line-height:1.2;white-space:nowrap;">
-          <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;">Total SP</div>
-          <div style="font-size:18px;font-weight:800;" id="prefillTotalSp">0</div>
-        </div>
-      </div>
-      <p class="hint" style="margin-bottom:12px;">Optional — fill this in only if you already know who this bill's SP will be credited to. You can leave it blank and fill it later in the Official tab instead.</p>
-      <div class="field-row">
-        <div class="field"><label for="prefillDsId">DS ID (for SP credit)</label><input type="text" id="prefillDsId" placeholder="Distributor ID"></div>
-        <div class="field"><label for="prefillDsName">DS Name</label><input type="text" id="prefillDsName" placeholder="Distributor name"></div>
-      </div>
-      <div class="field-row">
-        <div class="field"><label for="prefillOrderType">Greening/Repurchase</label><select id="prefillOrderType" onchange="togglePrefillSaoSgo()"><option value="Greening">Greening</option><option value="Repurchase">Repurchase</option></select></div>
-        <div class="field" id="prefillSaoSgoField" style="display:none;"><label for="prefillSaoSgo">SAO/SGO</label><select id="prefillSaoSgo"><option value="SAO">SAO</option><option value="SGO">SGO</option></select></div>
-      </div>
-      <div class="field" style="margin-bottom:0;">
-        <label for="prefillSpAmount">SP to allocate</label>
-        <input type="number" id="prefillSpAmount" min="0" step="0.01" placeholder="0" oninput="capPrefillSpAmount()">
-        <p class="login-error" id="prefillSpWarning" style="min-height:0;margin:4px 0 0;"></p>
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-outline" onclick="backToDeliveryStep()">← Back</button>
-        <button class="btn btn-primary" onclick="confirmDeliveryFlow()">Confirm &amp; Finish</button>
+        <button class="btn btn-primary" id="approvalFinishBtn" onclick="finishApprovalFlow()">Confirm &amp; Finish</button>
       </div>
     </div>
   </div>
@@ -2786,57 +2755,12 @@
     });
   }
 
-  // Official Work (DS ID/SP allocation) now only happens from the dedicated
-  // Official tab - approval just records payment + delivery and finishes.
+  // Official Work (DS ID/SP allocation) happens only from the Official tab -
+  // approval just records payment + delivery and finishes.
   function finishApprovalFlow() {
+    if (approvalSaving_) return;
     proceedFurtherDeliveryItems = extractDeliveryItemsFromModal_();
     confirmDeliveryFlow();
-  }
-
-  async function goToOfficialPrefillStep() {
-    proceedFurtherDeliveryItems = extractDeliveryItemsFromModal_();
-    document.getElementById('deliveryModal').classList.remove('show');
-    document.getElementById('prefillTotalSp').textContent = trimNum(currentDetailBill.totalSP);
-    document.getElementById('prefillSpAmount').max = currentDetailBill.totalSP;
-    document.getElementById('prefillSpWarning').textContent = '';
-
-    // If the customer already filled this in via the Order Form, pre-fill it
-    // here too - staff can still review/change it before confirming.
-    document.getElementById('prefillDsId').value = ''; document.getElementById('prefillDsName').value = '';
-    document.getElementById('prefillOrderType').value = 'Greening'; document.getElementById('prefillSaoSgoField').style.display = 'none';
-    document.getElementById('prefillSpAmount').value = '';
-    const { data: existingPrefill } = await sb.from('official_prefill').select('*').eq('invoice_no', currentDetailBill.invoiceNo).maybeSingle();
-    if (existingPrefill) {
-      document.getElementById('prefillDsId').value = existingPrefill.ds_id || '';
-      document.getElementById('prefillDsName').value = existingPrefill.ds_name || '';
-      document.getElementById('prefillOrderType').value = existingPrefill.greening_repurchase || 'Greening';
-      document.getElementById('prefillSaoSgoField').style.display = existingPrefill.greening_repurchase === 'Repurchase' ? 'block' : 'none';
-      if (existingPrefill.sao_sgo) document.getElementById('prefillSaoSgo').value = existingPrefill.sao_sgo;
-      if (existingPrefill.sp_to_allocate) document.getElementById('prefillSpAmount').value = existingPrefill.sp_to_allocate;
-    }
-
-    document.getElementById('officialPrefillModal').classList.add('show');
-  }
-
-  function backToDeliveryStep() {
-    document.getElementById('officialPrefillModal').classList.remove('show');
-    document.getElementById('deliveryModal').classList.add('show');
-  }
-
-  function togglePrefillSaoSgo() {
-    document.getElementById('prefillSaoSgoField').style.display = document.getElementById('prefillOrderType').value === 'Repurchase' ? 'block' : 'none';
-  }
-
-  function capPrefillSpAmount() {
-    const input = document.getElementById('prefillSpAmount');
-    const totalSp = currentDetailBill ? Number(currentDetailBill.totalSP) : 0;
-    const val = Number(input.value);
-    if (val > totalSp) {
-      input.value = totalSp;
-      document.getElementById('prefillSpWarning').textContent = 'Can\'t exceed this bill\'s Total SP (' + trimNum(totalSp) + ').';
-    } else {
-      document.getElementById('prefillSpWarning').textContent = '';
-    }
   }
 
   function deliveryDateOverride_() {
@@ -2844,40 +2768,43 @@
     return val ? new Date(val + 'T' + new Date().toTimeString().slice(0, 8)).toISOString() : null;
   }
 
+  let approvalSaving_ = false;
+
+  function closeApprovalFlowModals_() {
+    ['paymentStepModal', 'deliveryModal', 'detailModal'].forEach(function (id) { document.getElementById(id).classList.remove('show'); });
+    proceedFurtherPayment = { cash: 0, online: 0, walletUsed: 0 };
+    proceedFurtherDeliveryItems = [];
+    currentDetailBill = null; // this bill is done - nothing here can approve it a second time
+  }
+
   async function confirmDeliveryFlow() {
-    if (!currentDetailBill) return;
+    if (!currentDetailBill || approvalSaving_) return;
     const invoiceNo = currentDetailBill.invoiceNo;
     if (proceedFurtherPayment.online > 0.005 && !document.getElementById('paymentStepUtr').value.trim()) {
       showToast('UTR number is required for the online payment amount.', true);
       return;
     }
     const utrNo = document.getElementById('paymentStepUtr').value.trim();
-    const dsId = document.getElementById('prefillDsId').value.trim();
-    const dsName = document.getElementById('prefillDsName').value.trim();
-    const orderType = document.getElementById('prefillOrderType').value;
-    const saoSgo = orderType === 'Repurchase' ? document.getElementById('prefillSaoSgo').value : null;
-    const spAmount = document.getElementById('prefillSpAmount').value;
-    if (spAmount && Number(spAmount) > Number(currentDetailBill.totalSP)) {
-      showToast('SP to allocate can\'t exceed this bill\'s Total SP (' + trimNum(currentDetailBill.totalSP) + ').', true);
-      return;
+    // One save at a time: a second tap while this one is still running used to run the whole
+    // approval again - the payment, delivery and stock deduction were all recorded twice.
+    approvalSaving_ = true;
+    const btn = document.getElementById('approvalFinishBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    try {
+      const { error } = await sb.rpc('confirm_delivery', {
+        p_invoice_no: invoiceNo, p_items: proceedFurtherDeliveryItems,
+        p_cash: proceedFurtherPayment.cash, p_online: proceedFurtherPayment.online, p_wallet_used: proceedFurtherPayment.walletUsed,
+        p_utr_no: utrNo || null, p_delivery_date: deliveryDateOverride_()
+      });
+      if (error) { showToast('Could not finalize: ' + error.message, true); return; }
+      showToast('Bill ' + invoiceNo + ' finalized.');
+      closeApprovalFlowModals_();
+      searchApprovalBills();
+      searchHistory();
+    } finally {
+      approvalSaving_ = false;
+      if (btn) { btn.disabled = false; btn.innerHTML = 'Confirm &amp; Finish'; }
     }
-    const { error } = await sb.rpc('confirm_delivery', {
-      p_invoice_no: invoiceNo, p_items: proceedFurtherDeliveryItems,
-      p_cash: proceedFurtherPayment.cash, p_online: proceedFurtherPayment.online, p_wallet_used: proceedFurtherPayment.walletUsed,
-      p_ds_id: dsId || null, p_ds_name: dsName || null,
-      p_greening_repurchase: (dsId || dsName) ? orderType : null,
-      p_sao_sgo: saoSgo, p_sp_to_allocate: spAmount ? Number(spAmount) : null, p_utr_no: utrNo || null,
-      p_delivery_date: deliveryDateOverride_()
-    });
-    if (error) { showToast('Could not finalize: ' + error.message, true); return; }
-    showToast('Bill ' + invoiceNo + ' finalized.');
-    document.getElementById('officialPrefillModal').classList.remove('show');
-    document.getElementById('prefillDsId').value = ''; document.getElementById('prefillDsName').value = '';
-    document.getElementById('prefillOrderType').value = 'Greening'; document.getElementById('prefillSaoSgoField').style.display = 'none';
-    document.getElementById('prefillSpAmount').value = '';
-    hideDetail();
-    searchApprovalBills();
-    searchHistory();
   }
 
   function preparePrintDuplicate_(sourceId) {
@@ -3931,10 +3858,10 @@
     let expQ = sb.from('expenses').select('cash,online,total');
     if (from) expQ = expQ.gte('expense_date', from); if (to) expQ = expQ.lte('expense_date', to);
     const [{ data: invoices }, { data: purchases }, { data: expenses }, { data: pendingItems }] = await Promise.all([
-      invQ, purQ, expQ, sb.from('invoice_items').select('id').gt('pending_qty', 0)
+      invQ, purQ, expQ, sb.from('invoice_items').select('id, invoices(bill_status)').gt('pending_qty', 0)
     ]);
 
-    const s = { bills: 0, qty: 0, amount: 0, sp: 0, cash: 0, online: 0, pendingAmount: 0, pendingDeliveries: (pendingItems || []).length,
+    const s = { bills: 0, qty: 0, amount: 0, sp: 0, cash: 0, online: 0, pendingAmount: 0, pendingDeliveries: (pendingItems || []).filter(function (r) { return r.invoices && r.invoices.bill_status === 'Active'; }).length,
       purchaseCount: 0, purchaseQty: 0, purchaseAmount: 0, purchaseSP: 0, expenseCount: 0, expenseAmount: 0, expenseCash: 0, expenseOnline: 0 };
     (invoices || []).forEach(function (h) { s.bills++; s.qty += Number(h.total_qty); s.amount += Number(h.total_dp); s.sp += Number(h.total_sp); s.cash += Number(h.cash); s.online += Number(h.online); if (h.balance < 0) s.pendingAmount += -h.balance; });
     (purchases || []).forEach(function (p) { s.purchaseCount++; s.purchaseQty += Number(p.total_qty); s.purchaseAmount += Number(p.total_dp); s.purchaseSP += Number(p.total_sp); });
@@ -4142,17 +4069,13 @@
       return '<div class="cart-row"><div><div class="cart-name">' + escapeHtml(it.name) + ' × ' + trimNum(it.qty) + '</div></div>' +
         '<div class="cart-price">' + money(it.qty * (r.customer_type === 'Retail' ? it.mrp : it.dp)) + '</div></div>';
     }).join('');
-    const officialRows = (r.official_entries || []).map(function (e) {
-      return '<div class="hint">• ' + escapeHtml(e.dsId || '(No DS ID)') + (e.dsName ? ' — ' + escapeHtml(e.dsName) : '') + ' · ' + escapeHtml(e.greeningRepurchase) + (e.saoSgo ? ' (' + escapeHtml(e.saoSgo) + ')' : '') + ' · ' + trimNum(e.spToAllocate) + ' SP</div>';
-    }).join('');
     document.getElementById('publicOrderDetailArea').innerHTML =
       '<h2 style="font-size:16px;color:var(--green-800);margin-bottom:2px;">' + escapeHtml(r.customer_name || 'Walk-in') + '</h2>' +
       '<p class="hint" style="margin-bottom:10px;">' + escapeHtml(r.mobile) + ' · ' + escapeHtml(r.customer_type) + ' · ' + dateStr + '</p>' +
       (r.payment_reported ? '<div class="card" style="box-shadow:none;background:var(--gold-100);margin-bottom:10px;"><p style="color:var(--gold-600);font-weight:700;font-size:13px;margin:0;">Customer reported paying ' + money(r.reported_amount) + ' via UPI — UTR: ' + escapeHtml(r.utr_no || '') + '. Please verify before approving.</p></div>' : '') +
       rows +
       '<div class="receipt-total-row grand" style="margin-top:6px;"><span>Total</span><span>' + money(r.total_amount) + '</span></div>' +
-      '<div class="receipt-total-row"><span>Total SP</span><span>' + trimNum(r.total_sp) + '</span></div>' +
-      (officialRows ? '<p class="section-label" style="margin-top:12px;">Official Work requested</p>' + officialRows : '');
+      '<div class="receipt-total-row"><span>Total SP</span><span>' + trimNum(r.total_sp) + '</span></div>';
     document.getElementById('publicOrderDetailModal').classList.add('show');
   }
 
@@ -4816,7 +4739,7 @@
     if (error) { box.innerHTML = '<div class="empty-cart">Could not load pending items.</div>'; return; }
     pendingByInvoice = {};
     (data || []).forEach(function (r) {
-      if (!r.invoices || r.invoices.bill_status === 'Cancelled') return;
+      if (!r.invoices || r.invoices.bill_status !== 'Active') return; // still awaiting approval (or cancelled) -> not a delivery job yet
       if (!pendingByInvoice[r.invoice_no]) pendingByInvoice[r.invoice_no] = { invoiceNo: r.invoice_no, date: r.invoices ? r.invoices.invoice_date : null, customer: r.invoices ? r.invoices.customer_name : '', mobile: r.invoices ? r.invoices.mobile : '', items: [] };
       pendingByInvoice[r.invoice_no].items.push(r);
     });
@@ -6114,7 +6037,7 @@
     if (!q.trim()) { loadOfficialPending(); return; }
     document.getElementById('officialListHeading').textContent = 'Search results';
     officialSearchDebounce = setTimeout(async function () {
-      const { data: invoices, error } = await sb.from('invoices').select('*').gt('total_sp', 0).ilike('invoice_no', '%' + q + '%');
+      const { data: invoices, error } = await sb.from('invoices').select('*').gt('total_sp', 0).eq('bill_status', 'Active').ilike('invoice_no', '%' + q + '%');
       if (error) { showToast(error.message, true); return; }
       const spUsedByInvoice = await fetchSpUsedByInvoice_((invoices || []).map(function (h) { return h.invoice_no; }));
       const rows = (invoices || []).map(function (h) {
@@ -6782,7 +6705,7 @@
   async function loadSpsBillList_(q) {
     const box = document.getElementById('spsBillList');
     box.innerHTML = '<div class="empty-cart">Loading…</div>';
-    let query = sb.from('invoices').select('invoice_no, invoice_date, customer_name, total_sp').gt('total_sp', 0).neq('bill_status', 'Cancelled')
+    let query = sb.from('invoices').select('invoice_no, invoice_date, customer_name, total_sp').gt('total_sp', 0).eq('bill_status', 'Active')
       .order('invoice_date', { ascending: false }).limit(q ? 20 : 40);
     if (q) { const safe = q.replace(/[%,()]/g, ' '); query = query.or('invoice_no.ilike.%' + safe + '%,customer_name.ilike.%' + safe + '%'); }
     const { data, error } = await query;
