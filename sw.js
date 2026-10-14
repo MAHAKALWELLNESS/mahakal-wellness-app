@@ -19,8 +19,8 @@ self.addEventListener('push', function (event) {
   event.waitUntil(
     self.registration.showNotification(data.title || 'Mahakal Wellness', {
       body: data.body || '',
-      icon: 'icon-192.png',
-      badge: 'icon-192.png'
+      icon: new URL('icon-192.png', self.registration.scope).href,
+      badge: new URL('badge-96.png', self.registration.scope).href
     })
   );
 });
@@ -32,7 +32,7 @@ self.addEventListener('notificationclick', function (event) {
       for (const client of clientList) {
         if ('focus' in client) return client.focus();
       }
-      if (clients.openWindow) return clients.openWindow('order.html');
+      if (clients.openWindow) return clients.openWindow(new URL('order.html', self.registration.scope).href);
     })
   );
 });

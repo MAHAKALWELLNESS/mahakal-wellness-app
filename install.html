@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mahakal Wellness — App Install Karo</title>
+<link rel="manifest" href="manifest-main.json">
+<meta name="theme-color" content="#132E26">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mahakal Wellness">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green-900:#132E26; --green-800:#1E4A3D; --green-100:#DCE9E3;
+    --gold-500:#D9A441; --gold-600:#B8842C; --gold-100:#FBF1DC;
+    --surface:#FFFFFF; --bg:#F6F5F1; --ink-soft:#555; --ink-faint:#8A8A8A; --line:#E7E4DC; --danger:#C0392B; --danger-100:#FBE9E6; --ok:#2E7D5B;
+  }
+  *{box-sizing:border-box;}
+  [hidden]{display:none !important;}
+  body{margin:0; min-height:100vh; font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:#222; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:440px; margin:0 auto; padding:30px 18px 44px;}
+  .brand{text-align:center;}
+  .logo{width:104px; height:104px; border-radius:50%; background:#fff; box-shadow:0 2px 10px rgba(0,0,0,.12);}
+  h1{font-family:'Fraunces',serif; font-size:27px; color:var(--green-900); margin:14px 0 4px;}
+  .tag{margin:0; font-size:13.5px; color:var(--ink-soft);}
+  .card{background:var(--surface); border-radius:18px; padding:20px; margin-top:16px; box-shadow:0 1px 4px rgba(0,0,0,.07);}
+  .card h2{font-size:17px; margin:0 0 4px; color:var(--green-900);}
+  .card .sub{margin:0 0 14px; font-size:13px; color:var(--ink-soft); line-height:1.45;}
+  .btn{display:block; width:100%; text-align:center; text-decoration:none; padding:16px 14px; border-radius:14px; border:none; font:700 17px 'Inter',sans-serif; cursor:pointer; background:var(--gold-500); color:var(--green-900);}
+  .btn:active{transform:scale(.98);}
+  .btn.secondary{background:#fff; border:1.5px solid var(--line); color:var(--green-800); font-size:14.5px; padding:13px 12px;}
+  .btn.green{background:var(--green-900); color:#fff;}
+  .row{display:flex; gap:10px; margin-top:10px;}
+  .row .btn{flex:1;}
+  .steps{list-style:none; margin:0; padding:0; counter-reset:s;}
+  .steps li{counter-increment:s; display:flex; gap:12px; align-items:flex-start; padding:9px 0; font-size:14.5px; line-height:1.45;}
+  .steps li span{flex:1; min-width:0;}
+  .steps li::before{content:counter(s); flex:0 0 26px; height:26px; border-radius:50%; background:var(--green-900); color:#fff; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; margin-top:1px;}
+  .steps svg{vertical-align:-4px; margin:0 2px;}
+  .note{margin-top:10px; font-size:12.5px; color:var(--ink-soft); line-height:1.45;}
+  .box{border-radius:12px; padding:12px 14px; font-size:13.5px; line-height:1.45;}
+  .box.warn{background:var(--gold-100); color:#7a5617;}
+  .box.ok{background:#E3F3EA; color:var(--ok); font-weight:600;}
+  .qr{display:block; margin:6px auto 4px; width:220px; max-width:100%; border:1px solid var(--line); border-radius:12px;}
+  details{border-top:1px solid var(--line); padding:12px 0;}
+  details:first-of-type{border-top:none;}
+  summary{font-weight:600; font-size:14.5px; cursor:pointer; color:var(--green-900);}
+  details p{margin:8px 0 0; font-size:13.5px; color:var(--ink-soft); line-height:1.5;}
+  .plain{display:block; text-align:center; margin-top:18px; font-size:13.5px; color:var(--green-800); font-weight:600;}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="brand">
+    <img class="logo" src="icon-192.png" alt="Mahakal Wellness">
+    <h1>Mahakal Wellness</h1>
+    <p class="tag">Order karo aur hamse jude raho, seedha apne phone se</p>
+  </header>
+
+  <!-- ONLY the card that fits this phone / browser is shown (decided by the script below) -->
+
+  <section class="card" id="stateInstalled" hidden>
+    <div class="box ok">✓ App is phone par pehle se install hai.</div>
+    <p class="note">Home screen ya app list me <strong>Mahakal Wellness</strong> ka icon dhoondho. Ya yahin se kholo:</p>
+    <a class="btn green" href="index.html" style="margin-top:12px;">App kholo</a>
+  </section>
+
+  <section class="card" id="stateDone" hidden>
+    <div class="box ok">🎉 Install ho gaya! Ab home screen par <strong>Mahakal Wellness</strong> ka icon dikhega.</div>
+    <a class="btn green" href="index.html" style="margin-top:12px;">App kholo</a>
+  </section>
+
+  <section class="card" id="stateInApp" hidden>
+    <h2>Pehle browser me kholo</h2>
+    <p class="sub">Ye link kisi app (WhatsApp, Instagram, Facebook…) ke andar khula hai. Yahan install nahi hota.</p>
+    <ol class="steps">
+      <li><span>Upar-right me <strong>⋮</strong> (3 dots) ya <strong>Share</strong> dabao.</span></li>
+      <li><span><strong>"Open in Chrome"</strong> / <strong>"Open in browser"</strong> chuno (iPhone par <strong>Safari</strong>).</span></li>
+      <li><span>Wahan <strong>"App install karo"</strong> wala button aayega.</span></li>
+    </ol>
+    <button class="btn secondary" type="button" data-copy style="margin-top:10px;">Link copy karo</button>
+    <p class="note">Ya link copy karke Chrome / Safari me paste kar do.</p>
+  </section>
+
+  <section class="card" id="statePrompt" hidden>
+    <h2>App install karo</h2>
+    <p class="sub">Free hai · 1 tap me home screen par · Play Store ki zaroorat nahi</p>
+    <button class="btn" id="installBtn" type="button">📲 App install karo</button>
+    <p class="note" id="installMsg" hidden></p>
+  </section>
+
+  <section class="card" id="stateAndroid" hidden>
+    <h2>Android par install</h2>
+    <p class="sub">Chrome me ye 3 step karo:</p>
+    <ol class="steps">
+      <li><span>Chrome ke upar-right me <strong>⋮</strong> (3 dots) dabao.</span></li>
+      <li><span><strong>"Install app"</strong> ya <strong>"Add to Home screen"</strong> chuno.</span></li>
+      <li><span><strong>"Install"</strong> dabao. Home screen par <strong>Mahakal Wellness</strong> icon aa jayega.</span></li>
+    </ol>
+    <p class="note">Menu me <strong>"Install app"</strong> na dikhe? Ya to app pehle se install hai (home screen / app list me <strong>Mahakal Wellness</strong> icon dhoondho), ya menu me <strong>"Open in Chrome"</strong> chuno. Chrome nahi hai? Link copy karke Chrome me kholo.</p>
+  </section>
+
+  <section class="card" id="stateIos" hidden>
+    <h2>iPhone par install</h2>
+    <p class="sub">Safari me ye 3 step karo:</p>
+    <ol class="steps">
+      <li><span>Neeche ka <strong>Share</strong> button dabao
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1E4A3D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 11v9h14v-9"/></svg>
+        (□ ke upar tir).</span></li>
+      <li><span>Neeche scroll karke <strong>"Add to Home Screen"</strong> chuno.</span></li>
+      <li><span>Upar-right me <strong>"Add"</strong> dabao. Icon home screen par aa jayega.</span></li>
+    </ol>
+  </section>
+
+  <section class="card" id="stateIosOther" hidden>
+    <h2>iPhone par Safari me kholo</h2>
+    <p class="sub">iPhone par app Safari browser se install hota hai.</p>
+    <ol class="steps">
+      <li><span>Neeche ka button dabake link copy karo.</span></li>
+      <li><span><strong>Safari</strong> kholo aur address bar me paste karo.</span></li>
+      <li><span>Phir <strong>Share → Add to Home Screen → Add</strong>.</span></li>
+    </ol>
+    <button class="btn secondary" type="button" data-copy style="margin-top:10px;">Link copy karo</button>
+  </section>
+
+  <section class="card" id="stateDesktop" hidden>
+    <h2>Computer par install</h2>
+    <p class="sub">Chrome / Edge me address bar ke right side me <strong>install icon (⊕)</strong> dabao, ya menu <strong>⋮ → Install Mahakal Wellness</strong>.</p>
+    <p class="sub" style="margin-bottom:6px;"><strong>Phone me install karna hai?</strong> Phone ke camera se ye QR scan karo:</p>
+    <img class="qr" id="deskQr" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQ4AAAEOAQAAAABQysQIAAACJ0lEQVR42u1awW3EMAwTmgEyklf3SB7AgCqRknPo5549Fg0ORa7NI4REiqJr/u7a9v/Ibz+yLK7Lp93xfV4r7/Hx/ION/WVvr096JBCNQJIQ1kgU98zf4D4+caOIKArBlw9QUakAte8sWdZLF1G8OXrsWui0P4AoeZQoeI8+FEaU7x9vDjhRqUueR9A6kOjHR1XreC0Wa1Lr0HKjBF4P0WSDcQwlIjabDd6LIoqfyaOb3LFgU0ofmSWIKLSaypA1ske9XVTr4Hy8WXNVv4U/St0T1TqOntdmoyzA6SnyyDdsD9sv1IBU4qjVnLBWDGrPULSCIZftuklcpA/2iAENTAHUdEETDqG4E6CwUCTSLaregJDi4C3gwayWCEVleFw3PF6W6UZ1gFSx6zbpA/Wmcd2oDtcKSaeKlksBX61+xSlNRDAJXtYuhxHmbDkHVfXmKgTuVM5wnIMmj9rXTUJA6DW4XEiq90I5mNHBKvQ8ar8qucPCG9DjWS/jgKnrgpDROWKTnkf1VTVnyGaD0FVs4pULSfo6dhryRsYmVm4h9yZRRCUImKcnwavkRJdHYFCVhkbogNV0qo9hCNdKC2Syvg4GteQOlWIu5BXpu2ymOmrU8sCl02/h3Ltik2Pqpnf6rXvGd1LHl93cRLcJnvHB19lmjV6nle6pJZ0qtO6YImFEGLLu87hWpqzKZ3y18dGdNqFU5xG07jkXY5hPPXdZ7/3/nysf/Mg3wnQdkXCc0+4AAAAASUVORK5CYII=" alt="QR code: is page ko phone par kholne ke liye">
+  </section>
+
+  <section class="card">
+    <h2>Dost ya distributor ko bhejo</h2>
+    <p class="sub">Is link se wo bhi 1 minute me app install kar lenge.</p>
+    <div class="row">
+      <button class="btn secondary" type="button" data-copy>Link copy karo</button>
+      <a class="btn green" id="waShare" href="#" target="_blank" rel="noopener" style="font-size:14.5px;padding:13px 12px;">WhatsApp par bhejo</a>
+    </div>
+  </section>
+
+  <section class="card">
+    <details><summary>Kya ye Play Store se aata hai?</summary><p>Nahi. Ye seedha website se install hota hai. Free hai aur bahut kam jagah leta hai.</p></details>
+    <details><summary>App update kaise hoga?</summary><p>Apne aap. Aapko kuch nahi karna.</p></details>
+    <details><summary>Hatana ho to?</summary><p>Icon ko dabake rakho, phir <strong>Uninstall / Remove</strong> chuno. Jab chaho phir se install kar sakte ho.</p></details>
+  </section>
+
+  <a class="plain" href="index.html">Bina install kiye website kholo →</a>
+</main>
+
+<script>
+(function () {
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isAndroid = /Android/i.test(ua);
+  // browsers hidden inside other apps (they cannot install web apps); "; wv)" is Android's in-app WebView marker
+  var inApp = /FBAN|FBAV|FB_IAB|Instagram|Line\/|Snapchat|Twitter|MicroMessenger|Telegram|WhatsApp|; wv\)/i.test(ua);
+  var iosSafari = isIOS && /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA\//i.test(ua) && !inApp;
+  var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  var deferred = null, manualTimer = null;
+
+  function $(id) { return document.getElementById(id); }
+  function show(id, on) { var el = $(id); if (el) el.hidden = !on; }
+  function pageUrl() { return location.href.split('#')[0].split('?')[0]; }
+
+  function showManualForThisDevice() {
+    if (isIOS) { show(iosSafari ? 'stateIos' : 'stateIosOther', true); }
+    else if (isAndroid) { show('stateAndroid', true); }
+    else { show('stateDesktop', true); }
+  }
+
+  if (standalone) {
+    show('stateInstalled', true);
+  } else if (inApp) {
+    show('stateInApp', true);
+  } else if (isIOS) {
+    showManualForThisDevice();                 // iPhone has no install button: it needs the 3 steps
+  } else {
+    // Android / computer: Chrome and Edge announce "I can install this" a moment after the page opens.
+    // If that never happens (other browser, or already installed) show the manual steps instead.
+    manualTimer = setTimeout(function () { if (!deferred) showManualForThisDevice(); }, 1600);
+  }
+
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferred = e;
+    clearTimeout(manualTimer);
+    show('stateAndroid', false); show('stateDesktop', false);
+    show('statePrompt', true);
+  });
+
+  $('installBtn').addEventListener('click', function () {
+    if (!deferred) return;
+    var p = deferred; deferred = null;
+    p.prompt();
+    Promise.resolve(p.userChoice).then(function (choice) {
+      if (choice && choice.outcome === 'accepted') { show('statePrompt', false); show('stateDone', true); }
+      else {
+        var m = $('installMsg'); m.hidden = false; m.textContent = 'Theek hai. Jab chaho phir se yahin se install kar lena.';
+        show('statePrompt', false); showManualForThisDevice();
+      }
+    });
+  });
+
+  window.addEventListener('appinstalled', function () {
+    deferred = null; show('statePrompt', false); show('stateAndroid', false); show('stateDesktop', false); show('stateDone', true);
+  });
+
+  // copy / share
+  function copyText(text, btn) {
+    var done = function () { if (!btn) return; var old = btn.textContent; btn.textContent = 'Copy ho gaya ✓'; setTimeout(function () { btn.textContent = old; }, 1600); };
+    var fallback = function () {
+      var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) {} document.body.removeChild(ta); done();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'), function (b) { b.addEventListener('click', function () { copyText(pageUrl(), b); }); });
+  $('waShare').href = 'https://wa.me/?text=' + encodeURIComponent('Mahakal Wellness ka app install karo: ' + pageUrl());
+
+  // a service worker is what lets Chrome offer the install button on this page
+  if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+})();
+</script>
+</body>
+</html>
