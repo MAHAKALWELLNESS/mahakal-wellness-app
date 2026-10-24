@@ -136,6 +136,14 @@
   .edit-actions{position:sticky; bottom:-20px; z-index:5; background:var(--surface); margin:14px -20px -20px; padding:12px 20px 16px; border-top:1px solid var(--line);}
   #editBillItemsList .cart-item{scroll-margin-top:130px; scroll-margin-bottom:90px;}
   .cart-item.just-changed{animation:editFlash 1.3s ease-out;}
+  /* editing a bill that was already delivered / paid */
+  .eb-note{font-size:11.5px; color:var(--ink-soft); margin-top:3px;}
+  .es-tag{display:inline-block; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:700;}
+  .es-back{background:var(--danger-100); color:var(--danger);} .es-new{background:var(--green-100); color:var(--green-800);} .es-minus{background:var(--gold-100); color:var(--gold-600);}
+  .es-line{border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:8px; background:#fff;}
+  .es-line .es-name{font-weight:700; color:var(--green-900);}
+  .es-box{border-radius:12px; padding:10px 12px; margin:8px 0; font-size:13px; line-height:1.5;}
+  .es-ok{background:var(--green-100); color:var(--green-800);} .es-due{background:var(--gold-100); color:#7a5617;} .es-warn{background:var(--danger-100); color:var(--danger);}
   /* more than one cash memo number on a bill */
   .memo-add{margin-top:8px; padding:8px 12px; border:1.5px dashed var(--gold-500); border-radius:10px; background:#fff; color:var(--gold-600); font-weight:700; font-size:13px; font-family:inherit; cursor:pointer;}
   .memo-extra-row{display:flex; gap:8px; margin-top:8px; align-items:stretch;}
@@ -1785,6 +1793,7 @@
       <div id="billCashMemoArea"></div>
       <div id="billActionsArea"></div>
       <div id="billDateHistoryArea"></div>
+      <div id="billEditHistoryArea"></div>
       <div id="paymentEditArea"></div>
     </div>
   </div>
@@ -1914,7 +1923,7 @@
   <div class="modal-overlay" id="editBillModal">
     <div class="modal-sheet" id="editBillSheet">
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Edit <span id="editBillInvoiceNo"></span></h2>
-      <p class="hint" style="margin-bottom:10px;">Only bills with no payment, delivery, or SP work yet can be edited.</p>
+      <p class="hint" id="editBillHint" style="margin-bottom:10px;">Only bills with no payment, delivery, or SP work yet can be edited.</p>
       <!-- stays in view while the product list scrolls; updates on every change -->
       <div class="edit-summary" id="editBillSummary">
         <div class="es-main"><span class="es-lbl">Total</span><span class="es-total" id="editBillTotal">₹0</span><span class="es-sp" id="editBillSP">0 SP</span></div>
@@ -1922,14 +1931,40 @@
         <div class="es-was" id="editBillWas"></div>
       </div>
       <div class="field" id="editBillDateField" style="display:none;"><label for="editBillDate">Bill date</label><input type="date" id="editBillDate"></div>
-      <div class="field"><label for="editBillMobile">Customer Mobile</label><input type="tel" id="editBillMobile" placeholder="10-digit mobile" maxlength="15"></div>
-      <div class="field"><label for="editBillTransport">Rapido/Bus/Transport Charges ₹ (optional)</label><input type="number" id="editBillTransport" min="0" step="0.01" placeholder="0" oninput="updateEditBillTotals_()"></div>
+      <div class="field" id="editBillMobileField"><label for="editBillMobile">Customer Mobile</label><input type="tel" id="editBillMobile" placeholder="10-digit mobile" maxlength="15"></div>
+      <div class="field" id="editBillTransportField"><label for="editBillTransport">Rapido/Bus/Transport Charges ₹ (optional)</label><input type="number" id="editBillTransport" min="0" step="0.01" placeholder="0" oninput="updateEditBillTotals_()"></div>
       <div class="search-wrap" style="margin-bottom:12px;">
         <input type="text" id="editBillSearchInput" class="search-input" placeholder="Add a product…" autocomplete="off" oninput="renderEditBillSearchResults(this.value)">
         <div id="editBillSearchResults" class="search-results"></div>
       </div>
       <div id="editBillItemsList"></div>
       <div class="modal-actions edit-actions"><button class="btn btn-outline" onclick="document.getElementById('editBillModal').classList.remove('show')">Cancel</button><button class="btn btn-primary" id="editBillSaveBtn" onclick="saveEditedBill()">Save Changes</button></div>
+    </div>
+  </div>
+
+  <!-- ============ REVIEW & SETTLE: a bill that was already delivered / paid is edited ============ -->
+  <div class="modal-overlay" id="editSettleModal" style="z-index:67;">
+    <div class="modal-sheet" id="editSettleSheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Review changes</h2>
+      <p class="hint" id="esInvoice" style="margin-bottom:10px;"></p>
+      <div id="esLines"></div>
+      <div id="esMoney"></div>
+      <div id="esPay" style="display:none;">
+        <div class="field-row">
+          <div class="field"><label for="esCash">Cash received ₹</label><input type="number" id="esCash" inputmode="decimal" min="0" step="0.01" placeholder="0" oninput="esFieldChanged_()"></div>
+          <div class="field"><label for="esOnline">Online received ₹</label><input type="number" id="esOnline" inputmode="decimal" min="0" step="0.01" placeholder="0" oninput="esFieldChanged_()"></div>
+        </div>
+        <div class="field" id="esUtrField" style="display:none;"><label for="esUtr">UTR Number</label><input type="text" id="esUtr" placeholder="Transaction reference number" oninput="esFieldChanged_()"></div>
+        <p class="hint" style="margin:-4px 0 8px;">Leave both empty to collect the money later.</p>
+      </div>
+      <div class="field"><label for="esDate">Date of this change</label><input type="date" id="esDate" onchange="esFieldChanged_()"></div>
+      <p class="hint" style="margin:-4px 0 8px;">The return, the delivery and any payment are all entered with this date (today, or the day it really happened).</p>
+      <div class="field"><label for="esNote">Note (optional)</label><input type="text" id="esNote" placeholder="e.g. exchanged two bottles" oninput="esFieldChanged_()"></div>
+      <p class="login-error" id="esError" style="min-height:0;margin:4px 0 0;"></p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closeEditSettle_()">Back</button>
+        <button class="btn btn-primary" type="button" id="esConfirmBtn" onclick="esConfirm_()" disabled>Confirm changes</button>
+      </div>
     </div>
   </div>
 
@@ -4861,6 +4896,7 @@
       : '';
     renderBillActions(bill);
     renderBillDateHistory_(bill.invoiceNo);
+    renderBillEditHistory_(bill.invoiceNo);
     renderBillCashMemo_(bill);
     // Payment recording is only offered when opened from Accounting - Past Bill is view/print/share only.
     document.getElementById('paymentEditArea').innerHTML = '';
@@ -4881,7 +4917,7 @@
     }
     if (deliveryRows.length) {
       extra += '<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px;"><p style="font-size:11px;font-weight:700;color:var(--green-800);margin:0 0 4px;">Delivery Updates</p>' +
-        deliveryRows.map(function (h, idx) { return '<p style="font-size:10.5px;color:var(--ink-soft);margin:2px 0;">' + (idx + 1) + '. ' + new Date(h.log_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) + ' — ' + escapeHtml(h.product_name) + ' × ' + trimNum(h.qty) + ' delivered</p>'; }).join('') + '</div>';
+        deliveryRows.map(function (h, idx) { return '<p style="font-size:10.5px;color:var(--ink-soft);margin:2px 0;">' + (idx + 1) + '. ' + new Date(h.log_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) + ' — ' + escapeHtml(h.product_name) + ' × ' + (Number(h.qty) < 0 ? '<span style="color:var(--danger);">' + trimNum(-Number(h.qty)) + ' returned</span>' : trimNum(h.qty) + ' delivered') + '</p>'; }).join('') + '</div>';
     }
     if (paymentRows.length) {
       extra += '<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px;"><p style="font-size:11px;font-weight:700;color:var(--green-800);margin:0 0 4px;">Payment Updates</p>' +
@@ -4918,6 +4954,139 @@
       '\nAmount Due: ' + money(info.due) + '\n\n' +
       'Please clear this at your earliest convenience. Thank you!';
     window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(text), '_blank');
+  }
+
+  // =================== EDIT A BILL THAT WAS ALREADY DELIVERED / PAID (until Official work is done) ===================
+  // Step 1 is the normal Edit window (touched mode). Step 2 is this review: the database works out (without saving) what the change does -
+  // goods back to stock, goods handed over now, the bill amount and SP, the wallet or the payment still due - and only "Confirm" saves it.
+  let ES_ = null;
+  function todayIst_() { return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); }
+  function dayIst_(d) { return new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); }
+  function esPayload_(apply) {
+    const dv = ES_.date, isToday = !dv || dv === todayIst_();
+    return {
+      p_invoice_no: currentDetailBill.invoiceNo,
+      p_items: EDIT_CART.map(function (c) { return { code: c.code, name: c.name, qty: c.qty, dp: c.dp, sp: c.sp, mrp: c.mrp }; }),
+      p_deliver: Object.keys(ES_.deliver).map(function (code) { return { code: code, qty: Number(ES_.deliver[code]) || 0 }; }),
+      p_cash: Number(ES_.cash) || 0, p_online: Number(ES_.online) || 0, p_utr_no: (ES_.utr || '').trim() || null,
+      p_event_date: isToday ? null : new Date(dv + 'T12:00:00+05:30').toISOString(),
+      p_note: (ES_.note || '').trim() || null, p_apply: apply
+    };
+  }
+  function esServerMissing_(err) {
+    if (err && /could not find the function|schema cache|does not exist/i.test(err.message || '')) {
+      closeEditSettle_(); showToast('Editing a delivered or paid bill needs the database update (edit_bill_after_delivery.sql). Please run it first.', true); return true;
+    }
+    return false;
+  }
+  function openEditSettle_() {
+    if (!EDIT_CART.length) { showToast('Add at least one product.', true); return; }
+    ES_ = { deliver: {}, cash: '', online: '', utr: '', date: todayIst_(), note: '', timer: null, seq: 0, summary: null };
+    EDIT_CART.forEach(function (c) { const o = EDIT_ORIG_[c.code], added = c.qty - (o ? o.qty : 0); ES_.deliver[c.code] = added > 0 ? added : 0; });   // what is NEW is handed over now, unless changed
+    const dEl = document.getElementById('esDate'); dEl.min = dayIst_(currentDetailBill.date); dEl.max = todayIst_(); dEl.value = ES_.date;
+    ['esCash', 'esOnline', 'esUtr', 'esNote'].forEach(function (id) { document.getElementById(id).value = ''; });
+    document.getElementById('esUtrField').style.display = 'none';
+    document.getElementById('esError').textContent = '';
+    document.getElementById('esLines').innerHTML = ''; document.getElementById('esMoney').innerHTML = ''; document.getElementById('esPay').style.display = 'none';
+    document.getElementById('esConfirmBtn').disabled = true;
+    document.getElementById('esInvoice').textContent = currentDetailBill.invoiceNo + ' · ' + (currentDetailBill.customerName || 'Walk-in');
+    document.getElementById('editSettleModal').classList.add('show');
+    esRefresh_(0);
+  }
+  function closeEditSettle_() { if (ES_) { clearTimeout(ES_.timer); ES_.seq++; } document.getElementById('editSettleModal').classList.remove('show'); }
+  function esFieldChanged_() {
+    if (!ES_) return;
+    ES_.cash = document.getElementById('esCash').value; ES_.online = document.getElementById('esOnline').value;
+    ES_.utr = document.getElementById('esUtr').value; ES_.date = document.getElementById('esDate').value || todayIst_(); ES_.note = document.getElementById('esNote').value;
+    document.getElementById('esUtrField').style.display = (Number(ES_.online) || 0) > 0 ? 'block' : 'none';
+    esRefresh_();
+  }
+  function esDeliverChanged_(input) {
+    if (!ES_) return;
+    const max = Number(input.max); let v = Math.round(Number(input.value)); if (!isFinite(v) || v < 0) v = 0; if (v > max) v = max;
+    input.value = v; ES_.deliver[input.dataset.code] = v; esRefresh_();
+  }
+  function esRefresh_(delay) {
+    clearTimeout(ES_.timer); const mine = ++ES_.seq;
+    document.getElementById('esConfirmBtn').disabled = true;
+    ES_.timer = setTimeout(async function () {
+      const { data, error } = await sb.rpc('edit_bill_after_delivery', esPayload_(false));
+      if (!ES_ || mine !== ES_.seq) return;                         // an older answer: ignore
+      if (error) { if (esServerMissing_(error)) return; ES_.summary = null; document.getElementById('esError').textContent = error.message; return; }
+      if (!data) { document.getElementById('esError').textContent = 'No answer from the database.'; return; }
+      ES_.summary = data; document.getElementById('esError').textContent = ''; esRender_(data);
+      document.getElementById('esConfirmBtn').disabled = false;
+    }, delay === undefined ? 350 : delay);
+  }
+  function esRender_(s) {
+    const lines = (s.lines || []).filter(function (l) { return Number(l.returned) > 0.0001 || Number(l.newQty) !== Number(l.oldQty); });
+    document.getElementById('esLines').innerHTML = lines.map(function (l) {
+      const kept = Number(l.oldDelivered) - Number(l.returned), maxNow = Number(l.newQty) - kept;
+      let h = '<div class="es-line" data-code="' + escapeHtml(l.code) + '"><div class="es-name">' + escapeHtml(l.name) + '</div>' +
+        '<div class="hint" style="margin:2px 0 6px;">' + (Number(l.newQty) === 0 ? 'taken off the bill (was ' + trimNum(l.oldQty) + ')' : Number(l.oldQty) > 0 ? trimNum(l.oldQty) + ' → ' + trimNum(l.newQty) : 'new on the bill · ' + trimNum(l.newQty)) + '</div>';
+      if (Number(l.returned) > 0.0001) h += '<span class="es-tag es-back">↩ ' + trimNum(l.returned) + ' back to stock</span> <span class="hint">(stock after: ' + trimNum(l.stockAfter) + ')</span>';
+      else if (Number(l.newQty) < Number(l.oldQty) && Number(l.newQty) > 0) h += '<span class="es-tag es-minus">−' + trimNum(Number(l.oldQty) - Number(l.newQty)) + ' (it was not delivered, so nothing goes back)</span>';
+      if (Number(l.newQty) > 0 && maxNow > 0.0001) {
+        h += '<div class="field" style="margin:8px 0 0;"><label>Hand over now (up to ' + trimNum(maxNow) + ')</label><input type="number" inputmode="numeric" class="es-del" data-code="' + escapeHtml(l.code) + '" min="0" max="' + maxNow + '" step="1" value="' + trimNum(Number(ES_.deliver[l.code]) || 0) + '" onchange="esDeliverChanged_(this)"></div>';
+        if (Number(l.deliveredNow) > 0.0001) h += '<div class="hint" style="margin-top:4px;">' + (Number(l.stockAfter) < 0 ? '<span class="es-tag es-back">stock will go below zero</span> ' : '') + 'stock after: ' + trimNum(l.stockAfter) + '</div>';
+        if (Number(l.pendingAfter) > 0.0001) h += '<div class="hint" style="margin-top:2px;">' + trimNum(l.pendingAfter) + ' will stay pending (hand it over later from Delivery Update)</div>';
+      }
+      return h + '</div>';
+    }).join('') || '<div class="hint" style="margin-bottom:8px;">The items are the same - only the money below changes.</div>';
+
+    const due = Number(s.dueBeforeCollect) || 0, excess = Number(s.excessBeforeCollect) || 0, wd = Number(s.walletDelta) || 0;
+    let m = '<div class="es-box" style="background:#fff;border:1px solid var(--line);"><div>Bill: <strong>' + money(s.oldAmount) + '</strong> → <strong>' + money(s.newAmount) + '</strong>' + (Number(s.transport) > 0 ? ' <span class="hint">(with transport ' + money(s.transport) + ')</span>' : '') + '</div>' +
+      '<div>SP: ' + trimNum(s.oldSp) + ' → <strong>' + trimNum(s.newSp) + '</strong></div><div>Paid so far: <strong>' + money(s.paidBefore) + '</strong></div></div>';
+    if (due > 0.005) m += '<div class="es-box es-due"><strong>' + money(due) + '</strong> is due for the new bill.' + ((Number(ES_.cash) || 0) + (Number(ES_.online) || 0) > 0 ? (Number(s.dueAfter) > 0.005 ? ' After the payment below, <strong>' + money(s.dueAfter) + '</strong> will still be due.' : ' With the payment below it is fully paid.') : ' Take the payment below, or leave it due.') + '</div>';
+    else if (excess > 0.005) m += '<div class="es-box es-ok">The customer has paid <strong>' + money(excess) + '</strong> more than the new bill.</div>';
+    else if (wd === 0) m += '<div class="es-box es-ok">Nothing to settle - the payment already matches the new bill.</div>';
+    if (wd > 0.005) m += '<div class="es-box es-ok"><strong>' + money(wd) + '</strong> will be added to ' + escapeHtml(s.customerName || 'the customer') + '\'s wallet (wallet ' + money(s.walletBalanceBefore) + ' → ' + money(s.walletBalanceAfter) + ').</div>';
+    else if (wd < -0.005) m += '<div class="es-box es-due">The bill became bigger, so <strong>' + money(-wd) + '</strong> of the extra money that was credited to the wallet before is used up by the bill - it will be taken back out of the wallet (wallet ' + money(s.walletBalanceBefore) + ' → ' + money(s.walletBalanceAfter) + ').</div>';
+    if (Number(s.spSetsCleared) > 0) m += '<div class="es-box es-warn">' + s.spSetsCleared + ' planned SP set' + (Number(s.spSetsCleared) > 1 ? 's' : '') + ' of this bill will be cleared because the bill changed - plan them again in the SP Sets tab.</div>';
+    if (s.spToAllocateOld != null && s.spToAllocateNew != null && Math.abs(Number(s.spToAllocateOld) - Number(s.spToAllocateNew)) > 0.0001) m += '<div class="es-box es-due">Planned SP for Official work: ' + trimNum(s.spToAllocateOld) + ' → <strong>' + trimNum(s.spToAllocateNew) + '</strong>.</div>';
+    document.getElementById('esMoney').innerHTML = m;
+    document.getElementById('esPay').style.display = (due > 0.005 || (Number(ES_.cash) || 0) + (Number(ES_.online) || 0) > 0) ? 'block' : 'none';
+  }
+  async function esConfirm_() {
+    if (!ES_ || !ES_.summary) return;
+    const inv = currentDetailBill.invoiceNo;
+    return runLocked_('edit-after-delivery:' + inv, async function () {
+      const btn = document.getElementById('esConfirmBtn'); btn.disabled = true; btn.textContent = 'Saving…';
+      const { data, error } = await sb.rpc('edit_bill_after_delivery', esPayload_(true));
+      btn.textContent = 'Confirm changes';
+      if (error) { btn.disabled = false; document.getElementById('esError').textContent = error.message; showToast(error.message, true); return; }
+      closeEditSettle_(); document.getElementById('editBillModal').classList.remove('show'); EDIT_TOUCHED_ = false;
+      const parts = ['Bill updated · ' + money(data.newAmount) + ' · ' + trimNum(data.newSp) + ' SP'];
+      if ((data.returned || []).length) parts.push(data.returned.length + ' item' + (data.returned.length > 1 ? 's' : '') + ' back in stock');
+      if ((data.delivered || []).length) parts.push(data.delivered.length + ' handed over');
+      if (Number(data.walletDelta) > 0.005) parts.push(money(data.walletDelta) + ' added to wallet'); else if (Number(data.walletDelta) < -0.005) parts.push(money(-Number(data.walletDelta)) + ' taken from wallet');
+      if (Number(data.dueAfter) > 0.005) parts.push(money(data.dueAfter) + ' still due');
+      showToast(parts.join(' · '));
+      await viewBill(inv, false);
+      refreshActiveBillList_();
+    });
+  }
+  // what changed on this bill and when - the main admin only (everybody else gets an empty list from the database)
+  async function renderBillEditHistory_(invoiceNo) {
+    const box = document.getElementById('billEditHistoryArea'); if (!box) return;
+    box.innerHTML = '';
+    if (!isSuperAdminUser) return;
+    const { data, error } = await sb.rpc('get_bill_edit_history', { p_invoice_no: invoiceNo });
+    if (error || !Array.isArray(data) || !data.length) return;
+    if (!currentDetailBill || currentDetailBill.invoiceNo !== invoiceNo) return;
+    const names = function (arr) { return (arr || []).map(function (x) { return escapeHtml(x.name) + ' ×' + trimNum(x.qty); }).join(', '); };
+    box.innerHTML = '<div class="card" id="billEditHistoryCard" style="margin-top:8px;box-shadow:none;background:var(--green-100);"><p style="color:var(--green-800);font-weight:700;font-size:13px;margin:0 0 6px;">Edit history (only you can see this)</p>' + data.map(function (h) {
+      const L = [];
+      if ((h.returned || []).length) L.push('Returned to stock: ' + names(h.returned));
+      if ((h.delivered || []).length) L.push('Handed over: ' + names(h.delivered));
+      L.push('Bill ' + money(h.amountBefore) + ' → ' + money(h.amountAfter) + ' · SP ' + trimNum(h.spBefore) + ' → ' + trimNum(h.spAfter));
+      L.push('Paid ' + money(h.paidBefore) + ' → ' + money(h.paidAfter) + ((Number(h.cash) > 0 || Number(h.online) > 0) ? ' (received: ' + (Number(h.cash) > 0 ? 'cash ' + money(h.cash) : '') + (Number(h.cash) > 0 && Number(h.online) > 0 ? ', ' : '') + (Number(h.online) > 0 ? 'online ' + money(h.online) + (h.utr ? ' UTR ' + escapeHtml(h.utr) : '') : '') + ')' : ''));
+      if (Math.abs(Number(h.walletDelta)) > 0.005) L.push('Wallet ' + (Number(h.walletDelta) > 0 ? '+' : '−') + money(Math.abs(Number(h.walletDelta))));
+      if (Number(h.spSetsCleared) > 0) L.push(h.spSetsCleared + ' planned SP set(s) cleared');
+      if (h.note) L.push('Note: ' + escapeHtml(h.note));
+      return '<div style="border-top:1px solid var(--line);padding:6px 0;"><p style="font-size:12px;font-weight:700;color:var(--green-900);margin:0 0 2px;">' + escapeHtml(dayIst_(h.eventDate)) + ' · by ' + escapeHtml(h.editedBy || 'staff') + ' <span style="font-weight:400;color:var(--ink-soft);">(saved ' + escapeHtml(new Date(h.recordedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })) + ')</span></p>' +
+        L.map(function (x) { return '<p style="font-size:11.5px;color:var(--ink-soft);margin:1px 0;">' + x + '</p>'; }).join('') + '</div>';
+    }).join('') + '</div>';
   }
 
   // ---------------- CANCEL BILL / EDIT BILL / DELETE BILL ----------------
@@ -5336,7 +5505,7 @@
     const rec = bill.records || { payments: [], deliveries: [], official: [] };
     const rows = [];
     rec.payments.forEach(function (p) { rows.push({ kind: 'payment', id: p.id, group: 'Payments', label: p.mode + ' ' + money(p.amount) + (p.remark ? ' · ' + p.remark : ''), when: p.payment_date }); });
-    rec.deliveries.forEach(function (d) { rows.push({ kind: 'delivery', id: d.id, group: 'Deliveries', label: d.product_name + ' × ' + trimNum(d.qty), when: d.log_date }); });
+    rec.deliveries.forEach(function (d) { rows.push({ kind: 'delivery', id: d.id, group: 'Deliveries', label: d.product_name + ' × ' + (Number(d.qty) < 0 ? trimNum(-Number(d.qty)) + ' returned' : trimNum(d.qty)), when: d.log_date }); });
     rec.official.forEach(function (o) { rows.push({ kind: 'official', id: o.official_no, group: 'Official work', label: o.official_no + (o.ds_id ? ' · ' + o.ds_id : '') + ' · ' + trimNum(o.total_sp_used) + ' SP', when: o.session_date }); });
     const { data: wal } = await sb.from('wallet_transactions').select('id, type, amount, note, txn_date').eq('invoice_no', bill.invoiceNo).order('txn_date', { ascending: true });
     (wal || []).forEach(function (w) { rows.push({ kind: 'wallet', id: w.id, group: 'Wallet entries', label: w.type + ' ' + money(w.amount) + (w.note ? ' · ' + w.note : ''), when: w.txn_date }); });
@@ -5430,7 +5599,13 @@
     const isPending = bill.billStatus === 'Pending';
     const dateBtn = isSuperAdminUser ? '<div class="modal-actions"><button class="btn btn-outline btn-block" id="correctDateBtn" onclick="openChangeBillDate()">📅 Correct bill date (all records)</button></div>' : '';
     const blockers = billEditBlockers_(bill);
-    const editCancelRow = blockers.length
+    const officialDone = (Number(bill.officialCount) || 0) > 0;
+    const editCancelRow = (blockers.length && bill.billStatus === 'Active' && !officialDone)
+      // delivered / paid, but Official work is not done yet: it can still be edited (returns, exchange), not cancelled
+      ? '<div class="card" id="billTouchedNote" style="margin-top:8px;box-shadow:none;background:var(--gold-100);"><p style="color:var(--gold-600);font-weight:700;font-size:13px;margin:0 0 4px;">This bill can\'t be cancelled</p>' +
+        '<p style="font-size:12.5px;color:var(--ink-soft);line-height:1.45;margin:0;">Because ' + joinReasons_(blockers) + ' on this bill. If the customer returns or exchanges goods you can still <strong>edit it until Official work is done</strong> - stock, payment and wallet are adjusted for you, and the main admin sees what changed and when.</p></div>' +
+        '<div class="modal-actions" style="margin-top:8px;"><button class="btn btn-primary btn-block" id="editTouchedBtn" onclick="openEditBill(\'touched\')">✎ Edit bill (return / exchange)</button></div>'
+      : blockers.length
       ? '<div class="card" id="billLockedNote" style="margin-top:8px;box-shadow:none;background:var(--gold-100);"><p style="color:var(--gold-600);font-weight:700;font-size:13px;margin:0 0 4px;">Items can\'t be edited and this bill can\'t be cancelled</p>' +
         '<p style="font-size:12.5px;color:var(--ink-soft);line-height:1.45;margin:0;">Because ' + joinReasons_(blockers) + ' on this bill. You can still change the transport charges. To change what was billed, use <strong>Delete Bill Permanently</strong> below (it reverses stock, payments and wallet) and bill it again.</p></div>'
       : '<div class="modal-actions" style="margin-top:8px;"><button class="btn btn-outline btn-block" onclick="openEditBill()">Edit Bill</button><button class="btn btn-outline btn-block" style="color:var(--danger);border-color:var(--danger);" onclick="cancelBillConfirm(\'' + bill.invoiceNo + '\')">Cancel Bill</button></div>';
@@ -5530,13 +5705,23 @@
     document.getElementById('editBillSaveBtn').disabled = !EDIT_CART.length;
   }
 
+  // A bill that already has delivery / payment can still be edited until Official work is done ("touched" mode): the next step is
+  // a review that shows what happens to stock, payment and wallet, and only then is anything saved (edit_bill_after_delivery).
+  let EDIT_TOUCHED_ = false, EDIT_ORIG_ = {};
   function openEditBill(origin) {
     if (!currentDetailBill) return;
+    const touched = origin === 'touched';
+    EDIT_TOUCHED_ = touched;
     editBillOrigin_ = origin === 'review' ? 'review' : 'detail';
-    if (editBillOrigin_ === 'detail') {
+    if (touched) {
+      if (currentDetailBill.billStatus !== 'Active') { showToast('Only an approved bill can be edited this way.', true); return; }
+      if ((Number(currentDetailBill.officialCount) || 0) > 0) { showToast('Official work was done on this bill, so it can\'t be edited any more.', true); return; }
+    } else if (editBillOrigin_ === 'detail') {
       const why = billEditBlockers_(currentDetailBill);
       if (why.length) { showToast('This bill can\'t be edited: ' + joinReasons_(why) + '.', true); return; }
     }
+    EDIT_ORIG_ = {};
+    (currentDetailBill.items || []).forEach(function (it) { EDIT_ORIG_[it.code] = { qty: Number(it.qty) || 0, delivered: Number(it.deliveredQty) || 0 }; });
     EDIT_CART = currentDetailBill.items.map(function (it) { return { code: it.code, name: it.name, dp: Number(it.dp), sp: Number(it.sp), mrp: Number(it.mrp) || 0, qty: Number(it.qty) }; });
     document.getElementById('editBillInvoiceNo').textContent = currentDetailBill.invoiceNo;
     document.getElementById('editBillSearchInput').value = '';
@@ -5552,6 +5737,13 @@
     }
     const base = editTotalsOf_(EDIT_CART, currentDetailBill.customerType, currentDetailBill.discountPercent, document.getElementById('editBillTransport').value);
     EDIT_BASE = { total: base.grand, sp: base.sp };
+    document.getElementById('editBillHint').textContent = touched
+      ? 'This bill already has delivery / payment. Change the items below - the next step shows what happens to stock, payment and wallet before anything is saved.'
+      : 'Only bills with no payment, delivery, or SP work yet can be edited.';
+    document.getElementById('editBillMobileField').style.display = touched ? 'none' : '';
+    document.getElementById('editBillTransportField').style.display = touched ? 'none' : '';
+    if (touched) dateField.style.display = 'none';
+    document.getElementById('editBillSaveBtn').textContent = touched ? 'Review changes →' : 'Save Changes';
     renderEditBillItemsList();
     document.getElementById('editBillModal').classList.add('show');
     document.getElementById('editBillSheet').scrollTop = 0;
@@ -5567,6 +5759,18 @@
     row.querySelector('.amt').textContent = money(c.qty * editRate_(c));
     row.querySelector('.pts').textContent = trimNum(c.qty * c.sp) + ' SP';
     const inp = row.querySelector('.ebQty'); if (document.activeElement !== inp) inp.value = c.qty;
+    const note = row.querySelector('.eb-note'); if (note) note.innerHTML = editNoteHtml_(c);
+  }
+  function editNoteHtml_(c) {
+    if (!EDIT_TOUCHED_) return '';
+    const o = EDIT_ORIG_[c.code];
+    if (!o) return '<span class="es-tag es-new">NEW on this bill</span>';
+    const bits = [];
+    if (o.delivered > 0) bits.push('Delivered ' + trimNum(o.delivered) + ' of ' + trimNum(o.qty));
+    if (c.qty < o.delivered) bits.push('<span class="es-tag es-back">↩ ' + trimNum(o.delivered - c.qty) + ' back to stock</span>');
+    else if (c.qty > o.qty) bits.push('<span class="es-tag es-new">+' + trimNum(c.qty - o.qty) + ' more</span>');
+    else if (c.qty < o.qty) bits.push('<span class="es-tag es-minus">−' + trimNum(o.qty - c.qty) + ' (was not delivered)</span>');
+    return bits.join(' · ');
   }
   function flashEditRow_(code) {
     const row = editRowOf_(code); if (!row) return;
@@ -5581,7 +5785,7 @@
     if (!EDIT_CART.length) { box.innerHTML = '<div class="empty-cart">No items — add at least one product.</div>'; updateEditBillTotals_(); return; }
     box.innerHTML = EDIT_CART.map(function (c) {
       const rate = editRate_(c);
-      return '<div class="cart-item" data-code="' + c.code + '"><div class="cart-row-top"><div><div class="cart-name">' + escapeHtml(c.name) + '</div><div class="cart-code">#' + c.code + ' · ' + money(rate) + ' each' + (isRetail ? ' (MRP)' : '') + '</div></div>' +
+      return '<div class="cart-item" data-code="' + c.code + '"><div class="cart-row-top"><div><div class="cart-name">' + escapeHtml(c.name) + '</div><div class="cart-code">#' + c.code + ' · ' + money(rate) + ' each' + (isRetail ? ' (MRP)' : '') + '</div><div class="eb-note">' + editNoteHtml_(c) + '</div></div>' +
         '<button class="remove-btn ebRemove" type="button">&times;</button></div>' +
         '<div class="cart-row-bottom"><div class="qty-stepper"><button class="ebDelta" data-delta="-1" data-code="' + c.code + '">&minus;</button>' +
         '<input type="number" class="ebQty" data-code="' + c.code + '" min="1" step="1" value="' + c.qty + '">' +
@@ -5661,6 +5865,7 @@
 
   async function saveEditedBill() {
     if (!EDIT_CART.length) { showToast('Add at least one product.', true); return; }
+    if (EDIT_TOUCHED_) { openEditSettle_(); return; }
     const btn = document.getElementById('editBillSaveBtn');
     btn.disabled = true; btn.textContent = 'Saving…';
     const bill = currentDetailBill;
