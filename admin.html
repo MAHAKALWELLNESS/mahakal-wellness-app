@@ -136,6 +136,13 @@
   .edit-actions{position:sticky; bottom:-20px; z-index:5; background:var(--surface); margin:14px -20px -20px; padding:12px 20px 16px; border-top:1px solid var(--line);}
   #editBillItemsList .cart-item{scroll-margin-top:130px; scroll-margin-bottom:90px;}
   .cart-item.just-changed{animation:editFlash 1.3s ease-out;}
+  /* New Bill: Today's bill / Past bill entry */
+  .modeswitch{display:flex; gap:8px;}
+  .modebtn{flex:1; padding:12px 8px; border:1.5px solid var(--line); border-radius:12px; background:#fff; font-weight:700; font-size:14px; line-height:1.2; font-family:inherit; color:var(--green-800); cursor:pointer;}
+  .modebtn.active{background:var(--green-900); color:#fff; border-color:var(--green-900);}
+  .modebtn.active.past{background:var(--gold-600); border-color:var(--gold-600);}
+  .list-row.flash-new{animation:rowFlash 2.6s ease-out;}
+  @keyframes rowFlash{0%,65%{background:var(--gold-100); box-shadow:0 0 0 2px var(--gold-500);} 100%{background:transparent; box-shadow:none;}}
   /* Correct a bill's date: the list of records that can move with it */
   .cbd-group{font-size:11.5px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.4px; margin:10px 0 2px;}
   .cbd-row{display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; cursor:pointer;}
@@ -373,6 +380,19 @@
         <button class="subtab" data-subtab="purchase" onclick="switchNewBillMainSubtab('purchase')">Purchase</button>
       </div>
       <div id="nbmsub-sale" class="subtab-panel active">
+      <div class="card" id="billModeCard">
+        <p class="section-label">Bill type</p>
+        <div class="modeswitch" role="group" aria-label="Bill type">
+          <button type="button" class="modebtn active" id="modeTodayBtn" onclick="setBillMode_('today')">Today's bill</button>
+          <button type="button" class="modebtn" id="modePastBtn" onclick="setBillMode_('past')">Past bill entry</button>
+        </div>
+        <div class="field" id="pastDateField" style="display:none;margin:12px 0 0;">
+          <label for="billDate">Date of this old bill <span style="color:var(--danger);">*</span></label>
+          <input type="date" id="billDate" min="2026-01-01" oninput="validateBillDate_(); updateSaveBtnState_();" onchange="validateBillDate_(); updateSaveBtnState_();">
+          <p class="login-error" id="billDateError" style="min-height:0;margin:4px 0 0;"></p>
+          <p class="hint" style="margin:6px 0 0;">Today's date can't be used here. The delivery date and payment date are asked when this bill is approved - they start as this bill date.</p>
+        </div>
+      </div>
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="resetNewBillForm()">↻ Refresh / Start Fresh</button>
       <div class="card">
         <p class="section-label">Customer/Distributor</p>
@@ -432,7 +452,6 @@
         <div class="field"><label for="salesman">Salesman</label><input type="text" id="salesman" list="salesmanOptions" placeholder="Staff name">
           <datalist id="salesmanOptions"><option value="Alisha"></option><option value="Praveen"></option></datalist>
         </div>
-        <div class="field"><label for="billDate">Bill date (leave blank for today)</label><input type="date" id="billDate"></div>
         <div class="field" id="transportChargesField" style="display:none;"><label for="transportCharges">Rapido/Bus/Transport Charges ₹ (optional)</label><input type="number" id="transportCharges" min="0" step="0.01" placeholder="0" oninput="renderTotals()"></div>
         <div class="field"><label for="cashMemoNo">Cash Memo No.</label><input type="text" id="cashMemoNo" placeholder="e.g. 1024" oninput="this.value=this.value.toUpperCase(); checkCashMemoLive();">
           <p class="login-error" id="cashMemoError" style="min-height:0;margin:4px 0 0;"></p>
@@ -578,8 +597,11 @@
 
     <!-- ============ DASHBOARD TAB ============ -->
     <section id="tab-dashboard" class="tab-panel">
+      <button class="btn btn-gold btn-block" id="dashRefreshBtn" style="margin-bottom:4px;" onclick="refreshDashboard_()">↻ Refresh</button>
+      <p class="hint" id="dashUpdatedAt" style="margin:0 0 12px;text-align:center;"></p>
       <div class="card" id="dashboardProfitStats" style="display:none;">
         <p class="section-label">Company Payout &amp; Profit (Super Admin)</p>
+        <p class="login-error" id="dashProfitNote" style="min-height:0;margin:0 0 8px;"></p>
         <p class="hint" style="margin-bottom:10px;">Last complete month: <strong id="dashLastMonthLabel"></strong></p>
         <div class="stat-grid">
           <div class="stat-card"><div class="stat-label">Last Month Payout</div><div class="stat-value" id="dashLastMonthPayout">₹0</div></div>
@@ -1456,6 +1478,21 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="approveCashMemoModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Approve public order</h2>
+      <p class="hint" style="margin-bottom:12px;">Enter the Cash Memo No. for this order. The bill is created only after it is entered.</p>
+      <div class="field" style="margin-bottom:0;"><label for="approveCashMemoNo">Cash Memo No.</label>
+        <input type="text" id="approveCashMemoNo" placeholder="e.g. 1024" autocomplete="off" oninput="this.value=this.value.toUpperCase(); checkApproveCashMemoLive_();" onkeydown="if (event.key === 'Enter') { event.preventDefault(); submitApproveWithCashMemo(); }">
+        <p class="login-error" id="approveCashMemoError" style="min-height:0;margin:4px 0 0;"></p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closeApproveCashMemo_()">Cancel</button>
+        <button class="btn btn-primary" type="button" id="approveCashMemoBtn" onclick="submitApproveWithCashMemo()" disabled>Approve</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="editExpenseModal">
     <div class="modal-sheet">
       <h2 style="font-size:16px;color:var(--green-800);margin-bottom:14px;">Edit Expense</h2>
@@ -1578,6 +1615,11 @@
     <div class="modal-sheet">
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Step 1 of 2: Payment</h2>
       <p class="hint" style="margin-bottom:12px;">Amount due: <strong id="paymentStepAmountDue"></strong></p>
+      <div class="field" id="paymentStepDateField" style="display:none;">
+        <label for="paymentStepDate">Payment date <span style="color:var(--danger);">*</span> <span style="font-weight:600;color:var(--gold-600);">(past bill)</span></label>
+        <input type="date" id="paymentStepDate">
+        <p class="hint" style="margin:6px 0 0;">Starts as the bill date. Change it if the money came on another day.</p>
+      </div>
       <div id="paymentStepCustomerNote" style="display:none;margin-bottom:12px;background:var(--gold-100);border:1.5px solid var(--gold-500);border-radius:8px;padding:8px 10px;font-size:12.5px;font-weight:700;color:var(--green-900);"></div>
       <div id="paymentStepWalletArea" style="display:none;margin-bottom:12px;background:var(--gold-100);border-radius:10px;padding:10px 12px;">
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700;color:var(--gold-600);margin-bottom:6px;">
@@ -1614,7 +1656,7 @@
     <div class="modal-sheet">
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Step 2 of 2: How much was delivered now?</h2>
       <p class="hint" style="margin-bottom:12px;">Defaults to 0 - enter how much is actually being handed over now. Whatever's left stays pending, or tap "Deliver All" for a full item.</p>
-      <div class="field"><label for="deliveryDateInput">Delivery date (leave blank for today)</label><input type="date" id="deliveryDateInput"></div>
+      <div class="field"><label for="deliveryDateInput" id="deliveryDateLabel">Delivery date (leave blank for today)</label><input type="date" id="deliveryDateInput"></div>
       <div id="deliveryItemsList"></div>
       <div class="modal-actions">
         <button class="btn btn-outline" onclick="backToPaymentStep()">← Back</button>
@@ -2542,12 +2584,35 @@
   // already used - the Save button stays disabled until both the cart has
   // items AND the entered cash memo is non-empty and confirmed available.
   let cashMemoValid_ = false;
+  // Today's bill / Past bill entry. A past bill MUST have a date, and it can never be today's date.
+  let billMode_ = 'today', pastDateValid_ = true;
+  function setBillMode_(mode) {
+    billMode_ = mode === 'past' ? 'past' : 'today';
+    const past = billMode_ === 'past';
+    document.getElementById('modeTodayBtn').classList.toggle('active', !past);
+    const pastBtn = document.getElementById('modePastBtn'); pastBtn.classList.toggle('active', past); pastBtn.classList.toggle('past', past);
+    document.getElementById('pastDateField').style.display = past ? '' : 'none';
+    const el = document.getElementById('billDate');
+    if (past) { el.max = istDay_(new Date(Date.now() - 86400000).toISOString()); } else { el.value = ''; }
+    validateBillDate_();
+    updateSaveBtnState_();
+    if (past) setTimeout(function () { try { el.focus(); } catch (e) {} }, 60);
+  }
+  function validateBillDate_() {
+    const err = document.getElementById('billDateError'), v = document.getElementById('billDate').value, today = istDay_(new Date().toISOString());
+    pastDateValid_ = true; err.textContent = '';
+    if (billMode_ !== 'past') return;
+    if (!v) { pastDateValid_ = false; err.textContent = 'Choose the date of this old bill.'; }
+    else if (v >= today) { pastDateValid_ = false; err.textContent = 'Today\'s date can\'t be used here. For a bill of today choose "Today\'s bill" above.'; }
+    else if (v < '2026-01-01') { pastDateValid_ = false; err.textContent = 'That date is too old.'; }
+  }
   function updateSaveBtnState_() {
-    document.getElementById('saveBtn').disabled = CART.length === 0 || !cashMemoValid_;
+    document.getElementById('saveBtn').disabled = CART.length === 0 || !cashMemoValid_ || (billMode_ === 'past' && !pastDateValid_);
   }
 
   async function saveBill() {
     if (!CART.length) { showToast('Add at least one product first.', true); return; }
+    if (billMode_ === 'past') { validateBillDate_(); if (!pastDateValid_) { showToast(document.getElementById('billDateError').textContent, true); return; } }
     const custType = document.getElementById('custType').value;
     if (!custType) { showToast('Choose a customer type first.', true); return; }
     const btn = document.getElementById('saveBtn');
@@ -2562,7 +2627,8 @@
     const salesman = document.getElementById('salesman').value.trim();
     const discountPercent = custType === 'Retail' ? (Number(document.getElementById('discountPercent').value) || 0) : 0;
     const billDateInput = document.getElementById('billDate').value;
-    const billDateIso = billDateInput ? new Date(billDateInput + 'T' + new Date().toTimeString().slice(0, 8)).toISOString() : null;
+    // Today's bill: no date is sent (the server uses now). Past bill entry: the chosen date (at noon, like every other manual date).
+    const billDateIso = billMode_ === 'past' ? new Date(billDateInput + 'T12:00:00').toISOString() : null;
     const transportCharges = Number(document.getElementById('transportCharges').value) || 0;
 
     const payload = {
@@ -2644,6 +2710,7 @@
     document.getElementById('cashMemoNo').value = '';
     document.getElementById('cashMemoError').textContent = '';
     cashMemoValid_ = false;
+    setBillMode_('today');
     toggleRetailDiscount();
     renderCart();
     showToast('Form reset.');
@@ -2693,6 +2760,11 @@
     document.getElementById('paymentStepWalletWarning').textContent = '';
     document.getElementById('paymentStepWalletArea').style.display = 'none';
     currentWalletBalanceForPayment = 0;
+    // A past bill (entered with a back date) must state when the money came in - the date starts as the bill date.
+    const pdField = document.getElementById('paymentStepDateField'), pd = document.getElementById('paymentStepDate');
+    pdField.style.display = bill.pastEntry ? '' : 'none';
+    pd.value = bill.pastEntry ? istDay_(bill.date) : '';
+    pd.min = bill.pastEntry ? istDay_(bill.date) : ''; pd.max = bill.pastEntry ? istDay_(new Date().toISOString()) : '';
 
     // If this bill came from the customer Order Form and they already
     // reported paying via UPI, pre-fill Online + UTR here so staff don't
@@ -2796,14 +2868,29 @@
       showToast('UTR number is required for the online payment amount.', true);
       return;
     }
+    const cashAmt = Number(document.getElementById('paymentStepCash').value) || 0;
+    let payDateIso = null;
+    if (currentDetailBill.pastEntry) {
+      const pv = document.getElementById('paymentStepDate').value;
+      if (cashAmt + online + walletUsed > 0.005) {
+        const perr = pastBillDateError_(pv, currentDetailBill, 'Payment date');
+        if (perr) { showToast(perr, true); return; }
+      }
+      payDateIso = pv ? new Date(pv + 'T12:00:00').toISOString() : null;
+    }
     proceedFurtherPayment = {
-      cash: Number(document.getElementById('paymentStepCash').value) || 0,
+      cash: cashAmt,
       online: online,
-      walletUsed: walletUsed
+      walletUsed: walletUsed,
+      dateIso: payDateIso
     };
     document.getElementById('paymentStepModal').classList.remove('show');
     renderDeliveryModal(currentDetailBill.items);
-    document.getElementById('deliveryDateInput').value = '';
+    // past bill: the delivery date is compulsory and starts as the bill date
+    const dd = document.getElementById('deliveryDateInput'), past = !!currentDetailBill.pastEntry;
+    dd.value = past ? istDay_(currentDetailBill.date) : '';
+    dd.min = past ? istDay_(currentDetailBill.date) : ''; dd.max = past ? istDay_(new Date().toISOString()) : '';
+    document.getElementById('deliveryDateLabel').innerHTML = past ? 'Delivery date <span style="color:var(--danger);">*</span> <span style="font-weight:600;color:var(--gold-600);">(past bill - starts as the bill date)</span>' : 'Delivery date (leave blank for today)';
     document.getElementById('deliveryModal').classList.add('show');
   }
 
@@ -2854,7 +2941,15 @@
 
   function deliveryDateOverride_() {
     const val = document.getElementById('deliveryDateInput').value;
+    if (currentDetailBill && currentDetailBill.pastEntry) return val ? new Date(val + 'T12:00:00').toISOString() : null;
     return val ? new Date(val + 'T' + new Date().toTimeString().slice(0, 8)).toISOString() : null;
+  }
+  // a past bill's delivery / payment date: required, not before the bill date, not after today
+  function pastBillDateError_(val, bill, label) {
+    if (!val) return label + ' is required for a past bill.';
+    const billDay = istDay_(bill.date), today = istDay_(new Date().toISOString());
+    if (val < billDay || val > today) return label + ' must be between the bill date (' + fmtDayIst_(bill.date) + ') and today.';
+    return '';
   }
 
   // One save at a time per action: a second tap while the first is still running is ignored,
@@ -2888,6 +2983,10 @@
       return;
     }
     const utrNo = document.getElementById('paymentStepUtr').value.trim();
+    if (currentDetailBill.pastEntry && proceedFurtherDeliveryItems.some(function (i) { return Number(i.delivered_qty) > 0; })) {
+      const derr = pastBillDateError_(document.getElementById('deliveryDateInput').value, currentDetailBill, 'Delivery date');
+      if (derr) { showToast(derr, true); return; }
+    }
     // One save at a time: a second tap while this one is still running used to run the whole
     // approval again - the payment, delivery and stock deduction were all recorded twice.
     approvalSaving_ = true;
@@ -2897,7 +2996,7 @@
       const { error } = await sb.rpc('confirm_delivery', {
         p_invoice_no: invoiceNo, p_items: proceedFurtherDeliveryItems,
         p_cash: proceedFurtherPayment.cash, p_online: proceedFurtherPayment.online, p_wallet_used: proceedFurtherPayment.walletUsed,
-        p_utr_no: utrNo || null, p_delivery_date: deliveryDateOverride_()
+        p_utr_no: utrNo || null, p_delivery_date: deliveryDateOverride_(), p_payment_date: proceedFurtherPayment.dateIso || null
       });
       if (error) { showToast('Could not finalize: ' + error.message, true); return; }
       showToast('Bill ' + invoiceNo + ' finalized.');
@@ -3204,8 +3303,10 @@
           const future = new Date(today); future.setDate(future.getDate() + 30);
           document.getElementById('dashHallTo').value = fmtDateInput_(future);
           loadDashboardHallSummary_();
+          loadDashboardProfitStats_();   // the card was last loaded at login - which may be hours ago
         }
-      } else { loadDashboard(); }
+        stampDashboardUpdated_();
+      } else { refreshDashboard_(); }    // every later visit: sales stats + company payout & profit + hall, all fresh
     }
     if (name === 'official') loadOfficialPending();
     if (name === 'spsets') initSpSetsTab_();
@@ -4232,13 +4333,46 @@
     document.getElementById('publicOrderDetailModal').classList.add('show');
   }
 
-  async function approvePublicOrderConfirm() {
+  // Approving a public order needs its Cash Memo No. first (same rules as a New Bill: required, not used before).
+  // After that the bill waits in Bill Approval - the screen goes there (next step) and flashes the new bill.
+  let approveCashMemoValid_ = false, approveCashMemoDebounce_ = null, approvalFlashInvoice_ = null;
+  function approvePublicOrderConfirm() {
     if (!currentPublicOrderId) return;
-    const { data: invoiceNo, error } = await sb.rpc('approve_public_order', { p_order_id: currentPublicOrderId });
-    if (error) { showToast(error.message, true); return; }
-    showToast('Approved as ' + invoiceNo + ' — now in Bill Approval.');
-    document.getElementById('publicOrderDetailModal').classList.remove('show');
-    loadPublicOrders();
+    const inp = document.getElementById('approveCashMemoNo');
+    inp.value = ''; approveCashMemoValid_ = false;
+    document.getElementById('approveCashMemoError').textContent = '';
+    document.getElementById('approveCashMemoBtn').disabled = true;
+    document.getElementById('approveCashMemoModal').classList.add('show');
+    setTimeout(function () { inp.focus(); }, 60);
+  }
+  function closeApproveCashMemo_() { document.getElementById('approveCashMemoModal').classList.remove('show'); }
+  function checkApproveCashMemoLive_() {
+    clearTimeout(approveCashMemoDebounce_);
+    const val = document.getElementById('approveCashMemoNo').value.trim();
+    const err = document.getElementById('approveCashMemoError'), btn = document.getElementById('approveCashMemoBtn');
+    err.textContent = ''; approveCashMemoValid_ = false; btn.disabled = true;
+    if (!val) { err.textContent = 'Cash Memo No. is required.'; return; }
+    approveCashMemoDebounce_ = setTimeout(async function () {
+      const { data: available } = await sb.rpc('check_cash_memo_available', { p_cash_memo_no: val });
+      if (document.getElementById('approveCashMemoNo').value.trim() !== val) return;   // typed on while checking
+      if (available === false) { err.textContent = 'Cash memo ' + val + ' is already used.'; approveCashMemoValid_ = false; }
+      else { approveCashMemoValid_ = true; }
+      btn.disabled = !approveCashMemoValid_;
+    }, 400);
+  }
+  async function submitApproveWithCashMemo() {
+    if (!currentPublicOrderId || !approveCashMemoValid_) return;
+    const memo = document.getElementById('approveCashMemoNo').value.trim().toUpperCase();
+    return runLocked_('approve-public-order', async function () {
+      const { data: invoiceNo, error } = await sb.rpc('approve_public_order', { p_order_id: currentPublicOrderId, p_cash_memo_no: memo });
+      if (error) { showToast(error.message, true); return; }
+      closeApproveCashMemo_();
+      document.getElementById('publicOrderDetailModal').classList.remove('show');
+      showToast('Approved as ' + invoiceNo + ' (Cash Memo ' + memo + ') - now in Bill Approval.');
+      approvalFlashInvoice_ = invoiceNo;
+      loadPublicOrders();
+      switchTab('approval');
+    });
   }
 
   async function rejectPublicOrderConfirm() {
@@ -4529,6 +4663,11 @@
         '<div style="text-align:right;"><div class="cart-amount"><div class="amt">' + money(billGrand_(r)) + '</div><div class="pts">' + trimNum(r.total_sp) + ' SP</div></div><span class="badge badge-partial">Pending Approval</span></div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { viewBill(row.dataset.inv, false); }); });
+    if (approvalFlashInvoice_) {   // a public order was just approved: show where its bill is
+      const fresh = box.querySelector('.list-row[data-inv="' + approvalFlashInvoice_ + '"]');
+      approvalFlashInvoice_ = null;
+      if (fresh) { fresh.classList.add('flash-new'); fresh.scrollIntoView({ block: 'center' }); }
+    }
   }
 
   let currentDetailInvoice = null, currentDetailMobile = '', currentDetailShareToken = null;
@@ -4553,6 +4692,7 @@
       referenceName: header.reference_name, referenceMobile: header.reference_mobile, billStatus: header.bill_status,
       remark: header.remark,
       officialCount: (officialRows || []).length,
+      pastEntry: header.past_entry === true,
       records: { payments: paymentRows || [], deliveries: deliveryRows || [], official: officialRows || [] },
       items: (items || []).map(function (it) { return { code: it.product_code, name: it.product_name, qty: it.qty, dp: it.dp, sp: it.sp, mrp: it.mrp, pendingQty: it.pending_qty, deliveredQty: it.delivered_qty }; })
     };
@@ -7878,11 +8018,19 @@
     }).join('') + (rows.length > 8 ? '<p class="hint" style="text-align:center;margin-top:6px;">+' + (rows.length - 8) + ' more — see Hall Booking tab</p>' : '');
   }
 
+  // Company payout & profit card (Super Admin). Called at login, every time the Dashboard tab is opened, and by Refresh.
+  let dashProfitReq_ = 0;
+  function dashProfitNote_(msg) { const n = document.getElementById('dashProfitNote'); if (n) n.textContent = msg || ''; }
   async function loadDashboardProfitStats_() {
-    const { data, error } = await sb.rpc('get_profit_summary');
-    if (error || !data) return;
+    const req = ++dashProfitReq_;                       // if a newer load starts while this one waits, the newer answer wins
     const box = document.getElementById('dashboardProfitStats');
     if (!box) return;
+    const { data, error } = await sb.rpc('get_profit_summary');
+    if (req !== dashProfitReq_) return;
+    if (error || !data) {
+      if (isSuperAdminUser) { box.style.display = 'block'; dashProfitNote_('Could not refresh Company Payout & Profit - the numbers below may be old. Tap Refresh to try again.'); }
+      return;
+    }
     box.style.display = 'block';
     document.getElementById('dashLastMonthLabel').textContent = data.lastMonth;
     document.getElementById('dashLastMonthPayout').textContent = money(data.lastMonthPayout);
@@ -7891,6 +8039,7 @@
     document.getElementById('dashNetTotalProfit').textContent = money(data.netTotalProfit);
 
     const { data: yearly, error: yErr } = await sb.rpc('get_franchisee_yearly_summary');
+    if (req !== dashProfitReq_) return;
     if (!yErr && yearly) {
       const totalInvested = yearly.reduce(function (s, y) { return s + Number(y.totalInvested); }, 0);
       const totalWithdrawn = yearly.reduce(function (s, y) { return s + Number(y.totalWithdrawn); }, 0);
@@ -7898,15 +8047,51 @@
     }
 
     const { data: monthly, error: mErr } = await sb.rpc('get_monthly_profit_report');
+    if (req !== dashProfitReq_) return;
     if (!mErr && monthly) {
+      const select = document.getElementById('dashProfitMonthFilter'), keep = select.value;   // keep the month the admin was looking at
       dashMonthlyProfitData_ = {};
-      const select = document.getElementById('dashProfitMonthFilter');
       select.innerHTML = '<option value="">Select a month…</option>' + monthly.map(function (m) {
         dashMonthlyProfitData_[m.month] = m;
         return '<option value="' + m.month + '">' + m.monthLabel + '</option>';
       }).join('');
+      if (keep && dashMonthlyProfitData_[keep]) select.value = keep;
+      showDashProfitForMonth_();
+    }
+    dashProfitNote_('');
+  }
+
+  // The Dashboard's Refresh button, and the automatic refresh every time the tab is opened (or the app comes back to the front):
+  // sales stats + company payout & profit + hall summary are all reloaded, so an entry made in another tab shows up at once.
+  let dashRefreshing_ = false, dashRefreshAgain_ = false, dashLastRefresh_ = 0;
+  function stampDashboardUpdated_() {
+    dashLastRefresh_ = Date.now();
+    const u = document.getElementById('dashUpdatedAt');
+    if (u) u.textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+  }
+  async function refreshDashboard_() {
+    if (dashRefreshing_) { dashRefreshAgain_ = true; return; }   // asked again while loading: do it once more right after
+    dashRefreshing_ = true;
+    const btn = document.getElementById('dashRefreshBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Refreshing…'; }
+    try {
+      const jobs = [loadDashboard()];
+      if (isSuperAdminUser) { jobs.push(loadDashboardProfitStats_()); jobs.push(loadDashboardHallSummary_()); }
+      await Promise.all(jobs);
+      stampDashboardUpdated_();
+    } catch (e) {
+      showToast('Could not refresh the dashboard. Check the internet and tap Refresh.', true);
+    } finally {
+      dashRefreshing_ = false;
+      if (btn) { btn.disabled = false; btn.textContent = '↻ Refresh'; }
+      if (dashRefreshAgain_) { dashRefreshAgain_ = false; refreshDashboard_(); }
     }
   }
+  document.addEventListener('visibilitychange', function () {   // coming back to the app: the Dashboard may be old by now
+    if (document.visibilityState !== 'visible') return;
+    const tab = document.getElementById('tab-dashboard'), app = document.getElementById('appRoot');
+    if (tab && tab.classList.contains('active') && app && app.style.display !== 'none' && Date.now() - dashLastRefresh_ > 60000) refreshDashboard_();
+  });
 
   let dashMonthlyProfitData_ = {};
   function showDashProfitForMonth_() {

@@ -2,6 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>
+  // Register the worker AT ONCE. (It used to wait for the whole page - fonts included - to finish loading, which on a slow
+  // network delayed the moment Chrome is willing to offer "Install", so people had to refresh again and again.)
+  // (It also notes whether this is the FIRST time this browser meets the worker - see the one automatic refresh below.)
+  window.__mwFirstVisit = false;
+  if ('serviceWorker' in navigator) {
+    try {
+      navigator.serviceWorker.getRegistration().then(function (r) { window.__mwFirstVisit = !r; }, function () {})
+        .then(function () { return navigator.serviceWorker.register('sw.js'); }).catch(function () {});
+    } catch (e) {}
+  }
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mahakal Wellness — App Install Karo</title>
 <link rel="manifest" href="manifest-main.json">
@@ -13,7 +25,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Mahakal Wellness">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap"></noscript>
 <style>
   :root{
     --green-900:#132E26; --green-800:#1E4A3D; --green-100:#DCE9E3;
@@ -52,6 +65,10 @@
   summary{font-weight:600; font-size:14.5px; cursor:pointer; color:var(--green-900);}
   details p{margin:8px 0 0; font-size:13.5px; color:var(--ink-soft); line-height:1.5;}
   .plain{display:block; text-align:center; margin-top:18px; font-size:13.5px; color:var(--green-800); font-weight:600;}
+  .btn[disabled]{opacity:.55;}
+  .qr{image-rendering:pixelated; width:240px;}
+  .spin{display:inline-block; width:14px; height:14px; border:2px solid var(--line); border-top-color:var(--gold-600); border-radius:50%; vertical-align:-2px; margin-right:6px; animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
@@ -75,9 +92,41 @@
     <a class="btn green" href="index.html" style="margin-top:12px;">App kholo</a>
   </section>
 
+  <!-- Android and computer: ONE card. The install button is always there; if the browser is not ready yet it shows the steps instead. -->
+  <section class="card" id="stateMain" hidden>
+    <h2>App install karo</h2>
+    <p class="sub">Free hai · 1 tap me home screen par · Play Store ki zaroorat nahi</p>
+    <button class="btn" id="installBtn" type="button">📲 App install karo</button>
+    <p class="note" id="installMsg"></p>
+
+    <div id="chromeBox" hidden>
+      <div class="box warn" style="margin-top:12px;"><strong>Install nahi ho raha?</strong> Shayad ye link kisi dusre app (WhatsApp, Google Lens…) ke andar khula hai. Wahan install nahi hota. Seedha Chrome me kholo:</div>
+      <a class="btn green" data-chrome href="#" style="margin-top:10px;">Chrome me kholo</a>
+    </div>
+
+    <div id="manualSteps" hidden>
+      <div id="stepsAndroid" hidden>
+        <p class="sub" style="margin:16px 0 4px;"><strong>Button se na ho to Chrome me ye 3 step karo:</strong></p>
+        <ol class="steps">
+          <li><span>Chrome ke upar-right me <strong>⋮</strong> (3 dots) dabao.</span></li>
+          <li><span><strong>"Install app"</strong> ya <strong>"Add to Home screen"</strong> chuno.</span></li>
+          <li><span><strong>"Install"</strong> dabao. Home screen par <strong>Mahakal Wellness</strong> icon aa jayega.</span></li>
+        </ol>
+        <p class="note">Menu me <strong>"Install app"</strong> na dikhe? Ya to app pehle se install hai (home screen / app list me <strong>Mahakal Wellness</strong> icon dhoondho), ya menu me <strong>"Open in Chrome"</strong> chuno. Chrome nahi hai? Link copy karke Chrome me kholo.</p>
+      </div>
+      <div id="stepsDesktop" hidden>
+        <p class="sub" style="margin:16px 0 8px;">Chrome / Edge me address bar ke right side me <strong>install icon (⊕)</strong> dabao, ya menu <strong>⋮ → Install Mahakal Wellness</strong>.</p>
+        <p class="sub" style="margin-bottom:6px;"><strong>Phone me install karna hai?</strong> Phone ke camera se ye QR scan karo:</p>
+        <img class="qr" id="deskQr" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAcIAAAHCAQAAAABUY/ToAAAC8ElEQVR42u2cXWrEMAyERXOAHClXz5F8gICbta0fx/a2lEKhfH4Iu0nmJQzSjCRb8g/XKSBBggT5W8gkbR35uq97eXD/OpLea5ec9c3tRn7ITxfI/4V8cWirfGpUuf82vuyXPrV7R3kzwSGQTw6V0OIEqUR6RaRKpHNvAarFJjgEcsWhwg3NVpUvNW/BIZDfjUOFKsoXu6eZDg6B/FIPFW4ofWpEOtBDIL/BIfNlJoWWF3wZyBmHfCUPSy2rxRCk8apVBfi2IJ1DWvw53OA7hzx5yZbDPTgEcuRQ+dX00O7a537lpYyaYXO1xLcFGTlU3btr6hqHZPD2VTzhy0DO4lCKDi3aNGnVxvKrRiR8GciJL7PizzR5mZzWbhp6COTgy05taYTUVqqNJorEy5DkMpBjHIoqqKtTR6FUSkj5IpeBXOSyK7LJBJBOfGjN6FDrBodARg4ZQbRzFrRPUdJtAES5duLtQU68vVhbLImEcaK6ilrqJTYcAtlp6qFbbz20Gox2iz4WluAQyD6XnS6AzNtbM7Yp7hRHQeAQyIe39zRWDX7qXVvQSHAI5CIOiZeorfVRh/YlpDFteJDLQI7e3oeDVPvEeepeTsMhkGMc6vplV5he1B1EWxgKwduDnMUh2bvRIStMd/WhvvvKtwXZa2qvP9u9mtDqikMh5DKQUz1kg4tGpFYk8vpQeACHQE7ikHmw3UZjfRw/x70e9MtAzjjkRqxFnytsPFNRJOr34RDIgUNRRGsVMVSPIs3QQyDf6SFVQTHweMPjQTi+LcguDkk/wnjobKOEURChXwZyHYd8SDEUpsPe+j0OxKKHQC59mY+aWV9D50Gkq12Ty0COekg0DoVzYmKrzHZNpw09BHLkUDwH7bEfcZyKFfQQyBmHxM5B036ZuvxzWVHi24Kccyj07c2XPZogcAjkmkNWaMzZrX5sn7HfHuQXesjaHGd3Dlonj6gPgXzry4bTrPzgBnf+eHuQ6/oQp8CDBAnyD5Cf/HvPPBWIovgAAAAASUVORK5CYII=" alt="QR code: is page ko phone par kholne ke liye">
+      </div>
+    </div>
+  </section>
+
+  <!-- links opened inside WhatsApp / Instagram / Facebook ... (they cannot install web apps) -->
   <section class="card" id="stateInApp" hidden>
     <h2>Pehle browser me kholo</h2>
     <p class="sub">Ye link kisi app (WhatsApp, Instagram, Facebook…) ke andar khula hai. Yahan install nahi hota.</p>
+    <a class="btn green" data-chrome href="#" id="inAppChrome" hidden style="margin-bottom:12px;">Chrome me kholo</a>
     <ol class="steps">
       <li><span>Upar-right me <strong>⋮</strong> (3 dots) ya <strong>Share</strong> dabao.</span></li>
       <li><span><strong>"Open in Chrome"</strong> / <strong>"Open in browser"</strong> chuno (iPhone par <strong>Safari</strong>).</span></li>
@@ -87,30 +136,12 @@
     <p class="note">Ya link copy karke Chrome / Safari me paste kar do.</p>
   </section>
 
-  <section class="card" id="statePrompt" hidden>
-    <h2>App install karo</h2>
-    <p class="sub">Free hai · 1 tap me home screen par · Play Store ki zaroorat nahi</p>
-    <button class="btn" id="installBtn" type="button">📲 App install karo</button>
-    <p class="note" id="installMsg" hidden></p>
-  </section>
-
-  <section class="card" id="stateAndroid" hidden>
-    <h2>Android par install</h2>
-    <p class="sub">Chrome me ye 3 step karo:</p>
-    <ol class="steps">
-      <li><span>Chrome ke upar-right me <strong>⋮</strong> (3 dots) dabao.</span></li>
-      <li><span><strong>"Install app"</strong> ya <strong>"Add to Home screen"</strong> chuno.</span></li>
-      <li><span><strong>"Install"</strong> dabao. Home screen par <strong>Mahakal Wellness</strong> icon aa jayega.</span></li>
-    </ol>
-    <p class="note">Menu me <strong>"Install app"</strong> na dikhe? Ya to app pehle se install hai (home screen / app list me <strong>Mahakal Wellness</strong> icon dhoondho), ya menu me <strong>"Open in Chrome"</strong> chuno. Chrome nahi hai? Link copy karke Chrome me kholo.</p>
-  </section>
-
   <section class="card" id="stateIos" hidden>
     <h2>iPhone par install</h2>
     <p class="sub">Safari me ye 3 step karo:</p>
     <ol class="steps">
       <li><span>Neeche ka <strong>Share</strong> button dabao
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1E4A3D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 11v9h14v-9"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1E4A3D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
         (□ ke upar tir).</span></li>
       <li><span>Neeche scroll karke <strong>"Add to Home Screen"</strong> chuno.</span></li>
       <li><span>Upar-right me <strong>"Add"</strong> dabao. Icon home screen par aa jayega.</span></li>
@@ -126,13 +157,6 @@
       <li><span>Phir <strong>Share → Add to Home Screen → Add</strong>.</span></li>
     </ol>
     <button class="btn secondary" type="button" data-copy style="margin-top:10px;">Link copy karo</button>
-  </section>
-
-  <section class="card" id="stateDesktop" hidden>
-    <h2>Computer par install</h2>
-    <p class="sub">Chrome / Edge me address bar ke right side me <strong>install icon (⊕)</strong> dabao, ya menu <strong>⋮ → Install Mahakal Wellness</strong>.</p>
-    <p class="sub" style="margin-bottom:6px;"><strong>Phone me install karna hai?</strong> Phone ke camera se ye QR scan karo:</p>
-    <img class="qr" id="deskQr" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQ4AAAEOAQAAAABQysQIAAACJ0lEQVR42u1awW3EMAwTmgEyklf3SB7AgCqRknPo5549Fg0ORa7NI4REiqJr/u7a9v/Ibz+yLK7Lp93xfV4r7/Hx/ION/WVvr096JBCNQJIQ1kgU98zf4D4+caOIKArBlw9QUakAte8sWdZLF1G8OXrsWui0P4AoeZQoeI8+FEaU7x9vDjhRqUueR9A6kOjHR1XreC0Wa1Lr0HKjBF4P0WSDcQwlIjabDd6LIoqfyaOb3LFgU0ofmSWIKLSaypA1ske9XVTr4Hy8WXNVv4U/St0T1TqOntdmoyzA6SnyyDdsD9sv1IBU4qjVnLBWDGrPULSCIZftuklcpA/2iAENTAHUdEETDqG4E6CwUCTSLaregJDi4C3gwayWCEVleFw3PF6W6UZ1gFSx6zbpA/Wmcd2oDtcKSaeKlksBX61+xSlNRDAJXtYuhxHmbDkHVfXmKgTuVM5wnIMmj9rXTUJA6DW4XEiq90I5mNHBKvQ8ar8qucPCG9DjWS/jgKnrgpDROWKTnkf1VTVnyGaD0FVs4pULSfo6dhryRsYmVm4h9yZRRCUImKcnwavkRJdHYFCVhkbogNV0qo9hCNdKC2Syvg4GteQOlWIu5BXpu2ymOmrU8sCl02/h3Ltik2Pqpnf6rXvGd1LHl93cRLcJnvHB19lmjV6nle6pJZ0qtO6YImFEGLLu87hWpqzKZ3y18dGdNqFU5xG07jkXY5hPPXdZ7/3/nysf/Mg3wnQdkXCc0+4AAAAASUVORK5CYII=" alt="QR code: is page ko phone par kholne ke liye">
   </section>
 
   <section class="card">
@@ -160,55 +184,83 @@
   var isAndroid = /Android/i.test(ua);
   // browsers hidden inside other apps (they cannot install web apps); "; wv)" is Android's in-app WebView marker
   var inApp = /FBAN|FBAV|FB_IAB|Instagram|Line\/|Snapchat|Twitter|MicroMessenger|Telegram|WhatsApp|; wv\)/i.test(ua);
+  // opened from another app through a Chrome "custom tab" (WhatsApp, Google Lens ...): Chrome says so in the referrer; no install offer comes there
+  var fromApp = isAndroid && (document.referrer || '').indexOf('android-app://') === 0;
   var iosSafari = isIOS && /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA\//i.test(ua) && !inApp;
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
-  var deferred = null, manualTimer = null;
+  var deferred = null, timer = null;
 
   function $(id) { return document.getElementById(id); }
   function show(id, on) { var el = $(id); if (el) el.hidden = !on; }
   function pageUrl() { return location.href.split('#')[0].split('?')[0]; }
+  function setMsg(html) { var m = $('installMsg'); m.hidden = !html; m.innerHTML = html || ''; }
+  // opens this same page in the real Chrome app (works from WhatsApp / Facebook / Instagram / Google Lens on Android)
+  function chromeIntentUrl() { var u = pageUrl(); return 'intent://' + u.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(u) + ';end'; }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-chrome]'), function (a) { a.href = chromeIntentUrl(); });
 
-  function showManualForThisDevice() {
-    if (isIOS) { show(iosSafari ? 'stateIos' : 'stateIosOther', true); }
-    else if (isAndroid) { show('stateAndroid', true); }
-    else { show('stateDesktop', true); }
+  function showSteps() {
+    show('manualSteps', true);
+    show('stepsAndroid', isAndroid); show('stepsDesktop', !isAndroid);
+    if (isAndroid) show('chromeBox', true);
   }
 
   if (standalone) {
     show('stateInstalled', true);
-  } else if (inApp) {
-    show('stateInApp', true);
   } else if (isIOS) {
-    showManualForThisDevice();                 // iPhone has no install button: it needs the 3 steps
+    show(inApp ? 'stateInApp' : (iosSafari ? 'stateIos' : 'stateIosOther'), true);   // iPhone has no install button: it needs the 3 steps
+  } else if (inApp) {
+    show('stateInApp', true); show('inAppChrome', isAndroid);
   } else {
-    // Android / computer: Chrome and Edge announce "I can install this" a moment after the page opens.
-    // If that never happens (other browser, or already installed) show the manual steps instead.
-    manualTimer = setTimeout(function () { if (!deferred) showManualForThisDevice(); }, 1600);
+    show('stateMain', true);
+    if (fromApp) show('chromeBox', true);
+    setMsg('<span class="spin"></span>Install ke liye taiyaar ho raha hai…');
+    // Chrome and Edge announce "I can install this" a moment after the page opens. If that does not happen, show the way by hand.
+    timer = setTimeout(function () {
+      if (deferred) return;
+      setMsg('Install button abhi nahi aaya. Neeche ke steps se install karo.');
+      showSteps();
+    }, 3000);
+    // The very first visit (this browser has never met the worker): Chrome often only offers the install after the page has
+    // been refreshed once. Do that one refresh for the visitor - only once, and only if no install offer has come by then.
+    try {
+      if ('serviceWorker' in navigator && !sessionStorage.getItem('mwInstallRefreshed')) {
+        navigator.serviceWorker.ready.then(function () {
+          setTimeout(function () {
+            if (deferred || !window.__mwFirstVisit) return;
+            try { sessionStorage.setItem('mwInstallRefreshed', '1'); } catch (e) { return; }
+            location.reload();
+          }, 700);
+        });
+      }
+    } catch (e) {}
   }
 
   window.addEventListener('beforeinstallprompt', function (e) {
     e.preventDefault();
     deferred = e;
-    clearTimeout(manualTimer);
-    show('stateAndroid', false); show('stateDesktop', false);
-    show('statePrompt', true);
+    clearTimeout(timer);
+    show('manualSteps', false); show('chromeBox', false);
+    setMsg('Taiyaar hai. Button dabao, install ho jayega.');
+    show('stateMain', !standalone && !isIOS && !inApp);
   });
 
   $('installBtn').addEventListener('click', function () {
-    if (!deferred) return;
+    if (!deferred) {   // the browser is not ready (yet): tell what is happening and show the way by hand
+      setMsg('Browser abhi taiyaar ho raha hai. Neeche ke steps se bhi install kar sakte ho.');
+      showSteps();
+      var s = $('manualSteps'); if (s && s.scrollIntoView) s.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return;
+    }
     var p = deferred; deferred = null;
     p.prompt();
     Promise.resolve(p.userChoice).then(function (choice) {
-      if (choice && choice.outcome === 'accepted') { show('statePrompt', false); show('stateDone', true); }
-      else {
-        var m = $('installMsg'); m.hidden = false; m.textContent = 'Theek hai. Jab chaho phir se yahin se install kar lena.';
-        show('statePrompt', false); showManualForThisDevice();
-      }
+      if (choice && choice.outcome === 'accepted') { show('stateMain', false); show('stateDone', true); }
+      else { setMsg('Theek hai. Jab chaho phir se yahin se install kar lena.'); showSteps(); }
     });
   });
 
   window.addEventListener('appinstalled', function () {
-    deferred = null; show('statePrompt', false); show('stateAndroid', false); show('stateDesktop', false); show('stateDone', true);
+    deferred = null; clearTimeout(timer); show('stateMain', false); show('stateDone', true);
   });
 
   // copy / share
@@ -222,9 +274,6 @@
   }
   Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'), function (b) { b.addEventListener('click', function () { copyText(pageUrl(), b); }); });
   $('waShare').href = 'https://wa.me/?text=' + encodeURIComponent('Mahakal Wellness ka app install karo: ' + pageUrl());
-
-  // a service worker is what lets Chrome offer the install button on this page
-  if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
 })();
 </script>
 </body>
