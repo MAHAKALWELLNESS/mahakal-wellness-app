@@ -195,6 +195,7 @@
   .tabs::-webkit-scrollbar{display:none;}
   .tab{flex:none; padding:12px 14px; text-align:center; background:none; border:none; color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap;}
   .tab.active{color:var(--green-800); border-bottom-color:var(--gold-500);}
+  .cm-line{font-size:12.5px; font-weight:800; color:var(--gold-600); margin-top:2px;}
   .subtabs{display:flex; gap:8px; margin-bottom:12px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
   .subtab{flex:none; padding:8px 14px; border-radius:20px; border:1.5px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap;}
   .subtab.active{background:var(--green-800); border-color:var(--green-800); color:#fff;}
@@ -291,22 +292,31 @@
   <div id="retailDetailPrintArea" style="position:fixed; top:0; left:0; width:520px; opacity:0; pointer-events:none; z-index:-1;"></div>
   <div id="pdfCaptureArea" style="position:fixed; top:0; left:0; width:520px; opacity:0; pointer-events:none; z-index:-1;"></div>
 
-  <div class="login-overlay" id="loginOverlay">
+  <div class="login-overlay" id="bootSplash" style="z-index:310;">
+    <div class="login-card" style="text-align:center;">
+      <h2>Mahakal Wellness</h2>
+      <p class="hint" id="bootMsg" style="margin:6px 0 0;">Opening…</p>
+    </div>
+  </div>
+  <script>setTimeout(function () { var m = document.getElementById('bootMsg'); if (m && !window.__booted) m.textContent = 'Taking longer than usual… please check the internet, then pull the screen down to try again.'; }, 12000);</script>
+  <div class="login-overlay" id="loginOverlay" style="display:none;">
     <div class="login-card">
       <a href="index.html" style="display:inline-block;margin-bottom:12px;color:var(--ink-soft);font-size:12px;font-weight:600;text-decoration:none;">← Back to Main Page</a>
       <img src="" id="loginLogoImg" alt="Mahakal Wellness logo" style="width:76px;height:76px;border-radius:50%;margin:0 auto 12px;display:block;box-shadow:0 0 0 3px var(--gold-500);">
       <h2>Mahakal Wellness</h2>
       <p class="hint" style="margin-bottom:16px;">Sign in to continue</p>
+      <form id="loginForm" action="#" method="post" autocomplete="on" onsubmit="attemptLogin(); return false;">
       <div class="field">
         <label for="loginEmail">Email</label>
-        <input type="email" id="loginEmail" autocomplete="username" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('loginPassword').focus();}">
+        <input type="email" id="loginEmail" name="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('loginPassword').focus();}">
       </div>
       <div class="field">
         <label for="loginPassword">Password</label>
-        <input type="password" id="loginPassword" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();attemptLogin();}">
+        <input type="password" id="loginPassword" name="password" autocomplete="current-password">
       </div>
       <p class="login-error" id="loginError"></p>
-      <button class="btn btn-primary btn-block" id="loginBtn" onclick="attemptLogin()">Log In</button>
+      <button class="btn btn-primary btn-block" id="loginBtn" type="submit">Log In</button>
+      </form>
       <button class="login-link" type="button" onclick="showForgotPassword()">Forgot password?</button>
 
       <div id="forgotPasswordArea" style="display:none;margin-top:14px;border-top:1px solid var(--line);padding-top:14px;text-align:left;">
@@ -596,9 +606,16 @@
 
     <!-- ============ BILL APPROVAL TAB ============ -->
     <section id="tab-approval" class="tab-panel">
+      <div class="subtabs">
+        <button class="subtab active" data-subtab="bills" onclick="switchApprovalSubtab_('bills')">Bills</button>
+        <button class="subtab" data-subtab="cashmemo" onclick="switchApprovalSubtab_('cashmemo')">Cash Memo</button>
+      </div>
+      <div id="apprsub-bills" class="subtab-panel active">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="searchApprovalBills()">↻ Refresh</button>
       <div class="card"><p class="section-label">Find a pending bill</p><input type="text" id="approvalSearch" class="search-input" placeholder="Invoice no, name or mobile…" oninput="searchApprovalBills()"></div>
       <div class="card"><h2>Awaiting approval</h2><div id="approvalList"><div class="empty-cart">Loading…</div></div></div>
+      </div>
+      <div id="apprsub-cashmemo" class="subtab-panel"></div>
     </section>
 
     <!-- ============ PAST BILLS TAB ============ -->
@@ -626,6 +643,7 @@
       <div class="card"><div id="historyList"><div class="empty-cart">Type above, or leave blank to see recent bills.</div></div></div>
       </div>
       <div id="histsub-cashmemo" class="subtab-panel">
+        <div id="cmRegisterRoot">
         <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadCashMemoRegister_()">↻ Refresh</button>
         <div class="card">
           <p class="section-label">Cash memo serial</p>
@@ -640,6 +658,7 @@
           </div>
         </div>
         <div class="card"><div id="cmBody"><div class="empty-cart">Loading…</div></div></div>
+        </div>
       </div>
     </section>
 
@@ -1734,6 +1753,11 @@
         </div>
         <button class="quickbtn" type="button" onclick="useAllWalletBalance()">Use All Wallet Balance</button>
       </div>
+      <div id="psShotArea" style="margin-bottom:10px;">
+        <div class="field" style="margin-bottom:6px;"><label for="psShotFile">📷 Online payment screenshot <span style="font-weight:500;color:var(--ink-soft);">(reads the amount, UTR and date for you)</span></label>
+          <input type="file" id="psShotFile" accept="image/*" onchange="psShotChosen_(this, 0)"></div>
+        <div id="psShotStatus"></div>
+      </div>
       <div class="field-row">
         <div class="field"><label for="paymentStepCash">Cash ₹</label><input type="number" id="paymentStepCash" placeholder="0" min="0" step="0.01" oninput="renderPaymentStepBalance()"></div>
         <div class="field"><label for="paymentStepOnline">Online / UPI ₹</label><input type="number" id="paymentStepOnline" placeholder="0" min="0" step="0.01" oninput="renderPaymentStepBalance()"></div>
@@ -1742,6 +1766,8 @@
         <label for="paymentStepUtr">UTR Number</label>
         <input type="text" id="paymentStepUtr" placeholder="Transaction reference number">
       </div>
+      <div id="psExtraList"></div>
+      <div id="psChoiceBox"></div>
       <div style="display:flex;gap:8px;">
         <button class="quickbtn" type="button" style="flex:1;" onclick="fillPaymentStepFull('cash')">Mark fully paid (Cash)</button>
         <button class="quickbtn" type="button" style="flex:1;" onclick="fillPaymentStepFull('online')">Mark fully paid (Online)</button>
@@ -1950,12 +1976,32 @@
       <div id="esLines"></div>
       <div id="esMoney"></div>
       <div id="esPay" style="display:none;">
+        <div class="field"><label for="esShot">📷 Online payment screenshot <span style="font-weight:500;color:var(--ink-soft);">(reads the amount, UTR and date for you)</span></label><input type="file" id="esShot" accept="image/*" onchange="esShotChosen_(this, 0)"></div>
+        <div id="esShotStatus"></div>
         <div class="field-row">
           <div class="field"><label for="esCash">Cash received ₹</label><input type="number" id="esCash" inputmode="decimal" min="0" step="0.01" placeholder="0" oninput="esFieldChanged_()"></div>
           <div class="field"><label for="esOnline">Online received ₹</label><input type="number" id="esOnline" inputmode="decimal" min="0" step="0.01" placeholder="0" oninput="esFieldChanged_()"></div>
         </div>
         <div class="field" id="esUtrField" style="display:none;"><label for="esUtr">UTR Number</label><input type="text" id="esUtr" placeholder="Transaction reference number" oninput="esFieldChanged_()"></div>
+        <div id="esExtraList"></div>
+        <div id="esChoiceBox"></div>
         <p class="hint" style="margin:-4px 0 8px;">Leave both empty to collect the money later.</p>
+      </div>
+      <div id="esRefund" style="display:none;">
+        <div class="es-box es-ok" id="esRefundIntro"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px;">
+          <button class="quickbtn" type="button" id="esRefundAllCash" onclick="esRefundFill_('cash')">💵 Returned all in Cash</button>
+          <button class="quickbtn" type="button" id="esRefundAllOnline" onclick="esRefundFill_('online')">📲 Returned all Online</button>
+          <button class="quickbtn" type="button" id="esRefundNone" onclick="esRefundFill_('none')">👛 Keep it in the wallet</button>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="esRefundCash">Returned in cash ₹</label><input type="number" id="esRefundCash" inputmode="decimal" min="0" step="0.01" placeholder="0" oninput="esFieldChanged_()"></div>
+          <div class="field"><label for="esRefundOnline">Returned online ₹</label><input type="number" id="esRefundOnline" inputmode="decimal" min="0" step="0.01" placeholder="0" oninput="esFieldChanged_()"></div>
+        </div>
+        <div class="field" id="esRefundShotField" style="display:none;"><label for="esRefundShot">📷 Screenshot of the online refund <span style="font-weight:500;color:var(--ink-soft);">(optional - reads the amount and UTR)</span></label><input type="file" id="esRefundShot" accept="image/*" onchange="esRefundShotChosen_(this)"></div>
+        <div id="esRefundShotStatus"></div>
+        <div class="field" id="esRefundUtrField" style="display:none;"><label for="esRefundUtr">Reference / UTR of the online refund (optional)</label><input type="text" id="esRefundUtr" placeholder="Transaction reference number" oninput="esFieldChanged_()"></div>
+        <p class="hint" style="margin:-4px 0 8px;">Whatever you do not return stays with the customer as wallet credit. The money you return is entered on the bill as a refund.</p>
       </div>
       <div class="field"><label for="esDate">Date of this change</label><input type="date" id="esDate" onchange="esFieldChanged_()"></div>
       <p class="hint" style="margin:-4px 0 8px;">The return, the delivery and any payment are all entered with this date (today, or the day it really happened).</p>
@@ -2290,8 +2336,9 @@
       tabsNav.scrollLeft += e.deltaY;
     }, { passive: false });
 
-    const { data: { session } } = await sb.auth.getSession();
-    if (session) { startApp(); } else { document.getElementById('loginOverlay').style.display = 'flex'; }
+    // the email used last time comes back by itself (never the password: the phone's own password manager keeps that - see attemptLogin)
+    try { const last = localStorage.getItem('mwLastEmail'); if (last && !document.getElementById('loginEmail').value) document.getElementById('loginEmail').value = last; } catch (e) {}
+    await finishBoot_();
 
   });
 
@@ -2306,9 +2353,68 @@
     const { error } = await sb.auth.signInWithPassword({ email: email, password: password });
     btn.disabled = false; btn.textContent = 'Log In';
     if (error) { errEl.textContent = error.message; return; }
+    try { localStorage.setItem('mwLastEmail', email); } catch (e) {}
+    // offer to save the login in the phone's password manager (it asks "Save password?"; the app itself never keeps the password)
+    try { if (window.PasswordCredential && navigator.credentials && navigator.credentials.store) await navigator.credentials.store(new PasswordCredential({ id: email, password: password, name: email })); } catch (e) {}
     document.getElementById('loginOverlay').style.display = 'none';
     startApp();
   }
+
+
+  // ---------- opening the app: never mistake a slow network for "logged out" ----------
+  // Pulling the screen down reloads the page. Before, the login form was simply there from the first moment (and was never taken away for a
+  // person who was still logged in), so a reload looked like an automatic logout. Now: a neutral "Opening…" screen; the login form only when
+  // there is really no login; and when a login is stored but the network is too weak to check it, we wait and retry (the login stays).
+  function hideBootSplash_() { window.__booted = true; const s = document.getElementById('bootSplash'); if (s) s.style.display = 'none'; }
+  function storedSessionExists_() {
+    try {
+      const stores = [window.sessionStorage, window.localStorage];
+      for (let s = 0; s < stores.length; s++) for (let i = 0; i < stores[s].length; i++) {
+        const k = stores[s].key(i);
+        if (/^sb-.*-auth-token$/.test(k)) { const v = JSON.parse(stores[s].getItem(k) || 'null'); if (v && v.refresh_token) return true; }
+      }
+    } catch (e) {}
+    return false;
+  }
+  // -> a session (open the app) | null (really no login: show the login form) | undefined (a login is stored but the server cannot be reached)
+  async function bootSession_() {
+    for (let attempt = 0; attempt < 6; attempt++) {
+      let session = null;
+      try { const r = await sb.auth.getSession(); session = r && r.data && r.data.session; } catch (e) {}
+      if (session) return session;
+      if (!storedSessionExists_()) return null;
+      const m = document.getElementById('bootMsg'); if (m) m.textContent = 'Reconnecting…';
+      await new Promise(function (res) { setTimeout(res, (window.__bootDelayMs || 700) * (attempt + 1)); });
+    }
+    return undefined;
+  }
+  function showOfflineCard_() {
+    hideBootSplash_();
+    let c = document.getElementById('offlineCard');
+    if (!c) {
+      c = document.createElement('div'); c.id = 'offlineCard'; c.className = 'login-overlay'; c.style.zIndex = '305';
+      c.innerHTML = '<div class="login-card" style="text-align:center;"><h2>Can\'t reach the server</h2>' +
+        '<p class="hint" style="margin:8px 0 14px;"><strong>You are still logged in.</strong> The internet seems weak right now - this is not a logout. Check the connection and try again.</p>' +
+        '<button class="btn btn-primary btn-block" type="button" id="offlineRetryBtn">Try again</button>' +
+        '<button class="login-link" type="button" id="offlineLoginBtn">Log in again instead</button></div>';
+      document.body.appendChild(c);
+      document.getElementById('offlineRetryBtn').addEventListener('click', retryBoot_);
+      document.getElementById('offlineLoginBtn').addEventListener('click', function () { c.remove(); document.getElementById('loginOverlay').style.display = 'flex'; });
+    }
+  }
+  async function retryBoot_() {
+    const c = document.getElementById('offlineCard'); if (c) c.remove();
+    const s = document.getElementById('bootSplash'); if (s) s.style.display = 'flex';
+    const m = document.getElementById('bootMsg'); if (m) m.textContent = 'Reconnecting…';
+    await finishBoot_();
+  }
+  async function finishBoot_() {
+    const booted = await bootSession_();
+    if (booted) { hideBootSplash_(); startApp(); }
+    else if (booted === null) { hideBootSplash_(); document.getElementById('loginOverlay').style.display = 'flex'; }
+    else showOfflineCard_();
+  }
+  window.addEventListener('online', function () { if (document.getElementById('offlineCard')) retryBoot_(); });
 
   async function logout() { await sb.auth.signOut(); location.reload(); }
 
@@ -2334,7 +2440,7 @@
   // know which of the two forms to show once the person arrives back here.
   sb.auth.onAuthStateChange(function (event) {
     if (event === 'PASSWORD_RECOVERY') {
-      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('loginOverlay').style.display = 'none'; hideBootSplash_();
       const isAdminCodeReset = new URLSearchParams(window.location.search).get('resetTarget') === 'admincode';
       document.getElementById(isAdminCodeReset ? 'resetAdminCodeOverlay' : 'resetPasswordOverlay').style.display = 'flex';
     }
@@ -2409,6 +2515,8 @@
       document.getElementById('loginError').textContent = 'This account is for Hall Booking only. Please use the Hall Booking login page instead.';
       return;
     }
+    document.getElementById('loginOverlay').style.display = 'none';       // a person who is logged in never sees the login form on top of the app
+    hideBootSplash_();
     document.getElementById('appRoot').style.display = 'block';
     await loadSettings();
     await loadProducts();
@@ -2923,6 +3031,7 @@
     document.getElementById('paymentStepWalletWarning').textContent = '';
     document.getElementById('paymentStepWalletArea').style.display = 'none';
     currentWalletBalanceForPayment = 0;
+    psReset_();
     // A past bill (entered with a back date) must state when the money came in - the date starts as the bill date.
     const pdField = document.getElementById('paymentStepDateField'), pd = document.getElementById('paymentStepDate');
     pdField.style.display = bill.pastEntry ? '' : 'none';
@@ -2980,11 +3089,189 @@
     const amountDue = (bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP) + (Number(bill.transportCharges) || 0);
     const cash = Number(document.getElementById('paymentStepCash').value) || 0;
     const online = Number(document.getElementById('paymentStepOnline').value) || 0;
-    const remainingDue = Math.max(0, amountDue - cash - online);
+    const remainingDue = Math.max(0, amountDue - cash - online - psExtrasSum_());
     const amountToUse = Math.min(currentWalletBalanceForPayment, remainingDue);
     document.getElementById('paymentStepWalletUse').value = amountToUse;
     document.getElementById('paymentStepWalletWarning').textContent = '';
     renderPaymentStepBalance();
+  }
+
+  // =================== PAYMENT SCREENSHOTS (staff): read the amount, UTR and date; match it with the bill ===================
+  // The same reader the public Order Form uses (the Edge Function read-payment-screenshot). In the approval's payment step: the first screenshot
+  // fills Online ₹ and the UTR; the amount is matched with the bill. Less than the bill: the balance is shown and staff choose Cash, Online (another
+  // screenshot, its own UTR) or nothing (the balance simply stays due, as before). More than the bill: the extra goes to the wallet, as before.
+  let PS_ = { main: null, extras: [], hasRead: false, leftDue: false, seq: 0 };
+  let currentPayEditBill_ = null;
+  function psReset_() {
+    PS_ = { main: null, extras: [], hasRead: false, leftDue: false, seq: PS_.seq };
+    const f = document.getElementById('psShotFile'); if (f) f.value = '';
+    ['psShotStatus', 'psExtraList', 'psChoiceBox'].forEach(function (id) { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+  }
+  function psExtrasSum_() { return PS_.extras.reduce(function (s, e) { return s + (Number(e.amount) || 0); }, 0); }
+  function psMobileOf_(bill) { const m = String((bill && bill.mobile) || '').replace(/\D/g, '').slice(-10); return m.length === 10 ? m : '0000000000'; }
+  async function psCompress_(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise(function (res, rej) { const i = new Image(); i.onload = function () { res(i); }; i.onerror = function () { rej(new Error('bad image')); }; i.src = url; });
+      let w = img.naturalWidth, h = img.naturalHeight; if (!w || !h) throw new Error('bad image');
+      const scale = Math.min(1, 1600 / Math.max(w, h)); w = Math.round(w * scale); h = Math.round(h * scale);
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(img, 0, 0, w, h);
+      const dataUrl = c.toDataURL('image/jpeg', 0.85);
+      return { dataUrl: dataUrl, base64: dataUrl.split(',')[1] };
+    } finally { URL.revokeObjectURL(url); }
+  }
+  // reads one screenshot; never throws.  -> { ok, read, proofPath, dataUrl, why }
+  async function psReadFile_(file, mobile) {
+    if (!/^image\//.test(file.type || '')) return { ok: false, why: 'please choose an image file (a screenshot of the payment)' };
+    let img; try { img = await psCompress_(file); } catch (e) { return { ok: false, why: 'this image could not be opened - choose a normal screenshot (JPG or PNG)' }; }
+    let result = null, why = '';
+    try {
+      const resp = await Promise.race([
+        sb.functions.invoke('read-payment-screenshot', { body: { image_base64: img.base64, media_type: 'image/jpeg', mobile: mobile } }),
+        new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, 45000); })
+      ]);
+      if (resp.error || !resp.data) why = 'the reading service is not available right now';
+      else if (!resp.data.ok) why = String(resp.data.error || '').replace(/\.$/, '');
+      else result = resp.data;
+    } catch (e) { why = e && e.message === 'timeout' ? 'it took too long' : 'the reading service is not available right now'; }
+    if (!result) return { ok: false, dataUrl: img.dataUrl, why: why };
+    return { ok: true, dataUrl: img.dataUrl, read: result.read || {}, proofPath: result.proof_path || null };
+  }
+  // is this read usable?  -> { block: sentence } (do not use it) or { warn: [sentences] }
+  function psJudge_(r, pastBill) {
+    const warn = [];
+    if (r.is_payment_screenshot === false) return { block: 'This does not look like a payment screenshot.' };
+    if (r.status === 'failed') return { block: 'This screenshot shows a FAILED payment.' };
+    if (r.status === 'pending') warn.push('The screenshot shows the payment as pending - check it before confirming.');
+    if (!r.amount) warn.push('The amount could not be read - type it.');
+    if (!r.utr) warn.push('The UTR could not be read - type it.');
+    if (r.date && !pastBill) { const days = (Date.now() - new Date(r.date + 'T' + (r.time || '12:00') + ':00+05:30').getTime()) / 86400000; if (days > 3) warn.push('This payment is more than 3 days old - make sure it is the screenshot of THIS payment.'); }
+    return { warn: warn };
+  }
+  function psReadText_(r) {
+    const when = r.date ? (r.date + (r.time ? ' ' + r.time : '')) : '';
+    return '✓ Read from the screenshot: <strong>' + (r.amount ? money(r.amount) : 'amount not read') + '</strong>' + (r.utr ? ' · UTR <strong>' + escapeHtml(r.utr) + '</strong>' : ' · UTR not read') + (when ? ' · ' + escapeHtml(when) : '') + (r.payer_app ? ' · ' + escapeHtml(r.payer_app) : '') + '. Please check it against the screenshot.';
+  }
+  function psStatusHtml_(kind, text, dataUrl) {
+    const cls = kind === 'ok' ? 'es-ok' : kind === 'bad' ? 'es-warn' : kind === 'warn' ? 'es-due' : '';
+    return '<div class="es-box ' + cls + '" style="margin:6px 0;">' + text + (dataUrl ? '<div style="margin-top:6px;"><img alt="payment screenshot" src="' + dataUrl + '" style="max-height:110px;max-width:100%;border-radius:8px;border:1px solid var(--line);"></div>' : '') + '</div>';
+  }
+  function psSetStatus_(which, html) {
+    if (which === 0) { const el = document.getElementById('psShotStatus'); if (el) el.innerHTML = html; }
+    else { const e = PS_.extras.find(function (x) { return x.id === which; }); if (e) e.status = html; const el = document.getElementById('psxStatus' + which); if (el) el.innerHTML = html; }
+  }
+  function psUtrUsedHere_(utr, exceptWhich) {
+    const u = String(utr || '').trim().toUpperCase(); if (!u) return false;
+    if (exceptWhich !== 0 && document.getElementById('paymentStepUtr').value.trim().toUpperCase() === u && (Number(document.getElementById('paymentStepOnline').value) || 0) > 0) return true;
+    return PS_.extras.some(function (e) { return e.id !== exceptWhich && String(e.utr || '').trim().toUpperCase() === u; });
+  }
+  async function psDupCheck_(utr, which) {         // already recorded on another bill? (a warning only - one payment can legitimately cover two bills)
+    if (!utr) return;
+    const { data } = await sb.from('payments').select('invoice_no').eq('utr_no', utr);
+    const other = (data || []).filter(function (r) { return currentDetailBill && r.invoice_no !== currentDetailBill.invoiceNo; })[0];
+    if (other) {
+      const cur = which === 0 ? (document.getElementById('psShotStatus') || {}).innerHTML : ((PS_.extras.find(function (x) { return x.id === which; }) || {}).status || '');
+      psSetStatus_(which, (cur || '') + '<div class="es-box es-due" style="margin:6px 0;">⚠ This UTR is already recorded on bill <strong>' + escapeHtml(other.invoice_no) + '</strong>. Fine if one payment covers both bills - otherwise it is the same payment used twice.</div>');
+    }
+  }
+  async function psShotChosen_(input, which) {
+    const file = input.files && input.files[0]; if (!file || !currentDetailBill) return;
+    const bill = currentDetailBill;
+    psSetStatus_(which, '<p class="hint" style="margin:6px 0;">Reading the screenshot…</p>');
+    const res = await psReadFile_(file, psMobileOf_(bill));
+    input.value = '';
+    if (currentDetailBill !== bill) return;                       // the window was closed / another bill opened meanwhile
+    if (!res.ok) { psSetStatus_(which, psStatusHtml_('warn', 'Couldn\'t read it automatically' + (res.why ? ' (' + escapeHtml(res.why) + ')' : '') + '. Please type the amount and UTR below.', res.dataUrl)); return; }
+    const r = res.read, j = psJudge_(r, !!bill.pastEntry);
+    if (j.block) { psSetStatus_(which, psStatusHtml_('bad', escapeHtml(j.block) + ' Nothing was filled in.', res.dataUrl)); return; }
+    if (r.utr && psUtrUsedHere_(r.utr, which)) { psSetStatus_(which, psStatusHtml_('bad', 'This UTR (' + escapeHtml(r.utr) + ') is already used for another online payment on this screen - the same screenshot cannot be counted twice. Nothing was filled in.', res.dataUrl)); return; }
+    if (which === 0) {
+      if (r.amount) document.getElementById('paymentStepOnline').value = r.amount;
+      document.getElementById('paymentStepUtr').value = r.utr || '';
+      PS_.main = { amount: r.amount || null, utr: r.utr || '', proofPath: res.proofPath };
+    } else {
+      const e = PS_.extras.find(function (x) { return x.id === which; });
+      if (e) { e.amount = r.amount || ''; e.utr = r.utr || ''; e.proofPath = res.proofPath; const a = document.getElementById('psxAmt' + which), u = document.getElementById('psxUtr' + which); if (a) a.value = e.amount; if (u) u.value = e.utr; }
+    }
+    if (bill.pastEntry && r.date && r.date >= istDay_(bill.date) && r.date <= istDay_(new Date().toISOString())) document.getElementById('paymentStepDate').value = r.date;
+    PS_.hasRead = true; PS_.leftDue = false;
+    psSetStatus_(which, psStatusHtml_(j.warn.length ? 'warn' : 'ok', psReadText_(r) + j.warn.map(function (w) { return '<br>⚠ ' + escapeHtml(w); }).join(''), res.dataUrl));
+    renderPaymentStepBalance();
+    psDupCheck_(r.utr, which);
+  }
+  // the tally: matches / balance (cash, online, or leave it due) / more than the bill
+  function psRenderChoice_() {
+    const box = document.getElementById('psChoiceBox'); const bill = currentDetailBill;
+    if (!box || !bill) return;
+    if (!PS_.hasRead) { box.innerHTML = ''; return; }
+    const due = (bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP) + (Number(bill.transportCharges) || 0);
+    const cash = Number(document.getElementById('paymentStepCash').value) || 0, online = Number(document.getElementById('paymentStepOnline').value) || 0;
+    const wallet = Number(document.getElementById('paymentStepWalletUse').value) || 0;
+    const paid = cash + online + psExtrasSum_() + wallet, bal = Math.round((due - paid) * 100) / 100;
+    let h = '';
+    if (PS_.main && PS_.main.amount && Math.abs(online - PS_.main.amount) > 0.5) h += '<div class="es-box es-due">The Online amount here (' + money(online) + ') is not what the screenshot shows (' + money(PS_.main.amount) + ').</div>';
+    if (Math.abs(bal) < 0.5) h += '<div class="es-box es-ok">✓ The payment matches the bill (' + money(due) + '). You can continue.</div>';
+    else if (bal > 0) {
+      h += '<div class="es-box es-due"><strong>Balance ' + money(bal) + '</strong> - the bill is ' + money(due) + ' and ' + money(paid) + ' is paid so far.' + (PS_.leftDue ? ' It will stay as balance (due) on this bill.' : ' How will the customer pay the rest?') + '</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 8px;"><button class="quickbtn" type="button" id="psBalCash" onclick="psBalanceCash_()">💵 Balance in Cash</button><button class="quickbtn" type="button" id="psBalOnline" onclick="psBalanceOnline_()">📲 Balance Online (another screenshot)</button><button class="quickbtn" type="button" id="psBalLeave" onclick="psLeaveDue_()">Leave as balance</button></div>';
+    } else h += '<div class="es-box es-ok">The payment is ' + money(-bal) + ' more than the bill - the extra goes to the customer\'s wallet.</div>';
+    box.innerHTML = h;
+  }
+  function psBalanceCash_() {
+    const bill = currentDetailBill; if (!bill) return;
+    const due = (bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP) + (Number(bill.transportCharges) || 0);
+    const cash = Number(document.getElementById('paymentStepCash').value) || 0, online = Number(document.getElementById('paymentStepOnline').value) || 0, wallet = Number(document.getElementById('paymentStepWalletUse').value) || 0;
+    const bal = Math.max(0, Math.round((due - cash - online - psExtrasSum_() - wallet) * 100) / 100);
+    document.getElementById('paymentStepCash').value = Math.round((cash + bal) * 100) / 100; PS_.leftDue = false; renderPaymentStepBalance();
+  }
+  function psBalanceOnline_() { PS_.leftDue = false; psAddExtra_(); }
+  function psLeaveDue_() { PS_.leftDue = true; psRenderChoice_(); }
+  function psAddExtra_() {
+    const id = ++PS_.seq + 1000;
+    PS_.extras.push({ id: id, amount: '', utr: '', status: '', proofPath: null });
+    psRenderExtras_();
+    const f = document.getElementById('psxFile' + id); if (f) { try { f.click(); } catch (e) {} }
+    renderPaymentStepBalance();
+  }
+  function psRenderExtras_() {
+    document.getElementById('psExtraList').innerHTML = PS_.extras.map(function (e, i) {
+      return '<div class="es-line" data-id="' + e.id + '"><div class="es-name">Online payment #' + (i + 2) + '</div>' +
+        '<div class="field" style="margin:6px 0;"><label for="psxFile' + e.id + '">📷 Screenshot</label><input type="file" id="psxFile' + e.id + '" accept="image/*" onchange="psShotChosen_(this, ' + e.id + ')"></div>' +
+        '<div id="psxStatus' + e.id + '">' + (e.status || '') + '</div>' +
+        '<div class="field-row"><div class="field"><label for="psxAmt' + e.id + '">Amount ₹</label><input type="number" id="psxAmt' + e.id + '" inputmode="decimal" min="0" step="0.01" value="' + escapeHtml(String(e.amount)) + '" oninput="psExtraInput_(' + e.id + ')"></div>' +
+        '<div class="field"><label for="psxUtr' + e.id + '">UTR number</label><input type="text" id="psxUtr' + e.id + '" autocomplete="off" value="' + escapeHtml(String(e.utr)) + '" oninput="psExtraInput_(' + e.id + ')"></div></div>' +
+        '<button class="quickbtn" type="button" onclick="psRemoveExtra_(' + e.id + ')">✕ Remove this payment</button></div>';
+    }).join('');
+  }
+  function psExtraInput_(id) {
+    const e = PS_.extras.find(function (x) { return x.id === id; }); if (!e) return;
+    e.amount = document.getElementById('psxAmt' + id).value; e.utr = document.getElementById('psxUtr' + id).value; renderPaymentStepBalance();
+  }
+  function psRemoveExtra_(id) { PS_.extras = PS_.extras.filter(function (x) { return x.id !== id; }); psRenderExtras_(); renderPaymentStepBalance(); }
+
+  // the simple version, for Record payment and the Edit review: read, fill the boxes, say what is left
+  async function psSimpleRead_(input, statusId, mobile, pastBill, onFill, tallyText) {
+    const file = input.files && input.files[0]; if (!file) return;
+    const box = document.getElementById(statusId); box.innerHTML = '<p class="hint">Reading the screenshot…</p>';
+    const res = await psReadFile_(file, mobile); input.value = '';
+    if (!res.ok) { box.innerHTML = psStatusHtml_('warn', 'Couldn\'t read it automatically' + (res.why ? ' (' + escapeHtml(res.why) + ')' : '') + '. Please type the amount and UTR.', res.dataUrl); return; }
+    const j = psJudge_(res.read, pastBill);
+    if (j.block) { box.innerHTML = psStatusHtml_('bad', escapeHtml(j.block) + ' Nothing was filled in.', res.dataUrl); return; }
+    onFill(res.read);
+    box.innerHTML = psStatusHtml_(j.warn.length ? 'warn' : 'ok', psReadText_(res.read) + j.warn.map(function (w) { return '<br>⚠ ' + escapeHtml(w); }).join('') + (tallyText ? '<br>' + tallyText(res.read) : ''), res.dataUrl);
+  }
+  function payEditShotChosen_(input) {
+    const bill = currentPayEditBill_; if (!bill) return;
+    psSimpleRead_(input, 'payEditShotStatus', psMobileOf_(bill), !!bill.pastEntry, function (r) {
+      if (r.amount) document.getElementById('payEditAmount').value = r.amount;
+      if (r.utr) document.getElementById('payEditUtr').value = r.utr;
+      if (r.date && r.date >= istDay_(bill.date) && r.date <= istDay_(new Date().toISOString())) document.getElementById('payEditDate').value = r.date;
+    }, function (r) {
+      const due = -Number(bill.balance || 0); if (!r.amount) return '';
+      const left = Math.round((due - r.amount) * 100) / 100;
+      return Math.abs(left) < 0.5 ? '✓ This matches what is due (' + money(due) + ').' : left > 0 ? 'Due ' + money(due) + ' - after this payment ' + money(left) + ' will still be due.' : 'Due ' + money(due) + ' - the payment is ' + money(-left) + ' more, the extra goes to the customer\'s wallet.';
+    });
   }
 
   function renderPaymentStepBalance() {
@@ -2995,12 +3282,13 @@
     const online = Number(document.getElementById('paymentStepOnline').value) || 0;
     const walletUsed = Number(document.getElementById('paymentStepWalletUse').value) || 0;
     document.getElementById('paymentStepUtrField').style.display = online > 0.005 ? 'block' : 'none';
-    const balance = (cash + online + walletUsed) - amountDue;
+    const balance = (cash + online + psExtrasSum_() + walletUsed) - amountDue;
     const balEl = document.getElementById('paymentStepBalanceLine');
     const balVal = document.getElementById('paymentStepBalanceValue');
     if (Math.abs(balance) < 0.005) { balEl.className = 'balance-line balance-settled'; balVal.textContent = 'Settled'; }
     else if (balance < 0) { balEl.className = 'balance-line balance-due'; balVal.textContent = 'Due ' + money(-balance); }
     else { balEl.className = 'balance-line balance-settled'; balVal.textContent = 'Change ' + money(balance); }
+    psRenderChoice_();
   }
 
   function fillPaymentStepFull(mode) {
@@ -3010,10 +3298,10 @@
     const walletUsed = Number(document.getElementById('paymentStepWalletUse').value) || 0;
     if (mode === 'cash') {
       const online = Number(document.getElementById('paymentStepOnline').value) || 0;
-      document.getElementById('paymentStepCash').value = Math.max(0, amountDue - online - walletUsed);
+      document.getElementById('paymentStepCash').value = Math.max(0, amountDue - online - psExtrasSum_() - walletUsed);
     } else {
       const cash = Number(document.getElementById('paymentStepCash').value) || 0;
-      document.getElementById('paymentStepOnline').value = Math.max(0, amountDue - cash - walletUsed);
+      document.getElementById('paymentStepOnline').value = Math.max(0, amountDue - cash - psExtrasSum_() - walletUsed);
     }
     renderPaymentStepBalance();
   }
@@ -3031,6 +3319,18 @@
       showToast('UTR number is required for the online payment amount.', true);
       return;
     }
+    // further online payments (each with its own screenshot / UTR): complete, and no UTR counted twice
+    const extrasList = PS_.extras.filter(function (e) { return (Number(e.amount) || 0) > 0.005 || String(e.utr || '').trim(); });
+    for (let i = 0; i < extrasList.length; i++) {
+      if (!(Number(extrasList[i].amount) > 0.005)) { showToast('Enter the amount of the further online payment.', true); return; }
+      if (!String(extrasList[i].utr || '').trim()) { showToast('UTR number is required for every online payment.', true); return; }
+    }
+    const utrSeen = online > 0.005 ? [document.getElementById('paymentStepUtr').value.trim().toUpperCase()] : [];
+    for (let i = 0; i < extrasList.length; i++) {
+      const u = String(extrasList[i].utr).trim().toUpperCase();
+      if (utrSeen.indexOf(u) > -1) { showToast('The same UTR (' + u + ') is used for two online payments.', true); return; }
+      utrSeen.push(u);
+    }
     const cashAmt = Number(document.getElementById('paymentStepCash').value) || 0;
     let payDateIso = null;
     if (currentDetailBill.pastEntry) {
@@ -3045,7 +3345,8 @@
       cash: cashAmt,
       online: online,
       walletUsed: walletUsed,
-      dateIso: payDateIso
+      dateIso: payDateIso,
+      extras: extrasList.map(function (e) { return { amount: Number(e.amount), utr: String(e.utr).trim() }; })
     };
     document.getElementById('paymentStepModal').classList.remove('show');
     renderDeliveryModal(currentDetailBill.items);
@@ -3133,7 +3434,7 @@
 
   function closeApprovalFlowModals_() {
     ['paymentStepModal', 'deliveryModal', 'detailModal'].forEach(function (id) { document.getElementById(id).classList.remove('show'); });
-    proceedFurtherPayment = { cash: 0, online: 0, walletUsed: 0 };
+    proceedFurtherPayment = { cash: 0, online: 0, walletUsed: 0, extras: [] };
     proceedFurtherDeliveryItems = [];
     currentDetailBill = null; // this bill is done - nothing here can approve it a second time
   }
@@ -3156,11 +3457,17 @@
     const btn = document.getElementById('approvalFinishBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
     try {
-      const { error } = await sb.rpc('confirm_delivery', {
+      const approveArgs = {
         p_invoice_no: invoiceNo, p_items: proceedFurtherDeliveryItems,
         p_cash: proceedFurtherPayment.cash, p_online: proceedFurtherPayment.online, p_wallet_used: proceedFurtherPayment.walletUsed,
         p_utr_no: utrNo || null, p_delivery_date: deliveryDateOverride_(), p_payment_date: proceedFurtherPayment.dateIso || null
-      });
+      };
+      // only when there really is a second online payment is the extra argument sent (so an approval without one works on every database, as before)
+      if (proceedFurtherPayment.extras && proceedFurtherPayment.extras.length) approveArgs.p_extra_online = proceedFurtherPayment.extras;
+      const { error } = await sb.rpc('confirm_delivery', approveArgs);
+      if (error && approveArgs.p_extra_online && /could not find the function|schema cache/i.test(error.message || '')) {
+        showToast('Several online payments need the database update (multi_online_payments.sql). Please run it first - or leave the second payment out and add it later with Record payment.', true); return;
+      }
       if (error) { showToast('Could not finalize: ' + error.message, true); return; }
       showToast('Bill ' + invoiceNo + ' finalized.');
       closeApprovalFlowModals_();
@@ -4225,21 +4532,23 @@
     document.getElementById('dashStats').innerHTML = '<div class="empty-cart">Loading…</div>';
     const fromDt = from ? from + 'T00:00:00' : null, toDt = to ? to + 'T23:59:59' : null;
 
-    let invQ = sb.from('invoices').select('total_qty,total_dp,total_sp,cash,online,balance');
+    let invQ = sb.from('invoices').select('total_qty,total_dp,total_sp,cash,online,balance,bill_status');
     if (fromDt) invQ = invQ.gte('invoice_date', fromDt); if (toDt) invQ = invQ.lte('invoice_date', toDt);
     let purQ = sb.from('purchases').select('total_qty,total_dp,total_sp');
     if (fromDt) purQ = purQ.gte('purchase_date', fromDt); if (toDt) purQ = purQ.lte('purchase_date', toDt);
     let expQ = sb.from('expenses').select('cash,online,total');
     if (from) expQ = expQ.gte('expense_date', from); if (to) expQ = expQ.lte('expense_date', to);
-    const [{ data: invoices }, { data: purchases }, { data: expenses }, { data: pendingItems }] = await Promise.all([
-      invQ, purQ, expQ, sb.from('invoice_items').select('id, invoices(bill_status)').gt('pending_qty', 0)
+    const [{ data: invoices }, { data: purchases }, { data: expenses }, { data: pendingItems }, { data: approvalRows }] = await Promise.all([
+      invQ, purQ, expQ, sb.from('invoice_items').select('id, invoices(bill_status)').gt('pending_qty', 0),
+      sb.from('invoices').select('*').eq('bill_status', 'Pending')        // everything waiting in Bill Approval right now
     ]);
 
     const s = { bills: 0, qty: 0, amount: 0, sp: 0, cash: 0, online: 0, pendingAmount: 0, pendingDeliveries: (pendingItems || []).filter(function (r) { return r.invoices && r.invoices.bill_status === 'Active'; }).length,
       purchaseCount: 0, purchaseQty: 0, purchaseAmount: 0, purchaseSP: 0, expenseCount: 0, expenseAmount: 0, expenseCash: 0, expenseOnline: 0 };
-    (invoices || []).forEach(function (h) { s.bills++; s.qty += Number(h.total_qty); s.amount += Number(h.total_dp); s.sp += Number(h.total_sp); s.cash += Number(h.cash); s.online += Number(h.online); if (h.balance < 0) s.pendingAmount += -h.balance; });
+    (invoices || []).forEach(function (h) { s.bills++; s.qty += Number(h.total_qty); s.amount += Number(h.total_dp); s.sp += Number(h.total_sp); s.cash += Number(h.cash); s.online += Number(h.online); if (h.bill_status === 'Active' && h.balance < -0.005) s.pendingAmount += -h.balance; });   // same rule as Accounting: only bills that went through approval
     (purchases || []).forEach(function (p) { s.purchaseCount++; s.purchaseQty += Number(p.total_qty); s.purchaseAmount += Number(p.total_dp); s.purchaseSP += Number(p.total_sp); });
     (expenses || []).forEach(function (e) { s.expenseCount++; s.expenseAmount += Number(e.total); s.expenseCash += Number(e.cash); s.expenseOnline += Number(e.online); });
+    s.approvalBills = (approvalRows || []).length; s.approvalAmount = (approvalRows || []).reduce(function (a, r) { return a + (Number(billGrand_(r)) || 0); }, 0);
     renderDashboardStats(s);
 
     loadDashboardTopProducts(from, to);
@@ -4318,11 +4627,11 @@
       return '<div class="stat-grid">' + cards.map(function (c) { return '<div class="stat-card' + (c.warn ? ' warn' : '') + '"><div class="stat-label">' + c.label + '</div><div class="stat-value">' + c.value + '</div></div>'; }).join('') + '</div>';
     }
     const salesCards = [{ label: 'Bills', value: trimNum(s.bills) }, { label: 'Qty sold', value: trimNum(s.qty) }, { label: 'Total amount', value: money(s.amount) }, { label: 'Total SP', value: trimNum(s.sp) },
-      { label: 'Cash', value: money(s.cash) }, { label: 'Online', value: money(s.online) }, { label: 'Amount pending', value: money(s.pendingAmount), warn: s.pendingAmount > 0 }, { label: 'Pending deliveries', value: trimNum(s.pendingDeliveries), warn: s.pendingDeliveries > 0 }];
+      { label: 'Cash', value: money(s.cash) }, { label: 'Online', value: money(s.online) }, { label: 'Amount pending', value: money(s.pendingAmount), warn: s.pendingAmount > 0 }, { label: 'Bills in approval', value: trimNum(s.approvalBills || 0), warn: (s.approvalBills || 0) > 0 }, { label: 'Amount in approval', value: money(s.approvalAmount || 0), warn: (s.approvalAmount || 0) > 0 }, { label: 'Pending deliveries', value: trimNum(s.pendingDeliveries), warn: s.pendingDeliveries > 0 }];
     const purchaseCards = [{ label: 'Purchases', value: trimNum(s.purchaseCount) }, { label: 'Qty purchased', value: trimNum(s.purchaseQty) }, { label: 'Purchase amount', value: money(s.purchaseAmount) }, { label: 'Purchase SP', value: trimNum(s.purchaseSP) }];
     const expenseCards = [{ label: 'Expenses', value: trimNum(s.expenseCount) }, { label: 'Total expense', value: money(s.expenseAmount) }, { label: 'Cash spent', value: money(s.expenseCash) }, { label: 'Online spent', value: money(s.expenseOnline) }];
     document.getElementById('dashStats').innerHTML =
-      '<p class="section-label">Sales</p>' + grid(salesCards) +
+      '<p class="section-label">Sales</p>' + grid(salesCards) + '<p class="hint" style="margin:6px 0 0;">Amount pending counts only bills that are through the approval step (the same bills as Accounting). Bills / Amount in approval are everything waiting in Bill Approval right now, whatever its date.</p>' +
       '<p class="section-label" style="margin-top:16px;">Purchases</p>' + grid(purchaseCards) +
       '<p class="section-label" style="margin-top:16px;">Expenses</p>' + grid(expenseCards);
   }
@@ -4847,6 +5156,10 @@
       return '<div class="list-row" data-inv="' + r.invoice_no + '"><div><div class="result-name">' + r.invoice_no + sourceTag + cashMemoTag + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div></div>' +
         '<div style="text-align:right;"><div class="cart-amount"><div class="amt">' + money(billGrand_(r)) + '</div><div class="pts">' + trimNum(r.total_sp) + ' SP</div></div><span class="badge badge-partial">Pending Approval</span></div></div>';
     }).join('');
+    rows.forEach(function (r) {       // the cash memo number(s), clearly - a public order's memo was entered when it was approved
+      const row = box.querySelector('.list-row[data-inv="' + r.invoice_no + '"]'), html = cmLineHtml_(r), meta = row && row.querySelector('.result-meta');
+      if (meta && html) meta.insertAdjacentHTML('afterend', html);
+    });
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { viewBill(row.dataset.inv, false); }); });
     if (approvalFlashInvoice_) {   // a public order was just approved: show where its bill is
       const fresh = box.querySelector('.list-row[data-inv="' + approvalFlashInvoice_ + '"]');
@@ -4927,12 +5240,14 @@
   }
 
   function renderPaymentEdit(bill) {
+    currentPayEditBill_ = bill;
     const box = document.getElementById('paymentEditArea');
     if (bill.balance >= -0.005) { box.innerHTML = ''; return; }
     box.innerHTML = '<div class="card" style="margin-top:4px;box-shadow:none;"><p class="section-label">Amount pending: ' + money(-bill.balance) + '</p>' +
       '<div class="field-row"><div class="field"><label>Mode</label><select id="payEditMode" onchange="togglePayEditUtr()"><option>Cash</option><option>Online</option></select></div>' +
       '<div class="field"><label>Amount received</label><input type="number" id="payEditAmount" min="0" step="0.01" placeholder="0"></div></div>' +
       '<div class="field" id="payEditUtrField" style="display:none;"><label>UTR Number</label><input type="text" id="payEditUtr" placeholder="Transaction reference number"></div>' +
+      '<div class="field" id="payEditShotField" style="display:none;"><label for="payEditShot">📷 Payment screenshot <span style="font-weight:500;color:var(--ink-soft);">(optional - reads the amount, UTR and date)</span></label><input type="file" id="payEditShot" accept="image/*" onchange="payEditShotChosen_(this)"></div><div id="payEditShotStatus"></div>' +
       '<div class="field"><label>Payment date (leave blank for today)</label><input type="date" id="payEditDate"></div>' +
       '<button class="btn btn-primary btn-block" id="recordPaymentBtn" type="button">Record payment</button>' +
       '<button class="btn btn-outline btn-block" id="sendReminderBtn" type="button" style="margin-top:8px;">Send Payment Reminder on WhatsApp</button></div>';
@@ -4964,7 +5279,7 @@
   function dayIst_(d) { return new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); }
   function esPayload_(apply) {
     const dv = ES_.date, isToday = !dv || dv === todayIst_();
-    return {
+    const o = {
       p_invoice_no: currentDetailBill.invoiceNo,
       p_items: EDIT_CART.map(function (c) { return { code: c.code, name: c.name, qty: c.qty, dp: c.dp, sp: c.sp, mrp: c.mrp }; }),
       p_deliver: Object.keys(ES_.deliver).map(function (code) { return { code: code, qty: Number(ES_.deliver[code]) || 0 }; }),
@@ -4972,6 +5287,13 @@
       p_event_date: isToday ? null : new Date(dv + 'T12:00:00+05:30').toISOString(),
       p_note: (ES_.note || '').trim() || null, p_apply: apply
     };
+    // only what is really used is sent (a plain edit looks exactly as before)
+    const ex = (ES_.extras || []).filter(function (e) { return (Number(e.amount) || 0) > 0.005 || String(e.utr || '').trim(); }).map(function (e) { return { amount: Number(e.amount) || 0, utr: String(e.utr || '').trim() }; });
+    if (ex.length) o.p_extra_online = ex;
+    const rc = Number(ES_.refundCash) || 0, ro = Number(ES_.refundOnline) || 0;
+    if (rc > 0.005) o.p_refund_cash = rc;
+    if (ro > 0.005) { o.p_refund_online = ro; o.p_refund_utr = (ES_.refundUtr || '').trim() || null; }
+    return o;
   }
   function esServerMissing_(err) {
     if (err && /could not find the function|schema cache|does not exist/i.test(err.message || '')) {
@@ -4981,11 +5303,14 @@
   }
   function openEditSettle_() {
     if (!EDIT_CART.length) { showToast('Add at least one product.', true); return; }
-    ES_ = { deliver: {}, cash: '', online: '', utr: '', date: todayIst_(), note: '', timer: null, seq: 0, summary: null };
+    ES_ = { deliver: {}, cash: '', online: '', utr: '', date: todayIst_(), note: '', timer: null, seq: 0, summary: null, extras: [], hasRead: false, leftDue: false, xseq: 0, refundCash: '', refundOnline: '', refundUtr: '' };
     EDIT_CART.forEach(function (c) { const o = EDIT_ORIG_[c.code], added = c.qty - (o ? o.qty : 0); ES_.deliver[c.code] = added > 0 ? added : 0; });   // what is NEW is handed over now, unless changed
     const dEl = document.getElementById('esDate'); dEl.min = dayIst_(currentDetailBill.date); dEl.max = todayIst_(); dEl.value = ES_.date;
-    ['esCash', 'esOnline', 'esUtr', 'esNote'].forEach(function (id) { document.getElementById(id).value = ''; });
+    ['esCash', 'esOnline', 'esUtr', 'esNote', 'esRefundCash', 'esRefundOnline', 'esRefundUtr'].forEach(function (id) { document.getElementById(id).value = ''; });
     document.getElementById('esUtrField').style.display = 'none';
+    ['esShot', 'esRefundShot'].forEach(function (id) { document.getElementById(id).value = ''; });
+    ['esShotStatus', 'esExtraList', 'esChoiceBox', 'esRefundShotStatus'].forEach(function (id) { document.getElementById(id).innerHTML = ''; });
+    ['esRefund', 'esRefundUtrField', 'esRefundShotField'].forEach(function (id) { document.getElementById(id).style.display = 'none'; });
     document.getElementById('esError').textContent = '';
     document.getElementById('esLines').innerHTML = ''; document.getElementById('esMoney').innerHTML = ''; document.getElementById('esPay').style.display = 'none';
     document.getElementById('esConfirmBtn').disabled = true;
@@ -4998,8 +5323,122 @@
     if (!ES_) return;
     ES_.cash = document.getElementById('esCash').value; ES_.online = document.getElementById('esOnline').value;
     ES_.utr = document.getElementById('esUtr').value; ES_.date = document.getElementById('esDate').value || todayIst_(); ES_.note = document.getElementById('esNote').value;
+    ES_.refundCash = document.getElementById('esRefundCash').value; ES_.refundOnline = document.getElementById('esRefundOnline').value; ES_.refundUtr = document.getElementById('esRefundUtr').value;
     document.getElementById('esUtrField').style.display = (Number(ES_.online) || 0) > 0 ? 'block' : 'none';
+    const onl = (Number(ES_.refundOnline) || 0) > 0;
+    document.getElementById('esRefundUtrField').style.display = onl ? 'block' : 'none'; document.getElementById('esRefundShotField').style.display = onl ? 'block' : 'none';
+    esRenderChoice_();
     esRefresh_();
+  }
+  // =================== the money part of the review: collect (screenshots, several online payments) or RETURN money to the customer ===================
+  function esDue_() { return ES_ && ES_.summary ? Number(ES_.summary.dueBeforeCollect) || 0 : 0; }
+  function esExcess_() { return ES_ && ES_.summary ? Number(ES_.summary.excessBeforeCollect) || 0 : 0; }
+  function esExtrasSum_() { return (ES_.extras || []).reduce(function (s, e) { return s + (Number(e.amount) || 0); }, 0); }
+  function esSetStatus_(which, html) {
+    if (which === 0) { const el = document.getElementById('esShotStatus'); if (el) el.innerHTML = html; }
+    else { const e = ES_.extras.find(function (x) { return x.id === which; }); if (e) e.status = html; const el = document.getElementById('esxStatus' + which); if (el) el.innerHTML = html; }
+  }
+  function esUtrUsed_(utr, exceptWhich) {
+    const u = String(utr || '').trim().toUpperCase(); if (!u) return false;
+    if (exceptWhich !== 0 && document.getElementById('esUtr').value.trim().toUpperCase() === u && (Number(document.getElementById('esOnline').value) || 0) > 0) return true;
+    return ES_.extras.some(function (e) { return e.id !== exceptWhich && String(e.utr || '').trim().toUpperCase() === u; });
+  }
+  async function esDupCheck_(utr, which, inst) {
+    if (!utr) return;
+    const { data } = await sb.from('payments').select('invoice_no').eq('utr_no', utr);
+    if (ES_ !== inst) return;
+    const other = (data || []).filter(function (r) { return r.invoice_no !== currentDetailBill.invoiceNo; })[0];
+    if (other) {
+      const cur = which === 0 ? (document.getElementById('esShotStatus') || {}).innerHTML : ((ES_.extras.find(function (x) { return x.id === which; }) || {}).status || '');
+      esSetStatus_(which, (cur || '') + '<div class="es-box es-due" style="margin:6px 0;">⚠ This UTR is already recorded on bill <strong>' + escapeHtml(other.invoice_no) + '</strong>. Fine if one payment covers both bills - otherwise it is the same payment used twice.</div>');
+    }
+  }
+  async function esShotChosen_(input, which) {           // which: 0 = the Online box, otherwise a further online payment
+    const file = input.files && input.files[0]; if (!file || !ES_ || !currentDetailBill) return;
+    const bill = currentDetailBill, inst = ES_;
+    esSetStatus_(which, '<p class="hint" style="margin:6px 0;">Reading the screenshot…</p>');
+    const res = await psReadFile_(file, psMobileOf_(bill));
+    input.value = '';
+    if (ES_ !== inst) return;
+    if (!res.ok) { esSetStatus_(which, psStatusHtml_('warn', 'Couldn\'t read it automatically' + (res.why ? ' (' + escapeHtml(res.why) + ')' : '') + '. Please type the amount and UTR.', res.dataUrl)); return; }
+    const r = res.read, j = psJudge_(r, !!bill.pastEntry);
+    if (j.block) { esSetStatus_(which, psStatusHtml_('bad', escapeHtml(j.block) + ' Nothing was filled in.', res.dataUrl)); return; }
+    if (r.utr && esUtrUsed_(r.utr, which)) { esSetStatus_(which, psStatusHtml_('bad', 'This UTR (' + escapeHtml(r.utr) + ') is already used for another online payment here - the same screenshot cannot be counted twice. Nothing was filled in.', res.dataUrl)); return; }
+    if (which === 0) {
+      if (r.amount) document.getElementById('esOnline').value = r.amount;
+      document.getElementById('esUtr').value = r.utr || '';
+    } else {
+      const e = ES_.extras.find(function (x) { return x.id === which; });
+      if (e) { e.amount = r.amount || ''; e.utr = r.utr || ''; const a = document.getElementById('esxAmt' + which), u = document.getElementById('esxUtr' + which); if (a) a.value = e.amount; if (u) u.value = e.utr; }
+    }
+    const dEl = document.getElementById('esDate');       // a screenshot of an earlier day: the change is dated that day (only while the date still says today)
+    if (r.date && ES_.date === todayIst_() && r.date >= dayIst_(bill.date) && r.date < todayIst_()) dEl.value = r.date;
+    ES_.hasRead = true; ES_.leftDue = false;
+    esSetStatus_(which, psStatusHtml_(j.warn.length ? 'warn' : 'ok', psReadText_(r) + j.warn.map(function (w) { return '<br>⚠ ' + escapeHtml(w); }).join(''), res.dataUrl));
+    esFieldChanged_();
+    esDupCheck_(r.utr, which, inst);
+  }
+  // the tally: matches what is due / balance (cash, online or leave it) / more than due
+  function esRenderChoice_() {
+    const box = document.getElementById('esChoiceBox'); if (!box || !ES_) return;
+    if (!ES_.hasRead || !ES_.summary) { box.innerHTML = ''; return; }
+    const due = esDue_(), cash = Number(ES_.cash) || 0, online = Number(ES_.online) || 0, paid = cash + online + esExtrasSum_(), bal = Math.round((due - paid) * 100) / 100;
+    let h = '';
+    if (Math.abs(bal) < 0.5) h = '<div class="es-box es-ok">✓ The payment matches what is due (' + money(due) + '). You can confirm.</div>';
+    else if (bal > 0) {
+      h = '<div class="es-box es-due"><strong>Balance ' + money(bal) + '</strong> - ' + money(due) + ' is due and ' + money(paid) + ' is received so far.' + (ES_.leftDue ? ' It will stay as balance (due) on this bill.' : ' How will the customer pay the rest?') + '</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 8px;"><button class="quickbtn" type="button" id="esBalCash" onclick="esBalanceCash_()">💵 Balance in Cash</button><button class="quickbtn" type="button" id="esBalOnline" onclick="esBalanceOnline_()">📲 Balance Online (another screenshot)</button><button class="quickbtn" type="button" id="esBalLeave" onclick="esLeaveDue_()">Leave as balance</button></div>';
+    } else h = '<div class="es-box es-ok">The payment is ' + money(-bal) + ' more than what is due - the extra goes to the customer\'s wallet.</div>';
+    box.innerHTML = h;
+  }
+  function esBalanceCash_() {
+    const due = esDue_(), cash = Number(ES_.cash) || 0, online = Number(ES_.online) || 0;
+    const bal = Math.max(0, Math.round((due - cash - online - esExtrasSum_()) * 100) / 100);
+    document.getElementById('esCash').value = Math.round((cash + bal) * 100) / 100; ES_.leftDue = false; esFieldChanged_();
+  }
+  function esBalanceOnline_() { ES_.leftDue = false; esAddExtra_(); }
+  function esLeaveDue_() { ES_.leftDue = true; esRenderChoice_(); }
+  function esAddExtra_() {
+    const id = ++ES_.xseq + 1000;
+    ES_.extras.push({ id: id, amount: '', utr: '', status: '' });
+    esRenderExtras_();
+    const f = document.getElementById('esxFile' + id); if (f) { try { f.click(); } catch (e) {} }
+    esFieldChanged_();
+  }
+  function esRenderExtras_() {
+    document.getElementById('esExtraList').innerHTML = ES_.extras.map(function (e, i) {
+      return '<div class="es-line" data-id="' + e.id + '"><div class="es-name">Online payment #' + (i + 2) + '</div>' +
+        '<div class="field" style="margin:6px 0;"><label for="esxFile' + e.id + '">📷 Screenshot</label><input type="file" id="esxFile' + e.id + '" accept="image/*" onchange="esShotChosen_(this, ' + e.id + ')"></div>' +
+        '<div id="esxStatus' + e.id + '">' + (e.status || '') + '</div>' +
+        '<div class="field-row"><div class="field"><label for="esxAmt' + e.id + '">Amount ₹</label><input type="number" id="esxAmt' + e.id + '" inputmode="decimal" min="0" step="0.01" value="' + escapeHtml(String(e.amount)) + '" oninput="esExtraInput_(' + e.id + ')"></div>' +
+        '<div class="field"><label for="esxUtr' + e.id + '">UTR number</label><input type="text" id="esxUtr' + e.id + '" autocomplete="off" value="' + escapeHtml(String(e.utr)) + '" oninput="esExtraInput_(' + e.id + ')"></div></div>' +
+        '<button class="quickbtn" type="button" onclick="esRemoveExtra_(' + e.id + ')">✕ Remove this payment</button></div>';
+    }).join('');
+  }
+  function esExtraInput_(id) {
+    const e = ES_.extras.find(function (x) { return x.id === id; }); if (!e) return;
+    e.amount = document.getElementById('esxAmt' + id).value; e.utr = document.getElementById('esxUtr' + id).value; esFieldChanged_();
+  }
+  function esRemoveExtra_(id) { ES_.extras = ES_.extras.filter(function (x) { return x.id !== id; }); esRenderExtras_(); esFieldChanged_(); }
+  // money handed back to the customer
+  function esRefundFill_(mode) {
+    const e = esExcess_(), set = function (id, v) { document.getElementById(id).value = v; };
+    if (mode === 'cash') { set('esRefundCash', e); set('esRefundOnline', ''); }
+    else if (mode === 'online') { set('esRefundCash', ''); set('esRefundOnline', e); }
+    else { set('esRefundCash', ''); set('esRefundOnline', ''); set('esRefundUtr', ''); }
+    esFieldChanged_();
+  }
+  function esRefundShotChosen_(input) {
+    const bill = currentDetailBill; if (!bill || !ES_) return;
+    psSimpleRead_(input, 'esRefundShotStatus', psMobileOf_(bill), !!bill.pastEntry, function (r) {
+      if (r.amount) document.getElementById('esRefundOnline').value = r.amount;
+      if (r.utr) document.getElementById('esRefundUtr').value = r.utr;
+      esFieldChanged_();
+    }, function (r) {
+      const ex = esExcess_(); if (!r.amount || ex <= 0.005) return '';
+      const left = Math.round((ex - r.amount) * 100) / 100;
+      return Math.abs(left) < 0.5 ? '✓ This is the whole extra amount (' + money(ex) + ').' : left > 0 ? 'The extra is ' + money(ex) + ' - ' + money(left) + ' more stays as wallet credit unless you return it too.' : 'This is ' + money(-left) + ' MORE than the extra (' + money(ex) + ') - it cannot be saved.';
+    });
   }
   function esDeliverChanged_(input) {
     if (!ES_) return;
@@ -5044,8 +5483,13 @@
     else if (wd < -0.005) m += '<div class="es-box es-due">The bill became bigger, so <strong>' + money(-wd) + '</strong> of the extra money that was credited to the wallet before is used up by the bill - it will be taken back out of the wallet (wallet ' + money(s.walletBalanceBefore) + ' → ' + money(s.walletBalanceAfter) + ').</div>';
     if (Number(s.spSetsCleared) > 0) m += '<div class="es-box es-warn">' + s.spSetsCleared + ' planned SP set' + (Number(s.spSetsCleared) > 1 ? 's' : '') + ' of this bill will be cleared because the bill changed - plan them again in the SP Sets tab.</div>';
     if (s.spToAllocateOld != null && s.spToAllocateNew != null && Math.abs(Number(s.spToAllocateOld) - Number(s.spToAllocateNew)) > 0.0001) m += '<div class="es-box es-due">Planned SP for Official work: ' + trimNum(s.spToAllocateOld) + ' → <strong>' + trimNum(s.spToAllocateNew) + '</strong>.</div>';
+    if (Number(s.refund) > 0.005) m += '<div class="es-box es-ok"><strong>' + money(s.refund) + '</strong> returned to the customer (' + [Number(s.refundCash) > 0.005 ? 'cash ' + money(s.refundCash) : '', Number(s.refundOnline) > 0.005 ? 'online ' + money(s.refundOnline) : ''].filter(Boolean).join(' · ') + ') - entered on the bill as a refund.</div>';
     document.getElementById('esMoney').innerHTML = m;
-    document.getElementById('esPay').style.display = (due > 0.005 || (Number(ES_.cash) || 0) + (Number(ES_.online) || 0) > 0) ? 'block' : 'none';
+    const hasRefund = (Number(ES_.refundCash) || 0) + (Number(ES_.refundOnline) || 0) > 0.005;
+    document.getElementById('esPay').style.display = (due > 0.005 || (Number(ES_.cash) || 0) + (Number(ES_.online) || 0) + esExtrasSum_() > 0) ? 'block' : 'none';
+    document.getElementById('esRefund').style.display = (excess > 0.005 || hasRefund) ? 'block' : 'none';
+    document.getElementById('esRefundIntro').innerHTML = excess > 0.005 ? 'The customer has paid <strong>' + money(excess) + '</strong> more than the new bill. Did you hand money back? Say how much, and whether it was cash or online.' : 'Nothing is left to return.';
+    esRenderChoice_();
   }
   async function esConfirm_() {
     if (!ES_ || !ES_.summary) return;
@@ -5061,6 +5505,7 @@
       if ((data.delivered || []).length) parts.push(data.delivered.length + ' handed over');
       if (Number(data.walletDelta) > 0.005) parts.push(money(data.walletDelta) + ' added to wallet'); else if (Number(data.walletDelta) < -0.005) parts.push(money(-Number(data.walletDelta)) + ' taken from wallet');
       if (Number(data.dueAfter) > 0.005) parts.push(money(data.dueAfter) + ' still due');
+      if (Number(data.refund) > 0.005) parts.push(money(data.refund) + ' returned to the customer');
       showToast(parts.join(' · '));
       await viewBill(inv, false);
       refreshActiveBillList_();
@@ -5081,6 +5526,8 @@
       if ((h.delivered || []).length) L.push('Handed over: ' + names(h.delivered));
       L.push('Bill ' + money(h.amountBefore) + ' → ' + money(h.amountAfter) + ' · SP ' + trimNum(h.spBefore) + ' → ' + trimNum(h.spAfter));
       L.push('Paid ' + money(h.paidBefore) + ' → ' + money(h.paidAfter) + ((Number(h.cash) > 0 || Number(h.online) > 0) ? ' (received: ' + (Number(h.cash) > 0 ? 'cash ' + money(h.cash) : '') + (Number(h.cash) > 0 && Number(h.online) > 0 ? ', ' : '') + (Number(h.online) > 0 ? 'online ' + money(h.online) + (h.utr ? ' UTR ' + escapeHtml(h.utr) : '') : '') + ')' : ''));
+      if (Number(h.refundCash) > 0 || Number(h.refundOnline) > 0) L.push('Returned to the customer: ' + (Number(h.refundCash) > 0 ? 'cash ' + money(h.refundCash) : '') + (Number(h.refundCash) > 0 && Number(h.refundOnline) > 0 ? ', ' : '') + (Number(h.refundOnline) > 0 ? 'online ' + money(h.refundOnline) + (h.refundUtr ? ' ref ' + escapeHtml(h.refundUtr) : '') : ''));
+      if (Array.isArray(h.extraOnline) && h.extraOnline.length) L.push('More online payments: ' + h.extraOnline.map(function (x) { return money(x.amount) + ' UTR ' + escapeHtml(x.utr); }).join(', '));
       if (Math.abs(Number(h.walletDelta)) > 0.005) L.push('Wallet ' + (Number(h.walletDelta) > 0 ? '+' : '−') + money(Math.abs(Number(h.walletDelta))));
       if (Number(h.spSetsCleared) > 0) L.push(h.spSetsCleared + ' planned SP set(s) cleared');
       if (h.note) L.push('Note: ' + escapeHtml(h.note));
@@ -5169,6 +5616,11 @@
   }
   function clearMemoBoxes_(g) { memoBoxes_(g).forEach(function (d) { clearTimeout(d._t); d.remove(); }); }
   function refreshApproveBtn_() { document.getElementById('approveCashMemoBtn').disabled = !(approveCashMemoValid_ && extraMemosOk_('approve')); }
+  function cmLineHtml_(r) {
+    if (!r.cash_memo_no) return r.source === 'Public' ? '<div class="cm-line" style="color:var(--danger);">No cash memo number on this bill</div>' : '';
+    const more = r.cash_memo_more ? ' +' + escapeHtml(r.cash_memo_more).replace(/, /g, ' +') : '';
+    return '<div class="cm-line">Cash memo ' + escapeHtml(r.cash_memo_no) + more + '</div>';
+  }
   // how a bill's memos read in a list: CM#1024 +1025 +1026
   function cmTagHtml_(r) {
     if (!r.cash_memo_no) return '';
@@ -5184,7 +5636,16 @@
     c.querySelectorAll(':scope > .subtabs > .subtab[data-subtab]').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
     c.querySelectorAll(':scope > .subtab-panel').forEach(function (p) { p.classList.remove('active'); });
     document.getElementById('histsub-' + name).classList.add('active');
-    if (name === 'cashmemo') loadCashMemoRegister_();
+    if (name === 'cashmemo') { cmMoveTo_('histsub-cashmemo'); loadCashMemoRegister_(); }
+  }
+  // the cash memo register is ONE piece of the page: it lives under Past Bill > Cash Memo, and moves under Bill Approval > Cash Memo when that is opened
+  function cmMoveTo_(paneId) { const root = document.getElementById('cmRegisterRoot'), pane = document.getElementById(paneId); if (root && pane && root.parentNode !== pane) pane.appendChild(root); }
+  function switchApprovalSubtab_(name) {
+    const c = document.getElementById('tab-approval');
+    c.querySelectorAll(':scope > .subtabs > .subtab[data-subtab]').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
+    c.querySelectorAll(':scope > .subtab-panel').forEach(function (p) { p.classList.remove('active'); });
+    document.getElementById('apprsub-' + name).classList.add('active');
+    if (name === 'cashmemo') { cmMoveTo_('apprsub-cashmemo'); loadCashMemoRegister_(); } else searchApprovalBills();
   }
   let cmView_ = 'serial', cmDesc_ = true, cmPage_ = 0, cmFrom_ = null, cmSearch_ = '', cmNoSearch_ = '', cmNoPage_ = 0;
   let cmGaps_ = null, cmSummary_ = null, cmReq_ = 0, cmViewReq_ = 0, cmTimer_ = null, cmNoTotal_ = 0, cmSerialTotal_ = 0;
@@ -5911,6 +6372,7 @@
 
   function togglePayEditUtr() {
     document.getElementById('payEditUtrField').style.display = document.getElementById('payEditMode').value === 'Online' ? 'block' : 'none';
+    const shotField = document.getElementById('payEditShotField'); if (shotField) shotField.style.display = document.getElementById('payEditMode').value === 'Online' ? 'block' : 'none';
   }
 
   async function submitPaymentEdit(invoiceNo) {
