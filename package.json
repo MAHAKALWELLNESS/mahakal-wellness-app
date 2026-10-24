@@ -1,0 +1,15 @@
+{
+  "name": "mahakal-wellness-app",
+  "version": "1.0.0",
+  "description": "Mahakal Wellness App - A Progressive Web App for wellness center management",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Static HTML site - open index.html in browser'",
+    "build": "echo 'No build needed for static site'"
+  },
+  "keywords": ["wellness", "pwa", "static-site"],
+  "license": "ISC",
+  "dependencies": {
+    "@vercel/speed-insights": "^1.0.12"
+  }
+}
