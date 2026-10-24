@@ -136,6 +136,13 @@
   .edit-actions{position:sticky; bottom:-20px; z-index:5; background:var(--surface); margin:14px -20px -20px; padding:12px 20px 16px; border-top:1px solid var(--line);}
   #editBillItemsList .cart-item{scroll-margin-top:130px; scroll-margin-bottom:90px;}
   .cart-item.just-changed{animation:editFlash 1.3s ease-out;}
+  /* Correct a bill's date: the list of records that can move with it */
+  .cbd-group{font-size:11.5px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.4px; margin:10px 0 2px;}
+  .cbd-row{display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; cursor:pointer;}
+  .cbd-row input{width:auto; margin-top:2px; flex:0 0 auto;}
+  .cbd-row .cbd-main{flex:1; min-width:0; word-break:break-word;}
+  .cbd-row .cbd-when{font-size:12px; color:var(--ink-soft); text-align:right; flex:0 0 auto;}
+  .cbd-row .cbd-other{display:inline-block; margin-left:6px; font-size:10.5px; font-weight:700; color:var(--gold-600); background:var(--gold-100); border-radius:6px; padding:1px 6px;}
   @keyframes editFlash{0%{background:var(--gold-100);}100%{background:transparent;}}
 
   /* ---------- tabs nav ---------- */
@@ -1640,7 +1647,28 @@
       <div class="modal-actions"><button class="btn btn-outline" onclick="downloadPdfFromDetail()">Download PDF</button><button class="btn btn-gold" onclick="shareWhatsappFromDetail()">Share on WhatsApp</button></div>
       <div id="walletUsedNoteArea"></div>
       <div id="billActionsArea"></div>
+      <div id="billDateHistoryArea"></div>
       <div id="paymentEditArea"></div>
+    </div>
+  </div>
+
+  <!-- ============ CORRECT A BILL'S DATE (main admin) ============ -->
+  <div class="modal-overlay" id="changeBillDateModal">
+    <div class="modal-sheet" id="changeBillDateSheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Correct date of <span id="cbdInvoiceNo"></span></h2>
+      <p class="hint" style="margin-bottom:10px;">Use this when a bill was saved on the wrong day. The bill and the records you tick below move to the new day together, so Accounting, the statements and the stock reports show them on the right day. Only dates change - amounts, stock and balances stay exactly as they are.</p>
+      <div class="field"><label>Bill date now</label><div id="cbdCurrent" style="font-weight:700;color:var(--green-800);"></div></div>
+      <div class="field"><label for="cbdNewDate">New date</label><input type="date" id="cbdNewDate" oninput="refreshChangeDateSummary_()"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:4px 0 0;">
+        <span style="font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.4px;">Records to move</span>
+        <span style="font-size:12px;"><a href="#" onclick="cbdTick_('same'); return false;">Only the bill's day</a> · <a href="#" onclick="cbdTick_('all'); return false;">Tick all</a></span>
+      </div>
+      <div id="cbdRecords"></div>
+      <div id="cbdNotes"></div>
+      <div class="edit-actions">
+        <p id="cbdSummary" style="margin:0 0 8px;font-size:12.5px;font-weight:700;color:var(--green-800);line-height:1.4;"></p>
+        <div class="modal-actions" style="margin-top:0;"><button class="btn btn-outline" type="button" onclick="closeChangeBillDate_()">Cancel</button><button class="btn btn-primary" type="button" id="cbdConfirmBtn" onclick="confirmChangeBillDate()" disabled>Change date</button></div>
+      </div>
     </div>
   </div>
 
@@ -4524,6 +4552,8 @@
       customerName: header.customer_name, mobile: header.mobile, city: header.city, idName: header.id_name, idNo: header.id_no,
       referenceName: header.reference_name, referenceMobile: header.reference_mobile, billStatus: header.bill_status,
       remark: header.remark,
+      officialCount: (officialRows || []).length,
+      records: { payments: paymentRows || [], deliveries: deliveryRows || [], official: officialRows || [] },
       items: (items || []).map(function (it) { return { code: it.product_code, name: it.product_name, qty: it.qty, dp: it.dp, sp: it.sp, mrp: it.mrp, pendingQty: it.pending_qty, deliveredQty: it.delivered_qty }; })
     };
     if (!bill.city && bill.mobile) { // older bills were saved before the bill itself stored a city
@@ -4539,6 +4569,7 @@
       ? '<div class="card" style="margin-top:4px;box-shadow:none;background:var(--gold-100);"><p style="font-size:12.5px;color:var(--gold-600);font-weight:700;margin:0;">Staff note: ' + money(bill.walletUsed) + ' of this bill was paid from the customer\'s wallet (not shown on the printed bill).</p></div>'
       : '';
     renderBillActions(bill);
+    renderBillDateHistory_(bill.invoiceNo);
     // Payment recording is only offered when opened from Accounting - Past Bill is view/print/share only.
     document.getElementById('paymentEditArea').innerHTML = '';
     if (allowPaymentEdit) renderPaymentEdit(bill);
@@ -4598,6 +4629,113 @@
   }
 
   // ---------------- CANCEL BILL / EDIT BILL / DELETE BILL ----------------
+  // Same rule as the server (check_bill_untouched_, used by both edit_bill and cancel_bill): a bill's items can be edited / the bill
+  // cancelled only while it has no cash or online payment, no delivery and no Official work. Returns the reasons it is locked.
+  function billEditBlockers_(bill) {
+    const why = [];
+    if ((Number(bill.cash) || 0) > 0.0001 || (Number(bill.online) || 0) > 0.0001) why.push('a payment was received');
+    if ((bill.items || []).some(function (it) { return (Number(it.deliveredQty) || 0) > 0.0001; })) why.push('items were delivered');
+    if ((Number(bill.officialCount) || 0) > 0) why.push('Official work was done');
+    return why;
+  }
+
+  // =================== CORRECT A BILL'S DATE (main admin) ===================
+  // The bill and the records ticked move to the new day together, on the server (change_bill_date). Only dates change.
+  function istDay_(iso) { return new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); }                 // 2026-10-05
+  function fmtIst_(iso) { return new Date(iso).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+  function fmtDayIst_(iso) { return new Date(iso).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric' }); }
+  let CBD_ROWS = [];   // every record that could move: { kind, id, group, label, when }
+
+  async function openChangeBillDate() {
+    const bill = currentDetailBill;
+    if (!bill || !isSuperAdminUser) return;
+    const rec = bill.records || { payments: [], deliveries: [], official: [] };
+    const rows = [];
+    rec.payments.forEach(function (p) { rows.push({ kind: 'payment', id: p.id, group: 'Payments', label: p.mode + ' ' + money(p.amount) + (p.remark ? ' · ' + p.remark : ''), when: p.payment_date }); });
+    rec.deliveries.forEach(function (d) { rows.push({ kind: 'delivery', id: d.id, group: 'Deliveries', label: d.product_name + ' × ' + trimNum(d.qty), when: d.log_date }); });
+    rec.official.forEach(function (o) { rows.push({ kind: 'official', id: o.official_no, group: 'Official work', label: o.official_no + (o.ds_id ? ' · ' + o.ds_id : '') + ' · ' + trimNum(o.total_sp_used) + ' SP', when: o.session_date }); });
+    const { data: wal } = await sb.from('wallet_transactions').select('id, type, amount, note, txn_date').eq('invoice_no', bill.invoiceNo).order('txn_date', { ascending: true });
+    (wal || []).forEach(function (w) { rows.push({ kind: 'wallet', id: w.id, group: 'Wallet entries', label: w.type + ' ' + money(w.amount) + (w.note ? ' · ' + w.note : ''), when: w.txn_date }); });
+    CBD_ROWS = rows;
+    const billDay = istDay_(bill.date);
+    document.getElementById('cbdInvoiceNo').textContent = bill.invoiceNo;
+    document.getElementById('cbdCurrent').textContent = fmtIst_(bill.date);
+    const dateEl = document.getElementById('cbdNewDate');
+    dateEl.value = ''; dateEl.min = '2026-01-01'; dateEl.max = istDay_(new Date().toISOString());
+    let html = '', lastGroup = '';
+    rows.forEach(function (r, i) {
+      if (r.group !== lastGroup) { html += '<div class="cbd-group">' + r.group + '</div>'; lastGroup = r.group; }
+      const same = istDay_(r.when) === billDay;
+      html += '<label class="cbd-row"><input type="checkbox" data-idx="' + i + '"' + (same ? ' checked' : '') + ' onchange="refreshChangeDateSummary_()">' +
+        '<span class="cbd-main">' + escapeHtml(r.label) + (same ? '' : '<span class="cbd-other">other day</span>') + '</span><span class="cbd-when">' + escapeHtml(fmtIst_(r.when)) + '</span></label>';
+    });
+    document.getElementById('cbdRecords').innerHTML = html || '<p class="hint">This bill has no payments, deliveries, Official work or wallet entries - only the bill date will change.</p>';
+    document.getElementById('changeBillDateModal').classList.add('show');
+    document.getElementById('changeBillDateSheet').scrollTop = 0;
+    refreshChangeDateSummary_();
+  }
+  function closeChangeBillDate_() { document.getElementById('changeBillDateModal').classList.remove('show'); }
+  function cbdChecked_() { return Array.from(document.querySelectorAll('#cbdRecords input[type=checkbox]')).filter(function (c) { return c.checked; }).map(function (c) { return CBD_ROWS[Number(c.dataset.idx)]; }); }
+  function cbdTick_(mode) {
+    const billDay = istDay_(currentDetailBill.date);
+    Array.from(document.querySelectorAll('#cbdRecords input[type=checkbox]')).forEach(function (c) { c.checked = mode === 'all' ? true : istDay_(CBD_ROWS[Number(c.dataset.idx)].when) === billDay; });
+    refreshChangeDateSummary_();
+  }
+  function refreshChangeDateSummary_() {
+    const bill = currentDetailBill; if (!bill) return;
+    const newDay = document.getElementById('cbdNewDate').value, billDay = istDay_(bill.date), today = istDay_(new Date().toISOString());
+    const ticked = cbdChecked_(), notes = []; let ok = true;
+    if (!newDay) ok = false;
+    else if (newDay > today) { ok = false; notes.push(['bad', 'The new date cannot be in the future.']); }
+    else if (newDay < '2026-01-01') { ok = false; notes.push(['bad', 'That date is too old.']); }
+    else if (newDay === billDay && !ticked.length) { ok = false; notes.push(['warn', 'That is already the bill\'s date. Tick the records you want to move, or choose another date.']); }
+    if (newDay) {
+      const unticked = CBD_ROWS.filter(function (r) { return ticked.indexOf(r) < 0; });
+      const stay = unticked.filter(function (r) { return istDay_(r.when) === billDay && newDay !== billDay; });
+      const before = unticked.filter(function (r) { return istDay_(r.when) < newDay; });
+      if (stay.length) notes.push(['warn', stay.length + ' record(s) dated like the bill are NOT ticked, so they stay on ' + fmtDayIst_(bill.date) + '.']);
+      if (before.length) notes.push(['warn', before.length + ' record(s) that are not ticked are dated before the new bill date; they stay as they are.']);
+    }
+    const count = function (k) { return ticked.filter(function (r) { return r.kind === k; }).length; };
+    const names = { payment: ['payment', 'payments'], delivery: ['delivery', 'deliveries'], official: ['Official session', 'Official sessions'], wallet: ['wallet entry', 'wallet entries'] };
+    const parts = []; Object.keys(names).forEach(function (k) { const n = count(k); if (n) parts.push(n + ' ' + names[k][n > 1 ? 1 : 0]); });
+    document.getElementById('cbdNotes').innerHTML = notes.map(function (n) { return '<div class="box ' + (n[0] === 'bad' ? 'bad' : 'warn') + '" style="margin-top:8px;border-radius:10px;padding:9px 12px;font-size:12.5px;background:' + (n[0] === 'bad' ? 'var(--danger-100)' : 'var(--gold-100)') + ';color:' + (n[0] === 'bad' ? 'var(--danger)' : '#7a5617') + ';">' + n[1] + '</div>'; }).join('');
+    document.getElementById('cbdSummary').textContent = newDay ? 'Will move to ' + fmtDayIst_(newDay + 'T12:00:00+05:30') + ': the bill' + (parts.length ? ' + ' + parts.join(' + ') : '') + '.' : 'Choose the new date.';
+    document.getElementById('cbdConfirmBtn').disabled = !ok;
+  }
+  async function confirmChangeBillDate() {
+    return runLocked_('change-bill-date', async function () {
+      const bill = currentDetailBill, newDay = document.getElementById('cbdNewDate').value;
+      if (!bill || !newDay) return;
+      const ids = function (kind) { return cbdChecked_().filter(function (r) { return r.kind === kind; }).map(function (r) { return r.id; }); };
+      const { data, error } = await sb.rpc('change_bill_date', {
+        p_invoice_no: bill.invoiceNo, p_new_date: newDay,
+        p_payment_ids: ids('payment').map(Number), p_delivery_ids: ids('delivery').map(Number), p_official_nos: ids('official').map(String), p_wallet_ids: ids('wallet').map(Number)
+      });
+      if (error) { showToast(error.message || 'Could not change the date.', true); return; }
+      closeChangeBillDate_();
+      const n = (data ? (data.payments || 0) + (data.deliveries || 0) + (data.official || 0) + (data.wallet || 0) : 0);
+      showToast('Date corrected to ' + fmtDayIst_(newDay + 'T12:00:00+05:30') + ' · bill + ' + n + ' record' + (n === 1 ? '' : 's'));
+      await viewBill(bill.invoiceNo, false);
+      refreshActiveBillList_();
+    });
+  }
+  // the history of date corrections under the bill (main admin only)
+  async function renderBillDateHistory_(invoiceNo) {
+    const box = document.getElementById('billDateHistoryArea'); if (!box) return;
+    box.innerHTML = '';
+    if (!isSuperAdminUser) return;
+    const { data } = await sb.rpc('get_bill_date_history', { p_invoice_no: invoiceNo });
+    if (!Array.isArray(data) || !data.length) return;
+    box.innerHTML = '<div class="card" id="billDateHistoryCard" style="margin-top:8px;box-shadow:none;background:var(--green-100);"><p style="color:var(--green-800);font-weight:700;font-size:13px;margin:0 0 4px;">📅 Date corrected ' + (data.length === 1 ? 'once' : data.length + ' times') + '</p>' +
+      data.map(function (h) {
+        const moved = (h.payments || 0) + (h.deliveries || 0) + (h.official || 0) + (h.wallet || 0);
+        return '<p style="font-size:12px;color:var(--ink-soft);margin:2px 0;">' + escapeHtml(fmtIst_(h.changedAt)) + ': ' + escapeHtml(fmtDayIst_(h.oldDate)) + ' → ' + escapeHtml(fmtDayIst_(h.newDate)) + ' (bill + ' + moved + ' record' + (moved === 1 ? '' : 's') + ')</p>';
+      }).join('') + '</div>';
+  }
+
+  function joinReasons_(list) { return list.length > 1 ? list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1] : list.join(''); }
+
   function renderBillActions(bill) {
     const box = document.getElementById('billActionsArea');
     const deleteBtn = '<div class="modal-actions"><button class="btn btn-outline btn-block" style="color:var(--danger);border-color:var(--danger);" onclick="deleteBillConfirm(\'' + bill.invoiceNo + '\')">🗑 Delete Bill Permanently</button></div>';
@@ -4606,11 +4744,18 @@
       return;
     }
     const isPending = bill.billStatus === 'Pending';
+    const dateBtn = isSuperAdminUser ? '<div class="modal-actions"><button class="btn btn-outline btn-block" id="correctDateBtn" onclick="openChangeBillDate()">📅 Correct bill date (all records)</button></div>' : '';
+    const blockers = billEditBlockers_(bill);
+    const editCancelRow = blockers.length
+      ? '<div class="card" id="billLockedNote" style="margin-top:8px;box-shadow:none;background:var(--gold-100);"><p style="color:var(--gold-600);font-weight:700;font-size:13px;margin:0 0 4px;">Items can\'t be edited and this bill can\'t be cancelled</p>' +
+        '<p style="font-size:12.5px;color:var(--ink-soft);line-height:1.45;margin:0;">Because ' + joinReasons_(blockers) + ' on this bill. You can still change the transport charges. To change what was billed, use <strong>Delete Bill Permanently</strong> below (it reverses stock, payments and wallet) and bill it again.</p></div>'
+      : '<div class="modal-actions" style="margin-top:8px;"><button class="btn btn-outline btn-block" onclick="openEditBill()">Edit Bill</button><button class="btn btn-outline btn-block" style="color:var(--danger);border-color:var(--danger);" onclick="cancelBillConfirm(\'' + bill.invoiceNo + '\')">Cancel Bill</button></div>';
     box.innerHTML =
       (isPending ? '<div class="card" style="margin-top:4px;box-shadow:none;background:var(--gold-100);"><p style="color:var(--gold-600);font-weight:700;font-size:13px;margin:0;">Awaiting approval — Proceed Further to confirm delivery and finalize this bill.</p></div>' : '') +
-      '<div class="modal-actions" style="margin-top:8px;"><button class="btn btn-outline btn-block" onclick="openEditBill()">Edit Bill</button><button class="btn btn-outline btn-block" style="color:var(--danger);border-color:var(--danger);" onclick="cancelBillConfirm(\'' + bill.invoiceNo + '\')">Cancel Bill</button></div>' +
+      editCancelRow +
       (isPending ? '<div class="modal-actions"><button class="btn btn-primary btn-block" onclick="proceedFurther()">Proceed Further</button></div>' :
         '<div class="modal-actions"><button class="btn btn-outline btn-block" onclick="openEditTransportCharges(\'' + bill.invoiceNo + '\', ' + (Number(bill.transportCharges) || 0) + ')">✏️ Edit Rapido/Bus/Transport Charges</button></div>') +
+      dateBtn +
       deleteBtn;
   }
 
@@ -4704,6 +4849,10 @@
   function openEditBill(origin) {
     if (!currentDetailBill) return;
     editBillOrigin_ = origin === 'review' ? 'review' : 'detail';
+    if (editBillOrigin_ === 'detail') {
+      const why = billEditBlockers_(currentDetailBill);
+      if (why.length) { showToast('This bill can\'t be edited: ' + joinReasons_(why) + '.', true); return; }
+    }
     EDIT_CART = currentDetailBill.items.map(function (it) { return { code: it.code, name: it.name, dp: Number(it.dp), sp: Number(it.sp), mrp: Number(it.mrp) || 0, qty: Number(it.qty) }; });
     document.getElementById('editBillInvoiceNo').textContent = currentDetailBill.invoiceNo;
     document.getElementById('editBillSearchInput').value = '';
