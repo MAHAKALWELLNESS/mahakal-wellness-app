@@ -568,6 +568,7 @@
           <div class="field" style="margin-bottom:0;"><label for="publicOrderTo">To</label><input type="date" id="publicOrderTo" onchange="loadPublicOrders()"></div>
         </div>
       </div>
+      <div class="card"><p class="section-label">Find a request</p><input type="text" id="publicOrderSearch" class="search-input" placeholder="Bill No, name or mobile…" oninput="renderPublicOrderList_()"></div>
       <div id="publicOrderList"><div class="empty-cart">Loading…</div></div>
     </section>
 
@@ -4391,6 +4392,7 @@
   }
   function closePaymentProof_() { document.getElementById('paymentProofModal').classList.remove('show'); }
 
+  let publicOrderRows_ = [];
   async function loadPublicOrders() {
     const box = document.getElementById('publicOrderList');
     box.innerHTML = '<div class="empty-cart">Loading…</div>';
@@ -4398,16 +4400,28 @@
     const to = document.getElementById('publicOrderTo').value || null;
     const { data, error } = await sb.rpc('get_pending_public_orders', { p_start_date: from, p_end_date: to });
     if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
-    const rows = data || [];
-    if (!rows.length) { box.innerHTML = '<div class="card"><div class="empty-cart">No pending requests.</div></div>'; return; }
+    publicOrderRows_ = data || [];
     publicOrdersById_ = {};
-    rows.forEach(function (r) { publicOrdersById_[r.id] = r; });
+    publicOrderRows_.forEach(function (r) { publicOrdersById_[r.id] = r; });
+    renderPublicOrderList_();
+  }
+  // the number the customer was shown: the Bill No. (requests made before it existed only have the request number)
+  function publicOrderRef_(r) { return r.bill_no ? r.bill_no : 'Request ' + r.id; }
+  function renderPublicOrderList_() {
+    const box = document.getElementById('publicOrderList');
+    const q = (document.getElementById('publicOrderSearch').value || '').trim().toLowerCase();
+    const rows = publicOrderRows_.filter(function (r) {
+      return !q || [r.bill_no, 'request ' + r.id, r.customer_name, r.mobile].some(function (v) { return String(v || '').toLowerCase().indexOf(q) > -1; });
+    });
+    if (!publicOrderRows_.length) { box.innerHTML = '<div class="card"><div class="empty-cart">No pending requests.</div></div>'; return; }
+    if (!rows.length) { box.innerHTML = '<div class="card"><div class="empty-cart">No pending request matches that.</div></div>'; return; }
     box.innerHTML = rows.map(function (r) {
       const dateStr = new Date(r.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
       const itemCount = (r.items || []).length;
       return '<div class="card" style="cursor:pointer;" onclick="viewPublicOrderDetail(' + r.id + ')">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
-        '<div><div style="font-weight:700;color:var(--green-800);">' + escapeHtml(r.customer_name || 'Walk-in') + '</div>' +
+        '<div><div style="font-weight:800;font-size:15px;color:var(--green-900);">' + escapeHtml(publicOrderRef_(r)) + '</div>' +
+        '<div style="font-weight:700;color:var(--green-800);">' + escapeHtml(r.customer_name || 'Walk-in') + '</div>' +
         '<div class="hint">' + escapeHtml(r.mobile) + ' · ' + escapeHtml(r.customer_type) + ' · ' + itemCount + ' item(s)</div>' +
         '<div class="hint">' + dateStr + (r.payment_reported ? ' · <span style="color:var(--ok);font-weight:700;">' + (r.pay_method ? escapeHtml(r.pay_method) + ' · ' + money(r.reported_amount) + (Math.abs(Number(r.reported_amount) - Number(r.total_amount)) > 0.5 ? ' ⚠' : '') : 'UPI reported') + '</span>' : '') + '</div></div>' +
         '<div style="font-weight:700;font-size:15px;">' + money(r.total_amount) + '</div></div></div>';
@@ -4425,8 +4439,9 @@
         '<div class="cart-price">' + money(it.qty * (r.customer_type === 'Retail' ? it.mrp : it.dp)) + '</div></div>';
     }).join('');
     document.getElementById('publicOrderDetailArea').innerHTML =
+      '<div id="publicOrderRef" style="font-size:20px;font-weight:800;color:var(--green-900);margin-bottom:2px;">' + escapeHtml(publicOrderRef_(r)) + '</div>' +
       '<h2 style="font-size:16px;color:var(--green-800);margin-bottom:2px;">' + escapeHtml(r.customer_name || 'Walk-in') + '</h2>' +
-      '<p class="hint" style="margin-bottom:10px;">' + escapeHtml(r.mobile) + ' · ' + escapeHtml(r.customer_type) + ' · ' + dateStr + '</p>' +
+      '<p class="hint" style="margin-bottom:10px;">' + escapeHtml(r.mobile) + ' · ' + escapeHtml(r.customer_type) + ' · ' + dateStr + (r.bill_no ? ' · Request ' + r.id : '') + '</p>' +
       publicOrderPaymentHtml_(r) +
       rows +
       '<div class="receipt-total-row grand" style="margin-top:6px;"><span>Total</span><span>' + money(r.total_amount) + '</span></div>' +

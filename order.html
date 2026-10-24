@@ -567,6 +567,7 @@
     lastOrderSnapshot = orderDraft;
     lastOrderSnapshot.totalAmount = data.totalAmount;
     lastOrderSnapshot.totalSp = data.totalSp;
+    lastBillNo_ = data.billNo || '';
     showThankYou(data.orderId, data.totalAmount, false);
   }
 
@@ -905,7 +906,7 @@
     // 2) place the order
     const { data, error } = await sb.rpc('save_public_order_request', { p_customer_name: o.name, p_mobile: o.mobile, p_customer_type: o.custType, p_discount_percent: o.discountPercent, p_items: o.items, p_city: o.city, p_id_name: o.idName, p_id_no: o.dsId, p_reference_name: o.refName, p_reference_mobile: o.refMobile });
     if (error) { payState.err = error.message || 'Could not place order. Please try again.'; lockPaymentUi_(false); return; }
-    payState.orderId = data.orderId;
+    payState.orderId = data.orderId; lastBillNo_ = data.billNo || '';
     lastOrderSnapshot = o; lastOrderSnapshot.totalAmount = data.totalAmount; lastOrderSnapshot.totalSp = data.totalSp;
     // 3) attach the payment to it (what the AI read and what the customer confirmed are both kept for our team)
     const rv = payState.readValues;
@@ -926,7 +927,7 @@
       const id = payState.orderId;
       document.getElementById('mainArea').innerHTML =
         '<div class="card"><h2 style="font-size:17px;color:var(--green-800);margin-bottom:6px;">Order placed — one more step</h2>' +
-        '<p class="hint">Your order (Request No. <strong>' + escapeHtml(String(id)) + '</strong>) has been placed, but we could not save your payment details:</p>' +
+        '<p class="hint">Your order (' + orderRef_(id).label + ' <strong>' + escapeHtml(orderRef_(id).value) + '</strong>) has been placed, but we could not save your payment details:</p>' +
         '<div class="box bad">' + escapeHtml(r.error.message || 'Please try again.') + '</div></div>' +
         '<button class="btn btn-gold" style="margin-bottom:8px;" onclick="retryPaymentSave_()">Try again</button>' +
         '<button class="btn btn-outline" onclick="skipPaymentSave_()">Continue without saving the payment details</button>';
@@ -973,19 +974,41 @@
     lastOrderSnapshot = o;
     lastOrderSnapshot.totalAmount = data.totalAmount;
     lastOrderSnapshot.totalSp = data.totalSp;
+    lastBillNo_ = data.billNo || '';
     delete lastOrderSnapshot.payment;
     pendingPaymentOrder = null;
     clearPayDraft_();
     showThankYou(data.orderId, data.totalAmount, false);
   }
 
+  // ---- The customer is given a BILL NO. (kept for them when the request is saved; our team's bill gets exactly this number),
+  //      with what to do next: screenshot it and send it to the office / call / come to the office.
+  let lastBillNo_ = '';
+  const OFFICE_ = { call: '6265083987 / 8349860019', whatsapp: '916265083987', whatsappShown: '6265083987' };
+  function orderRef_(orderId) { return lastBillNo_ ? { label: 'Bill No.', value: lastBillNo_ } : { label: 'Request No.', value: String(orderId) }; }
+  function orderStepsHtml_(orderId, total, name) {
+    const r = orderRef_(orderId);
+    const msg = r.label + ' ' + r.value + (name ? ' - ' + name : '') + ' - ' + money(total) + ' (screenshot attached)';
+    return '<div class="box warn" id="orderSteps" style="margin-top:12px;text-align:left;">' +
+        '<div style="font-weight:700;font-size:13.5px;margin-bottom:6px;">📸 Is ' + r.label + ' ka screenshot le lo</div>' +
+        '<div style="margin-bottom:6px;">Aage ki process poori karne ke liye screenshot ke saath ye karo:</div>' +
+        '<div>• <strong>WhatsApp</strong> par bhejo: <strong>' + OFFICE_.whatsappShown + '</strong></div>' +
+        '<div>• Ya <strong>call</strong> karo: <strong>' + OFFICE_.call + '</strong> (' + r.label + ' batao)</div>' +
+        '<div>• Ya <strong>office jaakar</strong> milo (' + r.label + ' dikhao)</div></div>' +
+      '<a class="btn btn-outline" id="orderWhatsappBtn" style="display:block;text-align:center;text-decoration:none;margin:10px 0 14px;" href="https://wa.me/' + OFFICE_.whatsapp + '?text=' + encodeURIComponent(msg) + '" target="_blank" rel="noopener">💬 WhatsApp par bhejo</a>';
+  }
+
   function showThankYou(orderId, totalAmount, paid) {
+    const r = orderRef_(orderId), who = lastOrderSnapshot && lastOrderSnapshot.name;
     document.getElementById('mainArea').innerHTML =
       '<div class="card" style="text-align:center;">' +
         '<div class="success-icon">✓</div>' +
-        '<h2 style="font-size:18px;color:var(--green-800);margin-bottom:4px;">Thank you!</h2>' +
-        '<p class="hint">Request No. <strong>' + escapeHtml(String(orderId)) + '</strong> · ' + money(totalAmount) + '</p>' +
+        '<h2 style="font-size:18px;color:var(--green-800);margin-bottom:6px;">Thank you!</h2>' +
+        '<p class="hint">' + r.label + '</p>' +
+        '<div id="billNoBig" style="font-size:26px;font-weight:800;letter-spacing:.5px;color:var(--green-900);margin:2px 0 4px;word-break:break-all;">' + escapeHtml(r.value) + '</div>' +
+        '<p class="hint">' + money(totalAmount) + '</p>' +
         '<p class="hint" style="margin-top:10px;">' + (paid ? 'We\'ve noted your payment — our team will verify and confirm shortly.' : 'Our team will review and confirm your order shortly.') + '</p>' +
+        orderStepsHtml_(orderId, totalAmount, who) +
       '</div>' +
       (paid && lastOrderSnapshot && lastOrderSnapshot.payment ? paymentCardHtml_(lastOrderSnapshot.payment) : '') +
       '<button class="btn btn-gold" onclick="showFinalReceipt(' + orderId + ')">Continue</button>';
@@ -1011,7 +1034,9 @@
     document.getElementById('mainArea').innerHTML =
       '<div class="card">' +
         '<h2 style="font-size:17px;color:var(--green-800);text-align:center;margin-bottom:2px;">Mahakal Wellness</h2>' +
-        '<p class="hint" style="text-align:center;margin-bottom:14px;">Request No. ' + escapeHtml(String(orderId)) + ' · ' + dateStr + '</p>' +
+        '<p class="hint" style="text-align:center;margin-bottom:2px;">' + orderRef_(orderId).label + '</p>' +
+        '<div id="billNoSlip" style="text-align:center;font-size:24px;font-weight:800;color:var(--green-900);margin-bottom:2px;word-break:break-all;">' + escapeHtml(orderRef_(orderId).value) + '</div>' +
+        '<p class="hint" style="text-align:center;margin-bottom:14px;">' + dateStr + '</p>' +
         '<p class="hint" style="margin-bottom:10px;">' + escapeHtml(snap.name || 'Customer') + ' · ' + escapeHtml(snap.mobile || '') + ' · ' + escapeHtml(snap.custType) + '</p>' +
         rows +
         (discountAmount > 0 ? '<div class="total-row"><span class="lbl">Discount (' + trimNum(snap.discountPercent) + '%)</span><span class="val" style="font-size:14px;color:var(--danger);">−' + money(discountAmount) + '</span></div>' : '') +
@@ -1019,12 +1044,13 @@
         '<div class="total-row"><span class="lbl">Total</span><span class="val">' + money(snap.totalAmount) + '</span></div>' +
       '</div>' +
       (snap.payment ? paymentCardHtml_(snap.payment) : '') +
-      '<p class="hint" style="text-align:center;margin-bottom:14px;">📸 Take a screenshot of this bill to keep or share. This is a request — our team will confirm it shortly.</p>' +
+      orderStepsHtml_(orderId, snap.totalAmount, snap.name) +
+      '<p class="hint" style="text-align:center;margin-bottom:14px;">This is a request — our team will confirm it shortly.</p>' +
       '<button class="btn btn-gold" onclick="goBackToForm()">← Place another order</button>';
   }
 
   function goBackToForm() {
-    CART = {};
+    CART = {}; lastBillNo_ = '';
     pendingPaymentOrder = null; payState = null;
     clearPayDraft_();
     renderForm();
