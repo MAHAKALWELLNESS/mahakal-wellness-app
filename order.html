@@ -984,7 +984,7 @@
   // ---- The customer is given a BILL NO. (kept for them when the request is saved; our team's bill gets exactly this number),
   //      with what to do next: screenshot it and send it to the office / call / come to the office.
   let lastBillNo_ = '';
-  const OFFICE_ = { call: '6265083987 / 8349860019', whatsapp: '916265083987', whatsappShown: '6265083987' };
+  const OFFICE_ = { call: '6265083987', whatsapp: '916265083987', whatsappShown: '6265083987' };
   function orderRef_(orderId) { return lastBillNo_ ? { label: 'Bill No.', value: lastBillNo_ } : { label: 'Request No.', value: String(orderId) }; }
   function orderStepsHtml_(orderId, total, name) {
     const r = orderRef_(orderId);
