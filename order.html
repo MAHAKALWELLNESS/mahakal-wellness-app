@@ -49,6 +49,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   .search-row:active{background:var(--bg);}
   .search-name{font-size:13.5px; font-weight:600;}
   .search-meta{font-size:11.5px; color:var(--ink-faint);}
+  .read-busy{display:flex; align-items:flex-start; gap:12px; background:var(--gold-100); border:1.5px solid var(--gold-500); border-radius:12px; padding:12px 14px; margin:10px 0;}
+  .read-busy .spin{flex:none; width:26px; height:26px; border-radius:50%; border:3.5px solid #e6d3a3; border-top-color:var(--green-800); animation:readspin .9s linear infinite;}
+  .read-busy .rb-text{flex:1; min-width:0;} .read-busy .rb-title{font-weight:800; color:var(--green-900); font-size:14.5px;}
+  .read-busy .rb-sub{font-size:12.5px; color:var(--ink-soft); margin-top:3px; line-height:1.45;}
+  .read-busy .rb-bar{height:5px; background:#eadfbd; border-radius:3px; overflow:hidden; margin-top:9px;}
+  .read-busy .rb-bar i{display:block; height:100%; width:40%; background:var(--green-800); border-radius:3px; animation:readbar 1.4s ease-in-out infinite;}
+  @keyframes readspin{to{transform:rotate(360deg);}} @keyframes readbar{0%{margin-left:-40%;} 100%{margin-left:100%;}}
+  @media (prefers-reduced-motion: reduce){ .read-busy .spin{animation-duration:2.4s;} .read-busy .rb-bar i{animation-duration:3s;} }
   .search-price{font-size:13.5px; font-weight:700; color:var(--green-800); white-space:nowrap; margin-left:10px;}
   .cart-row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line);}
   .cart-row:last-child{border-bottom:none;}
@@ -730,6 +738,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         '<div id="returnBanner"></div>' +
         '<div class="field"><label>How did you pay?</label><div class="chip-row">' + chips + '</div></div>' +
         '<div class="field"><label for="proofFile">Payment screenshot</label><input type="file" id="proofFile" accept="image/*" onchange="onProofFile_(this)"></div>' +
+        '<div id="proofBusy"></div>' +
         '<div id="proofPreview"></div>' +
         '<p class="hint" id="proofStatus">Upload the screenshot and we\'ll read the UTR, amount and date for you.</p>' +
         '<div style="margin-top:12px;">' +
@@ -807,6 +816,17 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function systemPaidAt_() { return payState.returnedAt || payState.proofAt || new Date(); }
 
   // ---- the screenshot
+  // "Please wait" while the screenshot is being read: it takes a few seconds, and a customer who sees nothing happen thinks it did not work.
+  function readBusyOn_(boxId, title, sub, slowTitle, slowSub) {
+    const box = document.getElementById(boxId); if (!box) return;
+    box.innerHTML = '<div class="read-busy" role="status" aria-live="polite"><div class="spin"></div><div class="rb-text"><div class="rb-title">' + title + '</div><div class="rb-sub">' + sub + '</div><div class="rb-bar"><i></i></div></div></div>';
+    try { box.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+    setTimeout(function () {                                    // after about 10 seconds the same box says it is still working
+      const t = box.querySelector('.read-busy .rb-title'); if (!t) return;
+      t.textContent = slowTitle; box.querySelector('.read-busy .rb-sub').innerHTML = slowSub;
+    }, window.__readSlowMs || 10000);
+  }
+  function readBusyOff_(boxId) { const box = document.getElementById(boxId); if (box) box.innerHTML = ''; }
   async function compressImage_(file) {
     const url = URL.createObjectURL(file);
     try {
@@ -839,24 +859,27 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if (!/^image\//.test(file.type || '')) { status.textContent = 'Please choose an image file (a screenshot of your payment).'; input.value = ''; return; }
     payState.proof = null; payState.read = null; payState.readValues = null; payState.readMode = ''; payState.err = '';
     document.getElementById('proofPreview').innerHTML = '';
-    status.textContent = 'Reading your screenshot…';
+    status.textContent = 'Reading your screenshot…'; status.style.display = 'none';
+    input.disabled = true;                                      // one screenshot at a time while it is being read
+    readBusyOn_('proofBusy', 'Reading your screenshot…', 'Please wait about 10 seconds - the amount, UTR and date will fill in by themselves. Please do not close this page.<br>Screenshot padh rahe hain - 10 second ruko, amount aur UTR apne aap bhar jayenge.',
+      'Still reading… almost done', 'Please keep waiting, it can take up to 30 seconds. Do not close this page.<br>Thoda aur ruko, ho raha hai - page band mat karo.');
     payState.reading = true; evaluatePayment_();
     let img;
     try { img = await compressImage_(file); }
-    catch (e) { payState.reading = false; status.textContent = 'This image could not be opened. Please upload a normal screenshot (JPG or PNG).'; evaluatePayment_(); return; }
+    catch (e) { payState.reading = false; readBusyOff_('proofBusy'); status.style.display = ''; input.disabled = false; status.textContent = 'This image could not be opened. Please upload a normal screenshot (JPG or PNG).'; evaluatePayment_(); return; }
     document.getElementById('proofPreview').innerHTML = '<img class="proof-img" alt="Your payment screenshot" src="' + img.dataUrl + '">';
     payState.proofAt = new Date();
     let result = null, why = '';
     try {
       const resp = await Promise.race([
         sb.functions.invoke('read-payment-screenshot', { body: { image_base64: img.base64, media_type: 'image/jpeg', mobile: pendingPaymentOrder ? pendingPaymentOrder.mobile : '' } }),
-        new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, 45000); })
+        new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, window.__readTimeoutMs || 45000); })
       ]);
       if (resp.error || !resp.data) why = 'the reading service is not available right now';
       else if (!resp.data.ok) why = String(resp.data.error || '').replace(/\.$/, '');
       else result = resp.data;
     } catch (e) { why = e && e.message === 'timeout' ? 'it took too long' : 'the reading service is not available right now'; }
-    payState.reading = false;
+    payState.reading = false; readBusyOff_('proofBusy'); status.style.display = ''; input.disabled = false;
     if (!result) {
       payState.readMode = 'manual';
       status.textContent = 'Couldn\'t read it automatically' + (why ? ' (' + why + ')' : '') + '. Please type the details below.';

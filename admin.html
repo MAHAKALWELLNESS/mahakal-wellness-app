@@ -211,6 +211,14 @@
   .ps-bill{display:flex; gap:10px; padding:10px; border:1.5px solid var(--gold-500); background:var(--gold-100); border-radius:10px; margin-bottom:8px; align-items:flex-start;}
   .ps-bill.locked{border-color:var(--line); background:#f4f4f2;} .ps-bill input[type=checkbox]{width:22px; height:22px; flex:none; margin-top:2px;}
   .ps-link{background:none; border:none; padding:0; color:var(--green-800); text-decoration:underline; font-weight:800; font-size:inherit; cursor:pointer;}
+  .read-busy{display:flex; align-items:flex-start; gap:12px; background:var(--gold-100); border:1.5px solid var(--gold-500); border-radius:12px; padding:12px 14px; margin:8px 0;}
+  .read-busy .spin{flex:none; width:24px; height:24px; border-radius:50%; border:3.5px solid #e6d3a3; border-top-color:var(--green-800); animation:readspin .9s linear infinite;}
+  .read-busy .rb-text{flex:1; min-width:0;} .read-busy .rb-title{font-weight:800; color:var(--green-900); font-size:14px;}
+  .read-busy .rb-sub{font-size:12.5px; color:var(--ink-soft); margin-top:3px; line-height:1.45;}
+  .read-busy .rb-bar{height:5px; background:#eadfbd; border-radius:3px; overflow:hidden; margin-top:9px;}
+  .read-busy .rb-bar i{display:block; height:100%; width:40%; background:var(--green-800); border-radius:3px; animation:readbar 1.4s ease-in-out infinite;}
+  @keyframes readspin{to{transform:rotate(360deg);}} @keyframes readbar{0%{margin-left:-40%;} 100%{margin-left:100%;}}
+  @media (prefers-reduced-motion: reduce){ .read-busy .spin{animation-duration:2.4s;} .read-busy .rb-bar i{animation-duration:3s;} }
   .subtabs{display:flex; gap:8px; margin-bottom:12px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
   .subtab{flex:none; padding:8px 14px; border-radius:20px; border:1.5px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap;}
   .subtab.active{background:var(--green-800); border-color:var(--green-800); color:#fff;}
@@ -3222,6 +3230,15 @@
   }
   function psExtrasSum_() { return PS_.extras.reduce(function (s, e) { return s + (Number(e.amount) || 0); }, 0); }
   function psMobileOf_(bill) { const m = String((bill && bill.mobile) || '').replace(/\D/g, '').slice(-10); return m.length === 10 ? m : '0000000000'; }
+  // "Please wait" while a picture is being read (a payment screenshot, a purchase bill): it takes a few seconds, and nobody should think that nothing is happening.
+  function readBusyHtml_(title, sub) { return '<div class="read-busy" role="status" aria-live="polite"><div class="spin"></div><div class="rb-text"><div class="rb-title">' + title + '</div><div class="rb-sub">' + sub + '</div><div class="rb-bar"><i></i></div></div></div>'; }
+  function readBusyArm_(containerId, slowTitle, slowSub) {         // after about 10 seconds the same box says it is still working (only if it is still showing)
+    setTimeout(function () {
+      const c = document.getElementById(containerId), t = c && c.querySelector('.read-busy .rb-title'); if (!t) return;
+      t.textContent = slowTitle; c.querySelector('.read-busy .rb-sub').innerHTML = slowSub;
+    }, window.__readSlowMs || 10000);
+  }
+  const RB_SHOT_ = { title: 'Reading the screenshot…', sub: 'Please wait about 10 seconds - the amount, UTR and date fill in by themselves.', slowTitle: 'Still reading… almost done', slowSub: 'Please keep waiting - it can take up to 30 seconds.' };
   async function psCompress_(file) {
     const url = URL.createObjectURL(file);
     try {
@@ -3242,7 +3259,7 @@
     try {
       const resp = await Promise.race([
         sb.functions.invoke('read-payment-screenshot', { body: { image_base64: img.base64, media_type: 'image/jpeg', mobile: mobile } }),
-        new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, 45000); })
+        new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, window.__readTimeoutMs || 45000); })
       ]);
       if (resp.error || !resp.data) why = 'the reading service is not available right now';
       else if (!resp.data.ok) why = String(resp.data.error || '').replace(/\.$/, '');
@@ -3291,9 +3308,9 @@
   async function psShotChosen_(input, which) {
     const file = input.files && input.files[0]; if (!file || !currentDetailBill) return;
     const bill = currentDetailBill;
-    psSetStatus_(which, '<p class="hint" style="margin:6px 0;">Reading the screenshot…</p>');
+    psSetStatus_(which, readBusyHtml_(RB_SHOT_.title, RB_SHOT_.sub)); readBusyArm_(which === 0 ? 'psShotStatus' : 'psxStatus' + which, RB_SHOT_.slowTitle, RB_SHOT_.slowSub); input.disabled = true;
     const res = await psReadFile_(file, psMobileOf_(bill));
-    input.value = '';
+    input.value = ''; input.disabled = false;
     if (currentDetailBill !== bill) return;                       // the window was closed / another bill opened meanwhile
     if (!res.ok) { psSetStatus_(which, psStatusHtml_('warn', 'Couldn\'t read it automatically' + (res.why ? ' (' + escapeHtml(res.why) + ')' : '') + '. Please type the amount and UTR below.', res.dataUrl)); return; }
     const r = res.read, j = psJudge_(r, !!bill.pastEntry);
@@ -3366,8 +3383,8 @@
   // the simple version, for Record payment and the Edit review: read, fill the boxes, say what is left
   async function psSimpleRead_(input, statusId, mobile, pastBill, onFill, tallyText) {
     const file = input.files && input.files[0]; if (!file) return;
-    const box = document.getElementById(statusId); box.innerHTML = '<p class="hint">Reading the screenshot…</p>';
-    const res = await psReadFile_(file, mobile); input.value = '';
+    const box = document.getElementById(statusId); box.innerHTML = readBusyHtml_(RB_SHOT_.title, RB_SHOT_.sub); readBusyArm_(statusId, RB_SHOT_.slowTitle, RB_SHOT_.slowSub); input.disabled = true;
+    const res = await psReadFile_(file, mobile); input.value = ''; input.disabled = false;
     if (!res.ok) { box.innerHTML = psStatusHtml_('warn', 'Couldn\'t read it automatically' + (res.why ? ' (' + escapeHtml(res.why) + ')' : '') + '. Please type the amount and UTR.', res.dataUrl); return; }
     const j = psJudge_(res.read, pastBill);
     if (j.block) { box.innerHTML = psStatusHtml_('bad', escapeHtml(j.block) + ' Nothing was filled in.', res.dataUrl); return; }
@@ -4001,7 +4018,7 @@
     const statusBox = document.getElementById('billScanStatus');
     btn.disabled = true;
     statusBox.style.display = 'block';
-    statusBox.innerHTML = '<div class="empty-cart">🔍 Reading the bill… this can take up to 15-20 seconds.</div>';
+    statusBox.innerHTML = readBusyHtml_('Reading the bill…', 'Please wait about 15 seconds - the products and quantities fill in by themselves. Do not close this page.'); readBusyArm_('billScanStatus', 'Still reading… almost done', 'Please keep waiting - a bill with many items can take up to 30 seconds.');
 
     try {
       const isPdf = file.type === 'application/pdf';
@@ -5470,9 +5487,9 @@
   async function esShotChosen_(input, which) {           // which: 0 = the Online box, otherwise a further online payment
     const file = input.files && input.files[0]; if (!file || !ES_ || !currentDetailBill) return;
     const bill = currentDetailBill, inst = ES_;
-    esSetStatus_(which, '<p class="hint" style="margin:6px 0;">Reading the screenshot…</p>');
+    esSetStatus_(which, readBusyHtml_(RB_SHOT_.title, RB_SHOT_.sub)); readBusyArm_(which === 0 ? 'esShotStatus' : 'esxStatus' + which, RB_SHOT_.slowTitle, RB_SHOT_.slowSub); input.disabled = true;
     const res = await psReadFile_(file, psMobileOf_(bill));
-    input.value = '';
+    input.value = ''; input.disabled = false;
     if (ES_ !== inst) return;
     if (!res.ok) { esSetStatus_(which, psStatusHtml_('warn', 'Couldn\'t read it automatically' + (res.why ? ' (' + escapeHtml(res.why) + ')' : '') + '. Please type the amount and UTR.', res.dataUrl)); return; }
     const r = res.read, j = psJudge_(r, !!bill.pastEntry);
@@ -9115,6 +9132,7 @@
     const btn = document.getElementById('spsBuildBtn');
     btn.disabled = true; btn.textContent = 'Soch raha hoon…';
     noteBox.innerHTML = '';
+    if (!(manualTarget > 0)) { noteBox.innerHTML = readBusyHtml_('Request padh rahe hain…', '10 second ruko - sets apne aap ban jayenge.'); readBusyArm_('spsPlanNote', 'Thoda aur ruko…', 'Ho raha hai - 30 second tak lag sakte hain.'); }
     let spec, note = '', via = 'manual';
     if (manualTarget > 0) {
       spec = spNormalizeSpec_({ specs: [{ count: manualCountRaw ? Number(manualCountRaw) : 'max', targetSp: manualTarget }] });
