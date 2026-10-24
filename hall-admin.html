@@ -352,6 +352,28 @@
     auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
   });
 
+  // ---------------------------------------------------------------------------
+  // ONE GUARD FOR EVERY SAVE. If the exact same write (same function, same data) is already
+  // on its way to the server, a second tap/click does NOT send a second copy - it waits for,
+  // and gets, the first one's answer. This protects every save/update/delete on this page at
+  // once (including ones added later), so "tapped twice while it was still saving" can never
+  // again record a payment, a delivery or a stock change twice. Read-only lookups
+  // (get_/check_/search_...) are left alone.
+  (function installRpcGuard_() {
+    const readOnly = /^(get|check|search|list|lookup|find|fetch|load|sum|count)_/;
+    const rawRpc = sb.rpc.bind(sb);
+    const inFlight = new Map();
+    sb.rpc = function (name, args, options) {
+      if (readOnly.test(String(name))) return rawRpc(name, args, options);
+      const key = name + '|' + JSON.stringify(args === undefined ? null : args);
+      if (inFlight.has(key)) return inFlight.get(key);
+      const request = Promise.resolve(rawRpc(name, args, options)).finally(function () { inFlight.delete(key); });
+      inFlight.set(key, request);
+      return request;
+    };
+  })();
+
+
   function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function money(n) { return '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }); }
   function fmtDateInput_(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
@@ -688,5 +710,98 @@
     loadHallBookings();
   }
 </script>
+<!-- MW-UX-START (keyboard + back button; the same in every page, built by tools/apply_ux_snippets.py) -->
+<style id="mwUxCss">
+  :root{--kb:0px; --vvh:100vh;}
+  .modal-overlay,.qty-modal-overlay,#notifPanel,#notifDetailPopup{bottom:var(--kb) !important;}
+  .modal-sheet,.qty-modal-sheet{max-height:calc(var(--vvh) * .92) !important;}
+  .summary-bar{bottom:var(--kb) !important;}
+  .toast{bottom:calc(100px + var(--kb)) !important;}
+  html.kb-open body{padding-bottom:calc(var(--kb) + 24px);}
+</style>
+<script>
+/* On-screen keyboard: --kb = how much of the bottom of the screen the keyboard covers, --vvh = the height that is really visible. */
+(function () {
+  var vv = window.visualViewport, root = document.documentElement;
+  function update() {
+    var kb = 0, h = window.innerHeight;
+    if (vv) { h = vv.height; if (!vv.scale || Math.abs(vv.scale - 1) < 0.02) kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)); }
+    if (kb < 60) kb = 0;                                   // the browser's own bars growing or shrinking are not a keyboard
+    root.style.setProperty('--kb', kb + 'px'); root.style.setProperty('--vvh', Math.round(h) + 'px'); root.classList.toggle('kb-open', kb > 0);
+  }
+  if (vv) { vv.addEventListener('resize', update); vv.addEventListener('scroll', update); }
+  window.addEventListener('resize', update);
+  window.addEventListener('orientationchange', function () { setTimeout(update, 350); });
+  update();
+  // keep the field being typed in on screen (also when the keyboard takes a moment to open)
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!t || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || /^(checkbox|radio|button|submit|file|range|color)$/i.test(t.type || '')) return;
+    [120, 450, 900].forEach(function (ms) {
+      setTimeout(function () { if (document.activeElement !== t) return; try { t.scrollIntoView({ block: 'center', behavior: ms === 120 ? 'auto' : 'smooth', inline: 'nearest' }); } catch (x) {} }, ms);
+    });
+  });
+})();
+</script>
+<script>
+/* Phone back button. Until the visitor has touched the page nothing is done (and Chrome would skip the entry anyway). After that one
+   spare history entry sits on top: a back press lands on the entry below it, the page-specific MW_BACK() closes / goes back one step, and
+   the spare entry is put back. With nothing left to go back to: "press back once more", and the second press really leaves. */
+(function () {
+  var armed = !!(history.state && history.state.mwTrap), exitUntil = 0;
+  function note(msg) {
+    if (typeof showToast === 'function') { try { showToast(msg); return; } catch (e) {} }
+    var b = document.getElementById('mwBackNote');
+    if (!b) { b = document.createElement('div'); b.id = 'mwBackNote'; b.style.cssText = 'position:fixed;left:50%;bottom:calc(90px + var(--kb,0px));transform:translateX(-50%);background:#132E26;color:#fff;padding:10px 18px;border-radius:10px;font:600 13.5px sans-serif;z-index:9999;max-width:88%;text-align:center;'; document.body.appendChild(b); }
+    b.textContent = msg; b.style.display = 'block'; clearTimeout(b._t); b._t = setTimeout(function () { b.style.display = 'none'; }, 1800);
+  }
+  function trap() { try { history.pushState({ mwTrap: 1 }, '', location.href); return true; } catch (e) { return false; } }
+  function arm() { if (!armed && trap()) armed = true; }
+  ['pointerdown', 'touchstart', 'keydown', 'click'].forEach(function (n) { window.addEventListener(n, arm, { capture: true, passive: true }); });
+  window.addEventListener('popstate', function () {
+    if (!armed) return;
+    var did = false;
+    try { did = typeof window.MW_BACK === 'function' && window.MW_BACK() === true; } catch (e) {}
+    if (did) { trap(); return; }
+    if (Date.now() < exitUntil) { armed = false; history.back(); return; }          // second press in time: leave
+    exitUntil = Date.now() + 2000; note('Bahar jaane ke liye ek baar aur back dabao'); trap();
+  });
+})();
+</script>
+<script>
+(function () {
+  function mwLabel(b) { return (b.textContent || '').replace(/[^\w\s←]/g, '').replace(/\s+/g, ' ').trim().toLowerCase(); }
+  // closes a popup the way its own Back / Close / Cancel button does (so whatever that button cleans up still happens)
+  function mwCloseModal(m, special) {
+    var fn = special && special[m.id];
+    if (fn && typeof window[fn] === 'function') { window[fn](); return; }
+    var btns = Array.prototype.slice.call(m.querySelectorAll('button')).filter(function (b) { return !b.disabled && b.offsetParent !== null; });
+    var pick = function (re) { return btns.filter(function (b) { return re.test(mwLabel(b)); })[0]; };
+    var b = pick(/^(← ?)?back$/) || pick(/^(close|cancel|done|ok|no|not now)$/);
+    if (b) b.click(); else m.classList.remove('show');
+  }
+  function mwTopModal() {
+    var open = Array.prototype.slice.call(document.querySelectorAll('.modal-overlay.show'));
+    open.sort(function (a, b) { var za = Number(getComputedStyle(a).zIndex) || 0, zb = Number(getComputedStyle(b).zIndex) || 0; return za !== zb ? za - zb : (a.compareDocumentPosition(b) & 4 ? -1 : 1); });
+    return open[open.length - 1] || null;
+  }
+  var hist = [], orig = window.switchHallAdminTab_;
+  function cur() { var a = document.querySelector('.subtab.active'); return a ? a.dataset.subtab : null; }
+  if (typeof orig === 'function') {
+    window.switchHallAdminTab_ = function (name, fromBack) {
+      var prev = cur(), r = orig.apply(this, arguments);
+      if (!fromBack && prev && prev !== name) { hist.push(prev); if (hist.length > 25) hist.shift(); }
+      return r;
+    };
+  }
+  window.MW_BACK = function () {
+    var m = mwTopModal();
+    if (m) { mwCloseModal(m); return true; }
+    if (hist.length) { window.switchHallAdminTab_(hist.pop(), true); return true; }
+    return false;
+  };
+})();
+</script>
+<!-- MW-UX-END -->
 </body>
 </html>

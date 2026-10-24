@@ -582,6 +582,11 @@
       '&am=' + Number(amount).toFixed(2) + '&tn=' + encodeURIComponent(note);
   }
 
+  // The owner's ICICI eazypay UPI ID does NOT accept "open my UPI app" (UPI intent) payments: PhonePe answers
+  // "The receiver is not accepting payments on this specific UPI ID". Whether a merchant UPI ID accepts app-to-app
+  // payments is decided by the bank / UPI provider, not by this page. Until that is switched on for the UPI ID (or a payment
+  // gateway is used), the page offers the QR, the UPI ID and bank transfer only. Set to true to bring the app buttons back.
+  const SHOW_APP_PAY_BUTTONS = false;
   const PAY_METHODS = [
     { v: 'PhonePe app', label: 'PhonePe button above' },
     { v: 'Other UPI app', label: 'Other UPI app button' },
@@ -619,10 +624,12 @@
   function resumePayment_() {
     const d = loadPayDraft_(); if (!d) return;
     showPaymentQr(d.total, d.draft);
-    if (d.appOpenedAt) {   // they went to their UPI app and the page was reloaded when they came back
+    if (SHOW_APP_PAY_BUTTONS && d.appOpenedAt) {   // they went to their UPI app and the page was reloaded when they came back
       payState.appOpenedAt = new Date(d.appOpenedAt); payState.returnedAt = new Date();
       setPayMethod_(d.method || 'PhonePe app');
       showReturnBanner_();
+    } else if (d.method && !isAppMethod_(d.method)) {
+      setPayMethod_(d.method);
     }
   }
 
@@ -632,32 +639,52 @@
       proof: null, read: null, readValues: null, readMode: '', reading: false, saving: false, orderId: null, bank: null, payload: null, err: '' };
     const amt = money(previewTotal);
     const q = upiQuery_(previewTotal, 'Order payment');
-    const chips = PAY_METHODS.map(function (m, i) {
+    const methods = PAY_METHODS.filter(function (m) { return SHOW_APP_PAY_BUTTONS || !isAppMethod_(m.v); });
+    const chips = methods.map(function (m) {
+      const i = PAY_METHODS.indexOf(m);
       return '<label class="chip" id="chip' + i + '"><input type="radio" name="payMethod" value="' + escapeHtml(m.v) + '" onchange="onPayMethod_(this.value)"> ' + escapeHtml(m.label) + '</label>';
     }).join('');
+    const qrImg = '<img id="payQrImg" src="' + PAY_QR_IMAGE + '" alt="UPI QR code of ' + escapeHtml(PAY.shownName) + '" style="width:100%;max-width:280px;border-radius:14px;border:1px solid var(--line);">';
+    const upiIdRow = '<div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:8px;">' +
+      '<span style="font-size:13px;font-weight:700;word-break:break-all;" id="payUpiIdText">' + escapeHtml(PAY.upiId) + '</span>' +
+      '<button class="copy-btn" type="button" id="copyUpiBtn" onclick="copyText_(PAY.upiId, this)">Copy UPI ID</button></div>';
+    let payCards;
+    if (SHOW_APP_PAY_BUTTONS) {
+      payCards =
+        '<div class="card">' +
+          '<p class="section-label">Option 1 · Pay in your UPI app</p>' +
+          '<a class="btn btn-gold" id="payPhonePeBtn" href="phonepe://pay?' + escapeHtml(q) + '" onclick="onOpenUpiApp_(\'PhonePe app\')">Open PhonePe app · ' + amt + '</a>' +
+          '<a class="btn btn-outline" id="payOtherUpiBtn" style="margin-top:8px;" href="upi://pay?' + escapeHtml(q) + '" onclick="onOpenUpiApp_(\'Other UPI app\')">Other UPI app (Google Pay, Paytm…)</a>' +
+          '<p class="hint" style="margin-top:8px;">The amount is filled in for you. After you pay, come back to this page and upload the screenshot. If nothing opens, or your app says the payment failed, please use Option 2 or 3 instead.</p>' +
+        '</div>' +
+        '<div class="card" style="text-align:center;">' +
+          '<p class="section-label">Option 2 · Scan the QR or use the UPI ID</p>' + qrImg +
+          '<p class="hint" style="margin-top:8px;">Scan with any UPI app and pay <strong>' + amt + '</strong> (type this exact amount).</p>' + upiIdRow +
+          '<a id="saveQrLink" style="display:inline-block;margin-top:10px;font-size:12.5px;color:var(--green-800);font-weight:600;" href="' + PAY_QR_IMAGE + '" download="Mahakal-Wellness-UPI-QR.jpg">⬇ Save QR image</a>' +
+          '<p class="hint" style="margin-top:6px;">On the same phone? Save the QR image, then in your UPI app choose <strong>Scan → Gallery</strong>.</p>' +
+        '</div>';
+    } else {
+      payCards =
+        '<div class="card" style="text-align:center;">' +
+          '<p class="section-label">Option 1 · Scan the QR</p>' + qrImg +
+          '<p class="hint" style="margin-top:8px;">Scan with any UPI app and pay <strong>' + amt + '</strong> (type this exact amount).</p>' +
+          '<a id="saveQrLink" class="btn btn-gold" style="margin-top:10px;" href="' + PAY_QR_IMAGE + '" download="Mahakal-Wellness-UPI-QR.jpg">⬇ Save QR image</a>' +
+          '<p class="hint" style="text-align:left;margin-top:12px;"><strong>Paying from this phone?</strong><br>1. Tap <em>Save QR image</em> above.<br>2. Open PhonePe / Google Pay / Paytm and choose <strong>Scan → Gallery</strong>, then pick the saved image.<br>3. Type <strong>' + amt + '</strong> and pay.</p>' +
+          '<p class="hint" style="text-align:left;margin-top:6px;"><strong>Paying from another phone?</strong> Just scan the QR above with it.</p>' +
+        '</div>' +
+        '<div class="card" style="text-align:center;">' +
+          '<p class="section-label">Option 2 · Pay to the UPI ID</p>' + upiIdRow +
+          '<p class="hint" style="margin-top:8px;">In your UPI app choose <strong>Pay to UPI ID</strong>, paste this ID and pay <strong>' + amt + '</strong>.</p>' +
+          '<p class="hint" id="payUpiIdCaution" style="margin-top:6px;color:#7a5617;">If your app says <em>"The receiver is not accepting payments on this UPI ID"</em>, please scan the QR (Option 1) or use bank transfer instead.</p>' +
+        '</div>';
+    }
     document.getElementById('mainArea').innerHTML =
       '<div class="card" style="text-align:center;">' +
         '<p class="section-label" style="margin-bottom:4px;">Amount to pay</p>' +
         '<div class="pay-amount" id="payAmountText">' + amt + '</div>' +
         '<p class="hint" style="margin-top:8px;">Pay with <strong>one</strong> of the options below, then upload your payment screenshot in Step 2.</p>' +
       '</div>' +
-      '<div class="card">' +
-        '<p class="section-label">Option 1 · Pay in your UPI app</p>' +
-        '<a class="btn btn-gold" id="payPhonePeBtn" href="phonepe://pay?' + escapeHtml(q) + '" onclick="onOpenUpiApp_(\'PhonePe app\')">Open PhonePe app · ' + amt + '</a>' +
-        '<a class="btn btn-outline" id="payOtherUpiBtn" style="margin-top:8px;" href="upi://pay?' + escapeHtml(q) + '" onclick="onOpenUpiApp_(\'Other UPI app\')">Other UPI app (Google Pay, Paytm…)</a>' +
-        '<p class="hint" style="margin-top:8px;">The amount is filled in for you. After you pay, come back to this page and upload the screenshot. If nothing opens, or your app says the payment failed, please use Option 2 or 3 instead.</p>' +
-      '</div>' +
-      '<div class="card" style="text-align:center;">' +
-        '<p class="section-label">Option 2 · Scan the QR or use the UPI ID</p>' +
-        '<img id="payQrImg" src="' + PAY_QR_IMAGE + '" alt="UPI QR code of ' + escapeHtml(PAY.shownName) + '" style="width:100%;max-width:280px;border-radius:14px;border:1px solid var(--line);">' +
-        '<p class="hint" style="margin-top:8px;">Scan with any UPI app and pay <strong>' + amt + '</strong> (type this exact amount).</p>' +
-        '<div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:8px;">' +
-          '<span style="font-size:13px;font-weight:700;word-break:break-all;" id="payUpiIdText">' + escapeHtml(PAY.upiId) + '</span>' +
-          '<button class="copy-btn" type="button" id="copyUpiBtn" onclick="copyText_(PAY.upiId, this)">Copy UPI ID</button>' +
-        '</div>' +
-        '<a id="saveQrLink" style="display:inline-block;margin-top:10px;font-size:12.5px;color:var(--green-800);font-weight:600;" href="' + PAY_QR_IMAGE + '" download="Mahakal-Wellness-UPI-QR.jpg">⬇ Save QR image</a>' +
-        '<p class="hint" style="margin-top:6px;">On the same phone? Save the QR image, then in your UPI app choose <strong>Scan → Gallery</strong>.</p>' +
-      '</div>' +
+      payCards +
       '<div class="card" id="payBankCard" style="display:none;"></div>' +
       '<div class="card" id="proofCard">' +
         '<p class="section-label">Step 2 · After paying, upload the payment screenshot</p>' +
@@ -683,6 +710,7 @@
     savePayDraft_();
     loadPaymentInfo_();
     evaluatePayment_();
+    if (!SHOW_APP_PAY_BUTTONS) setPayMethod_('QR / UPI ID');   // the usual way to pay; they can switch to Bank transfer
   }
 
   async function loadPaymentInfo_() {
@@ -1081,5 +1109,96 @@
     });
   }
 </script>
+<!-- MW-UX-START (keyboard + back button; the same in every page, built by tools/apply_ux_snippets.py) -->
+<style id="mwUxCss">
+  :root{--kb:0px; --vvh:100vh;}
+  .modal-overlay,.qty-modal-overlay,#notifPanel,#notifDetailPopup{bottom:var(--kb) !important;}
+  .modal-sheet,.qty-modal-sheet{max-height:calc(var(--vvh) * .92) !important;}
+  .summary-bar{bottom:var(--kb) !important;}
+  .toast{bottom:calc(100px + var(--kb)) !important;}
+  html.kb-open body{padding-bottom:calc(var(--kb) + 24px);}
+</style>
+<script>
+/* On-screen keyboard: --kb = how much of the bottom of the screen the keyboard covers, --vvh = the height that is really visible. */
+(function () {
+  var vv = window.visualViewport, root = document.documentElement;
+  function update() {
+    var kb = 0, h = window.innerHeight;
+    if (vv) { h = vv.height; if (!vv.scale || Math.abs(vv.scale - 1) < 0.02) kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)); }
+    if (kb < 60) kb = 0;                                   // the browser's own bars growing or shrinking are not a keyboard
+    root.style.setProperty('--kb', kb + 'px'); root.style.setProperty('--vvh', Math.round(h) + 'px'); root.classList.toggle('kb-open', kb > 0);
+  }
+  if (vv) { vv.addEventListener('resize', update); vv.addEventListener('scroll', update); }
+  window.addEventListener('resize', update);
+  window.addEventListener('orientationchange', function () { setTimeout(update, 350); });
+  update();
+  // keep the field being typed in on screen (also when the keyboard takes a moment to open)
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!t || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || /^(checkbox|radio|button|submit|file|range|color)$/i.test(t.type || '')) return;
+    [120, 450, 900].forEach(function (ms) {
+      setTimeout(function () { if (document.activeElement !== t) return; try { t.scrollIntoView({ block: 'center', behavior: ms === 120 ? 'auto' : 'smooth', inline: 'nearest' }); } catch (x) {} }, ms);
+    });
+  });
+})();
+</script>
+<script>
+/* Phone back button. Until the visitor has touched the page nothing is done (and Chrome would skip the entry anyway). After that one
+   spare history entry sits on top: a back press lands on the entry below it, the page-specific MW_BACK() closes / goes back one step, and
+   the spare entry is put back. With nothing left to go back to: "press back once more", and the second press really leaves. */
+(function () {
+  var armed = !!(history.state && history.state.mwTrap), exitUntil = 0;
+  function note(msg) {
+    if (typeof showToast === 'function') { try { showToast(msg); return; } catch (e) {} }
+    var b = document.getElementById('mwBackNote');
+    if (!b) { b = document.createElement('div'); b.id = 'mwBackNote'; b.style.cssText = 'position:fixed;left:50%;bottom:calc(90px + var(--kb,0px));transform:translateX(-50%);background:#132E26;color:#fff;padding:10px 18px;border-radius:10px;font:600 13.5px sans-serif;z-index:9999;max-width:88%;text-align:center;'; document.body.appendChild(b); }
+    b.textContent = msg; b.style.display = 'block'; clearTimeout(b._t); b._t = setTimeout(function () { b.style.display = 'none'; }, 1800);
+  }
+  function trap() { try { history.pushState({ mwTrap: 1 }, '', location.href); return true; } catch (e) { return false; } }
+  function arm() { if (!armed && trap()) armed = true; }
+  ['pointerdown', 'touchstart', 'keydown', 'click'].forEach(function (n) { window.addEventListener(n, arm, { capture: true, passive: true }); });
+  window.addEventListener('popstate', function () {
+    if (!armed) return;
+    var did = false;
+    try { did = typeof window.MW_BACK === 'function' && window.MW_BACK() === true; } catch (e) {}
+    if (did) { trap(); return; }
+    if (Date.now() < exitUntil) { armed = false; history.back(); return; }          // second press in time: leave
+    exitUntil = Date.now() + 2000; note('Bahar jaane ke liye ek baar aur back dabao'); trap();
+  });
+})();
+</script>
+<script>
+(function () {
+  // which screen is showing: the order form, "track my bills", the payment screen, or the thank-you / slip
+  var screen = 'form', tags = { renderForm: 'form', renderTrackForm: 'track', showPaymentQr: 'pay', showThankYou: 'thanks' };
+  Object.keys(tags).forEach(function (n) {
+    var o = window[n]; if (typeof o !== 'function') return;
+    window[n] = function () { screen = tags[n]; return o.apply(this, arguments); };
+  });
+  // back from the payment screen: the form again with everything still filled in and the cart kept (nothing is saved)
+  function backToFormFromPayment() {
+    var d = (typeof pendingPaymentOrder !== 'undefined') ? pendingPaymentOrder : null;     // (a top-level "let": reachable by name, not as window.x)
+    renderForm();                                                                          // renderForm leaves the cart alone
+    if (d) {
+      var set = function (id, v) { var el = document.getElementById(id); if (el && v != null) el.value = v; };
+      set('custMobile', d.mobile); set('custName', d.name); set('custCity', d.city); set('custType', d.custType);
+      var t = document.getElementById('custType'); if (t) t.dispatchEvent(new Event('change', { bubbles: true }));
+      set('custIdName', d.idName); set('custDsId', d.dsId); set('custRefName', d.refName); set('custRefMobile', d.refMobile); set('discountPercent', d.discountPercent || '');
+    }
+    if (typeof renderCart === 'function') renderCart();
+  }
+  window.MW_BACK = function () {
+    var q = document.getElementById('orderQtyModal');
+    if (q && q.classList.contains('show')) { cancelOrderQtyModal(); return true; }
+    var n = document.getElementById('notifPanel');
+    if (n && getComputedStyle(n).display !== 'none') { closeNotifPanel_(); return true; }
+    if (screen === 'pay') { backToFormFromPayment(); return true; }
+    if (screen === 'thanks') { goBackToForm(); return true; }
+    if (screen === 'track') { renderForm(); return true; }
+    return false;
+  };
+})();
+</script>
+<!-- MW-UX-END -->
 </body>
 </html>

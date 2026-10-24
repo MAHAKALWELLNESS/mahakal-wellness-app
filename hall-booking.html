@@ -74,6 +74,28 @@
   const SUPABASE_URL = 'https://lrrqdmmugvizkbjfwneb.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP';
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ---------------------------------------------------------------------------
+  // ONE GUARD FOR EVERY SAVE. If the exact same write (same function, same data) is already
+  // on its way to the server, a second tap/click does NOT send a second copy - it waits for,
+  // and gets, the first one's answer. This protects every save/update/delete on this page at
+  // once (including ones added later), so "tapped twice while it was still saving" can never
+  // again record a payment, a delivery or a stock change twice. Read-only lookups
+  // (get_/check_/search_...) are left alone.
+  (function installRpcGuard_() {
+    const readOnly = /^(get|check|search|list|lookup|find|fetch|load|sum|count)_/;
+    const rawRpc = sb.rpc.bind(sb);
+    const inFlight = new Map();
+    sb.rpc = function (name, args, options) {
+      if (readOnly.test(String(name))) return rawRpc(name, args, options);
+      const key = name + '|' + JSON.stringify(args === undefined ? null : args);
+      if (inFlight.has(key)) return inFlight.get(key);
+      const request = Promise.resolve(rawRpc(name, args, options)).finally(function () { inFlight.delete(key); });
+      inFlight.set(key, request);
+      return request;
+    };
+  })();
+
   const BUSINESS_UPI_ID = '8199983834@okbizaxis';
   const BUSINESS_PAYEE_NAME = 'Mahakal Wellness';
 
@@ -236,5 +258,39 @@
 
   renderForm();
 </script>
+<!-- MW-UX-START (keyboard + back button; the same in every page, built by tools/apply_ux_snippets.py) -->
+<style id="mwUxCss">
+  :root{--kb:0px; --vvh:100vh;}
+  .modal-overlay,.qty-modal-overlay,#notifPanel,#notifDetailPopup{bottom:var(--kb) !important;}
+  .modal-sheet,.qty-modal-sheet{max-height:calc(var(--vvh) * .92) !important;}
+  .summary-bar{bottom:var(--kb) !important;}
+  .toast{bottom:calc(100px + var(--kb)) !important;}
+  html.kb-open body{padding-bottom:calc(var(--kb) + 24px);}
+</style>
+<script>
+/* On-screen keyboard: --kb = how much of the bottom of the screen the keyboard covers, --vvh = the height that is really visible. */
+(function () {
+  var vv = window.visualViewport, root = document.documentElement;
+  function update() {
+    var kb = 0, h = window.innerHeight;
+    if (vv) { h = vv.height; if (!vv.scale || Math.abs(vv.scale - 1) < 0.02) kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)); }
+    if (kb < 60) kb = 0;                                   // the browser's own bars growing or shrinking are not a keyboard
+    root.style.setProperty('--kb', kb + 'px'); root.style.setProperty('--vvh', Math.round(h) + 'px'); root.classList.toggle('kb-open', kb > 0);
+  }
+  if (vv) { vv.addEventListener('resize', update); vv.addEventListener('scroll', update); }
+  window.addEventListener('resize', update);
+  window.addEventListener('orientationchange', function () { setTimeout(update, 350); });
+  update();
+  // keep the field being typed in on screen (also when the keyboard takes a moment to open)
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!t || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || /^(checkbox|radio|button|submit|file|range|color)$/i.test(t.type || '')) return;
+    [120, 450, 900].forEach(function (ms) {
+      setTimeout(function () { if (document.activeElement !== t) return; try { t.scrollIntoView({ block: 'center', behavior: ms === 120 ? 'auto' : 'smooth', inline: 'nearest' }); } catch (x) {} }, ms);
+    });
+  });
+})();
+</script>
+<!-- MW-UX-END -->
 </body>
 </html>
