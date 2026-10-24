@@ -196,6 +196,12 @@
   .tab{flex:none; padding:12px 14px; text-align:center; background:none; border:none; color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap;}
   .tab.active{color:var(--green-800); border-bottom-color:var(--gold-500);}
   .cm-line{font-size:12.5px; font-weight:800; color:var(--gold-600); margin-top:2px;}
+  .ps-group{margin-bottom:12px;} .ps-group h3{font-size:14px; color:var(--green-800); margin:0 0 4px;}
+  .ps-row{display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--line); align-items:flex-start;}
+  .ps-row input[type=checkbox]{width:22px; height:22px; margin-top:2px; flex:none;}
+  .ps-main{flex:1; min-width:0;} .ps-title{font-size:13.5px; color:var(--green-900); overflow-wrap:anywhere;}
+  .ps-chip{display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; background:var(--green-100); color:var(--green-800); margin:3px 4px 0 0;}
+  .ps-chip.warn{background:var(--gold-100); color:var(--gold-600);} .ps-chip.bad{background:#fde8e6; color:var(--danger);} .ps-chip.dim{background:#eee; color:var(--ink-soft);}
   .subtabs{display:flex; gap:8px; margin-bottom:12px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
   .subtab{flex:none; padding:8px 14px; border-radius:20px; border:1.5px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap;}
   .subtab.active{background:var(--green-800); border-color:var(--green-800); color:#fff;}
@@ -415,6 +421,7 @@
       <button class="tab" data-tab="marketpurchase" id="tabBtnMarketPurchase" onclick="switchTab('marketpurchase')" style="display:none;">Market Purchase</button>
       <button class="tab" data-tab="profitreport" id="tabBtnProfitReport" onclick="switchTab('profitreport')" style="display:none;">Profit Report</button>
       <button class="tab" data-tab="franchiseeinvestment" id="tabBtnFranchisee" onclick="switchTab('franchiseeinvestment')" style="display:none;">Franchisee Investment</button>
+      <button class="tab" data-tab="productsearch" id="tabBtnProductSearch" onclick="switchTab('productsearch')" style="display:none;">Product Search</button>
     </nav>
     <button class="tab-arrow" onclick="scrollTabs_(200)" aria-label="Scroll tabs right">›</button>
     </div>
@@ -659,6 +666,41 @@
         </div>
         <div class="card"><div id="cmBody"><div class="empty-cart">Loading…</div></div></div>
         </div>
+      </div>
+    </section>
+
+    <!-- ============ PRODUCT SEARCH TAB (main admin only) ============ -->
+    <section id="tab-productsearch" class="tab-panel">
+      <div class="subtabs">
+        <button class="subtab active" data-subtab="dups" onclick="switchPsTab_('dups')">Duplicates</button>
+        <button class="subtab" data-subtab="find" onclick="switchPsTab_('find')">Find &amp; hide</button>
+        <button class="subtab" data-subtab="hidden" onclick="switchPsTab_('hidden')">Hidden<span class="n" id="psHiddenCount"></span></button>
+      </div>
+      <div id="pssub-dups" class="subtab-panel active">
+        <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="psLoadDups_()">↻ Refresh</button>
+        <div class="card">
+          <p class="hint" id="psDupSummary" style="margin:0 0 8px;">Loading…</p>
+          <p class="hint" style="margin:0 0 8px;">The same product name under different product codes. The code in the company list (30-06-2026) is the current one. A code that was used in a <strong>company purchase</strong> can never be hidden. A hidden product stays in your stock and bills - it only stops showing when you search a product to sell.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <button class="quickbtn" type="button" id="psFilterAll" onclick="psDupFilter_('all')">All</button>
+            <button class="quickbtn" type="button" id="psFilterStock" onclick="psDupFilter_('stock')">With stock</button>
+            <button class="quickbtn" type="button" id="psFilterBills" onclick="psDupFilter_('bills')">Used in bills</button>
+            <button class="quickbtn" type="button" id="psFilterHide" onclick="psDupFilter_('hide')">Can be hidden</button>
+          </div>
+          <button class="quickbtn" type="button" id="psSelectSuggested" onclick="psSelectSuggested_()">Tick every one that can be hidden</button>
+        </div>
+        <div id="psDupList"></div>
+        <div class="card" id="psBar" style="display:none;position:sticky;bottom:8px;z-index:5;">
+          <button class="btn btn-primary btn-block" type="button" id="psHideBtn" onclick="psHideTicked_()">Hide ticked from search</button>
+        </div>
+      </div>
+      <div id="pssub-find" class="subtab-panel">
+        <div class="card"><p class="section-label">Find a product</p><input type="text" id="psFindInput" class="search-input" placeholder="Product name or code…" autocomplete="off" oninput="psFind_()"></div>
+        <div id="psFindList"></div>
+      </div>
+      <div id="pssub-hidden" class="subtab-panel">
+        <div class="card"><p class="hint" style="margin:0;">Products hidden from search. They are still in your stock list and in their bills.</p></div>
+        <div id="psHiddenList"></div>
       </div>
     </section>
 
@@ -2533,6 +2575,7 @@
     document.getElementById('tabBtnProfitReport').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnFranchisee').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnHall').style.display = isSuperAdmin ? 'block' : 'none';
+    document.getElementById('tabBtnProductSearch').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('dashboardHallStats').style.display = isSuperAdmin ? 'block' : 'none';
     if (isSuperAdmin) loadDashboardProfitStats_();
   }
@@ -2571,11 +2614,12 @@
     return '<span class="stock-pill stock-ok">' + stock + ' in stock</span>';
   }
 
-  function rankProducts(query) {
+  function rankProducts(query, includeHidden) {
     query = (query || '').trim().toLowerCase();
     if (!query) return [];
     const scored = [];
     PRODUCTS.forEach(function (p) {
+      if (p.search_active === false && !includeHidden) return;       // hidden from search by the main admin (the purchase searches pass includeHidden)
       const code = String(p.code).toLowerCase();
       const name = String(p.name).toLowerCase();
       let tier = -1;
@@ -3779,6 +3823,7 @@
       } else { refreshDashboard_(); }    // every later visit: sales stats + company payout & profit + hall, all fresh
     }
     if (name === 'official') loadOfficialPending();
+    if (name === 'productsearch') psOpen_();
     if (name === 'spsets') initSpSetsTab_();
     if (name === 'expense') searchExpenses();
     if (name === 'customers') searchCustomersTab();
@@ -3967,9 +4012,9 @@
       const rows = box.querySelectorAll('.result-row'); activeIdx = idx;
       rows.forEach(function (r, i) { r.classList.toggle('kbd-active', i === idx); });
     }
-    function refresh() { currentMatches = rankProducts(input.value); renderResults(currentMatches, box, setActive); setActive(currentMatches.length ? 0 : -1); }
+    function refresh() { currentMatches = rankProducts(input.value, true); renderResults(currentMatches, box, setActive); setActive(currentMatches.length ? 0 : -1); }
     input.addEventListener('input', function () {
-      currentMatches = rankProducts(input.value);
+      currentMatches = rankProducts(input.value, true);
       if (!currentMatches.length) { box.classList.remove('show'); box.innerHTML = ''; return; }
       box.innerHTML = currentMatches.map(function (p) {
         return '<div class="result-row" data-code="' + p.code + '"><div><div class="result-name">' + escapeHtml(p.name) + '</div><div class="result-meta">#' + p.code + ' ' + stockBadge(p) + '</div></div><div class="result-price">' + money(p.dp) + '</div></div>';
@@ -4106,7 +4151,7 @@
     const input = document.getElementById('mpSearchInput');
     const box = document.getElementById('mpSearchResults');
     input.addEventListener('input', function () {
-      const matches = rankProducts(input.value);
+      const matches = rankProducts(input.value, true);
       if (!matches.length) { box.classList.remove('show'); box.innerHTML = ''; return; }
       box.innerHTML = matches.map(function (p) {
         return '<div class="result-row" data-code="' + p.code + '"><div><div class="result-name">' + escapeHtml(p.name) + '</div><div class="result-meta">#' + p.code + ' ' + stockBadge(p) + '</div></div><div class="result-price">' + money(p.dp) + '</div></div>';
@@ -4360,7 +4405,7 @@
     const box = document.getElementById('purchaseEditSearchResults');
     if (!input) return;
     input.addEventListener('input', function () {
-      const matches = rankProducts(input.value);
+      const matches = rankProducts(input.value, true);
       if (!matches.length) { box.classList.remove('show'); box.innerHTML = ''; return; }
       box.innerHTML = matches.map(function (p) {
         return '<div class="result-row" data-code="' + p.code + '"><div><div class="result-name">' + escapeHtml(p.name) + '</div><div class="result-meta">#' + p.code + ' ' + stockBadge(p) + '</div></div><div class="result-price">' + money(p.dp) + '</div></div>';
@@ -4508,7 +4553,7 @@
 
   function refreshLowStock() {
     const box = document.getElementById('lowStockList');
-    const low = PRODUCTS.filter(function (p) { return (Number(p.physical_stock) || 0) <= 5; }).sort(function (a, b) { return (a.physical_stock || 0) - (b.physical_stock || 0); }).slice(0, 30);
+    const low = PRODUCTS.filter(function (p) { return p.search_active !== false && (Number(p.physical_stock) || 0) <= 5; }).sort(function (a, b) { return (a.physical_stock || 0) - (b.physical_stock || 0); }).slice(0, 30);
     if (!low.length) { box.innerHTML = '<div class="empty-cart">Nothing low on stock right now.</div>'; return; }
     box.innerHTML = low.map(function (p) { return '<div class="list-row" style="cursor:default;"><div><div class="result-name">' + escapeHtml(p.name) + '</div><div class="result-meta">#' + p.code + '</div></div>' + stockBadge(p) + '</div>'; }).join('');
   }
@@ -5626,6 +5671,144 @@
     if (!r.cash_memo_no) return '';
     const more = r.cash_memo_more ? ' +' + escapeHtml(r.cash_memo_more).replace(/, /g, ' +') : '';
     return ' <span style="font-size:10px;font-weight:700;color:var(--green-700);">CM#' + escapeHtml(r.cash_memo_no) + more + '</span>';
+  }
+
+  // =================== PRODUCT SEARCH (main admin): duplicate-name products, hide from search / show again ===================
+  // A hidden product (products.search_active = false) is skipped by the SELLING searches (New Bill, Edit Bill, SP billing, the public order form);
+  // purchase searches and the stock list still show it. Its stock and bills are untouched. The database refuses to hide a code that a company purchase used.
+  let PSD_ = { groups: [], filter: 'all', ticked: {}, summary: null, loaded: false, findTimer: null, findSeq: 0 };
+  const PS_MONEY_ = function (n) { return money(Number(n) || 0); };
+  function psServerMissing_(err) { return err && /could not find the function|schema cache|does not exist/i.test(err.message || ''); }
+  function psOpen_() { switchPsTab_(document.querySelector('#tab-productsearch .subtab.active') ? document.querySelector('#tab-productsearch .subtab.active').dataset.subtab : 'dups'); }
+  function switchPsTab_(name) {
+    const c = document.getElementById('tab-productsearch');
+    c.querySelectorAll(':scope > .subtabs > .subtab[data-subtab]').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
+    c.querySelectorAll(':scope > .subtab-panel').forEach(function (p) { p.classList.remove('active'); });
+    document.getElementById('pssub-' + name).classList.add('active');
+    if (name === 'dups') psLoadDups_(); else if (name === 'hidden') psRenderHidden_(); else psFind_();
+  }
+  function psStockChips_(o) {
+    return '<span class="ps-chip' + (Number(o.onlineStock) ? ' warn' : ' dim') + '">Online stock ' + trimNum(Number(o.onlineStock) || 0) + '</span><span class="ps-chip' + (Number(o.physicalStock) ? ' warn' : ' dim') + '">Offline (physical) ' + trimNum(Number(o.physicalStock) || 0) + '</span>';
+  }
+  function psUseChips_(o) {
+    let h = '<span class="ps-chip' + (Number(o.bills) ? '' : ' dim') + '">' + (Number(o.bills) ? 'In ' + trimNum(o.bills) + ' bill' + (Number(o.bills) > 1 ? 's' : '') + ' (qty ' + trimNum(o.billQty) + (Number(o.pendingQty) > 0 ? ', ' + trimNum(o.pendingQty) + ' still to deliver' : '') + ')' : 'In no bill') + '</span>';
+    h += '<span class="ps-chip' + (Number(o.purchases) ? ' warn' : ' dim') + '">' + (Number(o.purchases) ? 'In ' + trimNum(o.purchases) + ' company purchase' + (Number(o.purchases) > 1 ? 's' : '') + ' (qty ' + trimNum(o.purchaseQty) + ')' : 'In no company purchase') + '</span>';
+    if (o.inCompanyList) h += '<span class="ps-chip">In the company list</span>'; else h += '<span class="ps-chip dim">Not in the company list</span>';
+    return h;
+  }
+  async function psLoadDups_() {
+    const box = document.getElementById('psDupList'), sum = document.getElementById('psDupSummary');
+    sum.textContent = 'Loading…'; box.innerHTML = '';
+    const { data, error } = await sb.rpc('get_duplicate_products');
+    if (error) {
+      sum.textContent = '';
+      box.innerHTML = '<div class="card"><div class="empty-cart">' + (psServerMissing_(error) ? 'This needs the database update <strong>product_search_visibility.sql</strong>. Please run it in Supabase first.' : 'Could not load: ' + escapeHtml(error.message)) + '</div></div>';
+      return;
+    }
+    PSD_.groups = (data && data.groups) || []; PSD_.summary = data || {}; PSD_.loaded = true;
+    const live = {}; PSD_.groups.forEach(function (g) { g.products.forEach(function (p) { live[p.code] = true; }); });
+    Object.keys(PSD_.ticked).forEach(function (c) { if (!live[c]) delete PSD_.ticked[c]; });
+    psRenderDups_();
+  }
+  function psDupFilter_(f) { PSD_.filter = f; psRenderDups_(); }
+  function psRenderDups_() {
+    const s = PSD_.summary || {}, box = document.getElementById('psDupList');
+    document.getElementById('psDupSummary').innerHTML = !PSD_.groups.length ? 'No product name is under more than one code.' :
+      '<strong>' + trimNum(s.groupCount || 0) + '</strong> names are under 2 or more codes (' + trimNum(s.productCount || 0) + ' products). <strong>' + trimNum(s.suggestHide || 0) + '</strong> can be hidden' + (Number(s.suggestHideWithStock) ? ' (<strong>' + trimNum(s.suggestHideWithStock) + '</strong> of them still show stock)' : '') + (Number(s.alreadyHidden) ? ' · ' + trimNum(s.alreadyHidden) + ' already hidden' : '') + '.';
+    ['all', 'stock', 'bills', 'hide'].forEach(function (f) { const b = document.getElementById('psFilter' + f.charAt(0).toUpperCase() + f.slice(1)); if (b) b.style.outline = PSD_.filter === f ? '2px solid var(--green-800)' : 'none'; });
+    const keep = function (p) {
+      if (PSD_.filter === 'stock') return p.hasStock;
+      if (PSD_.filter === 'bills') return Number(p.bills) > 0;
+      if (PSD_.filter === 'hide') return p.suggestHide;
+      return true;
+    };
+    let shown = 0;
+    box.innerHTML = PSD_.groups.map(function (g) {
+      const rows = g.products.filter(keep);
+      if (!rows.length) return '';
+      return '<div class="card ps-group"><h3>' + escapeHtml(g.name) + (g.hasKeeper ? '' : ' <span class="ps-chip warn">no current code found - you choose</span>') + '</h3>' + rows.map(function (p) {
+        shown++;
+        const hidden = p.searchActive === false, locked = p.mustKeep, canTick = !hidden && !locked;
+        const tags = (hidden ? '<span class="ps-chip bad">Hidden from search</span>' : '') + (locked ? '<span class="ps-chip warn">Used in company purchase - stays active</span>' : '') + (p.suggestHide ? '<span class="ps-chip bad">Can be hidden</span>' : '') +
+          (String(p.status || '').toLowerCase() === 'deactive' ? '<span class="ps-chip dim">Status: Deactive</span>' : '');
+        return '<div class="ps-row" data-code="' + escapeHtml(p.code) + '"><input type="checkbox" class="ps-tick" data-code="' + escapeHtml(p.code) + '"' + (canTick ? '' : ' disabled') + (PSD_.ticked[p.code] ? ' checked' : '') + ' onchange="psTick_(this)" aria-label="Hide ' + escapeHtml(p.name) + ' (' + escapeHtml(p.code) + ')">' +
+          '<div class="ps-main"><div class="ps-title"><strong>#' + escapeHtml(p.code) + '</strong> · ' + escapeHtml(p.name) + '</div><div class="hint" style="margin:1px 0 0;">MRP ' + PS_MONEY_(p.mrp) + ' · DP ' + PS_MONEY_(p.dp) + ' · SP ' + trimNum(Number(p.sp) || 0) + '</div>' +
+          '<div>' + tags + psStockChips_(p) + psUseChips_(p) + '</div></div></div>';
+      }).join('') + '</div>';
+    }).join('') || '<div class="card"><div class="empty-cart">' + (PSD_.groups.length ? 'Nothing matches this filter.' : 'Nothing to show.') + '</div></div>';
+    psUpdateBar_();
+  }
+  function psTick_(cb) { if (cb.checked) PSD_.ticked[cb.dataset.code] = true; else delete PSD_.ticked[cb.dataset.code]; psUpdateBar_(); }
+  function psUpdateBar_() {
+    const n = Object.keys(PSD_.ticked).length;
+    document.getElementById('psBar').style.display = n ? 'block' : 'none';
+    document.getElementById('psHideBtn').textContent = 'Hide ' + n + ' ticked product' + (n === 1 ? '' : 's') + ' from search';
+  }
+  function psSelectSuggested_() {
+    PSD_.groups.forEach(function (g) { g.products.forEach(function (p) { if (p.suggestHide) PSD_.ticked[p.code] = true; }); });
+    psRenderDups_();
+  }
+  function psFindProduct_(code) { return PRODUCTS.find(function (p) { return String(p.code) === String(code); }); }
+  async function psApply_(codes, hide, withStock) {
+    if (!codes.length) return false;
+    if (hide) {
+      const msg = 'Hide ' + codes.length + ' product' + (codes.length === 1 ? '' : 's') + ' from search?\n\n' + codes.map(function (c) { const p = psFindProduct_(c); return '#' + c + (p ? ' ' + p.name : ''); }).slice(0, 12).join('\n') + (codes.length > 12 ? '\n…' : '') +
+        (withStock > 0 ? '\n\n⚠ ' + withStock + ' of them still show stock. The stock stays in your stock list, but these products can no longer be found when billing.' : '') + '\n\nProducts used in a company purchase are never hidden. Bills and stock are not touched.';
+      if (!confirm(msg)) return false;
+    }
+    const { data, error } = await sb.rpc('set_products_search_active', { p_codes: codes, p_active: !hide });
+    if (error) { showToast(psServerMissing_(error) ? 'Run product_search_visibility.sql in Supabase first.' : error.message, true); return false; }
+    const parts = [];
+    if ((data.changed || []).length) parts.push((data.changed.length) + (hide ? ' hidden from search' : ' shown in search again'));
+    if ((data.keptBecausePurchase || []).length) parts.push('kept active (used in a company purchase): ' + data.keptBecausePurchase.join(', '));
+    if ((data.unknown || []).length) parts.push('not found: ' + data.unknown.join(', '));
+    showToast(parts.join(' · ') || 'Nothing changed.', !(data.changed || []).length);
+    await loadProducts();                       // the searches use this list: they follow at once
+    return true;
+  }
+  async function psHideTicked_() {
+    const codes = Object.keys(PSD_.ticked);
+    const withStock = codes.filter(function (c) { const p = psFindProduct_(c); return p && ((Number(p.physical_stock) || 0) !== 0 || (Number(p.online_stock) || 0) !== 0); }).length;
+    if (await psApply_(codes, true, withStock)) { PSD_.ticked = {}; psLoadDups_(); psRenderHidden_(); }
+  }
+  // ---- find any product and hide / show it
+  function psFind_() {
+    clearTimeout(PSD_.findTimer);
+    PSD_.findTimer = setTimeout(async function () {
+      const q = (document.getElementById('psFindInput').value || '').trim().toLowerCase(), box = document.getElementById('psFindList'), mine = ++PSD_.findSeq;
+      if (!q) { box.innerHTML = '<div class="card"><div class="empty-cart">Type a product name or code.</div></div>'; return; }
+      const list = PRODUCTS.filter(function (p) { return String(p.name).toLowerCase().indexOf(q) > -1 || String(p.code).toLowerCase() === q || String(p.code).toLowerCase().indexOf(q) === 0; }).slice(0, 25);
+      if (!list.length) { box.innerHTML = '<div class="card"><div class="empty-cart">No product matches that.</div></div>'; return; }
+      const { data } = await sb.rpc('get_product_usage', { p_codes: list.map(function (p) { return String(p.code); }) });
+      if (mine !== PSD_.findSeq) return;
+      const use = {}; (data || []).forEach(function (u) { use[u.code] = u; });
+      box.innerHTML = '<div class="card">' + list.map(function (p) {
+        const u = use[String(p.code)] || { bills: 0, billQty: 0, pendingQty: 0, purchases: 0, purchaseQty: 0, inCompanyList: false, mustKeep: false, onlineStock: p.online_stock, physicalStock: p.physical_stock };
+        const hidden = p.search_active === false;
+        return '<div class="ps-row" data-code="' + escapeHtml(p.code) + '"><div class="ps-main"><div class="ps-title"><strong>#' + escapeHtml(p.code) + '</strong> · ' + escapeHtml(p.name) + '</div>' +
+          '<div>' + (hidden ? '<span class="ps-chip bad">Hidden from search</span>' : '') + (u.mustKeep ? '<span class="ps-chip warn">Used in company purchase - stays active</span>' : '') + psStockChips_(u) + psUseChips_(u) + '</div></div>' +
+          '<button class="quickbtn" type="button" data-act="' + (hidden ? 'show' : 'hide') + '" data-code="' + escapeHtml(p.code) + '"' + (!hidden && u.mustKeep ? ' disabled' : '') + '>' + (hidden ? 'Show in search' : 'Hide from search') + '</button></div>';
+      }).join('') + '</div>';
+      box.querySelectorAll('button[data-act]').forEach(function (b) {
+        b.addEventListener('click', async function () {
+          const p = psFindProduct_(b.dataset.code), has = p && ((Number(p.physical_stock) || 0) !== 0 || (Number(p.online_stock) || 0) !== 0) ? 1 : 0;
+          if (await psApply_([b.dataset.code], b.dataset.act === 'hide', has)) { psFind_(); psRenderHidden_(); }
+        });
+      });
+    }, 250);
+  }
+  // ---- everything that is hidden
+  function psRenderHidden_() {
+    const hid = PRODUCTS.filter(function (p) { return p.search_active === false; }).sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
+    document.getElementById('psHiddenCount').textContent = hid.length ? ' ' + hid.length : '';
+    const box = document.getElementById('psHiddenList');
+    box.innerHTML = hid.length ? '<div class="card">' + hid.map(function (p) {
+      return '<div class="ps-row" data-code="' + escapeHtml(p.code) + '"><div class="ps-main"><div class="ps-title"><strong>#' + escapeHtml(p.code) + '</strong> · ' + escapeHtml(p.name) + '</div><div>' + psStockChips_({ onlineStock: p.online_stock, physicalStock: p.physical_stock }) +
+        (p.search_hidden_at ? '<span class="ps-chip dim">Hidden since ' + escapeHtml(dayIst_(p.search_hidden_at)) + '</span>' : '') + '</div></div><button class="quickbtn" type="button" data-show="' + escapeHtml(p.code) + '">Show in search</button></div>';
+    }).join('') + '</div>' : '<div class="card"><div class="empty-cart">Nothing is hidden.</div></div>';
+    box.querySelectorAll('button[data-show]').forEach(function (b) {
+      b.addEventListener('click', async function () { if (await psApply_([b.dataset.show], false, 0)) { psRenderHidden_(); psLoadDups_(); } });
+    });
   }
 
   // =================== CASH MEMO REGISTER (Past Bill > Cash Memo) - staff and main admin ===================
