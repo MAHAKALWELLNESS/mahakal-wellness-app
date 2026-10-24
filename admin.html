@@ -418,7 +418,7 @@
           <label for="billDate">Date of this old bill <span style="color:var(--danger);">*</span></label>
           <input type="date" id="billDate" min="2026-01-01" oninput="validateBillDate_(); updateSaveBtnState_();" onchange="validateBillDate_(); updateSaveBtnState_();">
           <p class="login-error" id="billDateError" style="min-height:0;margin:4px 0 0;"></p>
-          <p class="hint" style="margin:6px 0 0;">Today's date can't be used here. The delivery date and payment date are asked when this bill is approved - they start as this bill date.</p>
+          <p class="hint" style="margin:6px 0 0;">Today's date can't be used here. The delivery date and payment date are asked when this bill is approved - they start as this bill date.<br>This bill gets its own number, <strong>PMW000001, PMW000002 …</strong> - the running MW bill numbers are not used for past bills.</p>
         </div>
         <div id="pastMemoSlot" style="margin-top:12px;"></div>
         <button class="btn btn-primary btn-block" type="button" id="pastContinueBtn" style="display:none;margin-top:12px;" onclick="openPastGate_()" disabled>Continue →</button>
@@ -8764,7 +8764,7 @@
     if (shareToken) text += '\nView bill status anytime: ' + baseUrl + 'bill.html?token=' + shareToken + (showAdvance ? '&showAdvance=1' : '');
     text += '\n\nMAHAKAL SP BILLING FORMAT:\n' +
       'CASH MEMO NO ( IF GIVEN):____\n' +
-      'BILL NO (MW000______) :' + invoiceNo + '\n' +
+      'BILL NO (' + (String(invoiceNo).indexOf('PMW') === 0 ? 'PMW000' : 'MW000') + '______) :' + invoiceNo + '\n' +
       'DS NAME:______\n' +
       'DS ID:_____\n' +
       'MOBILE NO:_____\n' +

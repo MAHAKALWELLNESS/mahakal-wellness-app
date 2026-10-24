@@ -295,7 +295,8 @@
 
     const fieldMap = {
       custName: found && data.name, custCity: found && data.city,
-      custIdName: found && data.idName, custDsId: found && data.dsId
+      custIdName: found && data.idName, custDsId: found && data.dsId,
+      custRefName: found && data.refName, custRefMobile: found && data.refMobile
     };
     Object.keys(fieldMap).forEach(function (id) {
       const el = document.getElementById(id);
@@ -309,7 +310,7 @@
 
     const hint = document.getElementById('custLookupHint');
     if (hint) {
-      hint.textContent = found ? '✓ Your saved details were filled in — please check them and update anything that has changed.' : '';
+      hint.textContent = found ? '✓ Your saved details' + ((data.refName || data.refMobile) ? ' (including your upline)' : '') + ' were filled in — please check them and update anything that has changed.' : '';
       hint.style.display = found ? 'block' : 'none';
     }
   }
