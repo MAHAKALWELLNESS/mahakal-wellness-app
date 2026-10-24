@@ -136,6 +136,8 @@
   .edit-actions{position:sticky; bottom:-20px; z-index:5; background:var(--surface); margin:14px -20px -20px; padding:12px 20px 16px; border-top:1px solid var(--line);}
   #editBillItemsList .cart-item{scroll-margin-top:130px; scroll-margin-bottom:90px;}
   .cart-item.just-changed{animation:editFlash 1.3s ease-out;}
+  /* Past bill entry: until date + cash memo are entered the rest of the bill (and its Save bar) is not shown */
+  body.gate-closed .summary-bar{display:none !important;}
   /* Past Bill > Cash Memo register */
   .cm-pills{display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;}
   .cm-pill{padding:8px 12px; border-radius:18px; border:1.5px solid var(--line); background:#fff; font-weight:700; font-size:12.5px; line-height:1.1; font-family:inherit; color:var(--green-800); cursor:pointer;}
@@ -412,7 +414,12 @@
           <p class="login-error" id="billDateError" style="min-height:0;margin:4px 0 0;"></p>
           <p class="hint" style="margin:6px 0 0;">Today's date can't be used here. The delivery date and payment date are asked when this bill is approved - they start as this bill date.</p>
         </div>
+        <div id="pastMemoSlot" style="margin-top:12px;"></div>
+        <button class="btn btn-primary btn-block" type="button" id="pastContinueBtn" style="display:none;margin-top:12px;" onclick="openPastGate_()" disabled>Continue →</button>
+        <p class="hint" id="pastGateNote" style="display:none;margin:8px 0 0;">Date and Cash Memo No. first - the rest of the bill opens after this.</p>
+        <div id="pastGateDone" style="display:none;margin-top:12px;background:#E3F3EA;color:var(--ok);font-weight:700;font-size:13px;border-radius:10px;padding:10px 12px;">✓ Date and Cash Memo No. set - fill in the bill below.</div>
       </div>
+      <div id="newBillRest">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="resetNewBillForm()">↻ Refresh / Start Fresh</button>
       <div class="card">
         <p class="section-label">Customer/Distributor</p>
@@ -473,11 +480,12 @@
           <datalist id="salesmanOptions"><option value="Alisha"></option><option value="Praveen"></option></datalist>
         </div>
         <div class="field" id="transportChargesField" style="display:none;"><label for="transportCharges">Rapido/Bus/Transport Charges ₹ (optional)</label><input type="number" id="transportCharges" min="0" step="0.01" placeholder="0" oninput="renderTotals()"></div>
-        <div class="field"><label for="cashMemoNo">Cash Memo No.</label><input type="text" id="cashMemoNo" placeholder="e.g. 1024" oninput="this.value=this.value.toUpperCase(); checkCashMemoLive();">
+        <div id="cashMemoSlotSales"><div class="field" id="cashMemoField"><label for="cashMemoNo">Cash Memo No.</label><input type="text" id="cashMemoNo" placeholder="e.g. 1024" oninput="this.value = (billMode_ === 'past') ? this.value.replace(/\D/g, '').slice(0, 15) : this.value.toUpperCase(); checkCashMemoLive();">
           <p class="login-error" id="cashMemoError" style="min-height:0;margin:4px 0 0;"></p>
-        </div>
+        </div></div>
         <div class="field" style="margin-bottom:0;"><label for="remark">Remark (optional)</label><input type="text" id="remark" placeholder="Any note for this bill"></div>
       </div>
+      </div><!-- /newBillRest -->
       </div>
 
       <div id="nbmsub-purchase" class="subtab-panel">
@@ -2644,7 +2652,30 @@
   // items AND the entered cash memo is non-empty and confirmed available.
   let cashMemoValid_ = false;
   // Today's bill / Past bill entry. A past bill MUST have a date, and it can never be today's date.
-  let billMode_ = 'today', pastDateValid_ = true;
+  let billMode_ = 'today', pastDateValid_ = true, pastGateOpen_ = false;
+  // A past bill asks for the DATE and the CASH MEMO NO. first (the one Cash Memo box simply moves up here); the rest of the bill
+  // - customer, products, everything - opens only after "Continue", so these two can never be forgotten or entered late.
+  function placeCashMemoField_() {
+    const f = document.getElementById('cashMemoField'), slot = document.getElementById(billMode_ === 'past' ? 'pastMemoSlot' : 'cashMemoSlotSales');
+    if (f && slot && f.parentNode !== slot) slot.appendChild(f);
+  }
+  function applyPastGate_() {
+    const past = billMode_ === 'past', closed = past && !pastGateOpen_;
+    document.getElementById('newBillRest').style.display = closed ? 'none' : '';
+    document.body.classList.toggle('gate-closed', closed);
+    document.getElementById('pastContinueBtn').style.display = closed ? '' : 'none';
+    document.getElementById('pastGateNote').style.display = closed ? '' : 'none';
+    document.getElementById('pastGateDone').style.display = (past && pastGateOpen_) ? '' : 'none';
+  }
+  function refreshPastGate_() {
+    const btn = document.getElementById('pastContinueBtn');
+    if (btn) btn.disabled = !(billMode_ === 'past' && pastDateValid_ && cashMemoValid_ && document.getElementById('billDate').value);
+  }
+  function openPastGate_() {
+    if (billMode_ !== 'past' || !pastDateValid_ || !cashMemoValid_ || !document.getElementById('billDate').value) return;
+    pastGateOpen_ = true; applyPastGate_(); updateSaveBtnState_();
+    setTimeout(function () { const m = document.getElementById('custMobile'); if (m) { try { m.focus(); } catch (e) {} } }, 80);
+  }
   function setBillMode_(mode) {
     billMode_ = mode === 'past' ? 'past' : 'today';
     const past = billMode_ === 'past';
@@ -2653,6 +2684,10 @@
     document.getElementById('pastDateField').style.display = past ? '' : 'none';
     const el = document.getElementById('billDate');
     if (past) { el.max = istDay_(new Date(Date.now() - 86400000).toISOString()); } else { el.value = ''; }
+    pastGateOpen_ = false;                      // changing the type starts the gate again
+    placeCashMemoField_();
+    if (past) { const m = document.getElementById('cashMemoNo'), before = m.value; m.value = before.replace(/\D/g, '').slice(0, 15); if (m.value !== before) checkCashMemoLive(); }   // letters leave: check the NEW text
+    applyPastGate_();
     validateBillDate_();
     updateSaveBtnState_();
     if (past) setTimeout(function () { try { el.focus(); } catch (e) {} }, 60);
@@ -2666,7 +2701,8 @@
     else if (v < '2026-01-01') { pastDateValid_ = false; err.textContent = 'That date is too old.'; }
   }
   function updateSaveBtnState_() {
-    document.getElementById('saveBtn').disabled = CART.length === 0 || !cashMemoValid_ || (billMode_ === 'past' && !pastDateValid_);
+    refreshPastGate_();
+    document.getElementById('saveBtn').disabled = CART.length === 0 || !cashMemoValid_ || (billMode_ === 'past' && (!pastDateValid_ || !pastGateOpen_));
   }
 
   async function saveBill() {
@@ -2748,6 +2784,7 @@
     document.getElementById('cashMemoNo').value = '';
     document.getElementById('cashMemoError').textContent = '';
     cashMemoValid_ = false;
+    pastGateOpen_ = false; applyPastGate_(); updateSaveBtnState_();      // the next past bill: its own cash memo first (the date stays)
     toggleRetailDiscount();
     renderCart();
   }
@@ -3643,11 +3680,17 @@
     if (!val) { errBox.textContent = 'Cash Memo No. is required.'; return; }
     cashMemoCheckDebounce = setTimeout(async function () {
       const { data: available } = await sb.rpc('check_cash_memo_available', { p_cash_memo_no: val });
+      if (document.getElementById('cashMemoNo').value.trim() !== val) return;          // typed on while checking
       if (available === false) {
         errBox.textContent = 'Cash memo ' + val + ' is already used.';
         cashMemoValid_ = false;
       } else {
         cashMemoValid_ = true;
+        if (billMode_ === 'past' && /^\d{1,15}$/.test(val)) {      // 1005 and 01005 are the same memo: say which bill has it
+          const r = await sb.rpc('get_cash_memo_page', { p_desc: true, p_limit: 1, p_offset: 0, p_from: Number(val), p_to: Number(val) });
+          if (document.getElementById('cashMemoNo').value.trim() !== val) return;
+          if (!r.error && r.data && r.data.rows && r.data.rows.length) { errBox.textContent = 'Cash memo ' + Number(val) + ' is already on bill ' + r.data.rows[0].invoiceNo + '.'; cashMemoValid_ = false; }
+        }
       }
       updateSaveBtnState_();
     }, 400);
