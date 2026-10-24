@@ -5756,16 +5756,38 @@
       box.innerHTML = '<div class="card"><div class="empty-cart">' + (psServerMissing_(error) ? 'This needs the database update <strong>product_search_visibility.sql</strong>. Please run it in Supabase first.' : 'Could not load: ' + escapeHtml(error.message)) + '</div></div>';
       return;
     }
-    PSD_.groups = (data && data.groups) || []; PSD_.summary = data || {}; PSD_.loaded = true;
-    const live = {}; PSD_.groups.forEach(function (g) { g.products.forEach(function (p) { live[p.code] = true; }); });
+    // A product that is hidden from search LEAVES this list (it is in the Hidden tab). A name that has only ONE code left in search is no longer a duplicate, so its group goes too.
+    let hidden = 0;
+    const groups = ((data && data.groups) || []).map(function (g) {
+      const vis = g.products.filter(function (p) { return p.searchActive !== false; });
+      hidden += g.products.length - vis.length;
+      return { name: g.name, products: vis };
+    }).filter(function (g) { return g.products.length > 1; });
+    groups.forEach(function (g) {                      // the hints that depended on the hidden ones are worked out again from what is still visible
+      const isKeeper = function (p) { return !!(p.mustKeep || p.inCompanyList); };
+      g.hasKeeper = g.products.some(isKeeper);
+      g.products.forEach(function (p) { p.suggestHide = !!p.suggestHide && g.products.some(function (q) { return q !== p && isKeeper(q); }); });
+    });
+    const all = groups.reduce(function (a, g) { return a.concat(g.products); }, []);
+    PSD_.groups = groups; PSD_.loaded = true;
+    PSD_.summary = { groupCount: groups.length, productCount: all.length, suggestHide: all.filter(function (p) { return p.suggestHide; }).length,
+                     suggestHideWithStock: all.filter(function (p) { return p.suggestHide && p.hasStock; }).length, alreadyHidden: hidden };
+    const live = {}; all.forEach(function (p) { live[p.code] = true; });
     Object.keys(PSD_.ticked).forEach(function (c) { if (!live[c]) delete PSD_.ticked[c]; });
+    psUpdateHiddenBadge_();
     psRenderDups_();
+  }
+  function psUpdateHiddenBadge_() {
+    const n = PRODUCTS.filter(function (p) { return p.search_active === false; }).length;
+    const el = document.getElementById('psHiddenCount'); if (el) el.textContent = n ? ' ' + n : '';
   }
   function psDupFilter_(f) { PSD_.filter = f; psRenderDups_(); }
   function psRenderDups_() {
     const s = PSD_.summary || {}, box = document.getElementById('psDupList');
-    document.getElementById('psDupSummary').innerHTML = !PSD_.groups.length ? 'No product name is under more than one code.' :
-      '<strong>' + trimNum(s.groupCount || 0) + '</strong> names are under 2 or more codes (' + trimNum(s.productCount || 0) + ' products). <strong>' + trimNum(s.suggestHide || 0) + '</strong> can be hidden' + (Number(s.suggestHideWithStock) ? ' (<strong>' + trimNum(s.suggestHideWithStock) + '</strong> of them still show stock)' : '') + (Number(s.alreadyHidden) ? ' · ' + trimNum(s.alreadyHidden) + ' already hidden' : '') + '.';
+    const hiddenHint = Number(s.alreadyHidden) ? ' <button type="button" class="ps-link" id="psSeeHidden" onclick="switchPsTab_(\'hidden\')">' + trimNum(s.alreadyHidden) + ' hidden - see the Hidden tab</button>' : '';
+    document.getElementById('psDupSummary').innerHTML = !PSD_.groups.length ? 'No product name is under more than one code that is still visible in search.' + hiddenHint :
+      '<strong>' + trimNum(s.groupCount || 0) + '</strong> ' + (Number(s.groupCount) === 1 ? 'name is' : 'names are') + ' under 2 or more codes (' + trimNum(s.productCount || 0) + ' products), all still visible in search. <strong>' + trimNum(s.suggestHide || 0) + '</strong> can be hidden' +
+      (Number(s.suggestHideWithStock) ? ' (<strong>' + trimNum(s.suggestHideWithStock) + '</strong> of them still show stock)' : '') + '.' + hiddenHint;
     ['all', 'stock', 'bills', 'hide'].forEach(function (f) { const b = document.getElementById('psFilter' + f.charAt(0).toUpperCase() + f.slice(1)); if (b) b.style.outline = PSD_.filter === f ? '2px solid var(--green-800)' : 'none'; });
     const keep = function (p) {
       if (PSD_.filter === 'stock') return p.hasStock;
@@ -5851,18 +5873,26 @@
     }, 250);
   }
   // ---- everything that is hidden
-  function psRenderHidden_() {
+  async function psRenderHidden_() {
     const hid = PRODUCTS.filter(function (p) { return p.search_active === false; }).sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
-    document.getElementById('psHiddenCount').textContent = hid.length ? ' ' + hid.length : '';
-    const box = document.getElementById('psHiddenList');
-    box.innerHTML = hid.length ? '<div class="card">' + hid.map(function (p) {
-      return '<div class="ps-row" data-code="' + escapeHtml(p.code) + '"><div class="ps-main"><div class="ps-title"><strong>#' + escapeHtml(p.code) + '</strong> · ' + escapeHtml(p.name) + '</div><div>' + psStockChips_({ onlineStock: p.online_stock, physicalStock: p.physical_stock }) +
-        (p.search_hidden_at ? '<span class="ps-chip dim">Hidden since ' + escapeHtml(dayIst_(p.search_hidden_at)) + '</span>' : '') + '</div>' + psActionsHtml_(p.code, null) + '</div><button class="quickbtn" type="button" data-show="' + escapeHtml(p.code) + '">Show in search</button></div>';
-    }).join('') + '</div>' : '<div class="card"><div class="empty-cart">Nothing is hidden.</div></div>';
-    psWireActions_(box);
-    box.querySelectorAll('button[data-show]').forEach(function (b) {
-      b.addEventListener('click', async function () { if (await psApply_([b.dataset.show], false, 0)) { psRenderHidden_(); psLoadDups_(); } });
-    });
+    psUpdateHiddenBadge_();
+    const box = document.getElementById('psHiddenList'), mine = PSD_.hidSeq = (PSD_.hidSeq || 0) + 1;
+    const draw = function (use) {
+      box.innerHTML = hid.length ? '<div class="card">' + hid.map(function (p) {
+        const u = use[String(p.code)];
+        return '<div class="ps-row" data-code="' + escapeHtml(p.code) + '"><div class="ps-main"><div class="ps-title"><strong>#' + escapeHtml(p.code) + '</strong> · ' + escapeHtml(p.name) + '</div><div>' + psStockChips_({ onlineStock: p.online_stock, physicalStock: p.physical_stock }) + (u ? psUseChips_(u) : '') +
+          (p.search_hidden_at ? '<span class="ps-chip dim">Hidden since ' + escapeHtml(dayIst_(p.search_hidden_at)) + '</span>' : '') + '</div>' + psActionsHtml_(p.code, u ? u.bills : null) + '</div><button class="quickbtn" type="button" data-show="' + escapeHtml(p.code) + '">Show in search</button></div>';
+      }).join('') + '</div>' : '<div class="card"><div class="empty-cart">Nothing is hidden.</div></div>';
+      psWireActions_(box);
+      box.querySelectorAll('button[data-show]').forEach(function (b) {
+        b.addEventListener('click', async function () { if (await psApply_([b.dataset.show], false, 0)) { psRenderHidden_(); psLoadDups_(); } });
+      });
+    };
+    draw(PSD_.hiddenUse || {});
+    if (!hid.length) return;
+    const { data } = await sb.rpc('get_product_usage', { p_codes: hid.map(function (p) { return String(p.code); }) });    // where each hidden product was used: bills, company purchases
+    if (mine !== PSD_.hidSeq || !data) return;
+    const use = {}; data.forEach(function (u) { use[u.code] = u; }); PSD_.hiddenUse = use; draw(use);
   }
 
   // =================== PRODUCT FIX TOOLS (main admin): the bills that used a product, correct them; move stock to the right code ===================
