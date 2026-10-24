@@ -703,6 +703,7 @@
         <div id="psDupList"></div>
         <div class="card" id="psBar" style="display:none;position:sticky;bottom:8px;z-index:5;">
           <button class="btn btn-primary btn-block" type="button" id="psHideBtn" onclick="psHideTicked_()">Hide ticked from search</button>
+          <button class="quickbtn" type="button" id="psMoveTickedBtn" style="margin-top:8px;width:100%;" onclick="psBulkFromTicked_()">📦 Move the stock of the ticked to their current code</button>
         </div>
       </div>
       <div id="pssub-find" class="subtab-panel">
@@ -710,7 +711,7 @@
         <div id="psFindList"></div>
       </div>
       <div id="pssub-hidden" class="subtab-panel">
-        <div class="card"><p class="hint" style="margin:0;">Products hidden from search. They are still in your stock list and in their bills.</p></div>
+        <div class="card"><p class="hint" style="margin:0 0 8px;">Products hidden from search. They are still in your stock list and in their bills.</p><button class="quickbtn" type="button" id="psBulkHiddenBtn" onclick="psBulkFromHidden_()">📦 Move the stock of all hidden products to their current code</button></div>
         <div id="psHiddenList"></div>
       </div>
     </section>
@@ -1888,9 +1889,10 @@
       <div class="field" id="psMoveOtherField" style="display:none;"><label for="psMoveOther">Type the right product code</label><input type="text" id="psMoveOther" autocomplete="off" oninput="psMoveToChanged_()"><p class="hint" id="psMoveOtherName" style="margin:4px 0 0;"></p></div>
       <div class="card" style="box-shadow:none;background:var(--green-100);">
         <label class="ps-opt" style="margin-top:0;"><input type="checkbox" id="psMoveOnChk" onchange="psMoveChanged_()"><span>Move ONLINE stock <span class="hint" id="psMoveOnAvail"></span></span></label>
-        <div class="field" style="margin:0 0 10px 28px;"><input type="number" id="psMoveOn" inputmode="decimal" min="0" step="0.01" aria-label="Online stock to move" oninput="psMoveChanged_()"></div>
+        <div class="field" style="margin:0 0 10px 28px;"><input type="number" id="psMoveOn" step="0.01" aria-label="Online stock to move" oninput="psMoveChanged_()"></div>
         <label class="ps-opt"><input type="checkbox" id="psMovePhChk" onchange="psMoveChanged_()"><span>Move OFFLINE (physical) stock <span class="hint" id="psMovePhAvail"></span></span></label>
-        <div class="field" style="margin:0 0 0 28px;"><input type="number" id="psMovePh" inputmode="decimal" min="0" step="0.01" aria-label="Offline stock to move" oninput="psMoveChanged_()"></div>
+        <div class="field" style="margin:0 0 0 28px;"><input type="number" id="psMovePh" step="0.01" aria-label="Offline stock to move" oninput="psMoveChanged_()"></div>
+        <button class="quickbtn" type="button" id="psMoveAllBtn" style="margin-top:10px;" onclick="psMoveAll_()">Move everything (plus or minus)</button>
       </div>
       <div class="field" style="margin-top:10px;"><label for="psMoveNote">Note (optional)</label><input type="text" id="psMoveNote" placeholder="e.g. old code, same product" oninput="psMoveChanged_()"></div>
       <div id="psMovePreview"></div>
@@ -1899,6 +1901,22 @@
       <div class="modal-actions">
         <button class="btn btn-outline" type="button" onclick="closePsMove_()">Close</button>
         <button class="btn btn-primary" type="button" id="psMoveGo" onclick="psMoveApply_()" disabled>Move stock</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="psBulkModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Move stock to the current code</h2>
+      <p class="hint" style="margin-bottom:10px;">Each product's whole stock goes to the current code of the same name (the one in the company list, or the one a company purchase used). <strong>A minus stock moves too</strong>: it takes that much OFF the current code. Bills are not changed. If you also ticked "move the stock effect" while correcting bills, do not move the same pieces again here.</p>
+      <label class="ps-opt" style="margin-top:0;"><input type="checkbox" id="psBulkOn" checked onchange="psBulkRender_()"><span>Online stock</span></label>
+      <label class="ps-opt"><input type="checkbox" id="psBulkPh" checked onchange="psBulkRender_()"><span>Offline (physical) stock</span></label>
+      <div id="psBulkList"></div>
+      <div id="psBulkSummary"></div>
+      <div id="psBulkResult"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closePsBulk_()">Close</button>
+        <button class="btn btn-primary" type="button" id="psBulkGo" onclick="psBulkApply_()" disabled>Move stock</button>
       </div>
     </div>
   </div>
@@ -5739,7 +5757,8 @@
     if (name === 'dups') psLoadDups_(); else if (name === 'hidden') psRenderHidden_(); else psFind_();
   }
   function psStockChips_(o) {
-    return '<span class="ps-chip' + (Number(o.onlineStock) ? ' warn' : ' dim') + '">Online stock ' + trimNum(Number(o.onlineStock) || 0) + '</span><span class="ps-chip' + (Number(o.physicalStock) ? ' warn' : ' dim') + '">Offline (physical) ' + trimNum(Number(o.physicalStock) || 0) + '</span>';
+    const cls = function (n) { n = Number(n) || 0; return n < 0 ? ' bad' : n ? ' warn' : ' dim'; };         // minus stock is red
+    return '<span class="ps-chip' + cls(o.onlineStock) + '">Online stock ' + trimNum(Number(o.onlineStock) || 0) + '</span><span class="ps-chip' + cls(o.physicalStock) + '">Offline (physical) ' + trimNum(Number(o.physicalStock) || 0) + '</span>';
   }
   function psUseChips_(o) {
     let h = '<span class="ps-chip' + (Number(o.bills) ? ' warn' : ' dim') + '">' + (Number(o.bills) ? 'In ' + trimNum(o.bills) + ' bill' + (Number(o.bills) > 1 ? 's' : '') + ' (qty ' + trimNum(o.billQty) + (Number(o.pendingQty) > 0 ? ', ' + trimNum(o.pendingQty) + ' still to deliver' : '') + ')' : 'In no bill') + '</span>';
@@ -5817,6 +5836,7 @@
     const n = Object.keys(PSD_.ticked).length;
     document.getElementById('psBar').style.display = n ? 'block' : 'none';
     document.getElementById('psHideBtn').textContent = 'Hide ' + n + ' ticked product' + (n === 1 ? '' : 's') + ' from search';
+    document.getElementById('psMoveTickedBtn').textContent = '📦 Move the stock of the ' + n + ' ticked to their current code';
   }
   function psSelectSuggested_() {
     PSD_.groups.forEach(function (g) { g.products.forEach(function (p) { if (p.suggestHide) PSD_.ticked[p.code] = true; }); });
@@ -6027,9 +6047,9 @@
     const sel = document.getElementById('psMoveTo'); sel.innerHTML = psTargetSelectHtml_(code);
     document.getElementById('psMoveOtherField').style.display = sel.value === '__other' ? 'block' : 'none';
     document.getElementById('psMoveOther').value = ''; document.getElementById('psMoveOtherName').textContent = '';
-    document.getElementById('psMoveOnChk').checked = on > 0; document.getElementById('psMoveOn').value = on > 0 ? on : '';
-    document.getElementById('psMovePhChk').checked = ph > 0; document.getElementById('psMovePh').value = ph > 0 ? ph : '';
-    document.getElementById('psMoveOnAvail').textContent = '(has ' + trimNum(on) + ')'; document.getElementById('psMovePhAvail').textContent = '(has ' + trimNum(ph) + ')';
+    document.getElementById('psMoveOnChk').checked = on !== 0; document.getElementById('psMoveOn').value = on !== 0 ? on : '';
+    document.getElementById('psMovePhChk').checked = ph !== 0; document.getElementById('psMovePh').value = ph !== 0 ? ph : '';
+    document.getElementById('psMoveOnAvail').textContent = '(has ' + trimNum(on) + (on < 0 ? ' - minus' : '') + ')'; document.getElementById('psMovePhAvail').textContent = '(has ' + trimNum(ph) + (ph < 0 ? ' - minus' : '') + ')';
     document.getElementById('psMoveNote').value = ''; document.getElementById('psMovePreview').innerHTML = ''; document.getElementById('psMoveError').textContent = ''; document.getElementById('psMoveLog').innerHTML = '';
     document.getElementById('psMoveGo').disabled = true;
     document.getElementById('psMoveModal').classList.add('show');
@@ -6042,32 +6062,41 @@
   }
   function closePsMove_() { if (PSM_) PSM_.seq++; document.getElementById('psMoveModal').classList.remove('show'); }
   function psMoveToChanged_() { document.getElementById('psMoveOtherField').style.display = document.getElementById('psMoveTo').value === '__other' ? 'block' : 'none'; psMoveChanged_(); }
+  // the amount keeps the sign of the stock it comes from: a stock of 10 gives 0..10, a MINUS stock of -4 gives 0..-4 (the other product then goes DOWN by that much)
+  function psClampSigned_(v, s) { v = Number(v) || 0; if (s > 0) return Math.max(0, Math.min(v, s)); if (s < 0) return Math.min(0, Math.max(v, s)); return 0; }
   function psMoveArgs_(apply) {
     const onChk = document.getElementById('psMoveOnChk').checked, phChk = document.getElementById('psMovePhChk').checked;
-    const clamp = function (v, max) { v = Number(v) || 0; return Math.max(0, Math.min(v, max)); };
-    return { p_from_code: PSM_.code, p_to_code: psMoveTargetCode_(), p_online: onChk ? clamp(document.getElementById('psMoveOn').value, Math.max(PSM_.on, 0)) : 0, p_physical: phChk ? clamp(document.getElementById('psMovePh').value, Math.max(PSM_.ph, 0)) : 0,
+    return { p_from_code: PSM_.code, p_to_code: psMoveTargetCode_(), p_online: onChk ? psClampSigned_(document.getElementById('psMoveOn').value, PSM_.on) : 0, p_physical: phChk ? psClampSigned_(document.getElementById('psMovePh').value, PSM_.ph) : 0,
              p_note: (document.getElementById('psMoveNote').value || '').trim() || null, p_apply: apply };
+  }
+  function psMoveAll_() {
+    if (!PSM_) return;
+    document.getElementById('psMoveOnChk').checked = PSM_.on !== 0; document.getElementById('psMoveOn').value = PSM_.on !== 0 ? PSM_.on : '';
+    document.getElementById('psMovePhChk').checked = PSM_.ph !== 0; document.getElementById('psMovePh').value = PSM_.ph !== 0 ? PSM_.ph : '';
+    psMoveChanged_();
   }
   function psMoveChanged_() {
     if (!PSM_) return;
-    ['psMoveOn', 'psMovePh'].forEach(function (id, i) { const el = document.getElementById(id), max = Math.max(i ? PSM_.ph : PSM_.on, 0); if (Number(el.value) > max) el.value = max; if (Number(el.value) < 0) el.value = 0; });
+    [['psMoveOn', PSM_.on], ['psMovePh', PSM_.ph]].forEach(function (x) { const el = document.getElementById(x[0]); if (el.value !== '' && Number(el.value) !== psClampSigned_(el.value, x[1])) el.value = psClampSigned_(el.value, x[1]); });
     clearTimeout(PSM_.t); const mine = ++PSM_.seq;
     document.getElementById('psMoveGo').disabled = true; document.getElementById('psMoveError').textContent = '';
     PSM_.t = setTimeout(async function () {
       const a = psMoveArgs_(false);
       if (!a.p_to_code) { document.getElementById('psMovePreview').innerHTML = ''; document.getElementById('psMoveError').textContent = 'Choose the right product to move the stock to.'; return; }
-      if (a.p_online + a.p_physical <= 0) { document.getElementById('psMovePreview').innerHTML = ''; document.getElementById('psMoveError').textContent = 'Tick online and / or offline stock and say how much.'; return; }
+      if (PSM_.on === 0 && PSM_.ph === 0) { document.getElementById('psMovePreview').innerHTML = ''; document.getElementById('psMoveError').textContent = 'This product has no online or offline stock to move.'; return; }
+      if (Math.abs(a.p_online) + Math.abs(a.p_physical) <= 0) { document.getElementById('psMovePreview').innerHTML = ''; document.getElementById('psMoveError').textContent = 'Tick online and / or offline stock and say how much.'; return; }
       const { data, error } = await sb.rpc('migrate_product_stock', a);
       if (!PSM_ || mine !== PSM_.seq) return;
       if (error) { document.getElementById('psMovePreview').innerHTML = ''; document.getElementById('psMoveError').innerHTML = psFixMissing_(error) || escapeHtml(error.message); return; }
       document.getElementById('psMovePreview').innerHTML = '<div class="es-box es-ok"><strong>After moving</strong><div>#' + escapeHtml(data.fromCode) + ': online ' + trimNum(data.fromOnlineBefore) + ' → <strong>' + trimNum(data.fromOnlineAfter) + '</strong> · offline ' + trimNum(data.fromPhysicalBefore) + ' → <strong>' + trimNum(data.fromPhysicalAfter) + '</strong></div>' +
-        '<div>#' + escapeHtml(data.toCode) + ': online ' + trimNum(data.toOnlineBefore) + ' → <strong>' + trimNum(data.toOnlineAfter) + '</strong> · offline ' + trimNum(data.toPhysicalBefore) + ' → <strong>' + trimNum(data.toPhysicalAfter) + '</strong></div></div>';
+        '<div>#' + escapeHtml(data.toCode) + ': online ' + trimNum(data.toOnlineBefore) + ' → <strong>' + trimNum(data.toOnlineAfter) + '</strong> · offline ' + trimNum(data.toPhysicalBefore) + ' → <strong>' + trimNum(data.toPhysicalAfter) + '</strong></div>' +
+        (a.p_online < 0 || a.p_physical < 0 ? '<div class="hint" style="margin-top:6px;">A MINUS stock moves too: it takes that much OFF #' + escapeHtml(data.toCode) + '. That is right when pieces were billed or delivered under #' + escapeHtml(data.fromCode) + '. (If you also ticked "move the stock effect" while correcting those bills, do not move the same pieces again here.)</div>' : '') + '</div>';
       document.getElementById('psMoveGo').disabled = false;
     }, 250);
   }
   async function psMoveApply_() {
-    if (!PSM_) return; const a = psMoveArgs_(true); if (!a.p_to_code || a.p_online + a.p_physical <= 0) return;
-    if (!confirm('Move stock from #' + a.p_from_code + ' to #' + a.p_to_code + '?\n\nOnline: ' + trimNum(a.p_online) + '\nOffline (physical): ' + trimNum(a.p_physical) + '\n\nThis is saved in the stock-move history. No bill is changed.')) return;
+    if (!PSM_) return; const a = psMoveArgs_(true); if (!a.p_to_code || Math.abs(a.p_online) + Math.abs(a.p_physical) <= 0) return;      // (a MINUS stock has a negative amount)
+    if (!confirm('Move stock from #' + a.p_from_code + ' to #' + a.p_to_code + '?\n\nOnline: ' + trimNum(a.p_online) + '\nOffline (physical): ' + trimNum(a.p_physical) + (a.p_online < 0 || a.p_physical < 0 ? '\n\nA MINUS stock moves too: it takes that much OFF #' + a.p_to_code + '.' : '') + '\n\nThis is saved in the stock-move history. No bill is changed.')) return;
     const btn = document.getElementById('psMoveGo'); btn.disabled = true; btn.textContent = 'Moving…';
     const { data, error } = await sb.rpc('migrate_product_stock', a);
     btn.textContent = 'Move stock';
@@ -6075,6 +6104,82 @@
     showToast('Stock moved: online ' + trimNum(data.onlineMoved) + ' · offline ' + trimNum(data.physicalMoved) + ' from #' + data.fromCode + ' to #' + data.toCode);
     closePsMove_(); await loadProducts();
     psLoadDups_(); psRenderHidden_(); psFind_();
+  }
+
+  // ---- the bulk move: the stock (plus or minus) of many products to their current code
+  let PSK_ = null;
+  function psBulkFromHidden_() {
+    const codes = PRODUCTS.filter(function (p) { return p.search_active === false && ((Number(p.online_stock) || 0) !== 0 || (Number(p.physical_stock) || 0) !== 0); }).map(function (p) { return String(p.code); });
+    if (!codes.length) { showToast('No hidden product has stock to move.'); return; }
+    psBulkOpen_(codes);
+  }
+  function psBulkFromTicked_() { psBulkOpen_(Object.keys(PSD_.ticked)); }
+  async function psBulkOpen_(codes) {
+    if (!codes.length) { showToast('Nothing is ticked.', true); return; }
+    await loadProducts();                                   // fresh stock numbers
+    const cand = {}, need = {};
+    codes.forEach(function (c) {
+      const p = psAllByCode_(c); if (!p) return;
+      const key = psNorm_(p.name);
+      cand[c] = PRODUCTS.filter(function (q) { return String(q.code) !== String(c) && q.search_active !== false && psNorm_(q.name) === key; }).map(function (q) { return String(q.code); });
+      cand[c].forEach(function (x) { need[x] = true; });
+    });
+    const { data, error } = await sb.rpc('get_product_usage', { p_codes: Object.keys(need).concat(codes.map(String)) });
+    if (error) { showToast(psFixMissing_(error) ? 'Run product_fix_tools.sql in Supabase first.' : error.message, true); return; }
+    const use = {}; (data || []).forEach(function (u) { use[u.code] = u; });
+    const rows = codes.map(function (c) {
+      const p = psAllByCode_(c); if (!p) return null;
+      const keep = (cand[c] || []).filter(function (x) { return use[x] && (use[x].inCompanyList || use[x].mustKeep); })
+        .sort(function (a, b) { return ((use[b].inCompanyList ? 1 : 0) - (use[a].inCompanyList ? 1 : 0)) || (Number(a) - Number(b)); });
+      return { code: String(c), name: p.name, on: Number(p.online_stock) || 0, ph: Number(p.physical_stock) || 0, to: keep[0] || '', want: true };
+    }).filter(Boolean);
+    PSK_ = { rows: rows, busy: false };
+    document.getElementById('psBulkOn').checked = true; document.getElementById('psBulkPh').checked = true; document.getElementById('psBulkResult').innerHTML = '';
+    document.getElementById('psBulkModal').classList.add('show');
+    psBulkRender_();
+  }
+  function closePsBulk_() { document.getElementById('psBulkModal').classList.remove('show'); }
+  function psBulkQty_(r) { return { on: document.getElementById('psBulkOn').checked ? r.on : 0, ph: document.getElementById('psBulkPh').checked ? r.ph : 0 }; }
+  function psBulkMovable_(r) { const q = psBulkQty_(r); return !!r.to && (Math.abs(q.on) > 0.004 || Math.abs(q.ph) > 0.004); }
+  function psBulkRender_() {
+    if (!PSK_) return;
+    const tot = {}; let n = 0, anyMinus = false;
+    document.getElementById('psBulkList').innerHTML = PSK_.rows.map(function (r) {
+      const q = psBulkQty_(r), can = psBulkMovable_(r), on = can && r.want;
+      if (on) { n++; const t = tot[r.to] = tot[r.to] || { on: 0, ph: 0 }; t.on += q.on; t.ph += q.ph; if (q.on < 0 || q.ph < 0) anyMinus = true; }
+      return '<div class="ps-row" data-code="' + escapeHtml(r.code) + '"><input type="checkbox" class="ps-ktick" data-code="' + escapeHtml(r.code) + '"' + (can ? '' : ' disabled') + (on ? ' checked' : '') + ' aria-label="Move the stock of ' + escapeHtml(r.name) + '">' +
+        '<div class="ps-main"><div class="ps-title"><strong>#' + escapeHtml(r.code) + '</strong> ' + escapeHtml(r.name) + (r.to ? ' → <strong>#' + escapeHtml(r.to) + '</strong>' : '') + '</div><div>' + psStockChips_({ onlineStock: r.on, physicalStock: r.ph }) +
+        (!r.to ? '<span class="ps-chip bad">no current code found - use 📦 Move stock on its own</span>' : (!can ? '<span class="ps-chip dim">no stock to move</span>' : '')) + '</div></div></div>';
+    }).join('') || '<div class="empty-cart">Nothing to move.</div>';
+    document.querySelectorAll('#psBulkList .ps-ktick').forEach(function (c) {
+      c.addEventListener('change', function () { const r = PSK_.rows.find(function (x) { return x.code === c.dataset.code; }); if (r) r.want = c.checked; psBulkRender_(); });
+    });
+    document.getElementById('psBulkSummary').innerHTML = n ? '<div class="es-box es-ok"><strong>After moving</strong>' + Object.keys(tot).map(function (to) {
+      const p = psAllByCode_(to) || { name: '', online_stock: 0, physical_stock: 0 }, o = Number(p.online_stock) || 0, f = Number(p.physical_stock) || 0;
+      return '<div>#' + escapeHtml(to) + ' ' + escapeHtml(p.name) + ': online ' + trimNum(o) + ' → <strong>' + trimNum(Math.round((o + tot[to].on) * 100) / 100) + '</strong> · offline ' + trimNum(f) + ' → <strong>' + trimNum(Math.round((f + tot[to].ph) * 100) / 100) + '</strong></div>';
+    }).join('') + (anyMinus ? '<div class="hint" style="margin-top:6px;">Minus stock moves too, so the current code goes DOWN by that much.</div>' : '') + '</div>' : '';
+    const go = document.getElementById('psBulkGo'); go.disabled = !n || PSK_.busy; go.textContent = n ? 'Move the stock of ' + n + ' product' + (n === 1 ? '' : 's') : 'Move stock';
+  }
+  async function psBulkApply_() {
+    if (!PSK_ || PSK_.busy) return;
+    const todo = PSK_.rows.filter(function (r) { return r.want && psBulkMovable_(r); }); if (!todo.length) return;
+    const line = function (r) { const q = psBulkQty_(r); return '#' + r.code + ' → #' + r.to + ': online ' + trimNum(q.on) + ' · offline ' + trimNum(q.ph); };
+    const minus = todo.some(function (r) { const q = psBulkQty_(r); return q.on < 0 || q.ph < 0; });
+    if (!confirm('Move the stock of ' + todo.length + ' product' + (todo.length === 1 ? '' : 's') + ' to their current code?\n\n' + todo.slice(0, 12).map(line).join('\n') + (todo.length > 12 ? '\n…' : '') + (minus ? '\n\nA MINUS stock moves too: it takes that much OFF the current code.' : '') + '\n\nEvery move is saved in the stock-move history. No bill is changed.')) return;
+    PSK_.busy = true; psBulkRender_(); document.getElementById('psBulkGo').textContent = 'Moving…';
+    const out = [];
+    for (let i = 0; i < todo.length; i++) {
+      const q = psBulkQty_(todo[i]);
+      const { error } = await sb.rpc('migrate_product_stock', { p_from_code: todo[i].code, p_to_code: todo[i].to, p_online: q.on, p_physical: q.ph, p_note: 'Moved from Product Search (all stock)', p_apply: true });
+      out.push({ r: todo[i], ok: !error, text: error ? error.message : 'moved' });
+    }
+    PSK_.busy = false;
+    const good = out.filter(function (o) { return o.ok; }).length;
+    document.getElementById('psBulkResult').innerHTML = '<div class="es-box ' + (good === out.length ? 'es-ok' : 'es-due') + '"><strong>' + good + ' of ' + out.length + ' product' + (out.length === 1 ? '' : 's') + ' moved.</strong>' + out.map(function (o) { return '<div>' + (o.ok ? '✓ ' : '✗ ') + '#' + escapeHtml(o.r.code) + ' - ' + escapeHtml(o.text) + '</div>'; }).join('') + '</div>';
+    showToast(good + ' of ' + out.length + ' product' + (out.length === 1 ? '' : 's') + ' moved to their current code', good !== out.length);
+    await loadProducts();
+    PSK_.rows.forEach(function (r) { const p = psAllByCode_(r.code); if (p) { r.on = Number(p.online_stock) || 0; r.ph = Number(p.physical_stock) || 0; } });
+    psBulkRender_(); psLoadDups_(); psRenderHidden_();
   }
 
   // =================== CASH MEMO REGISTER (Past Bill > Cash Memo) - staff and main admin ===================
