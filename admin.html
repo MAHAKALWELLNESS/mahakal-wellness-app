@@ -139,7 +139,8 @@
   /* more than one cash memo number on a bill */
   .memo-add{margin-top:8px; padding:8px 12px; border:1.5px dashed var(--gold-500); border-radius:10px; background:#fff; color:var(--gold-600); font-weight:700; font-size:13px; font-family:inherit; cursor:pointer;}
   .memo-extra-row{display:flex; gap:8px; margin-top:8px; align-items:stretch;}
-  .memo-extra-row input{flex:1; min-width:0;}
+  .memo-extra-row input{flex:1; min-width:0; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; font-size:15px; font-family:inherit; background:#fff;}
+  .memo-extra-row input:focus{outline:none; border-color:var(--green-700);}
   .memo-x{flex:none; width:44px; border:1.5px solid var(--line); border-radius:10px; background:#fff; color:var(--danger); font-size:16px; font-weight:700; cursor:pointer;}
   /* Past bill entry: until date + cash memo are entered the rest of the bill (and its Save bar) is not shown */
   body.gate-closed .summary-bar{display:none !important;}
@@ -1565,6 +1566,23 @@
       <div class="modal-actions">
         <button class="btn btn-outline" type="button" onclick="closeSaveCashMemo_()">Cancel</button>
         <button class="btn btn-primary" type="button" id="scmBtn" onclick="submitSaveCashMemo_()" disabled>Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="fixMemoModal" style="z-index:66;">
+    <div class="modal-sheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Fix Cash Memo No.</h2>
+      <p class="hint" id="fmBillLine" style="margin-bottom:8px;"></p>
+      <div id="fmCurrent" style="background:var(--gold-100);color:#7a5617;border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.45;margin-bottom:10px;"></div>
+      <div id="fmBoxes"></div>
+      <button type="button" class="memo-add" id="fmAddBtn" onclick="fmAddBox_('')">＋ Add another number</button>
+      <p class="hint" id="fmNote" style="margin:8px 0 0;"></p>
+      <p class="login-error" id="fmError" style="min-height:0;margin:4px 0 0;"></p>
+      <div id="fmSuggest" style="margin-top:10px;"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closeFixMemo_()">Cancel</button>
+        <button class="btn btn-primary" type="button" id="fmBtn" onclick="submitFixMemo_()" disabled>Save corrected numbers</button>
       </div>
     </div>
   </div>
@@ -5007,10 +5025,10 @@
     if (st === 'Pending') return '<span class="cm-tag cm-tag-warn">Pending</span>';
     return '';
   }
-  function cmRow_(r) {
+  function cmRow_(r, withFix) {
     return '<div class="list-row cm-row" data-inv="' + escapeHtml(r.invoiceNo) + '"><div style="min-width:0;"><div class="cm-num">' + escapeHtml(r.memo) + cmTag_(r.status) + '</div>' +
       '<div class="result-meta">' + escapeHtml(r.invoiceNo) + ' · ' + escapeHtml(r.customer || 'Walk-in') + ' · ' + escapeHtml(fmtDayIst_(r.date)) + (r.also && r.also.length ? ' · <strong>also ' + escapeHtml(r.also.join(', ')) + '</strong>' : '') + '</div></div>' +
-      '<div style="text-align:right;flex:none;"><div class="cart-amount"><div class="amt">' + money(r.amount) + '</div></div></div></div>';
+      '<div style="text-align:right;flex:none;"><div class="cart-amount"><div class="amt">' + money(r.amount) + '</div></div>' + (withFix ? '<button class="btn btn-outline" type="button" style="padding:6px 10px;font-size:12px;margin-top:6px;" data-fix-memo="' + escapeHtml(r.invoiceNo) + '">✎ Fix</button>' : '') + '</div></div>';
   }
   function cmNoMemoRow_(r) {
     const label = r.invoiceNo + ' · ' + (r.customer || 'Walk-in');
@@ -5022,6 +5040,7 @@
   function cmWire_(box) {
     Array.prototype.forEach.call(box.querySelectorAll('.cm-row'), function (row) { row.addEventListener('click', function () { viewBill(row.dataset.inv, false); }); });
     Array.prototype.forEach.call(box.querySelectorAll('[data-open-bill]'), function (a) { a.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); viewBill(a.dataset.openBill, false); }); });
+    Array.prototype.forEach.call(box.querySelectorAll('[data-fix-memo]'), function (b) { b.addEventListener('click', function (e) { e.stopPropagation(); openFixMemo_(b.dataset.fixMemo); }); });
     Array.prototype.forEach.call(box.querySelectorAll('[data-add-memo]'), function (b) { b.addEventListener('click', function (e) { e.stopPropagation(); openSaveCashMemo_(b.dataset.addMemo, b.dataset.label); }); });
   }
   function cmPager_(total, page) {
@@ -5072,8 +5091,8 @@
       const nums = (data && data.numbers) || [], txts = (data && data.texts) || [];
       if (!nums.length && !txts.length) { body.innerHTML = '<div class="empty-cart" style="color:var(--ok);font-weight:700;">✓ No cash memo is repeated.</div>'; return; }
       const grp = function (title, bills) { return '<div class="cm-gap" style="border-color:var(--gold-500);"><div class="cm-num" style="color:var(--gold-600);">' + title + ' <span class="result-meta">on ' + bills.length + ' bills</span></div>' +
-        bills.map(function (b) { return cmRow_({ memo: b.memo, invoiceNo: b.invoiceNo, status: b.status, customer: b.customer, date: b.date, amount: b.amount }); }).join('') + '</div>'; };
-      body.innerHTML = '<p class="hint" style="margin:0 0 10px;">The same cash memo number is on more than one bill (also when written differently, like 1005 and 01005). Open each bill to check which one is right.</p>' +
+        bills.map(function (b) { return cmRow_({ memo: b.memo, invoiceNo: b.invoiceNo, status: b.status, customer: b.customer, date: b.date, amount: b.amount }, true); }).join('') + '</div>'; };
+      body.innerHTML = '<p class="hint" style="margin:0 0 10px;">The same cash memo number is on more than one bill (also when written differently, like 1005 and 01005). Open each bill to check which one is right - tap ✎ Fix to correct a wrong number.</p>' +
         nums.map(function (g) { return grp('Number ' + g.num, g.bills); }).join('') + txts.map(function (g) { return grp('“' + escapeHtml(g.memo) + '”', g.bills); }).join('');
       cmWire_(body);
     } else if (name === 'nomemo') {
@@ -5085,7 +5104,7 @@
       if (my !== cmViewReq_) return;
       if (error) { body.innerHTML = '<div class="empty-cart">Could not load: ' + escapeHtml(error.message) + '</div>'; return; }
       const rows = data || [];
-      body.innerHTML = rows.length ? '<p class="hint" style="margin:0 0 10px;">These cash memos are not a plain number, so they are not part of the serial.</p>' + rows.map(cmRow_).join('') : '<div class="empty-cart">Nothing here.</div>';
+      body.innerHTML = rows.length ? '<p class="hint" style="margin:0 0 10px;">These cash memos are not a plain number, so they are not part of the serial. If several numbers were typed into one box, tap ✎ Fix: they are split into separate numbers on the same bill.</p>' + rows.map(function (r) { return cmRow_(r, true); }).join('') : '<div class="empty-cart">Nothing here.</div>';
       cmWire_(body);
     }
   }
@@ -5171,14 +5190,137 @@
       if (typeof refreshActiveBillList_ === 'function') refreshActiveBillList_();
     });
   }
+  // =================== FIX THE CASH MEMO NUMBERS OF AN EXISTING BILL ===================
+  // For old bills where several numbers were typed into ONE box ("1024,1025") or a wrong / out-of-serial number was saved. The numbers
+  // inside what is saved are split into separate boxes (to be checked against the paper memos); each box is checked (digits only, not on
+  // any OTHER bill, not typed twice); saving REPLACES the bill's memo numbers by exactly these - the first on the bill, the rest beside it.
+  let fmInvoice_ = null, fmCurrent_ = '', fmFocusBox_ = null;
+  function fmSplit_(text) {                 // "1024,1025" / "1024 / 1025" / "CM-1030" -> the numbers inside
+    const out = [], seen = {};
+    String(text || '').split(/[^0-9A-Za-z]+/).forEach(function (tok) {
+      (tok.match(/\d+/g) || []).forEach(function (n) {
+        n = n.slice(0, 15); const k = String(Number(n));
+        if (!seen[k] && out.length < 20) { seen[k] = true; out.push(n); }
+      });
+    });
+    return out;
+  }
+  function fmBoxes_() { return Array.prototype.slice.call(document.querySelectorAll('#fmBoxes .fm-box')); }
+  function fmServerMissing_(err) {
+    if (err && /could not find the function|schema cache|does not exist/i.test(err.message || '')) {
+      closeFixMemo_(); showToast('Fixing cash memos needs the database update (fix_cash_memos.sql). Please run it first.', true); return true;
+    }
+    return false;
+  }
+  function fmPaint_(div) {
+    const v = div.querySelector('input').value.trim(), err = div.querySelector('.fm-err'), a = div.dataset.avail || '';
+    if (!v) { err.textContent = 'Type the number, or remove this box (✕).'; div.dataset.valid = '0'; }
+    else if (div.dataset.dup === '1') { err.textContent = 'Same number entered twice.'; div.dataset.valid = '0'; }
+    else if (a.indexOf('bad:') === 0) { err.textContent = 'Cash memo ' + v + ' is already on bill ' + a.slice(4) + '.'; div.dataset.valid = '0'; }
+    else if (a === 'ok') { err.textContent = ''; div.dataset.valid = '1'; }
+    else { err.textContent = ''; div.dataset.valid = '0'; }               // still being checked
+  }
+  function fmRefresh_() {
+    const boxes = fmBoxes_(), seen = [];
+    boxes.forEach(function (div) {
+      const v = div.querySelector('input').value.trim();
+      if (!v) div.dataset.dup = ''; else { const k = String(Number(v)); div.dataset.dup = seen.indexOf(k) > -1 ? '1' : ''; seen.push(k); }
+      fmPaint_(div);
+      div.querySelector('.memo-x').style.visibility = boxes.length > 1 ? 'visible' : 'hidden';          // a bill keeps at least one number
+    });
+    const values = boxes.map(function (b) { return b.querySelector('input').value.trim(); });
+    const allOk = boxes.length > 0 && boxes.every(function (b) { return b.dataset.valid === '1'; });
+    const changed = values.join(', ') !== fmCurrent_;
+    document.getElementById('fmBtn').disabled = !(allOk && changed);
+    document.getElementById('fmNote').textContent = (allOk && !changed) ? 'No change yet - these are the numbers already saved on this bill.' : '';
+  }
+  function fmQueueCheck_(div, delay) {
+    clearTimeout(div._t); div.dataset.avail = '';
+    const inp = div.querySelector('input'), val = inp.value.trim(); if (!val) return;
+    div._t = setTimeout(async function () {
+      const { data: holder, error } = await sb.rpc('get_cash_memo_holder', { p_cash_memo_no: val, p_except_invoice: fmInvoice_ });
+      if (!div.isConnected || inp.value.trim() !== val) return;                       // removed or typed on while checking
+      if (error) { if (!fmServerMissing_(error)) { div.querySelector('.fm-err').textContent = error.message; } return; }
+      div.dataset.avail = holder ? 'bad:' + holder : 'ok'; fmRefresh_();
+    }, delay);
+  }
+  function fmChanged_(div) { div.dataset.avail = ''; fmRefresh_(); fmQueueCheck_(div, 350); }
+  function fmAddBox_(value) {
+    const div = document.createElement('div'); div.className = 'fm-box'; div.dataset.valid = '0'; div.dataset.avail = ''; div.dataset.dup = '';
+    div.innerHTML = '<div class="memo-extra-row"><input type="text" inputmode="numeric" autocomplete="off" placeholder="Cash memo no."><button type="button" class="memo-x" aria-label="Remove this number">✕</button></div><p class="login-error fm-err" style="min-height:0;margin:4px 0 0;"></p>';
+    document.getElementById('fmBoxes').appendChild(div);
+    const inp = div.querySelector('input'); inp.value = value || '';
+    inp.addEventListener('input', function () { inp.value = inp.value.replace(/\D/g, '').slice(0, 15); fmFocusBox_ = div; fmChanged_(div); });
+    inp.addEventListener('focus', function () { fmFocusBox_ = div; });
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') e.preventDefault(); });
+    div.querySelector('.memo-x').addEventListener('click', function () { clearTimeout(div._t); div.remove(); fmRefresh_(); });
+    fmRefresh_();
+    if (inp.value) fmQueueCheck_(div, 0); else { try { inp.focus(); } catch (e) {} }
+    return div;
+  }
+  function fmUse_(n) {                      // a missing number was tapped: it goes into the box being typed in, else the first empty one
+    const boxes = fmBoxes_();
+    const div = (fmFocusBox_ && fmFocusBox_.isConnected) ? fmFocusBox_ : (boxes.filter(function (b) { return !b.querySelector('input').value.trim(); })[0] || boxes[0]);
+    if (!div) return; div.querySelector('input').value = String(n); fmFocusBox_ = div; fmChanged_(div);
+  }
+  async function openFixMemo_(invoiceNo) {
+    fmInvoice_ = invoiceNo; fmCurrent_ = ''; fmFocusBox_ = null;
+    document.getElementById('fmBoxes').innerHTML = ''; document.getElementById('fmSuggest').innerHTML = '';
+    document.getElementById('fmNote').textContent = ''; document.getElementById('fmError').textContent = '';
+    document.getElementById('fmBtn').disabled = true;
+    document.getElementById('fmBillLine').textContent = 'Bill ' + invoiceNo; document.getElementById('fmCurrent').textContent = 'Loading…';
+    document.getElementById('fixMemoModal').classList.add('show');
+    const { data: h, error } = await sb.from('invoices').select('invoice_no, invoice_date, customer_name, cash_memo_no, cash_memo_more').eq('invoice_no', invoiceNo).maybeSingle();
+    if (fmInvoice_ !== invoiceNo) return;
+    if (error || !h) { document.getElementById('fmCurrent').textContent = 'Could not load this bill.'; return; }
+    fmCurrent_ = [h.cash_memo_no, h.cash_memo_more].filter(Boolean).join(', ');
+    document.getElementById('fmBillLine').textContent = invoiceNo + ' · ' + (h.customer_name || 'Walk-in') + ' · ' + fmtDayIst_(h.invoice_date);
+    const nums = fmSplit_(fmCurrent_);
+    document.getElementById('fmCurrent').innerHTML = fmCurrent_
+      ? 'Saved on this bill now: <strong>' + escapeHtml(fmCurrent_) + '</strong>' + (nums.length > 1 ? '<br>It holds ' + nums.length + ' numbers - they are split into separate boxes below. Check each one against the paper memo, then save.' : (nums.length === 1 && nums[0] !== fmCurrent_ ? '<br>The number inside it is filled in below.' : '<br>Change the number below if it is wrong.'))
+      : 'No cash memo number is saved on this bill.';
+    (nums.length ? nums : ['']).forEach(function (n) { fmAddBox_(n); });
+    if (!cmGaps_) { const r = await sb.rpc('get_cash_memo_gaps', { p_from: cmFrom_, p_limit: 300 }); if (!r.error) cmGaps_ = r.data; }
+    const chips = [];       // the missing numbers, newest first (only from small gaps, so a huge old gap does not flood the list)
+    ((cmGaps_ && cmGaps_.ranges) || []).forEach(function (r) { if (r.size <= 40) for (let n = r.to; n >= r.from && chips.length < 10; n--) chips.push(n); });
+    if (chips.length && fmInvoice_ === invoiceNo) document.getElementById('fmSuggest').innerHTML = '<p class="hint" style="margin:0 0 6px;">Missing numbers - tap one to use it:</p>' + chips.map(function (n) { return '<button type="button" class="quickbtn" style="margin:0 6px 6px 0;" onclick="fmUse_(' + n + ')">' + n + '</button>'; }).join('');
+  }
+  function closeFixMemo_() { document.getElementById('fixMemoModal').classList.remove('show'); fmInvoice_ = null; }
+  async function submitFixMemo_() {
+    if (!fmInvoice_ || document.getElementById('fmBtn').disabled) return;
+    const inv = fmInvoice_, memos = fmBoxes_().map(function (b) { return b.querySelector('input').value.trim(); }).join(',');
+    return runLocked_('fix-cash-memo', async function () {
+      const { error } = await sb.rpc('replace_bill_cash_memos', { p_invoice_no: inv, p_memos: memos });
+      if (error) { if (fmServerMissing_(error)) return; document.getElementById('fmError').textContent = error.message; showToast(error.message, true); return; }
+      closeFixMemo_();
+      showToast('Cash memo fixed on ' + inv + ': ' + memos.replace(/,/g, ', ') + '.');
+      cmGaps_ = null;
+      if (document.getElementById('histsub-cashmemo').classList.contains('active')) loadCashMemoRegister_();
+      if (currentDetailBill && currentDetailBill.invoiceNo === inv && document.getElementById('detailModal').classList.contains('show')) viewBill(inv, false);
+      if (typeof refreshActiveBillList_ === 'function') refreshActiveBillList_();
+    });
+  }
+  // what was saved / fixed on this bill (shown under the memo line in the bill window)
+  async function loadBillMemoHistory_(invoiceNo) {
+    const { data, error } = await sb.rpc('get_bill_cash_memo_history', { p_invoice_no: invoiceNo });
+    const box = document.getElementById('billMemoHistory');
+    if (!box || error || !Array.isArray(data) || !data.length) return;
+    if (!currentDetailBill || currentDetailBill.invoiceNo !== invoiceNo) return;
+    box.innerHTML = '<p style="font-size:12px;font-weight:700;color:var(--green-800);margin:10px 0 2px;">Cash memo history</p>' + data.slice(0, 6).map(function (h) {
+      return '<p style="font-size:12px;color:var(--ink-soft);margin:2px 0;">' + escapeHtml(fmtIst_(h.changedAt)) + ': ' + (h.action === 'fix' ? escapeHtml(h.old || '(none)') + ' → ' + escapeHtml(h.new || '') : 'added ' + escapeHtml(h.new || '')) + '</p>';
+    }).join('');
+  }
+
   // the memo line inside the bill window: shows the number, or lets staff save one
   function renderBillCashMemo_(bill) {
     const box = document.getElementById('billCashMemoArea'); if (!box) return;
     const all = [bill.cashMemoNo, bill.cashMemoMore].filter(Boolean).join(', ');
     const label = 'Bill ' + bill.invoiceNo + ' · ' + (bill.customerName || 'Walk-in');
-    if (all) box.innerHTML = '<div class="card" id="billCashMemoCard" style="margin-top:4px;box-shadow:none;background:var(--green-100);"><p style="font-size:13px;font-weight:700;color:var(--green-800);margin:0 0 8px;">Cash Memo No.: ' + escapeHtml(all) + '</p><button class="btn btn-outline btn-block" type="button" id="billAddMemoBtn" style="padding:9px;font-size:13px;">＋ Add another cash memo no.</button></div>';
+    if (all) box.innerHTML = '<div class="card" id="billCashMemoCard" style="margin-top:4px;box-shadow:none;background:var(--green-100);"><p style="font-size:13px;font-weight:700;color:var(--green-800);margin:0 0 8px;">Cash Memo No.: ' + escapeHtml(all) + '</p><button class="btn btn-outline btn-block" type="button" id="billAddMemoBtn" style="padding:9px;font-size:13px;margin-bottom:6px;">＋ Add another cash memo no.</button><button class="btn btn-outline btn-block" type="button" id="billFixMemoBtn" style="padding:9px;font-size:13px;">✎ Fix cash memo no.</button><div id="billMemoHistory"></div></div>';
     else box.innerHTML = '<div class="card" id="billCashMemoCard" style="margin-top:4px;box-shadow:none;background:var(--gold-100);"><p style="font-size:13px;font-weight:700;color:var(--gold-600);margin:0 0 8px;">No Cash Memo No. is saved on this bill.</p><button class="btn btn-outline btn-block" type="button" id="billAddMemoBtn">＋ Save Cash Memo No.</button></div>';
     document.getElementById('billAddMemoBtn').addEventListener('click', function () { openSaveCashMemo_(bill.invoiceNo, label, !!all); });
+    const fixBtn = document.getElementById('billFixMemoBtn');
+    if (fixBtn) { fixBtn.addEventListener('click', function () { openFixMemo_(bill.invoiceNo); }); loadBillMemoHistory_(bill.invoiceNo); }
   }
 
   // =================== CORRECT A BILL'S DATE (main admin) ===================
