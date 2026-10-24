@@ -48,12 +48,15 @@
   .btn:disabled{opacity:.5; cursor:not-allowed;}
 
   #appRoot{display:none;}
-  .topbar{background:var(--green-900); padding:14px 16px; display:flex; align-items:center; gap:12px;}
+  .topbar{background:var(--green-900); padding:14px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; row-gap:8px;}
   .brand-mark{width:44px; height:44px; border-radius:50%; flex:none; background:#fff; overflow:hidden; box-shadow:0 0 0 2px var(--gold-500);}
   .brand-mark img{width:100%; height:100%; object-fit:cover;}
   .topbar h1{font-size:19px; font-weight:600; color:#fff; line-height:1.2;}
   .topbar .tagline{margin:1px 0 0; font-size:12px; color:var(--green-100); opacity:.85;}
   .header-link{background:none; border:none; color:var(--green-100); font-size:11px; text-decoration:underline; cursor:pointer; margin-left:auto;}
+  .topbar-links{display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:6px 16px; margin-left:auto; min-width:0;}
+  .topbar-links .header-link{margin-left:0; padding:4px 0;}
+  @media (max-width:520px){ .topbar-links{flex-basis:100%; justify-content:flex-start; margin-left:0;} }     /* a phone: the links sit on their own line under the name, none is cut off */
 
   main{padding:14px; max-width:640px; margin:0 auto;}
   #tab-stockreport.tab-panel.active{
@@ -202,6 +205,12 @@
   .ps-main{flex:1; min-width:0;} .ps-title{font-size:13.5px; color:var(--green-900); overflow-wrap:anywhere;}
   .ps-chip{display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; background:var(--green-100); color:var(--green-800); margin:3px 4px 0 0;}
   .ps-chip.warn{background:var(--gold-100); color:var(--gold-600);} .ps-chip.bad{background:#fde8e6; color:var(--danger);} .ps-chip.dim{background:#eee; color:var(--ink-soft);}
+  .ps-actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;}
+  .ps-opt{display:flex; gap:8px; align-items:flex-start; font-size:13px; font-weight:700; color:var(--green-900); margin:8px 0;}
+  .ps-opt input[type=checkbox]{width:20px; height:20px; flex:none; margin-top:1px;}
+  .ps-bill{display:flex; gap:10px; padding:10px; border:1.5px solid var(--gold-500); background:var(--gold-100); border-radius:10px; margin-bottom:8px; align-items:flex-start;}
+  .ps-bill.locked{border-color:var(--line); background:#f4f4f2;} .ps-bill input[type=checkbox]{width:22px; height:22px; flex:none; margin-top:2px;}
+  .ps-link{background:none; border:none; padding:0; color:var(--green-800); text-decoration:underline; font-weight:800; font-size:inherit; cursor:pointer;}
   .subtabs{display:flex; gap:8px; margin-bottom:12px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
   .subtab{flex:none; padding:8px 14px; border-radius:20px; border:1.5px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap;}
   .subtab.active{background:var(--green-800); border-color:var(--green-800); color:#fff;}
@@ -388,10 +397,12 @@
     <header class="topbar">
       <div class="brand-mark"><img src="" id="logoImg" alt="Mahakal Wellness logo"></div>
       <div><h1>Mahakal Wellness</h1><p class="tagline">Billing Counter</p></div>
-      <a class="header-link" href="index.html" style="text-decoration:none;display:inline-block;">← Main Page</a>
-      <button class="header-link" onclick="openChangePassword()">Change password</button>
-      <button class="header-link" id="changeAdminCodeBtn" style="display:none;margin-left:10px;" onclick="openChangeAdminCode()">Change admin link code</button>
-      <button class="header-link" style="margin-left:10px;" onclick="logout()">Logout</button>
+      <div class="topbar-links">
+        <a class="header-link" href="index.html" style="text-decoration:none;display:inline-block;">← Main Page</a>
+        <button class="header-link" onclick="openChangePassword()">Change password</button>
+        <button class="header-link" id="changeAdminCodeBtn" style="display:none;" onclick="openChangeAdminCode()">Change admin link code</button>
+        <button class="header-link" onclick="logout()">Logout</button>
+      </div>
     </header>
 
     <div class="tabs-wrap">
@@ -1852,6 +1863,46 @@
   </div>
 
   <!-- ============ BILL DETAIL MODAL (Past Bill tab) ============ -->
+  <!-- ============ PRODUCT SEARCH (main admin): bills that used a product / move stock ============ -->
+  <div class="modal-overlay" id="psBillsModal">
+    <div class="modal-sheet">
+      <h2 id="psBillsTitle" style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Bills</h2>
+      <p class="hint" id="psBillsSub" style="margin-bottom:10px;"></p>
+      <div class="field"><label for="psBillsTarget">Correct them to the right product</label><select id="psBillsTarget" onchange="psBillsTargetChanged_()"></select></div>
+      <div class="field" id="psBillsOtherField" style="display:none;"><label for="psBillsOther">Type the right product code</label><input type="text" id="psBillsOther" autocomplete="off" oninput="psBillsOtherInput_()"><p class="hint" id="psBillsOtherName" style="margin:4px 0 0;"></p></div>
+      <div id="psBillsList"></div>
+      <label class="ps-opt" id="psBillsMoveWrap" style="display:none;"><input type="checkbox" id="psBillsMove"><span id="psBillsMoveText"></span></label>
+      <div id="psBillsPublic"></div>
+      <div id="psBillsResult"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closePsBills_()">Close</button>
+        <button class="btn btn-primary" type="button" id="psBillsGo" onclick="psBillsApply_()" disabled>Correct ticked bills</button>
+      </div>
+    </div>
+  </div>
+  <div class="modal-overlay" id="psMoveModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Move stock</h2>
+      <p class="hint" id="psMoveFrom" style="margin-bottom:10px;"></p>
+      <div class="field"><label for="psMoveTo">Move it to the right product</label><select id="psMoveTo" onchange="psMoveToChanged_()"></select></div>
+      <div class="field" id="psMoveOtherField" style="display:none;"><label for="psMoveOther">Type the right product code</label><input type="text" id="psMoveOther" autocomplete="off" oninput="psMoveToChanged_()"><p class="hint" id="psMoveOtherName" style="margin:4px 0 0;"></p></div>
+      <div class="card" style="box-shadow:none;background:var(--green-100);">
+        <label class="ps-opt" style="margin-top:0;"><input type="checkbox" id="psMoveOnChk" onchange="psMoveChanged_()"><span>Move ONLINE stock <span class="hint" id="psMoveOnAvail"></span></span></label>
+        <div class="field" style="margin:0 0 10px 28px;"><input type="number" id="psMoveOn" inputmode="decimal" min="0" step="0.01" aria-label="Online stock to move" oninput="psMoveChanged_()"></div>
+        <label class="ps-opt"><input type="checkbox" id="psMovePhChk" onchange="psMoveChanged_()"><span>Move OFFLINE (physical) stock <span class="hint" id="psMovePhAvail"></span></span></label>
+        <div class="field" style="margin:0 0 0 28px;"><input type="number" id="psMovePh" inputmode="decimal" min="0" step="0.01" aria-label="Offline stock to move" oninput="psMoveChanged_()"></div>
+      </div>
+      <div class="field" style="margin-top:10px;"><label for="psMoveNote">Note (optional)</label><input type="text" id="psMoveNote" placeholder="e.g. old code, same product" oninput="psMoveChanged_()"></div>
+      <div id="psMovePreview"></div>
+      <p class="login-error" id="psMoveError" style="min-height:0;margin:4px 0 0;"></p>
+      <div id="psMoveLog"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closePsMove_()">Close</button>
+        <button class="btn btn-primary" type="button" id="psMoveGo" onclick="psMoveApply_()" disabled>Move stock</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="detailModal">
     <div class="modal-sheet" id="detailModalSheet" tabindex="-1">
       <div id="detailArea"></div>
@@ -5691,7 +5742,7 @@
     return '<span class="ps-chip' + (Number(o.onlineStock) ? ' warn' : ' dim') + '">Online stock ' + trimNum(Number(o.onlineStock) || 0) + '</span><span class="ps-chip' + (Number(o.physicalStock) ? ' warn' : ' dim') + '">Offline (physical) ' + trimNum(Number(o.physicalStock) || 0) + '</span>';
   }
   function psUseChips_(o) {
-    let h = '<span class="ps-chip' + (Number(o.bills) ? '' : ' dim') + '">' + (Number(o.bills) ? 'In ' + trimNum(o.bills) + ' bill' + (Number(o.bills) > 1 ? 's' : '') + ' (qty ' + trimNum(o.billQty) + (Number(o.pendingQty) > 0 ? ', ' + trimNum(o.pendingQty) + ' still to deliver' : '') + ')' : 'In no bill') + '</span>';
+    let h = '<span class="ps-chip' + (Number(o.bills) ? ' warn' : ' dim') + '">' + (Number(o.bills) ? 'In ' + trimNum(o.bills) + ' bill' + (Number(o.bills) > 1 ? 's' : '') + ' (qty ' + trimNum(o.billQty) + (Number(o.pendingQty) > 0 ? ', ' + trimNum(o.pendingQty) + ' still to deliver' : '') + ')' : 'In no bill') + '</span>';
     h += '<span class="ps-chip' + (Number(o.purchases) ? ' warn' : ' dim') + '">' + (Number(o.purchases) ? 'In ' + trimNum(o.purchases) + ' company purchase' + (Number(o.purchases) > 1 ? 's' : '') + ' (qty ' + trimNum(o.purchaseQty) + ')' : 'In no company purchase') + '</span>';
     if (o.inCompanyList) h += '<span class="ps-chip">In the company list</span>'; else h += '<span class="ps-chip dim">Not in the company list</span>';
     return h;
@@ -5733,9 +5784,10 @@
           (String(p.status || '').toLowerCase() === 'deactive' ? '<span class="ps-chip dim">Status: Deactive</span>' : '');
         return '<div class="ps-row" data-code="' + escapeHtml(p.code) + '"><input type="checkbox" class="ps-tick" data-code="' + escapeHtml(p.code) + '"' + (canTick ? '' : ' disabled') + (PSD_.ticked[p.code] ? ' checked' : '') + ' onchange="psTick_(this)" aria-label="Hide ' + escapeHtml(p.name) + ' (' + escapeHtml(p.code) + ')">' +
           '<div class="ps-main"><div class="ps-title"><strong>#' + escapeHtml(p.code) + '</strong> · ' + escapeHtml(p.name) + '</div><div class="hint" style="margin:1px 0 0;">MRP ' + PS_MONEY_(p.mrp) + ' · DP ' + PS_MONEY_(p.dp) + ' · SP ' + trimNum(Number(p.sp) || 0) + '</div>' +
-          '<div>' + tags + psStockChips_(p) + psUseChips_(p) + '</div></div></div>';
+          '<div>' + tags + psStockChips_(p) + psUseChips_(p) + '</div>' + psActionsHtml_(p.code, p.bills) + '</div></div>';
       }).join('') + '</div>';
     }).join('') || '<div class="card"><div class="empty-cart">' + (PSD_.groups.length ? 'Nothing matches this filter.' : 'Nothing to show.') + '</div></div>';
+    psWireActions_(box);
     psUpdateBar_();
   }
   function psTick_(cb) { if (cb.checked) PSD_.ticked[cb.dataset.code] = true; else delete PSD_.ticked[cb.dataset.code]; psUpdateBar_(); }
@@ -5753,13 +5805,13 @@
     if (!codes.length) return false;
     if (hide) {
       const msg = 'Hide ' + codes.length + ' product' + (codes.length === 1 ? '' : 's') + ' from search?\n\n' + codes.map(function (c) { const p = psFindProduct_(c); return '#' + c + (p ? ' ' + p.name : ''); }).slice(0, 12).join('\n') + (codes.length > 12 ? '\n…' : '') +
-        (withStock > 0 ? '\n\n⚠ ' + withStock + ' of them still show stock. The stock stays in your stock list, but these products can no longer be found when billing.' : '') + '\n\nProducts used in a company purchase are never hidden. Bills and stock are not touched.';
+        (withStock > 0 ? '\n\n⚠ ' + withStock + ' of them still show stock. The stock stays in your stock list, but these products can no longer be found when billing.' : '') + '\n\nProducts used in a company purchase are never hidden.\nPast bills and stock are NOT changed by hiding. When you want to correct them, use 🧾 Bills and 📦 Move stock.';
       if (!confirm(msg)) return false;
     }
     const { data, error } = await sb.rpc('set_products_search_active', { p_codes: codes, p_active: !hide });
     if (error) { showToast(psServerMissing_(error) ? 'Run product_search_visibility.sql in Supabase first.' : error.message, true); return false; }
     const parts = [];
-    if ((data.changed || []).length) parts.push((data.changed.length) + (hide ? ' hidden from search' : ' shown in search again'));
+    if ((data.changed || []).length) parts.push((data.changed.length) + (hide ? ' hidden from search (past bills and stock untouched)' : ' shown in search again'));
     if ((data.keptBecausePurchase || []).length) parts.push('kept active (used in a company purchase): ' + data.keptBecausePurchase.join(', '));
     if ((data.unknown || []).length) parts.push('not found: ' + data.unknown.join(', '));
     showToast(parts.join(' · ') || 'Nothing changed.', !(data.changed || []).length);
@@ -5786,9 +5838,10 @@
         const u = use[String(p.code)] || { bills: 0, billQty: 0, pendingQty: 0, purchases: 0, purchaseQty: 0, inCompanyList: false, mustKeep: false, onlineStock: p.online_stock, physicalStock: p.physical_stock };
         const hidden = p.search_active === false;
         return '<div class="ps-row" data-code="' + escapeHtml(p.code) + '"><div class="ps-main"><div class="ps-title"><strong>#' + escapeHtml(p.code) + '</strong> · ' + escapeHtml(p.name) + '</div>' +
-          '<div>' + (hidden ? '<span class="ps-chip bad">Hidden from search</span>' : '') + (u.mustKeep ? '<span class="ps-chip warn">Used in company purchase - stays active</span>' : '') + psStockChips_(u) + psUseChips_(u) + '</div></div>' +
+          '<div>' + (hidden ? '<span class="ps-chip bad">Hidden from search</span>' : '') + (u.mustKeep ? '<span class="ps-chip warn">Used in company purchase - stays active</span>' : '') + psStockChips_(u) + psUseChips_(u) + '</div>' + psActionsHtml_(p.code, u.bills) + '</div>' +
           '<button class="quickbtn" type="button" data-act="' + (hidden ? 'show' : 'hide') + '" data-code="' + escapeHtml(p.code) + '"' + (!hidden && u.mustKeep ? ' disabled' : '') + '>' + (hidden ? 'Show in search' : 'Hide from search') + '</button></div>';
       }).join('') + '</div>';
+      psWireActions_(box);
       box.querySelectorAll('button[data-act]').forEach(function (b) {
         b.addEventListener('click', async function () {
           const p = psFindProduct_(b.dataset.code), has = p && ((Number(p.physical_stock) || 0) !== 0 || (Number(p.online_stock) || 0) !== 0) ? 1 : 0;
@@ -5804,11 +5857,194 @@
     const box = document.getElementById('psHiddenList');
     box.innerHTML = hid.length ? '<div class="card">' + hid.map(function (p) {
       return '<div class="ps-row" data-code="' + escapeHtml(p.code) + '"><div class="ps-main"><div class="ps-title"><strong>#' + escapeHtml(p.code) + '</strong> · ' + escapeHtml(p.name) + '</div><div>' + psStockChips_({ onlineStock: p.online_stock, physicalStock: p.physical_stock }) +
-        (p.search_hidden_at ? '<span class="ps-chip dim">Hidden since ' + escapeHtml(dayIst_(p.search_hidden_at)) + '</span>' : '') + '</div></div><button class="quickbtn" type="button" data-show="' + escapeHtml(p.code) + '">Show in search</button></div>';
+        (p.search_hidden_at ? '<span class="ps-chip dim">Hidden since ' + escapeHtml(dayIst_(p.search_hidden_at)) + '</span>' : '') + '</div>' + psActionsHtml_(p.code, null) + '</div><button class="quickbtn" type="button" data-show="' + escapeHtml(p.code) + '">Show in search</button></div>';
     }).join('') + '</div>' : '<div class="card"><div class="empty-cart">Nothing is hidden.</div></div>';
+    psWireActions_(box);
     box.querySelectorAll('button[data-show]').forEach(function (b) {
       b.addEventListener('click', async function () { if (await psApply_([b.dataset.show], false, 0)) { psRenderHidden_(); psLoadDups_(); } });
     });
+  }
+
+  // =================== PRODUCT FIX TOOLS (main admin): the bills that used a product, correct them; move stock to the right code ===================
+  // Nothing here happens by itself: hiding a product never touches a bill or stock. The main admin looks at the bills, ticks the ones to correct, and chooses.
+  let PSB_ = null, PSM_ = null;
+  function psNorm_(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+  function psAllByCode_(code) { return PRODUCTS.find(function (p) { return String(p.code) === String(code); }); }
+  function psTargets_(code) {                 // the other codes with the same name (keepers first)
+    const me = psAllByCode_(code); if (!me) return [];
+    const key = psNorm_(me.name), keeper = {};
+    (PSD_.groups || []).forEach(function (g) { g.products.forEach(function (p) { keeper[p.code] = !!(p.mustKeep || p.inCompanyList); }); });
+    return PRODUCTS.filter(function (p) { return String(p.code) !== String(code) && psNorm_(p.name) === key; })
+      .sort(function (a, b) { return ((keeper[b.code] ? 1 : 0) - (keeper[a.code] ? 1 : 0)) || (Number(a.code) - Number(b.code)); });
+  }
+  function psTargetSelectHtml_(code) {
+    return psTargets_(code).map(function (p) { return '<option value="' + escapeHtml(p.code) + '">#' + escapeHtml(p.code) + ' ' + escapeHtml(p.name) + ' · online ' + trimNum(Number(p.online_stock) || 0) + ' / offline ' + trimNum(Number(p.physical_stock) || 0) + '</option>'; }).join('') +
+      '<option value="__other">Another product code…</option>';
+  }
+  function psActionsHtml_(code, bills) {
+    return '<div class="ps-actions"><button class="quickbtn" type="button" data-ps-bills="' + escapeHtml(code) + '">🧾 Bills' + (bills != null ? ' (' + trimNum(Number(bills) || 0) + ')' : '') + '</button><button class="quickbtn" type="button" data-ps-move="' + escapeHtml(code) + '">📦 Move stock</button></div>';
+  }
+  function psWireActions_(box) {
+    box.querySelectorAll('[data-ps-bills]').forEach(function (b) { b.addEventListener('click', function () { psOpenBills_(b.dataset.psBills); }); });
+    box.querySelectorAll('[data-ps-move]').forEach(function (b) { b.addEventListener('click', function () { psOpenMove_(b.dataset.psMove); }); });
+  }
+  function psResolveOther_(inputId, nameId) {
+    const v = (document.getElementById(inputId).value || '').trim(), p = v ? psAllByCode_(v) : null;
+    document.getElementById(nameId).textContent = !v ? '' : (p ? '#' + p.code + ' ' + p.name : 'No product has that code.');
+    return p ? String(p.code) : '';
+  }
+  function psFixMissing_(err) { return psServerMissing_(err) ? 'This needs the database update <strong>product_fix_tools.sql</strong>. Please run it in Supabase first.' : ''; }
+
+  // ---- the bills window
+  const PS_REASON_ = { cancelled: 'Cancelled - leave it as it is', official: 'Official work done - locked', spused: 'An SP set was used - locked', two_lines: 'This product is on two lines - use Edit bill', target_rates: 'The right product is already on this bill at another rate - use Edit bill' };
+  function psBillsTargetCode_() { const v = document.getElementById('psBillsTarget').value; return v === '__other' ? psResolveOther_('psBillsOther', 'psBillsOtherName') : v; }
+  function psOpenBills_(code) {
+    const p = psAllByCode_(code); if (!p) return;
+    PSB_ = { code: String(code), name: p.name, ticked: {}, data: null, seq: 0, busy: false, t: null, delivered: 0 };
+    document.getElementById('psBillsTitle').textContent = 'Bills using #' + code + ' ' + p.name;
+    document.getElementById('psBillsSub').textContent = 'Every bill (any status) and pending public order request that has this product. Hiding a product never changes a bill - correct a bill only after you have checked it yourself. The bill amount, rates, SP, payments and wallet stay exactly as they are.';
+    const sel = document.getElementById('psBillsTarget'); sel.innerHTML = psTargetSelectHtml_(code);
+    document.getElementById('psBillsOtherField').style.display = sel.value === '__other' ? 'block' : 'none';
+    document.getElementById('psBillsOther').value = ''; document.getElementById('psBillsOtherName').textContent = '';
+    document.getElementById('psBillsMove').checked = false;
+    document.getElementById('psBillsResult').innerHTML = ''; document.getElementById('psBillsPublic').innerHTML = ''; document.getElementById('psBillsList').innerHTML = '<div class="empty-cart">Loading…</div>';
+    document.getElementById('psBillsModal').classList.add('show');
+    psBillsReload_();
+  }
+  function closePsBills_() { if (PSB_) PSB_.seq++; document.getElementById('psBillsModal').classList.remove('show'); }
+  function psBillsTargetChanged_() { document.getElementById('psBillsOtherField').style.display = document.getElementById('psBillsTarget').value === '__other' ? 'block' : 'none'; PSB_.ticked = {}; psBillsReload_(); }
+  function psBillsOtherInput_() { clearTimeout(PSB_.t); PSB_.t = setTimeout(function () { PSB_.ticked = {}; psBillsReload_(); }, 350); }
+  async function psBillsReload_() {
+    if (!PSB_) return;
+    const mine = ++PSB_.seq, to = psBillsTargetCode_();
+    const { data, error } = await sb.rpc('get_product_bills', { p_code: PSB_.code, p_to_code: to || null });
+    if (!PSB_ || mine !== PSB_.seq) return;
+    if (error) { document.getElementById('psBillsList').innerHTML = '<div class="empty-cart">' + (psFixMissing_(error) || 'Could not load: ' + escapeHtml(error.message)) + '</div>'; return; }
+    PSB_.data = data; psBillsRender_();
+  }
+  function psBillStatusChip_(s) { return s === 'Pending' ? '<span class="ps-chip warn">Waiting for approval</span>' : s === 'Cancelled' ? '<span class="ps-chip dim">Cancelled</span>' : '<span class="ps-chip">Approved</span>'; }
+  function psBillsRender_() {
+    const d = PSB_.data, to = psBillsTargetCode_(), toP = to ? psAllByCode_(to) : null;
+    const okInv = {}; (d.bills || []).forEach(function (b) { if (b.canCorrect) okInv[b.invoiceNo] = true; });
+    Object.keys(PSB_.ticked).forEach(function (k) { if (!okInv[k] || !toP) delete PSB_.ticked[k]; });
+    const list = document.getElementById('psBillsList');
+    list.innerHTML = !(d.bills || []).length ? '<div class="empty-cart">No bill has this product.</div>' :
+      '<div class="hint" style="margin:0 0 8px;"><strong>' + trimNum(d.total) + '</strong> bill' + (Number(d.total) === 1 ? '' : 's') + ' · <strong>' + trimNum(d.correctable) + '</strong> can be corrected' + (toP ? ' to #' + escapeHtml(toP.code) : ' - choose the right product above first') + (Number(d.total) >= 400 ? ' (the newest 400 are shown)' : '') + '</div>' +
+      '<button class="quickbtn" type="button" id="psBillsAll" style="margin-bottom:8px;"' + (toP && Number(d.correctable) ? '' : ' disabled') + '>Tick all that can be corrected</button>' +
+      d.bills.map(function (b) {
+        const can = b.canCorrect && toP, pend = Number(b.pendingQty) || 0;
+        return '<div class="ps-bill' + (b.canCorrect ? '' : ' locked') + '" data-inv="' + escapeHtml(b.invoiceNo) + '"><input type="checkbox" class="ps-btick" data-inv="' + escapeHtml(b.invoiceNo) + '"' + (can ? '' : ' disabled') + (PSB_.ticked[b.invoiceNo] ? ' checked' : '') + ' aria-label="Correct bill ' + escapeHtml(b.invoiceNo) + '">' +
+          '<div class="ps-main"><div class="ps-title"><button type="button" class="ps-link" data-open="' + escapeHtml(b.invoiceNo) + '">' + escapeHtml(b.invoiceNo) + '</button> · ' + escapeHtml(b.customerName || 'Walk-in') + ' · ' + escapeHtml(dayIst_(b.date)) + '</div>' +
+          '<div class="hint" style="margin:2px 0 0;">Qty ' + trimNum(b.qty) + ' · delivered ' + trimNum(b.deliveredQty) + (pend > 0 ? ' · ' + trimNum(pend) + ' pending' : '') + ' · ' + money(b.amount) + '</div>' +
+          '<div>' + psBillStatusChip_(b.billStatus) + (b.pastEntry ? '<span class="ps-chip dim">Past bill</span>' : '') + (b.source === 'Public' ? '<span class="ps-chip dim">Public order</span>' : '') + (b.cashMemo ? '<span class="ps-chip dim">CM#' + escapeHtml(b.cashMemo) + '</span>' : '') +
+          (b.hasTarget && b.canCorrect ? '<span class="ps-chip warn">The right product is already on this bill - the two lines will be joined</span>' : '') + (b.reason ? '<span class="ps-chip bad">' + escapeHtml(PS_REASON_[b.reason] || b.reason) + '</span>' : '') + '</div></div></div>';
+      }).join('');
+    list.querySelectorAll('.ps-link').forEach(function (b) { b.addEventListener('click', function () { viewBill(b.dataset.open, false); }); });     // the bill opens on top: check it, then come back here
+    list.querySelectorAll('.ps-btick').forEach(function (c) { c.addEventListener('change', function () { if (c.checked) PSB_.ticked[c.dataset.inv] = true; else delete PSB_.ticked[c.dataset.inv]; psBillsUpdateBtn_(); }); });
+    const all = document.getElementById('psBillsAll');
+    if (all) all.addEventListener('click', function () { (d.bills || []).forEach(function (b) { if (b.canCorrect) PSB_.ticked[b.invoiceNo] = true; }); psBillsRender_(); });
+    const po = document.getElementById('psBillsPublic'), reqs = d.publicOrders || [];
+    po.innerHTML = reqs.length ? '<div class="card" style="box-shadow:none;background:var(--gold-100);"><p class="section-label" style="margin-top:0;">Pending public order requests with this product</p>' + reqs.map(function (r) {
+      return '<div class="ps-row" style="border-top:none;padding:6px 0;"><div class="ps-main"><div class="ps-title"><strong>' + escapeHtml(r.billNo || 'Request ' + r.id) + '</strong> · ' + escapeHtml(r.customerName || 'Walk-in') + '</div><div class="hint" style="margin:0;">Qty ' + trimNum(r.qty) + ' · not approved yet - correct it before it becomes a bill</div></div>' +
+        '<button class="quickbtn" type="button" data-po="' + r.id + '"' + (toP && !r.hasTarget ? '' : ' disabled') + '>' + (r.hasTarget ? 'Already has the right one' : 'Correct this request') + '</button></div>';
+    }).join('') + '</div>' : '';
+    po.querySelectorAll('button[data-po]').forEach(function (b) { b.addEventListener('click', function () { psPublicFix_(Number(b.dataset.po)); }); });
+    psBillsUpdateBtn_();
+  }
+  function psBillsUpdateBtn_() {
+    const d = PSB_.data || { bills: [] }, to = psBillsTargetCode_(), n = Object.keys(PSB_.ticked).length;
+    let delivered = 0; (d.bills || []).forEach(function (b) { if (PSB_.ticked[b.invoiceNo]) delivered += Number(b.deliveredQty) || 0; });
+    PSB_.delivered = delivered;
+    const btn = document.getElementById('psBillsGo'); btn.disabled = !n || !to || PSB_.busy;
+    btn.textContent = n ? 'Correct ' + n + ' ticked bill' + (n === 1 ? '' : 's') + ' → #' + to : 'Correct ticked bills';
+    document.getElementById('psBillsMoveWrap').style.display = delivered > 0.0001 ? 'flex' : 'none';
+    document.getElementById('psBillsMoveText').textContent = 'Also move the stock effect of the ' + trimNum(delivered) + ' delivered piece' + (delivered === 1 ? '' : 's') + ': put them back on #' + PSB_.code + ' and take them off #' + to + '. Leave it OFF if the stock really sits on #' + PSB_.code + ' (move that with 📦 Move stock instead).';
+  }
+  async function psBillsApply_() {
+    const to = psBillsTargetCode_(); if (!PSB_ || !to || PSB_.busy) return;
+    const invs = Object.keys(PSB_.ticked); if (!invs.length) return;
+    const move = document.getElementById('psBillsMove').checked && PSB_.delivered > 0.0001, toP = psAllByCode_(to);
+    if (!confirm('Correct ' + invs.length + ' bill' + (invs.length === 1 ? '' : 's') + '?\n\n#' + PSB_.code + ' ' + PSB_.name + '\n→ #' + to + ' ' + (toP ? toP.name : '') + '\n\nThe bill rates, amounts, SP, payments and wallet stay exactly as they are.\n' +
+        (PSB_.delivered > 0.0001 ? (move ? 'The stock effect of the ' + trimNum(PSB_.delivered) + ' delivered pieces WILL be moved (back on #' + PSB_.code + ', off #' + to + ').' : 'The stock is NOT moved (use 📦 Move stock when you want that).') : 'Nothing was delivered on these bills, so stock is not involved.'))) return;
+    PSB_.busy = true; psBillsUpdateBtn_(); document.getElementById('psBillsGo').textContent = 'Correcting…';
+    const out = [];
+    for (let i = 0; i < invs.length; i++) {
+      const { data, error } = await sb.rpc('correct_bill_product', { p_invoice_no: invs[i], p_from_code: PSB_.code, p_to_code: to, p_move_stock: move, p_note: 'Corrected from Product Search', p_apply: true });
+      out.push({ inv: invs[i], ok: !error, text: error ? error.message : (data && data.merge ? 'corrected (the two lines were joined)' : 'corrected') });
+    }
+    PSB_.busy = false; PSB_.ticked = {};
+    const good = out.filter(function (o) { return o.ok; }).length;
+    document.getElementById('psBillsResult').innerHTML = '<div class="es-box ' + (good === out.length ? 'es-ok' : 'es-due') + '"><strong>' + good + ' of ' + out.length + ' bill' + (out.length === 1 ? '' : 's') + ' corrected.</strong>' + out.map(function (o) { return '<div>' + (o.ok ? '✓ ' : '✗ ') + escapeHtml(o.inv) + ' - ' + escapeHtml(o.text) + '</div>'; }).join('') + '</div>';
+    showToast(good + ' of ' + out.length + ' bill' + (out.length === 1 ? '' : 's') + ' corrected to #' + to, good !== out.length);
+    await loadProducts(); psBillsReload_(); psLoadDups_();
+  }
+  async function psPublicFix_(id) {
+    const to = psBillsTargetCode_(); if (!to) return;
+    if (!confirm('Change product #' + PSB_.code + ' to #' + to + ' in this pending request? (rates and total stay as they are)')) return;
+    const { error } = await sb.rpc('correct_public_order_product', { p_order_id: id, p_from_code: PSB_.code, p_to_code: to });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Request corrected to #' + to); psBillsReload_();
+  }
+
+  // ---- the move-stock window
+  function psMoveTargetCode_() { const v = document.getElementById('psMoveTo').value; return v === '__other' ? psResolveOther_('psMoveOther', 'psMoveOtherName') : v; }
+  async function psOpenMove_(code) {
+    await loadProducts();                                    // fresh stock numbers
+    const p = psAllByCode_(code); if (!p) return;
+    const on = Number(p.online_stock) || 0, ph = Number(p.physical_stock) || 0;
+    PSM_ = { code: String(code), seq: 0, t: null, on: on, ph: ph };
+    document.getElementById('psMoveFrom').innerHTML = 'From <strong>#' + escapeHtml(code) + ' ' + escapeHtml(p.name) + '</strong> - online ' + trimNum(on) + ' · offline (physical) ' + trimNum(ph);
+    const sel = document.getElementById('psMoveTo'); sel.innerHTML = psTargetSelectHtml_(code);
+    document.getElementById('psMoveOtherField').style.display = sel.value === '__other' ? 'block' : 'none';
+    document.getElementById('psMoveOther').value = ''; document.getElementById('psMoveOtherName').textContent = '';
+    document.getElementById('psMoveOnChk').checked = on > 0; document.getElementById('psMoveOn').value = on > 0 ? on : '';
+    document.getElementById('psMovePhChk').checked = ph > 0; document.getElementById('psMovePh').value = ph > 0 ? ph : '';
+    document.getElementById('psMoveOnAvail').textContent = '(has ' + trimNum(on) + ')'; document.getElementById('psMovePhAvail').textContent = '(has ' + trimNum(ph) + ')';
+    document.getElementById('psMoveNote').value = ''; document.getElementById('psMovePreview').innerHTML = ''; document.getElementById('psMoveError').textContent = ''; document.getElementById('psMoveLog').innerHTML = '';
+    document.getElementById('psMoveGo').disabled = true;
+    document.getElementById('psMoveModal').classList.add('show');
+    psMoveChanged_();
+    sb.rpc('get_product_fix_log', { p_code: String(code) }).then(function (r) {
+      if (!PSM_ || PSM_.code !== String(code) || r.error || !r.data) return;
+      const m = (r.data.migrations || []).slice(0, 5);
+      document.getElementById('psMoveLog').innerHTML = m.length ? '<p class="section-label">Earlier stock moves of this product</p>' + m.map(function (x) { return '<div class="hint" style="margin:2px 0;">' + escapeHtml(dayIst_(x.at)) + ' · #' + escapeHtml(x.fromCode) + ' → #' + escapeHtml(x.toCode) + ' · online ' + trimNum(x.onlineQty) + ' · offline ' + trimNum(x.physicalQty) + (x.note ? ' · ' + escapeHtml(x.note) : '') + '</div>'; }).join('') : '';
+    });
+  }
+  function closePsMove_() { if (PSM_) PSM_.seq++; document.getElementById('psMoveModal').classList.remove('show'); }
+  function psMoveToChanged_() { document.getElementById('psMoveOtherField').style.display = document.getElementById('psMoveTo').value === '__other' ? 'block' : 'none'; psMoveChanged_(); }
+  function psMoveArgs_(apply) {
+    const onChk = document.getElementById('psMoveOnChk').checked, phChk = document.getElementById('psMovePhChk').checked;
+    const clamp = function (v, max) { v = Number(v) || 0; return Math.max(0, Math.min(v, max)); };
+    return { p_from_code: PSM_.code, p_to_code: psMoveTargetCode_(), p_online: onChk ? clamp(document.getElementById('psMoveOn').value, Math.max(PSM_.on, 0)) : 0, p_physical: phChk ? clamp(document.getElementById('psMovePh').value, Math.max(PSM_.ph, 0)) : 0,
+             p_note: (document.getElementById('psMoveNote').value || '').trim() || null, p_apply: apply };
+  }
+  function psMoveChanged_() {
+    if (!PSM_) return;
+    ['psMoveOn', 'psMovePh'].forEach(function (id, i) { const el = document.getElementById(id), max = Math.max(i ? PSM_.ph : PSM_.on, 0); if (Number(el.value) > max) el.value = max; if (Number(el.value) < 0) el.value = 0; });
+    clearTimeout(PSM_.t); const mine = ++PSM_.seq;
+    document.getElementById('psMoveGo').disabled = true; document.getElementById('psMoveError').textContent = '';
+    PSM_.t = setTimeout(async function () {
+      const a = psMoveArgs_(false);
+      if (!a.p_to_code) { document.getElementById('psMovePreview').innerHTML = ''; document.getElementById('psMoveError').textContent = 'Choose the right product to move the stock to.'; return; }
+      if (a.p_online + a.p_physical <= 0) { document.getElementById('psMovePreview').innerHTML = ''; document.getElementById('psMoveError').textContent = 'Tick online and / or offline stock and say how much.'; return; }
+      const { data, error } = await sb.rpc('migrate_product_stock', a);
+      if (!PSM_ || mine !== PSM_.seq) return;
+      if (error) { document.getElementById('psMovePreview').innerHTML = ''; document.getElementById('psMoveError').innerHTML = psFixMissing_(error) || escapeHtml(error.message); return; }
+      document.getElementById('psMovePreview').innerHTML = '<div class="es-box es-ok"><strong>After moving</strong><div>#' + escapeHtml(data.fromCode) + ': online ' + trimNum(data.fromOnlineBefore) + ' → <strong>' + trimNum(data.fromOnlineAfter) + '</strong> · offline ' + trimNum(data.fromPhysicalBefore) + ' → <strong>' + trimNum(data.fromPhysicalAfter) + '</strong></div>' +
+        '<div>#' + escapeHtml(data.toCode) + ': online ' + trimNum(data.toOnlineBefore) + ' → <strong>' + trimNum(data.toOnlineAfter) + '</strong> · offline ' + trimNum(data.toPhysicalBefore) + ' → <strong>' + trimNum(data.toPhysicalAfter) + '</strong></div></div>';
+      document.getElementById('psMoveGo').disabled = false;
+    }, 250);
+  }
+  async function psMoveApply_() {
+    if (!PSM_) return; const a = psMoveArgs_(true); if (!a.p_to_code || a.p_online + a.p_physical <= 0) return;
+    if (!confirm('Move stock from #' + a.p_from_code + ' to #' + a.p_to_code + '?\n\nOnline: ' + trimNum(a.p_online) + '\nOffline (physical): ' + trimNum(a.p_physical) + '\n\nThis is saved in the stock-move history. No bill is changed.')) return;
+    const btn = document.getElementById('psMoveGo'); btn.disabled = true; btn.textContent = 'Moving…';
+    const { data, error } = await sb.rpc('migrate_product_stock', a);
+    btn.textContent = 'Move stock';
+    if (error) { btn.disabled = false; showToast(error.message, true); return; }
+    showToast('Stock moved: online ' + trimNum(data.onlineMoved) + ' · offline ' + trimNum(data.physicalMoved) + ' from #' + data.fromCode + ' to #' + data.toCode);
+    closePsMove_(); await loadProducts();
+    psLoadDups_(); psRenderHidden_(); psFind_();
   }
 
   // =================== CASH MEMO REGISTER (Past Bill > Cash Memo) - staff and main admin ===================
