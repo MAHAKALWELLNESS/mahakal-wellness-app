@@ -1,0 +1,23 @@
+{
+  "name": "mahakal-wellness-app",
+  "version": "1.0.0",
+  "description": "Mahakal Wellness PWA Application",
+  "main": "sw.js",
+  "scripts": {
+    "build:speed-insights": "node build-speed-insights.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MAHAKALWELLNESS/mahakal-wellness-app.git"
+  },
+  "keywords": ["pwa", "wellness", "speed-insights"],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MAHAKALWELLNESS/mahakal-wellness-app/issues"
+  },
+  "homepage": "https://github.com/MAHAKALWELLNESS/mahakal-wellness-app#readme",
+  "dependencies": {
+    "@vercel/speed-insights": "^2.0.0"
+  }
+}
