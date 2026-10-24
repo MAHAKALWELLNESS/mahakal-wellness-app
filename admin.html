@@ -136,6 +136,26 @@
   .edit-actions{position:sticky; bottom:-20px; z-index:5; background:var(--surface); margin:14px -20px -20px; padding:12px 20px 16px; border-top:1px solid var(--line);}
   #editBillItemsList .cart-item{scroll-margin-top:130px; scroll-margin-bottom:90px;}
   .cart-item.just-changed{animation:editFlash 1.3s ease-out;}
+  /* Past Bill > Cash Memo register */
+  .cm-pills{display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;}
+  .cm-pill{padding:8px 12px; border-radius:18px; border:1.5px solid var(--line); background:#fff; font-weight:700; font-size:12.5px; line-height:1.1; font-family:inherit; color:var(--green-800); cursor:pointer;}
+  .cm-pill .n{font-weight:600; opacity:.75; margin-left:3px;}
+  .cm-pill.active{background:var(--green-900); border-color:var(--green-900); color:#fff;}
+  .cm-pill.warn:not(.active){border-color:var(--gold-500); color:var(--gold-600);}
+  .cm-pill.bad:not(.active){border-color:var(--danger); color:var(--danger);}
+  .cm-controls{display:flex; gap:8px; margin-bottom:10px; align-items:stretch;}
+  .cm-controls .search-input{flex:1; min-width:0;}
+  .cm-controls .btn{flex:none; padding:0 14px; font-size:13px; white-space:nowrap;}
+  .cm-num{font-size:17px; font-weight:800; color:var(--green-900); word-break:break-all;}
+  .cm-tag{display:inline-block; margin-left:8px; font-size:10px; font-weight:700; padding:2px 7px; border-radius:6px; vertical-align:2px;}
+  .cm-tag-bad{background:var(--danger-100); color:var(--danger);}
+  .cm-tag-warn{background:var(--gold-100); color:var(--gold-600);}
+  .cm-gap{border:1.5px dashed var(--danger); border-radius:12px; padding:10px 12px; margin-bottom:10px;}
+  .cm-gap .list-row{border-bottom:1px solid var(--line);}
+  .cm-gap a{color:var(--green-800); font-weight:700;}
+  .cm-pager{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:12px; font-size:12.5px; color:var(--ink-soft);}
+  .cm-pager .btn{padding:8px 14px; font-size:13px;}
+  .cm-chip{display:inline-block; margin:0 6px 6px 0; padding:8px 14px; border-radius:18px; border:1.5px solid var(--gold-500); background:var(--gold-100); color:var(--gold-600); font-weight:800; font-size:14px; font-family:inherit; cursor:pointer;}
   /* New Bill: Today's bill / Past bill entry */
   .modeswitch{display:flex; gap:8px;}
   .modebtn{flex:1; padding:12px 8px; border:1.5px solid var(--line); border-radius:12px; background:#fff; font-weight:700; font-size:14px; line-height:1.2; font-family:inherit; color:var(--green-800); cursor:pointer;}
@@ -558,6 +578,11 @@
 
     <!-- ============ PAST BILLS TAB ============ -->
     <section id="tab-history" class="tab-panel">
+      <div class="subtabs">
+        <button class="subtab active" data-subtab="bills" onclick="switchHistorySubtab_('bills')">Bills</button>
+        <button class="subtab" data-subtab="cashmemo" onclick="switchHistorySubtab_('cashmemo')">Cash Memo</button>
+      </div>
+      <div id="histsub-bills" class="subtab-panel active">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="searchHistory()">↻ Refresh</button>
       <div class="card">
         <p class="section-label">Filter by date</p>
@@ -574,6 +599,23 @@
       </div>
       <div class="card"><p class="section-label">Find a bill</p><input type="text" id="historySearch" class="search-input" placeholder="Invoice no, name or mobile…" oninput="searchHistory()"></div>
       <div class="card"><div id="historyList"><div class="empty-cart">Type above, or leave blank to see recent bills.</div></div></div>
+      </div>
+      <div id="histsub-cashmemo" class="subtab-panel">
+        <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadCashMemoRegister_()">↻ Refresh</button>
+        <div class="card">
+          <p class="section-label">Cash memo serial</p>
+          <p class="hint" id="cmSummary" style="margin:0 0 8px;">Loading…</p>
+          <div class="field" style="margin:0 0 4px;"><label for="cmFromInput">Start checking from memo no. (optional)</label><input type="text" id="cmFromInput" inputmode="numeric" placeholder="e.g. 1001 - older numbers are ignored" oninput="this.value = this.value.replace(/\D/g, '').slice(0, 15);" onchange="cmFromChanged_(this.value)"></div>
+          <div class="cm-pills" id="cmPills">
+            <button class="cm-pill active" data-view="serial" type="button" onclick="cmShowView_('serial')">Serial<span class="n" id="cmCountSerial"></span></button>
+            <button class="cm-pill" data-view="missing" id="cmPillMissing" type="button" onclick="cmShowView_('missing')">Missing<span class="n" id="cmCountMissing"></span></button>
+            <button class="cm-pill" data-view="repeated" id="cmPillRepeated" type="button" onclick="cmShowView_('repeated')">Repeated<span class="n" id="cmCountRepeated"></span></button>
+            <button class="cm-pill" data-view="nomemo" id="cmPillNoMemo" type="button" onclick="cmShowView_('nomemo')">No memo<span class="n" id="cmCountNoMemo"></span></button>
+            <button class="cm-pill" data-view="other" id="cmPillOther" type="button" style="display:none;" onclick="cmShowView_('other')">Not a number<span class="n" id="cmCountOther"></span></button>
+          </div>
+        </div>
+        <div class="card"><div id="cmBody"><div class="empty-cart">Loading…</div></div></div>
+      </div>
     </section>
 
     <!-- ============ ACCOUNTING TAB ============ -->
@@ -1493,6 +1535,22 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="saveCashMemoModal" style="z-index:65;">
+    <div class="modal-sheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Save Cash Memo No.</h2>
+      <p class="hint" id="scmBillLine" style="margin-bottom:12px;"></p>
+      <div class="field" style="margin-bottom:0;"><label for="scmInput">Cash Memo No. (digits only)</label>
+        <input type="text" id="scmInput" inputmode="numeric" autocomplete="off" placeholder="e.g. 1024" oninput="this.value = this.value.replace(/\D/g, '').slice(0, 15); checkSaveCashMemoLive_();" onkeydown="if (event.key === 'Enter') { event.preventDefault(); submitSaveCashMemo_(); }">
+        <p class="login-error" id="scmError" style="min-height:0;margin:4px 0 0;"></p>
+      </div>
+      <div id="scmSuggest" style="margin-top:10px;"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closeSaveCashMemo_()">Cancel</button>
+        <button class="btn btn-primary" type="button" id="scmBtn" onclick="submitSaveCashMemo_()" disabled>Save</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="editExpenseModal">
     <div class="modal-sheet">
       <h2 style="font-size:16px;color:var(--green-800);margin-bottom:14px;">Edit Expense</h2>
@@ -1688,6 +1746,7 @@
       <div class="modal-actions"><button class="btn btn-outline" onclick="hideDetail()">Close</button><button class="btn btn-primary" onclick="printFromDetail()">Print</button></div>
       <div class="modal-actions"><button class="btn btn-outline" onclick="downloadPdfFromDetail()">Download PDF</button><button class="btn btn-gold" onclick="shareWhatsappFromDetail()">Share on WhatsApp</button></div>
       <div id="walletUsedNoteArea"></div>
+      <div id="billCashMemoArea"></div>
       <div id="billActionsArea"></div>
       <div id="billDateHistoryArea"></div>
       <div id="paymentEditArea"></div>
@@ -4692,6 +4751,7 @@
       referenceName: header.reference_name, referenceMobile: header.reference_mobile, billStatus: header.bill_status,
       remark: header.remark,
       officialCount: (officialRows || []).length,
+      cashMemoNo: header.cash_memo_no || '',
       pastEntry: header.past_entry === true,
       records: { payments: paymentRows || [], deliveries: deliveryRows || [], official: officialRows || [] },
       items: (items || []).map(function (it) { return { code: it.product_code, name: it.product_name, qty: it.qty, dp: it.dp, sp: it.sp, mrp: it.mrp, pendingQty: it.pending_qty, deliveredQty: it.delivered_qty }; })
@@ -4710,6 +4770,7 @@
       : '';
     renderBillActions(bill);
     renderBillDateHistory_(bill.invoiceNo);
+    renderBillCashMemo_(bill);
     // Payment recording is only offered when opened from Accounting - Past Bill is view/print/share only.
     document.getElementById('paymentEditArea').innerHTML = '';
     if (allowPaymentEdit) renderPaymentEdit(bill);
@@ -4777,6 +4838,195 @@
     if ((bill.items || []).some(function (it) { return (Number(it.deliveredQty) || 0) > 0.0001; })) why.push('items were delivered');
     if ((Number(bill.officialCount) || 0) > 0) why.push('Official work was done');
     return why;
+  }
+
+  // =================== CASH MEMO REGISTER (Past Bill > Cash Memo) - staff and main admin ===================
+  // Everything is worked out on the server (cash_memo_register.sql): the serial list, the numbers missing from it, repeated numbers,
+  // and the bills that have no memo yet (a memo can be saved on those).
+  function switchHistorySubtab_(name) {
+    const c = document.getElementById('tab-history');
+    c.querySelectorAll(':scope > .subtabs > .subtab[data-subtab]').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
+    c.querySelectorAll(':scope > .subtab-panel').forEach(function (p) { p.classList.remove('active'); });
+    document.getElementById('histsub-' + name).classList.add('active');
+    if (name === 'cashmemo') loadCashMemoRegister_();
+  }
+  let cmView_ = 'serial', cmDesc_ = true, cmPage_ = 0, cmFrom_ = null, cmSearch_ = '', cmNoSearch_ = '', cmNoPage_ = 0;
+  let cmGaps_ = null, cmSummary_ = null, cmReq_ = 0, cmViewReq_ = 0, cmTimer_ = null, cmNoTotal_ = 0, cmSerialTotal_ = 0;
+  const CM_PAGE_ = 50;
+  function cmTag_(st) {
+    if (st === 'Cancelled') return '<span class="cm-tag cm-tag-bad">Cancelled</span>';
+    if (st === 'Pending') return '<span class="cm-tag cm-tag-warn">Pending</span>';
+    return '';
+  }
+  function cmRow_(r) {
+    return '<div class="list-row cm-row" data-inv="' + escapeHtml(r.invoiceNo) + '"><div style="min-width:0;"><div class="cm-num">' + escapeHtml(r.memo) + cmTag_(r.status) + '</div>' +
+      '<div class="result-meta">' + escapeHtml(r.invoiceNo) + ' · ' + escapeHtml(r.customer || 'Walk-in') + ' · ' + escapeHtml(fmtDayIst_(r.date)) + '</div></div>' +
+      '<div style="text-align:right;flex:none;"><div class="cart-amount"><div class="amt">' + money(r.amount) + '</div></div></div></div>';
+  }
+  function cmNoMemoRow_(r) {
+    const label = r.invoiceNo + ' · ' + (r.customer || 'Walk-in');
+    return '<div class="list-row cm-row" data-inv="' + escapeHtml(r.invoiceNo) + '"><div style="min-width:0;"><div class="cm-num">' + escapeHtml(r.invoiceNo) + cmTag_(r.status) + '</div>' +
+      '<div class="result-meta">' + escapeHtml(r.customer || 'Walk-in') + ' · ' + escapeHtml(fmtDayIst_(r.date)) + ' · ' + money(r.amount) + '</div></div>' +
+      '<div style="text-align:right;flex:none;"><button class="btn btn-outline" type="button" style="padding:8px 12px;font-size:12.5px;" data-add-memo="' + escapeHtml(r.invoiceNo) + '" data-label="' + escapeHtml(label) + '">＋ Memo</button></div></div>';
+  }
+  // tapping a row opens that bill; tapping a bill number inside a card does too; "＋ Memo" opens the Save window instead
+  function cmWire_(box) {
+    Array.prototype.forEach.call(box.querySelectorAll('.cm-row'), function (row) { row.addEventListener('click', function () { viewBill(row.dataset.inv, false); }); });
+    Array.prototype.forEach.call(box.querySelectorAll('[data-open-bill]'), function (a) { a.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); viewBill(a.dataset.openBill, false); }); });
+    Array.prototype.forEach.call(box.querySelectorAll('[data-add-memo]'), function (b) { b.addEventListener('click', function (e) { e.stopPropagation(); openSaveCashMemo_(b.dataset.addMemo, b.dataset.label); }); });
+  }
+  function cmPager_(total, page) {
+    if (total <= CM_PAGE_) return '';
+    const from = page * CM_PAGE_ + 1, to = Math.min(total, (page + 1) * CM_PAGE_), last = Math.ceil(total / CM_PAGE_) - 1;
+    return '<div class="cm-pager"><button class="btn btn-outline" type="button" onclick="cmGo_(-1)"' + (page <= 0 ? ' disabled' : '') + '>‹ Prev</button><span>' + from + '–' + to + ' of ' + total + '</span><button class="btn btn-outline" type="button" onclick="cmGo_(1)"' + (page >= last ? ' disabled' : '') + '>Next ›</button></div>';
+  }
+  function cmGo_(d) {
+    if (cmView_ === 'serial') { cmPage_ = Math.max(0, cmPage_ + d); cmLoadSerial_(); }
+    else if (cmView_ === 'nomemo') { cmNoPage_ = Math.max(0, cmNoPage_ + d); cmLoadNoMemo_(); }
+  }
+  async function loadCashMemoRegister_() {
+    const my = ++cmReq_, body = document.getElementById('cmBody');
+    body.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const res = await Promise.all([sb.rpc('get_cash_memo_summary', { p_from: cmFrom_ }), sb.rpc('get_cash_memo_gaps', { p_from: cmFrom_, p_limit: 300 })]);
+    if (my !== cmReq_) return;
+    const err = res[0].error || res[1].error;
+    if (err) { body.innerHTML = '<div class="empty-cart">Could not load the cash memo list: ' + escapeHtml(err.message) + '</div>'; return; }
+    cmSummary_ = res[0].data; cmGaps_ = res[1].data;
+    renderCmSummary_();
+    await cmShowView_(cmView_);
+  }
+  function renderCmSummary_() {
+    const s = cmSummary_ || {}, set = function (id, v) { document.getElementById(id).textContent = ' ' + v; };
+    document.getElementById('cmSummary').innerHTML = s.minNo == null ? 'No numbered cash memos yet.' : 'Serial <strong>' + s.minNo + ' – ' + s.maxNo + '</strong> · ' + s.usedCount + ' numbers used';
+    set('cmCountSerial', (s.billsWithMemo || 0) - (s.otherCount || 0)); set('cmCountMissing', s.missingCount || 0); set('cmCountRepeated', s.duplicateCount || 0); set('cmCountNoMemo', s.noMemoCount || 0); set('cmCountOther', s.otherCount || 0);
+    document.getElementById('cmPillMissing').classList.toggle('bad', (s.missingCount || 0) > 0);
+    document.getElementById('cmPillRepeated').classList.toggle('bad', (s.duplicateCount || 0) > 0);
+    document.getElementById('cmPillNoMemo').classList.toggle('warn', (s.noMemoCount || 0) > 0);
+    document.getElementById('cmPillOther').style.display = (s.otherCount || 0) > 0 ? '' : 'none';
+    document.getElementById('cmFromInput').value = cmFrom_ == null ? '' : String(cmFrom_);
+  }
+  function cmFromChanged_(v) { cmFrom_ = /^\d{1,15}$/.test(v) ? Number(v) : null; cmPage_ = 0; loadCashMemoRegister_(); }
+  async function cmShowView_(name) {
+    cmView_ = name; const my = ++cmViewReq_, body = document.getElementById('cmBody');
+    Array.prototype.forEach.call(document.querySelectorAll('#cmPills .cm-pill'), function (b) { b.classList.toggle('active', b.dataset.view === name); });
+    const loading = '<div class="empty-cart">Loading…</div>';
+    if (name === 'serial') {
+      body.innerHTML = '<div class="cm-controls"><input type="text" id="cmSearchInput" class="search-input" inputmode="numeric" placeholder="Go to memo no. e.g. 1024" value="' + escapeHtml(cmSearch_) + '" oninput="cmSearchChanged_(this.value)"><button class="btn btn-outline" type="button" id="cmOrderBtn" onclick="cmToggleOrder_()">' + (cmDesc_ ? '↓ Newest first' : '↑ Oldest first') + '</button></div><div id="cmList"></div>';
+      await cmLoadSerial_();
+    } else if (name === 'missing') {
+      renderCmMissing_();
+    } else if (name === 'repeated') {
+      body.innerHTML = loading;
+      const { data, error } = await sb.rpc('get_cash_memo_duplicates');
+      if (my !== cmViewReq_) return;
+      if (error) { body.innerHTML = '<div class="empty-cart">Could not load: ' + escapeHtml(error.message) + '</div>'; return; }
+      const nums = (data && data.numbers) || [], txts = (data && data.texts) || [];
+      if (!nums.length && !txts.length) { body.innerHTML = '<div class="empty-cart" style="color:var(--ok);font-weight:700;">✓ No cash memo is repeated.</div>'; return; }
+      const grp = function (title, bills) { return '<div class="cm-gap" style="border-color:var(--gold-500);"><div class="cm-num" style="color:var(--gold-600);">' + title + ' <span class="result-meta">on ' + bills.length + ' bills</span></div>' +
+        bills.map(function (b) { return cmRow_({ memo: b.memo, invoiceNo: b.invoiceNo, status: b.status, customer: b.customer, date: b.date, amount: b.amount }); }).join('') + '</div>'; };
+      body.innerHTML = '<p class="hint" style="margin:0 0 10px;">The same cash memo number is on more than one bill (also when written differently, like 1005 and 01005). Open each bill to check which one is right.</p>' +
+        nums.map(function (g) { return grp('Number ' + g.num, g.bills); }).join('') + txts.map(function (g) { return grp('“' + escapeHtml(g.memo) + '”', g.bills); }).join('');
+      cmWire_(body);
+    } else if (name === 'nomemo') {
+      body.innerHTML = '<div class="cm-controls"><input type="text" id="cmNoSearchInput" class="search-input" placeholder="Search bill no, name or mobile…" value="' + escapeHtml(cmNoSearch_) + '" oninput="cmNoSearchChanged_(this.value)"></div><div id="cmList"></div>';
+      await cmLoadNoMemo_();
+    } else if (name === 'other') {
+      body.innerHTML = loading;
+      const { data, error } = await sb.rpc('get_cash_memo_other');
+      if (my !== cmViewReq_) return;
+      if (error) { body.innerHTML = '<div class="empty-cart">Could not load: ' + escapeHtml(error.message) + '</div>'; return; }
+      const rows = data || [];
+      body.innerHTML = rows.length ? '<p class="hint" style="margin:0 0 10px;">These cash memos are not a plain number, so they are not part of the serial.</p>' + rows.map(cmRow_).join('') : '<div class="empty-cart">Nothing here.</div>';
+      cmWire_(body);
+    }
+  }
+  function cmToggleOrder_() { cmDesc_ = !cmDesc_; cmPage_ = 0; document.getElementById('cmOrderBtn').textContent = cmDesc_ ? '↓ Newest first' : '↑ Oldest first'; cmLoadSerial_(); }
+  function cmSearchChanged_(v) { const c = String(v || '').replace(/\D/g, '').slice(0, 15), el = document.getElementById('cmSearchInput'); if (el && el.value !== c) el.value = c; cmSearch_ = c; clearTimeout(cmTimer_); cmTimer_ = setTimeout(function () { cmPage_ = 0; cmLoadSerial_(); }, 300); }
+  function cmNoSearchChanged_(v) { cmNoSearch_ = String(v || ''); clearTimeout(cmTimer_); cmTimer_ = setTimeout(function () { cmNoPage_ = 0; cmLoadNoMemo_(); }, 300); }
+  async function cmLoadSerial_() {
+    const box = document.getElementById('cmList'); if (!box) return;
+    const my = ++cmViewReq_, num = /^\d{1,15}$/.test(cmSearch_) ? Number(cmSearch_) : null;
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const { data, error } = await sb.rpc('get_cash_memo_page', { p_desc: cmDesc_, p_limit: CM_PAGE_, p_offset: cmPage_ * CM_PAGE_, p_from: num != null ? num : cmFrom_, p_to: num != null ? num : null });
+    if (my !== cmViewReq_ || !document.getElementById('cmList')) return;
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load: ' + escapeHtml(error.message) + '</div>'; return; }
+    const rows = (data && data.rows) || [], total = (data && data.total) || 0; cmSerialTotal_ = total;
+    box.innerHTML = rows.length ? rows.map(cmRow_).join('') + cmPager_(total, cmPage_)
+      : '<div class="empty-cart">' + (num != null ? 'No bill has cash memo ' + num + '. If it is not in the serial it may be listed under <strong>Missing</strong>.' : 'No numbered cash memos yet.') + '</div>';
+    cmWire_(box);
+  }
+  async function cmLoadNoMemo_() {
+    const box = document.getElementById('cmList'); if (!box) return;
+    const my = ++cmViewReq_;
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const { data, error } = await sb.rpc('get_bills_without_cash_memo', { p_search: cmNoSearch_.trim() || null, p_limit: CM_PAGE_, p_offset: cmNoPage_ * CM_PAGE_ });
+    if (my !== cmViewReq_ || !document.getElementById('cmList')) return;
+    if (error) { box.innerHTML = '<div class="empty-cart">Could not load: ' + escapeHtml(error.message) + '</div>'; return; }
+    const rows = (data && data.rows) || [], total = (data && data.total) || 0; cmNoTotal_ = total;
+    box.innerHTML = rows.length ? '<p class="hint" style="margin:0 0 10px;">Bills with no cash memo number. Tap <strong>＋ Memo</strong> to save one (digits only; a number can be on one bill only). Newest first.</p>' + rows.map(cmNoMemoRow_).join('') + cmPager_(total, cmNoPage_)
+      : '<div class="empty-cart" style="color:var(--ok);font-weight:700;">' + (cmNoSearch_.trim() ? 'No bill without a cash memo matches that.' : '✓ Every bill has a cash memo.') + '</div>';
+    cmWire_(box);
+  }
+  function renderCmMissing_() {
+    const body = document.getElementById('cmBody'), g = cmGaps_ || { ranges: [], missingCount: 0, totalRanges: 0 };
+    if (!g.ranges.length) { body.innerHTML = '<div class="empty-cart" style="color:var(--ok);font-weight:700;">✓ No cash memo is missing from the serial.</div>'; return; }
+    const ctx = function (bill, date, no) { return '<strong>' + no + '</strong>' + (bill ? ' (<a href="#" data-open-bill="' + escapeHtml(bill) + '">' + escapeHtml(bill) + '</a>' + (date ? ', ' + escapeHtml(fmtDayIst_(date)) : '') + ')' : ''); };
+    body.innerHTML = '<p class="hint" style="margin:0 0 10px;"><strong>' + g.missingCount + '</strong> number' + (g.missingCount === 1 ? ' is' : 's are') + ' not on any bill. A bill may not have been entered or was deleted - or a bill without a memo (see <strong>No memo</strong>) may be waiting for it. Newest first.</p>' +
+      g.ranges.map(function (r) {
+        const one = r.from === r.to;
+        return '<div class="cm-gap"><div class="cm-num" style="color:var(--danger);">' + (one ? r.from : r.from + ' – ' + r.to) + '</div>' + (one ? '' : '<div class="result-meta" style="font-weight:700;">' + r.size + ' numbers</div>') +
+          '<div class="result-meta">after ' + ctx(r.prevBill, r.prevDate, r.prevNo) + ' and before ' + ctx(r.nextBill, r.nextDate, r.nextNo) + '</div></div>';
+      }).join('') + (g.totalRanges > g.ranges.length ? '<p class="hint">Showing the newest ' + g.ranges.length + ' of ' + g.totalRanges + ' gaps. Use "Start checking from" above to look at a later part.</p>' : '');
+    cmWire_(body);
+  }
+
+  // ---- the Save window (from the No memo list, or from a bill that has none)
+  let scmInvoice_ = null, scmValid_ = false, scmTimer_ = null;
+  async function openSaveCashMemo_(invoiceNo, label) {
+    scmInvoice_ = invoiceNo; scmValid_ = false;
+    document.getElementById('scmBillLine').textContent = label || ('Bill ' + invoiceNo);
+    const inp = document.getElementById('scmInput'); inp.value = '';
+    document.getElementById('scmError').textContent = ''; document.getElementById('scmBtn').disabled = true; document.getElementById('scmSuggest').innerHTML = '';
+    document.getElementById('saveCashMemoModal').classList.add('show');
+    setTimeout(function () { try { inp.focus(); } catch (e) {} }, 60);
+    if (!cmGaps_) { const r = await sb.rpc('get_cash_memo_gaps', { p_from: cmFrom_, p_limit: 300 }); if (!r.error) cmGaps_ = r.data; }
+    const chips = [];   // the missing numbers, newest first (only from small gaps, so a huge old gap does not flood the list)
+    ((cmGaps_ && cmGaps_.ranges) || []).forEach(function (r) { if (r.size <= 40) for (let n = r.to; n >= r.from && chips.length < 10; n--) chips.push(n); });
+    if (chips.length && scmInvoice_ === invoiceNo) document.getElementById('scmSuggest').innerHTML = '<p class="hint" style="margin:0 0 6px;">Missing numbers - tap one to use it:</p>' + chips.map(function (n) { return '<button type="button" class="cm-chip" onclick="scmUse_(' + n + ')">' + n + '</button>'; }).join('');
+  }
+  function scmUse_(n) { const inp = document.getElementById('scmInput'); inp.value = String(n); checkSaveCashMemoLive_(); }
+  function closeSaveCashMemo_() { document.getElementById('saveCashMemoModal').classList.remove('show'); }
+  function checkSaveCashMemoLive_() {
+    clearTimeout(scmTimer_);
+    const val = document.getElementById('scmInput').value.trim(), err = document.getElementById('scmError'), btn = document.getElementById('scmBtn');
+    err.textContent = ''; scmValid_ = false; btn.disabled = true;
+    if (!val) return;
+    scmTimer_ = setTimeout(async function () {
+      const { data: free } = await sb.rpc('check_cash_memo_available', { p_cash_memo_no: val });
+      if (document.getElementById('scmInput').value.trim() !== val) return;      // typed on while checking
+      if (free === false) { err.textContent = 'Cash memo ' + val + ' is already used.'; scmValid_ = false; } else { scmValid_ = true; }
+      btn.disabled = !scmValid_;
+    }, 350);
+  }
+  async function submitSaveCashMemo_() {
+    if (!scmInvoice_ || !scmValid_) return;
+    const memo = document.getElementById('scmInput').value.trim(), inv = scmInvoice_;
+    return runLocked_('save-cash-memo', async function () {
+      const { error } = await sb.rpc('set_bill_cash_memo', { p_invoice_no: inv, p_cash_memo_no: memo });
+      if (error) { document.getElementById('scmError').textContent = error.message; showToast(error.message, true); return; }
+      closeSaveCashMemo_();
+      showToast('Cash memo ' + memo + ' saved on ' + inv + '.');
+      if (document.getElementById('histsub-cashmemo').classList.contains('active')) loadCashMemoRegister_(); else cmGaps_ = null;
+      if (currentDetailBill && currentDetailBill.invoiceNo === inv && document.getElementById('detailModal').classList.contains('show')) viewBill(inv, false);
+      if (typeof refreshActiveBillList_ === 'function') refreshActiveBillList_();
+    });
+  }
+  // the memo line inside the bill window: shows the number, or lets staff save one
+  function renderBillCashMemo_(bill) {
+    const box = document.getElementById('billCashMemoArea'); if (!box) return;
+    if (bill.cashMemoNo) { box.innerHTML = '<div class="card" id="billCashMemoCard" style="margin-top:4px;box-shadow:none;background:var(--green-100);"><p style="font-size:13px;font-weight:700;color:var(--green-800);margin:0;">Cash Memo No.: ' + escapeHtml(bill.cashMemoNo) + '</p></div>'; return; }
+    box.innerHTML = '<div class="card" id="billCashMemoCard" style="margin-top:4px;box-shadow:none;background:var(--gold-100);"><p style="font-size:13px;font-weight:700;color:var(--gold-600);margin:0 0 8px;">No Cash Memo No. is saved on this bill.</p><button class="btn btn-outline btn-block" type="button" id="billAddMemoBtn">＋ Save Cash Memo No.</button></div>';
+    document.getElementById('billAddMemoBtn').addEventListener('click', function () { openSaveCashMemo_(bill.invoiceNo, 'Bill ' + bill.invoiceNo + ' · ' + (bill.customerName || 'Walk-in')); });
   }
 
   // =================== CORRECT A BILL'S DATE (main admin) ===================
