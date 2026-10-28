@@ -308,6 +308,7 @@
     .print-copy table.receipt-table th:not(:first-child), .print-copy table.receipt-table td:not(:first-child){white-space:nowrap; width:16.5%; padding-left:6px; overflow:hidden; text-overflow:ellipsis;}
   }
 </style>
+<style id="mwListCss">.quickbtn.on{background:var(--green-700);color:#fff;border-color:var(--green-700);} .date-filter{margin-top:8px;} .memo-note{margin:8px 0;padding:8px 10px;border-radius:8px;background:var(--gold-100);font-size:12.5px;color:var(--ink);} .memo-note a{color:var(--green-800);font-weight:700;}</style>
 </head>
 <body>
 
@@ -1600,7 +1601,7 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="editTransportChargesModal">
+  <div class="modal-overlay" id="editTransportChargesModal" style="z-index:75;">
     <div class="modal-sheet">
       <h2 style="font-size:16px;color:var(--green-800);margin-bottom:2px;">Edit Rapido/Bus/Transport Charges</h2>
       <p class="hint" id="etcInvoiceNo" style="margin-bottom:14px;"></p>
@@ -1944,6 +1945,32 @@
   </div>
 
   <!-- ============ CORRECT A BILL'S DATE (main admin) ============ -->
+  <!-- ============ CORRECT PAYMENT (main admin): reverse a wrong entry, add the right one ============ -->
+  <div class="modal-overlay" id="payCorrModal" style="z-index:75;">
+    <div class="modal-sheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Correct payment</h2>
+      <p class="hint" id="pcSub" style="margin-bottom:8px;"></p>
+      <div id="pcNow"></div>
+      <p class="section-label">1 · Which entry is wrong? Tick it.</p>
+      <div id="pcEntries"></div>
+      <p class="section-label" style="margin-top:12px;">2 · What is right?</p>
+      <div class="field" style="margin-bottom:6px;"><label for="pcShot">📷 Payment screenshot <span style="font-weight:500;color:var(--ink-soft);">(optional - reads the amount, UTR and date)</span></label><input type="file" id="pcShot" accept="image/*" onchange="pcShotChosen_(this)"></div>
+      <div id="pcShotStatus"></div>
+      <div id="pcNew"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px;">
+        <button class="quickbtn" type="button" id="pcAddCash" onclick="pcAddRow_('Cash')">＋ Add a Cash entry</button>
+        <button class="quickbtn" type="button" id="pcAddOnline" onclick="pcAddRow_('Online')">＋ Add an Online entry</button>
+      </div>
+      <div class="field"><label for="pcNote">Why? (saved in the history - optional)</label><input type="text" id="pcNote" placeholder="e.g. customer paid by PhonePe, not cash" oninput="pcChanged_()"></div>
+      <div id="pcPreview"></div>
+      <p class="login-error" id="pcError" style="min-height:0;margin:4px 0 0;"></p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closePayCorr_()">Cancel</button>
+        <button class="btn btn-primary" type="button" id="pcGo" onclick="pcApply_()" disabled>Reverse and correct</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="changeBillDateModal">
     <div class="modal-sheet" id="changeBillDateSheet">
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Correct date of <span id="cbdInvoiceNo"></span></h2>
@@ -2219,9 +2246,11 @@
       <div id="customerDetailExtra" style="display:none;margin-bottom:14px;background:var(--gold-100);border:1.5px solid var(--gold-500);border-radius:8px;padding:8px 10px;font-size:12.5px;font-weight:700;color:var(--green-900);"></div>
       <p class="section-label">Quick range</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+        <button class="quickbtn" type="button" onclick="setCustomerRange('all')">All time</button>
         <button class="quickbtn" type="button" onclick="setCustomerRange('today')">Today</button>
         <button class="quickbtn" type="button" onclick="setCustomerRange('week')">This week (Thu–Wed)</button>
         <button class="quickbtn" type="button" onclick="setCustomerRange('month')">This month</button>
+        <button class="quickbtn" type="button" onclick="setCustomerRange('30d')">Last 30 days</button>
       </div>
       <p class="section-label">Custom range</p>
       <div class="field-row"><div class="field"><label>From</label><input type="date" id="customerFromDate"></div><div class="field"><label>To</label><input type="date" id="customerToDate"></div></div>
@@ -2236,7 +2265,17 @@
         <div class="stat-card warn"><div class="stat-label">Qty Pending Delivery</div><div class="stat-value" id="custTotalPendingQty">0</div></div>
       </div>
       <button class="btn btn-outline btn-block" id="custReminderBtn" style="margin-bottom:14px;display:none;" onclick="sendCustomerReminder()">Send Payment Reminder on WhatsApp</button>
-      <p class="section-label">Bills</p>
+      <p class="section-label">Show</p>
+      <div id="custStatusChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+        <button class="quickbtn on" type="button" data-st="all" onclick="setCustomerStatus_('all')">All bills</button>
+        <button class="quickbtn" type="button" data-st="approval" onclick="setCustomerStatus_('approval')">⏳ In approval</button>
+        <button class="quickbtn" type="button" data-st="approved" onclick="setCustomerStatus_('approved')">Approved</button>
+        <button class="quickbtn" type="button" data-st="due" onclick="setCustomerStatus_('due')">With due</button>
+        <button class="quickbtn" type="button" data-st="cancelled" onclick="setCustomerStatus_('cancelled')">Cancelled</button>
+      </div>
+      <div id="custApprovalBox"></div>
+      <div id="custSummaryExtra"></div>
+      <p class="section-label" id="custBillsLabel">Bills</p>
       <div id="customerBillsList"><div class="empty-cart">Loading…</div></div>
       <div class="modal-actions"><button class="btn btn-outline btn-block" onclick="document.getElementById('customerDetailModal').classList.remove('show')">Close</button></div>
     </div>
@@ -4412,6 +4451,7 @@
     purchaseSearchDebounce = setTimeout(async function () {
       const q = document.getElementById('purchaseSearch').value.trim();
       let query = sb.from('purchases').select('*').order('purchase_date', { ascending: false }).limit(50);
+      const pdr2 = dateRangeOf_('purchaseHist'); if (pdr2.from) query = query.gte('purchase_date', pdr2.from + 'T00:00:00'); if (pdr2.to) query = query.lte('purchase_date', pdr2.to + 'T23:59:59');
       if (q) query = query.ilike('purchase_no', '%' + q + '%');
       const { data, error } = await query;
       if (error) { showToast(error.message, true); return; }
@@ -4796,7 +4836,19 @@
     historySearchDebounce = setTimeout(async function () {
       const q = document.getElementById('historySearch').value.trim();
       const from = document.getElementById('historyFrom').value, to = document.getElementById('historyTo').value;
-      let query = sb.from('invoices').select('*').neq('bill_status', 'Pending').order('invoice_date', { ascending: false }).limit(200);
+      const note = document.getElementById('historyMemoNote'); if (note) note.innerHTML = '';
+      if (/^\d{1,15}$/.test(q) && !historySkipMemo_) {
+        const nos = await memoInvoiceNos_(q);
+        if (nos.length) {
+          const hit = await sb.from('invoices').select('*').in('invoice_no', nos);
+          if (!hit.error && hit.data && hit.data.length) {
+            if (note) note.innerHTML = '<div class="memo-note" id="historyMemoHit">Cash memo <strong>' + escapeHtml(q) + '</strong> is on <strong>' + hit.data.map(function (r) { return escapeHtml(r.invoice_no); }).join(', ') + '</strong> (the date filter is ignored for it). <a href="#" onclick="historyOtherMatches_(); return false;">Show other matches for “' + escapeHtml(q) + '” instead</a></div>';
+            await renderHistory(hit.data); return;
+          }
+        }
+      }
+      historySkipMemo_ = false;
+      let query = sb.from('invoices').select('*').neq('bill_status', 'Pending').order('invoice_date', { ascending: historyAsc_ }).limit(200);
       if (from) query = query.gte('invoice_date', from + 'T00:00:00');
       if (to) query = query.lte('invoice_date', to + 'T23:59:59');
       if (q) query = query.or('invoice_no.ilike.%' + q + '%,customer_name.ilike.%' + q + '%,mobile.ilike.%' + q + '%');
@@ -5016,8 +5068,9 @@
     box.innerHTML = '<div class="empty-cart">Loading…</div>';
     const { data, error } = await sb.from('customer_queries').select('*').order('created_at', { ascending: false });
     if (error) { box.innerHTML = '<div class="empty-cart">Could not load.</div>'; showToast(error.message, true); return; }
-    const rows = data || [];
-    if (!rows.length) { box.innerHTML = '<div class="card"><div class="empty-cart">No queries yet.</div></div>'; return; }
+    const qdr = dateRangeOf_('queries');
+    const rows = (data || []).filter(function (r) { const d = dfDayOf_(r.created_at); return (!qdr.from || d >= qdr.from) && (!qdr.to || d <= qdr.to); });
+    if (!rows.length) { box.innerHTML = '<div class="card"><div class="empty-cart">' + ((qdr.from || qdr.to) ? 'No queries in these dates.' : 'No queries yet.') + '</div></div>'; return; }
     box.innerHTML = rows.map(function (r) {
       const dateStr = new Date(r.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
       const isNew = r.status === 'New';
@@ -5270,7 +5323,8 @@
     approvalSearchDebounce = setTimeout(async function () {
       const q = document.getElementById('approvalSearch').value.trim();
       let query = sb.from('invoices').select('*').eq('bill_status', 'Pending').order('invoice_date', { ascending: false }).limit(50);
-      if (q) query = query.or('invoice_no.ilike.%' + q + '%,customer_name.ilike.%' + q + '%,mobile.ilike.%' + q + '%');
+      const dr = dateRangeOf_('approval'); if (dr.from) query = query.gte('invoice_date', dr.from + 'T00:00:00'); if (dr.to) query = query.lte('invoice_date', dr.to + 'T23:59:59');
+      if (q) { const memo = await memoInvoiceNos_(q); query = query.or('invoice_no.ilike.%' + q + '%,customer_name.ilike.%' + q + '%,mobile.ilike.%' + q + '%' + (memo.length ? ',invoice_no.in.(' + memo.join(',') + ')' : '')); }
       const { data, error } = await query;
       if (error) { showToast(error.message, true); return; }
       renderApprovalList(data || []);
@@ -5341,6 +5395,7 @@
     renderBillActions(bill);
     renderBillDateHistory_(bill.invoiceNo);
     renderBillEditHistory_(bill.invoiceNo);
+    renderBillPayCorrections_(bill.invoiceNo);
     renderBillCashMemo_(bill);
     // Payment recording is only offered when opened from Accounting - Past Bill is view/print/share only.
     document.getElementById('paymentEditArea').innerHTML = '';
@@ -5365,7 +5420,12 @@
     }
     if (paymentRows.length) {
       extra += '<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px;"><p style="font-size:11px;font-weight:700;color:var(--green-800);margin:0 0 4px;">Payment Updates</p>' +
-        paymentRows.map(function (h, idx) { return '<p style="font-size:10.5px;color:var(--ink-soft);margin:2px 0;">' + (idx + 1) + '. ' + new Date(h.payment_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) + ' — ' + h.mode + ' ' + money(h.amount) + '</p>'; }).join('') + '</div>';
+        paymentRows.map(function (h, idx) {
+          const wasReversed = paymentRows.some(function (x) { return x.reversal_of === h.id; });
+          return '<p style="font-size:10.5px;color:var(--ink-soft);margin:2px 0;' + (wasReversed ? 'text-decoration:line-through;opacity:.7;' : '') + '">' + (idx + 1) + '. ' + new Date(h.payment_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) + ' — ' + h.mode + ' ' + money(h.amount) + (h.utr_no ? ' · UTR ' + escapeHtml(h.utr_no) : '') +
+            (h.reversal_of ? ' <span style="color:var(--danger);font-weight:700;text-decoration:none;">↩ reversal of an entry</span>' : '') + (wasReversed ? ' <span style="color:var(--danger);font-weight:700;">(reversed)</span>' : '') +
+            (!h.reversal_of && /^Payment correction/.test(h.remark || '') ? ' <span style="color:var(--green-800);font-weight:700;">✓ corrected entry</span>' : '') + '</p>';
+        }).join('') + '</div>';
     }
     if (extra) document.getElementById('detailArea').innerHTML += extra;
   }
@@ -6199,7 +6259,176 @@
     psBulkRender_(); psLoadDups_(); psRenderHidden_();
   }
 
+  // =================== DATE FILTERS ON EVERY LIST, direct cash memo search ===================
+  function dfToday_() { return new Date(Date.now() + 19800000).toISOString().slice(0, 10); }
+  function dfShift_(ymd, days) { const d = new Date(ymd + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10); }
+  function dfDayOf_(iso) { return iso ? new Date(new Date(iso).getTime() + 19800000).toISOString().slice(0, 10) : ''; }
+  function setDateRange_(prefix, kind) {
+    const f = document.getElementById(prefix + 'From'), to = document.getElementById(prefix + 'To'); if (!f || !to) return;
+    const today = dfToday_(); let a = '', b = '';
+    if (kind === 'today') { a = today; b = today; } else if (kind === '7d') { a = dfShift_(today, -6); b = today; } else if (kind === '30d') { a = dfShift_(today, -29); b = today; } else if (kind === 'month') { a = today.slice(0, 8) + '01'; b = today; }
+    f.value = a; to.value = b; f.dispatchEvent(new Event('change'));
+  }
+  function dateRangeOf_(prefix) { const f = document.getElementById(prefix + 'From'), to = document.getElementById(prefix + 'To'); return { from: f ? f.value : '', to: to ? to.value : '' }; }
+  function dateBarHtml_(prefix, handler) {
+    const chip = function (k, label) { return '<button class="quickbtn" type="button" onclick="setDateRange_(\'' + prefix + '\', \'' + k + '\')">' + label + '</button>'; };
+    return '<div class="card date-filter" id="' + prefix + 'DateBar" style="padding:10px 12px;"><p class="section-label" style="margin:0 0 6px;">Filter by date</p><div class="field-row"><div class="field" style="margin-bottom:6px;"><label for="' + prefix + 'From">From</label><input type="date" id="' + prefix + 'From" onchange="' + handler + '"></div><div class="field" style="margin-bottom:6px;"><label for="' + prefix + 'To">To</label><input type="date" id="' + prefix + 'To" onchange="' + handler + '"></div></div><div style="display:flex;gap:6px;flex-wrap:wrap;">' + chip('today', 'Today') + chip('7d', 'Last 7 days') + chip('month', 'This month') + chip('', 'All dates') + '</div></div>';
+  }
+  // the bills that carry exactly this cash memo number (the first or any further number of a bill)
+  async function memoInvoiceNos_(q) {
+    const s = String(q || '').trim(); if (!/^\d{1,15}$/.test(s)) return [];
+    try { const r = await sb.rpc('get_cash_memo_page', { p_desc: true, p_limit: 5, p_offset: 0, p_from: Number(s), p_to: Number(s) }); if (r.error) return []; return Array.from(new Set(((r.data && r.data.rows) || []).map(function (x) { return x.invoiceNo; }))); } catch (e) { return []; }
+  }
+  function installDateBars_() {
+    const put = function (searchId, prefix, handler, where) {
+      if (document.getElementById(prefix + 'DateBar')) return;
+      const el = document.getElementById(searchId); if (!el) return;
+      const host = where === 'before' ? el : (el.closest('.card') || el.parentElement);
+      host.insertAdjacentHTML(where === 'before' ? 'beforebegin' : 'afterend', dateBarHtml_(prefix, handler));
+    };
+    put('approvalSearch', 'approval', 'searchApprovalBills()');
+    put('acctSearch', 'acct', 'searchAccounting()');
+    put('pendingSearch', 'pending', 'renderPendingList()');
+    put('spsBillSearch', 'spsBills', "loadSpsBillList_(document.getElementById('spsBillSearch').value.trim())");
+    put('purchaseSearch', 'purchaseHist', 'searchPurchases()');
+    put('queriesList', 'queries', 'loadQueries()', 'before');
+    // Past Bill: newest / oldest first, "All dates", and the place where a cash memo hit is announced
+    const hs = document.getElementById('historySearch');
+    if (hs && !document.getElementById('historyOrderBtn')) hs.insertAdjacentHTML('afterend', '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"><button class="quickbtn" type="button" id="historyOrderBtn" onclick="historyToggleOrder_()">↓ Newest first</button><button class="quickbtn" type="button" onclick="setDateRange_(\'history\', \'\')">All dates</button></div><div id="historyMemoNote"></div>');
+    const cs = document.getElementById('customerSearch');
+    if (cs && !document.getElementById('custSortBar')) cs.closest('.card').insertAdjacentHTML('afterend', '<div class="card date-filter" id="custSortBar" style="padding:10px 12px;"><p class="section-label" style="margin:0 0 6px;">Order</p><div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="quickbtn on" type="button" data-cs="name" onclick="custSetSort_(\'name\')">A–Z</button><button class="quickbtn" type="button" data-cs="new" onclick="custSetSort_(\'new\')">Newest registered first</button></div></div>' + dateBarHtml_('custReg', 'searchCustomersTab()').replace('Filter by date', 'Registered between'));
+  }
+  let historyAsc_ = false, historySkipMemo_ = false;
+  function historyToggleOrder_() { historyAsc_ = !historyAsc_; const b = document.getElementById('historyOrderBtn'); if (b) b.textContent = historyAsc_ ? '↑ Oldest first' : '↓ Newest first'; searchHistory(); }
+  function historyOtherMatches_() { historySkipMemo_ = true; searchHistory(); }
+
+  // =================== CORRECT A WRONG PAYMENT ENTRY (main admin only) ===================
+  // The wrong entry is KEPT and reversed by a minus entry on the same day; the right entry is added; the bill (cash, online, balance, status) and the customer's wallet follow, all in one step.
+  let PC_ = null;
+  function pcMoney_(n) { return money(Number(n) || 0); }
+  async function renderBillPayCorrections_(invoiceNo) {
+    if (!isSuperAdminUser) return;
+    let box = document.getElementById('billPayCorrArea');
+    if (!box) { const h = document.getElementById('billEditHistoryArea'); if (!h) return; box = document.createElement('div'); box.id = 'billPayCorrArea'; h.insertAdjacentElement('afterend', box); }
+    box.innerHTML = '';
+    const { data, error } = await sb.rpc('get_bill_payment_corrections', { p_invoice_no: invoiceNo });
+    if (error || !Array.isArray(data) || !data.length) return;
+    if (!currentDetailBill || currentDetailBill.invoiceNo !== invoiceNo) return;
+    box.innerHTML = '<div class="card" style="margin-top:8px;box-shadow:none;"><p class="section-label">Payment corrections (main admin)</p>' + data.map(function (c) {
+      const added = (c.added || []).map(function (a) { return a.mode + ' ' + pcMoney_(a.amount) + (a.utr ? ' UTR ' + escapeHtml(a.utr) : ''); }).join(', ');
+      return '<div style="border-top:1px solid var(--line);padding:6px 0;"><div style="font-size:12px;font-weight:700;color:var(--green-900);">' + escapeHtml(new Date(c.at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })) + '</div>' +
+        '<div class="hint" style="margin:2px 0 0;">Reversed ' + trimNum((c.reversedIds || []).length) + ' entr' + ((c.reversedIds || []).length === 1 ? 'y' : 'ies') + (added ? ' · added: ' + added : '') + '</div>' +
+        '<div class="hint" style="margin:2px 0 0;">Cash ' + pcMoney_(c.cashBefore) + ' → ' + pcMoney_(c.cashAfter) + ' · Online ' + pcMoney_(c.onlineBefore) + ' → ' + pcMoney_(c.onlineAfter) + ' · ' + escapeHtml(c.statusBefore || '') + ' → ' + escapeHtml(c.statusAfter || '') +
+        (Math.abs(Number(c.walletDelta)) > 0.005 ? ' · wallet ' + (Number(c.walletDelta) > 0 ? '+' : '') + pcMoney_(c.walletDelta) : '') + '</div>' + (c.note ? '<div class="hint" style="margin:2px 0 0;">“' + escapeHtml(c.note) + '”</div>' : '') + '</div>';
+    }).join('') + '</div>';
+  }
+  async function openPaymentCorrection_() {
+    const bill = currentDetailBill; if (!bill || !isSuperAdminUser) return;
+    const { data, error } = await sb.from('payments').select('*').eq('invoice_no', bill.invoiceNo).order('payment_date', { ascending: true });
+    if (error) { showToast(error.message, true); return; }
+    PC_ = { bill: bill, rows: data || [], ticked: {}, news: [], seq: 0, t: null, ok: false };
+    const due = (bill.customerType === 'Retail' ? bill.netAmount : bill.totalDP) + (Number(bill.transportCharges) || 0);
+    document.getElementById('pcSub').textContent = bill.invoiceNo + ' · ' + (bill.customerName || 'Walk-in');
+    document.getElementById('pcNow').innerHTML = '<div class="es-box"><strong>Now on the bill:</strong> Cash ' + pcMoney_(bill.cash) + ' · Online ' + pcMoney_(bill.online) + ((Number(bill.walletUsed) || 0) > 0.005 ? ' · Wallet ' + pcMoney_(bill.walletUsed) : '') + ' · Bill ' + pcMoney_(due) + ' · ' + (bill.balance < -0.005 ? 'Due ' + pcMoney_(-bill.balance) : 'Settled') + '</div>';
+    document.getElementById('pcNote').value = ''; document.getElementById('pcShot').value = ''; document.getElementById('pcShotStatus').innerHTML = '';
+    document.getElementById('pcPreview').innerHTML = ''; document.getElementById('pcError').textContent = ''; document.getElementById('pcGo').disabled = true;
+    pcRenderEntries_(); pcRenderNew_();
+    document.getElementById('payCorrModal').classList.add('show');
+    pcChanged_();
+  }
+  function closePayCorr_() { if (PC_) PC_.seq++; document.getElementById('payCorrModal').classList.remove('show'); }
+  function pcRenderEntries_() {
+    const rows = PC_.rows, box = document.getElementById('pcEntries');
+    const reversed = {}; rows.forEach(function (r) { if (r.reversal_of) reversed[r.reversal_of] = true; });
+    box.innerHTML = rows.length ? rows.map(function (r) {
+      const was = !!reversed[r.id], isRev = !!r.reversal_of, tick = !!PC_.ticked[r.id], amt = Number(r.amount) || 0;
+      return '<div class="ps-row pc-entry" data-id="' + r.id + '" style="' + (was ? 'opacity:.6;' : '') + '"><input type="checkbox" class="pc-tick" data-id="' + r.id + '"' + (was ? ' disabled' : '') + (tick ? ' checked' : '') + ' aria-label="This entry is wrong: ' + escapeHtml(r.mode) + ' ' + amt + '">' +
+        '<div class="ps-main"><div class="ps-title' + (was ? '" style="text-decoration:line-through;' : '') + '">' + escapeHtml(new Date(r.payment_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })) + ' · <strong>' + escapeHtml(r.mode) + '</strong> ' + pcMoney_(amt) + (r.utr_no ? ' · UTR ' + escapeHtml(r.utr_no) : '') + '</div>' +
+        '<div><span class="ps-chip dim">' + escapeHtml(r.remark || 'Payment') + '</span>' + (was ? '<span class="ps-chip bad">↩ already reversed</span>' : '') + (isRev ? '<span class="ps-chip warn">reversal - ticking it brings the first entry back</span>' : '') + '</div>' +
+        (tick && !isRev && amt > 0 ? '<div class="ps-actions"><button class="quickbtn" type="button" data-swap="' + r.id + '">It was ' + (r.mode === 'Cash' ? 'ONLINE' : 'CASH') + ' (same amount)</button></div>' : '') + '</div></div>';
+    }).join('') : '<div class="empty-cart">This bill has no payment entries.</div>';
+    box.querySelectorAll('.pc-tick').forEach(function (c) { c.addEventListener('change', function () { if (c.checked) PC_.ticked[c.dataset.id] = true; else delete PC_.ticked[c.dataset.id]; pcRenderEntries_(); pcChanged_(); }); });
+    box.querySelectorAll('button[data-swap]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const r = PC_.rows.find(function (x) { return String(x.id) === b.dataset.swap; }); if (!r) return;
+        PC_.news.push({ id: ++PC_.seq + 5000, mode: r.mode === 'Cash' ? 'Online' : 'Cash', amount: String(Math.abs(Number(r.amount))), utr: '', date: '' });
+        pcRenderNew_(); pcChanged_();
+        const u = document.querySelector('#pcNew .pc-new[data-id="' + PC_.news[PC_.news.length - 1].id + '"] .pc-utr'); if (u && PC_.news[PC_.news.length - 1].mode === 'Online') u.focus();
+      });
+    });
+  }
+  function pcRenderNew_() {
+    document.getElementById('pcNew').innerHTML = PC_.news.map(function (n) {
+      return '<div class="es-line pc-new" data-id="' + n.id + '"><div class="es-name">Right entry</div><div class="field-row">' +
+        '<div class="field"><label>Mode</label><select class="pc-mode" data-id="' + n.id + '"><option' + (n.mode === 'Cash' ? ' selected' : '') + '>Cash</option><option' + (n.mode === 'Online' ? ' selected' : '') + '>Online</option></select></div>' +
+        '<div class="field"><label>Amount ₹</label><input type="number" class="pc-amt" data-id="' + n.id + '" inputmode="decimal" step="0.01" min="0" value="' + escapeHtml(String(n.amount)) + '"></div></div>' +
+        (n.mode === 'Online' ? '<div class="field"><label>UTR number</label><input type="text" class="pc-utr" data-id="' + n.id + '" autocomplete="off" placeholder="Transaction reference number" value="' + escapeHtml(n.utr) + '"></div>' : '') +
+        '<div class="field"><label>Date <span style="font-weight:500;color:var(--ink-soft);">(leave empty = the same day as the wrong entry)</span></label><input type="date" class="pc-date" data-id="' + n.id + '" value="' + escapeHtml(n.date) + '"></div>' +
+        '<button class="quickbtn" type="button" data-rm="' + n.id + '">✕ Remove this entry</button></div>';
+    }).join('');
+    const box = document.getElementById('pcNew'), by = function (id) { return PC_.news.find(function (x) { return String(x.id) === String(id); }); };
+    box.querySelectorAll('.pc-mode').forEach(function (s) { s.addEventListener('change', function () { const n = by(s.dataset.id); if (n) { n.mode = s.value; if (n.mode === 'Cash') n.utr = ''; pcRenderNew_(); pcChanged_(); } }); });
+    box.querySelectorAll('.pc-amt').forEach(function (s) { s.addEventListener('input', function () { const n = by(s.dataset.id); if (n) { n.amount = s.value; pcChanged_(); } }); });
+    box.querySelectorAll('.pc-utr').forEach(function (s) { s.addEventListener('input', function () { const n = by(s.dataset.id); if (n) { n.utr = s.value; pcChanged_(); } }); });
+    box.querySelectorAll('.pc-date').forEach(function (s) { s.addEventListener('change', function () { const n = by(s.dataset.id); if (n) { n.date = s.value; pcChanged_(); } }); });
+    box.querySelectorAll('button[data-rm]').forEach(function (b) { b.addEventListener('click', function () { PC_.news = PC_.news.filter(function (x) { return String(x.id) !== b.dataset.rm; }); pcRenderNew_(); pcChanged_(); }); });
+  }
+  function pcAddRow_(mode) { PC_.news.push({ id: ++PC_.seq + 5000, mode: mode, amount: '', utr: '', date: '' }); pcRenderNew_(); pcChanged_(); }
+  function pcArgs_(apply) {
+    return { p_invoice_no: PC_.bill.invoiceNo, p_reverse_ids: Object.keys(PC_.ticked).map(Number),
+      p_new: PC_.news.map(function (n) { const o = { mode: n.mode, amount: Number(n.amount) || 0, utr: n.mode === 'Online' ? (String(n.utr || '').trim() || null) : null }; if (n.date) o.date = new Date(n.date + 'T12:00:00+05:30').toISOString(); return o; }),
+      p_note: (document.getElementById('pcNote').value || '').trim() || null, p_apply: apply };
+  }
+  function pcChanged_() {
+    if (!PC_) return;
+    clearTimeout(PC_.t); const mine = ++PC_.seq; PC_.ok = false;
+    document.getElementById('pcGo').disabled = true; document.getElementById('pcError').textContent = '';
+    PC_.t = setTimeout(async function () {
+      const a = pcArgs_(false);
+      if (!a.p_reverse_ids.length && !a.p_new.length) { document.getElementById('pcPreview').innerHTML = ''; document.getElementById('pcError').textContent = 'Tick the wrong entry, and add the right one.'; return; }
+      const { data, error } = await sb.rpc('correct_bill_payment', a);
+      if (!PC_ || mine !== PC_.seq) return;
+      if (error) {
+        document.getElementById('pcPreview').innerHTML = '';
+        document.getElementById('pcError').innerHTML = /could not find the function|schema cache/i.test(error.message || '') ? 'This needs the database update <strong>payment_correction.sql</strong>. Please run it in Supabase first.' : escapeHtml(error.message);
+        return;
+      }
+      const s = data;
+      document.getElementById('pcPreview').innerHTML = '<div class="es-box es-ok"><strong>After the correction</strong><div>Cash ' + pcMoney_(s.cashBefore) + ' → <strong>' + pcMoney_(s.cashAfter) + '</strong> · Online ' + pcMoney_(s.onlineBefore) + ' → <strong>' + pcMoney_(s.onlineAfter) + '</strong></div>' +
+        '<div>' + escapeHtml(s.statusBefore || '') + ' → <strong>' + escapeHtml(s.statusAfter || '') + '</strong> · ' + (s.balanceAfter < -0.005 ? 'Due <strong>' + pcMoney_(-s.balanceAfter) + '</strong>' : 'Settled') + '</div>' +
+        (Math.abs(Number(s.walletDelta)) > 0.005 ? '<div>Customer wallet ' + (Number(s.walletDelta) > 0 ? '+' : '') + pcMoney_(s.walletDelta) + '</div>' : '') +
+        '<div class="hint" style="margin-top:6px;">The wrong entr' + (a.p_reverse_ids.length === 1 ? 'y stays' : 'ies stay') + ' in the list, marked reversed, with a minus entry on the same day. Nothing is deleted.</div></div>';
+      PC_.ok = true; document.getElementById('pcGo').disabled = false;
+    }, 300);
+  }
+  async function pcShotChosen_(input) {
+    const bill = PC_ && PC_.bill; if (!bill) return;
+    psSimpleRead_(input, 'pcShotStatus', psMobileOf_(bill), !!bill.pastEntry, function (r) {
+      let n = PC_.news.find(function (x) { return x.mode === 'Online' && !String(x.utr || '').trim(); }) || PC_.news.find(function (x) { return x.mode === 'Online'; });
+      if (!n) { n = { id: ++PC_.seq + 5000, mode: 'Online', amount: '', utr: '', date: '' }; PC_.news.push(n); }
+      if (r.amount) n.amount = String(r.amount);
+      if (r.utr) n.utr = r.utr;
+      pcRenderNew_(); pcChanged_();
+    }, null);
+  }
+  async function pcApply_() {
+    if (!PC_ || !PC_.ok) return;
+    const a = pcArgs_(true), bill = PC_.bill;
+    const wrong = PC_.rows.filter(function (r) { return PC_.ticked[r.id]; }).map(function (r) { return r.mode + ' ' + pcMoney_(r.amount) + (r.utr_no ? ' (UTR ' + r.utr_no + ')' : ''); });
+    const right = a.p_new.map(function (n) { return n.mode + ' ' + pcMoney_(n.amount) + (n.utr ? ' (UTR ' + n.utr + ')' : ''); });
+    if (!confirm('Correct the payment of ' + bill.invoiceNo + '?\n\nReverse: ' + (wrong.join(', ') || 'nothing') + '\nAdd: ' + (right.join(', ') || 'nothing') + '\n\nThe wrong entries stay in the list, marked reversed, with a minus entry on the same day. Nothing is deleted. The bill, the cash / online totals and the customer wallet are updated.')) return;
+    const btn = document.getElementById('pcGo'); btn.disabled = true; btn.textContent = 'Correcting…';
+    const { error } = await sb.rpc('correct_bill_payment', a);
+    btn.textContent = 'Reverse and correct';
+    if (error) { btn.disabled = false; showToast(error.message, true); return; }
+    showToast('Payment corrected.');
+    closePayCorr_();
+    await viewBill(bill.invoiceNo, false);
+    refreshActiveBillList_();
+  }
+
   // =================== CASH MEMO REGISTER (Past Bill > Cash Memo) - staff and main admin ===================
+  document.addEventListener('DOMContentLoaded', installDateBars_); if (document.readyState !== 'loading') installDateBars_();
   // Everything is worked out on the server (cash_memo_register.sql): the serial list, the numbers missing from it, repeated numbers,
   // and the bills that have no memo yet (a memo can be saved on those).
   function switchHistorySubtab_(name) {
@@ -6280,7 +6509,7 @@
     Array.prototype.forEach.call(document.querySelectorAll('#cmPills .cm-pill'), function (b) { b.classList.toggle('active', b.dataset.view === name); });
     const loading = '<div class="empty-cart">Loading…</div>';
     if (name === 'serial') {
-      body.innerHTML = '<div class="cm-controls"><input type="text" id="cmSearchInput" class="search-input" inputmode="numeric" placeholder="Go to memo no. e.g. 1024" value="' + escapeHtml(cmSearch_) + '" oninput="cmSearchChanged_(this.value)"><button class="btn btn-outline" type="button" id="cmOrderBtn" onclick="cmToggleOrder_()">' + (cmDesc_ ? '↓ Newest first' : '↑ Oldest first') + '</button></div><div id="cmList"></div>';
+      body.innerHTML = '<div class="cm-controls"><input type="text" id="cmSearchInput" class="search-input" inputmode="numeric" placeholder="Go to memo no. e.g. 1024" value="' + escapeHtml(cmSearch_) + '" oninput="cmSearchChanged_(this.value)"><button class="btn btn-outline" type="button" id="cmOrderBtn" onclick="cmToggleOrder_()">' + (cmDesc_ ? '↓ Newest first' : '↑ Oldest first') + '</button></div><div class="field-row" style="margin:8px 0 0;"><div class="field" style="margin-bottom:6px;"><label for="cmDateFrom">Bill date from</label><input type="date" id="cmDateFrom" value="' + escapeHtml(cmDates_.from) + '" onchange="cmDateChanged_()"></div><div class="field" style="margin-bottom:6px;"><label for="cmDateTo">to</label><input type="date" id="cmDateTo" value="' + escapeHtml(cmDates_.to) + '" onchange="cmDateChanged_()"></div></div><div id="cmList"></div>';
       await cmLoadSerial_();
     } else if (name === 'missing') {
       renderCmMissing_();
@@ -6312,16 +6541,24 @@
   function cmToggleOrder_() { cmDesc_ = !cmDesc_; cmPage_ = 0; document.getElementById('cmOrderBtn').textContent = cmDesc_ ? '↓ Newest first' : '↑ Oldest first'; cmLoadSerial_(); }
   function cmSearchChanged_(v) { const c = String(v || '').replace(/\D/g, '').slice(0, 15), el = document.getElementById('cmSearchInput'); if (el && el.value !== c) el.value = c; cmSearch_ = c; clearTimeout(cmTimer_); cmTimer_ = setTimeout(function () { cmPage_ = 0; cmLoadSerial_(); }, 300); }
   function cmNoSearchChanged_(v) { cmNoSearch_ = String(v || ''); clearTimeout(cmTimer_); cmTimer_ = setTimeout(function () { cmNoPage_ = 0; cmLoadNoMemo_(); }, 300); }
+  let cmDates_ = { from: '', to: '' };
+  function cmDateChanged_() { cmDates_ = dateRangeOf_('cmDate'); cmPage_ = 0; cmLoadSerial_(); }
   async function cmLoadSerial_() {
     const box = document.getElementById('cmList'); if (!box) return;
     const my = ++cmViewReq_, num = /^\d{1,15}$/.test(cmSearch_) ? Number(cmSearch_) : null;
     box.innerHTML = '<div class="empty-cart">Loading…</div>';
-    const { data, error } = await sb.rpc('get_cash_memo_page', { p_desc: cmDesc_, p_limit: CM_PAGE_, p_offset: cmPage_ * CM_PAGE_, p_from: num != null ? num : cmFrom_, p_to: num != null ? num : null });
+    const { data, error } = await sb.rpc('get_cash_memo_page', Object.assign({ p_desc: cmDesc_, p_limit: CM_PAGE_, p_offset: cmPage_ * CM_PAGE_, p_from: num != null ? num : cmFrom_, p_to: num != null ? num : null }, (cmDates_.from || cmDates_.to) ? { p_date_from: cmDates_.from || null, p_date_to: cmDates_.to || null } : {}));
     if (my !== cmViewReq_ || !document.getElementById('cmList')) return;
     if (error) { box.innerHTML = '<div class="empty-cart">Could not load: ' + escapeHtml(error.message) + '</div>'; return; }
     const rows = (data && data.rows) || [], total = (data && data.total) || 0; cmSerialTotal_ = total;
     box.innerHTML = rows.length ? rows.map(cmRow_).join('') + cmPager_(total, cmPage_)
-      : '<div class="empty-cart">' + (num != null ? 'No bill has cash memo ' + num + '. If it is not in the serial it may be listed under <strong>Missing</strong>.' : 'No numbered cash memos yet.') + '</div>';
+      : '<div class="empty-cart">' + (num != null ? 'No bill has cash memo ' + num + '. If it is not in the serial it may be listed under <strong>Missing</strong>.' : (cmDates_.from || cmDates_.to ? 'No numbered cash memos on bills of these dates.' : 'No numbered cash memos yet.')) + '</div>';
+    if (!rows.length && num != null) {
+      const lo = await sb.rpc('get_cash_memo_page', { p_desc: true, p_limit: 1, p_offset: 0, p_from: null, p_to: num - 1 }), hi = await sb.rpc('get_cash_memo_page', { p_desc: false, p_limit: 1, p_offset: 0, p_from: num + 1, p_to: null });
+      if (my !== cmViewReq_ || !document.getElementById('cmList')) return;
+      const near = ((lo.data && lo.data.rows) || []).concat((hi.data && hi.data.rows) || []);
+      if (near.length) box.innerHTML += '<p class="hint" id="cmNearHint" style="margin:10px 0 6px;">The nearest memo numbers:</p>' + near.map(cmRow_).join('');
+    }
     cmWire_(box);
   }
   async function cmLoadNoMemo_() {
@@ -6629,6 +6866,7 @@
       return;
     }
     const isPending = bill.billStatus === 'Pending';
+    const payCorrBtn = (isSuperAdminUser && !isPending && bill.billStatus !== 'Cancelled') ? '<div class="modal-actions"><button class="btn btn-outline btn-block" id="payCorrBtn" onclick="openPaymentCorrection_()">✎ Correct payment (reverse a wrong entry)</button></div>' : '';
     const dateBtn = isSuperAdminUser ? '<div class="modal-actions"><button class="btn btn-outline btn-block" id="correctDateBtn" onclick="openChangeBillDate()">📅 Correct bill date (all records)</button></div>' : '';
     const blockers = billEditBlockers_(bill);
     const officialDone = (Number(bill.officialCount) || 0) > 0;
@@ -6647,6 +6885,7 @@
       (isPending ? '<div class="modal-actions"><button class="btn btn-primary btn-block" onclick="proceedFurther()">Proceed Further</button></div>' :
         '<div class="modal-actions"><button class="btn btn-outline btn-block" onclick="openEditTransportCharges(\'' + bill.invoiceNo + '\', ' + (Number(bill.transportCharges) || 0) + ')">✏️ Edit Rapido/Bus/Transport Charges</button></div>') +
       dateBtn +
+      payCorrBtn +
       deleteBtn;
   }
 
@@ -6997,7 +7236,9 @@
   async function loadAccounting() {
     const box = document.getElementById('acctList');
     box.innerHTML = '<div class="empty-cart">Loading…</div>';
-    const { data, error } = await sb.from('invoices').select('*').lt('balance', -0.005).eq('bill_status', 'Active').order('invoice_date', { ascending: false });
+    let dq = sb.from('invoices').select('*').lt('balance', -0.005).eq('bill_status', 'Active').order('invoice_date', { ascending: false });
+    const dr0 = dateRangeOf_('acct'); if (dr0.from) dq = dq.gte('invoice_date', dr0.from + 'T00:00:00'); if (dr0.to) dq = dq.lte('invoice_date', dr0.to + 'T23:59:59');
+    const { data, error } = await dq;
     if (error) { box.innerHTML = '<div class="empty-cart">Could not load bills.</div>'; return; }
     renderAccountingList(data || []);
   }
@@ -7005,7 +7246,10 @@
   async function searchAccounting() {
     const q = document.getElementById('acctSearch').value.trim();
     if (!q) { loadAccounting(); return; }
-    const { data, error } = await sb.from('invoices').select('*').eq('bill_status', 'Active').or('invoice_no.ilike.%' + q + '%,customer_name.ilike.%' + q + '%,mobile.ilike.%' + q + '%').order('invoice_date', { ascending: false });
+    const memo = await memoInvoiceNos_(q);
+    let sq = sb.from('invoices').select('*').eq('bill_status', 'Active').or('invoice_no.ilike.%' + q + '%,customer_name.ilike.%' + q + '%,mobile.ilike.%' + q + '%' + (memo.length ? ',invoice_no.in.(' + memo.join(',') + ')' : '')).order('invoice_date', { ascending: false });
+    const dr1 = dateRangeOf_('acct'); if (dr1.from) sq = sq.gte('invoice_date', dr1.from + 'T00:00:00'); if (dr1.to) sq = sq.lte('invoice_date', dr1.to + 'T23:59:59');
+    const { data, error } = await sq;
     if (error) { showToast(error.message, true); return; }
     renderAccountingList(data || []);
   }
@@ -7053,7 +7297,9 @@
           String(inv.mobile || '').indexOf(q) > -1;
       });
     }
-    if (!invoices.length) { box.innerHTML = '<div class="empty-cart">' + (q ? 'No matching bills.' : 'Nothing pending — all caught up.') + '</div>'; return; }
+    const pdr = dateRangeOf_('pending');
+    if (pdr.from || pdr.to) invoices = invoices.filter(function (inv) { const d = dfDayOf_(inv.date); return (!pdr.from || d >= pdr.from) && (!pdr.to || d <= pdr.to); });
+    if (!invoices.length) { box.innerHTML = '<div class="empty-cart">' + (q || pdr.from || pdr.to ? 'No matching bills.' : 'Nothing pending — all caught up.') + '</div>'; return; }
     box.innerHTML = invoices.map(function (inv) {
       const dateStr = inv.date ? new Date(inv.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '';
       return '<div class="list-row" data-inv="' + inv.invoiceNo + '"><div><div class="result-name">' + inv.invoiceNo + '</div><div class="result-meta">' + escapeHtml(inv.customer || 'Walk-in') + (inv.mobile ? ' · ' + escapeHtml(String(inv.mobile)) : '') + ' · ' + dateStr + '</div></div><span class="badge badge-partial">' + inv.items.length + ' item' + (inv.items.length > 1 ? 's' : '') + '</span></div>';
@@ -7511,19 +7757,32 @@
     }
   }
 
-  function searchCustomersTab() {
+    let custPage_ = 0, custSort_ = 'name', custTotal_ = 0; const CUST_PAGE_ = 50;
+  function custSetSort_(s) { custSort_ = s; Array.prototype.forEach.call(document.querySelectorAll('#custSortBar [data-cs]'), function (b) { b.classList.toggle('on', b.dataset.cs === s); }); searchCustomersTab(); }
+  function custLoadMore_() { custPage_++; searchCustomersTab(true); }
+  function searchCustomersTab(keepPage) {
     clearTimeout(customerSearchDebounce);
+    if (keepPage !== true) custPage_ = 0;
     customerSearchDebounce = setTimeout(async function () {
-      const q = document.getElementById('customerSearch').value.trim();
-      let query = sb.from('customers').select('*').order('name', { ascending: true }).limit(50);
-      if (q) query = query.or('name.ilike.%' + q + '%,mobile.ilike.%' + q + '%');
-      const { data, error } = await query;
+      const q = document.getElementById('customerSearch').value.trim(), dr = dateRangeOf_('custReg');
+      let query = sb.from('customers').select('*', { count: 'exact' });
+      query = custSort_ === 'new' ? query.order('created_at', { ascending: false }) : query.order('name', { ascending: true });
+      if (q) { const safe = q.replace(/[%,()]/g, ' '); query = query.or('name.ilike.%' + safe + '%,mobile.ilike.%' + safe + '%,id_no.ilike.%' + safe + '%'); }
+      if (dr.from) query = query.gte('created_at', dr.from + 'T00:00:00'); if (dr.to) query = query.lte('created_at', dr.to + 'T23:59:59');
+      const { data, error, count } = await query.range(0, (custPage_ + 1) * CUST_PAGE_ - 1);
       if (error) { showToast(error.message, true); return; }
+      custTotal_ = count == null ? (data || []).length : count;
       renderCustomersList(data || []);
     }, 250);
   }
 
   function renderCustomersList(rows) {
+    renderCustomersListRows_(rows);
+    if (!rows.length) return;
+    const box = document.getElementById('customersList');
+    box.insertAdjacentHTML('beforeend', '<div class="hint" id="custCountLine" style="text-align:center;margin:10px 0;">Showing ' + rows.length + ' of ' + custTotal_ + ' customer' + (custTotal_ === 1 ? '' : 's') + '</div>' + (rows.length < custTotal_ ? '<button class="btn btn-outline btn-block" id="custMoreBtn" type="button" onclick="custLoadMore_()">Load more customers</button>' : ''));
+  }
+  function renderCustomersListRows_(rows) {
     const box = document.getElementById('customersList');
     if (!rows.length) { box.innerHTML = '<div class="empty-cart">No customers found.</div>'; return; }
     box.innerHTML = rows.map(function (c) {
@@ -7539,7 +7798,7 @@
     document.getElementById('customerDetailName').textContent = (name || 'Customer').toUpperCase();
     document.getElementById('customerDetailMobile').textContent = mobile || '';
     document.getElementById('customerDetailModal').classList.add('show');
-    setCustomerRange('today');
+    custStatus_ = 'all'; setCustomerRange('all');
 
     const extraBox = document.getElementById('customerDetailExtra');
     extraBox.style.display = 'none';
@@ -7555,13 +7814,21 @@
     }
   }
 
-  function setCustomerRange(preset) {
-    const now = new Date(); let from = new Date(now), label = 'Today';
-    if (preset === 'week') { const day = now.getDay(); const daysSinceThursday = (day - 4 + 7) % 7; from = new Date(now); from.setDate(now.getDate() - daysSinceThursday); label = 'This week (Thu–Wed)'; }
+    function setCustomerRange(preset) {
+    const now = new Date(); let from = new Date(now), label = 'Today', clear = false;
+    if (preset === 'all') { clear = true; label = 'All time'; }
+    else if (preset === 'week') { const day = now.getDay(); const daysSinceThursday = (day - 4 + 7) % 7; from = new Date(now); from.setDate(now.getDate() - daysSinceThursday); label = 'This week (Thu–Wed)'; }
     else if (preset === 'month') { from = new Date(now.getFullYear(), now.getMonth(), 1); label = 'This month'; }
-    document.getElementById('customerFromDate').value = fmtDateInput_(from);
-    document.getElementById('customerToDate').value = fmtDateInput_(now);
+    else if (preset === '30d') { from = new Date(now); from.setDate(now.getDate() - 29); label = 'Last 30 days'; }
+    document.getElementById('customerFromDate').value = clear ? '' : fmtDateInput_(from);
+    document.getElementById('customerToDate').value = clear ? '' : fmtDateInput_(now);
     document.getElementById('customerRangeLabel').textContent = label;
+    loadCustomerBills();
+  }
+  let custStatus_ = 'all', custReq_ = 0;
+  function setCustomerStatus_(s) {
+    custStatus_ = s;
+    Array.prototype.forEach.call(document.querySelectorAll('#custStatusChips .quickbtn'), function (b) { b.classList.toggle('on', b.dataset.st === s); });
     loadCustomerBills();
   }
 
@@ -7570,7 +7837,7 @@
     let digits = String(currentCustomerMobile || '').replace(/\D/g, '');
     if (!digits) { showToast('No mobile number for this customer.', true); return; }
     if (digits.length === 10) digits = '91' + digits;
-    const dueBills = currentCustomerBills.filter(function (b) { return b.balance < -0.005; });
+    const dueBills = currentCustomerBills.filter(function (b) { return b.billStatus === 'Active' && b.balance < -0.005; });
     let text = 'Hi ' + currentCustomerName + ', this is a payment reminder from Mahakal Wellness. You have pending dues on the following bill' + (dueBills.length > 1 ? 's' : '') + ':\n\n';
     dueBills.forEach(function (b, idx) {
       const dateStr = new Date(b.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -7580,50 +7847,47 @@
     window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(text), '_blank');
   }
 
-  async function loadCustomerBills() {
+    async function loadCustomerBills() {
     if (!currentCustomerMobile) return;
-    const from = document.getElementById('customerFromDate').value, to = document.getElementById('customerToDate').value;
+    const from = document.getElementById('customerFromDate').value, to = document.getElementById('customerToDate').value, mine = ++custReq_;
     document.getElementById('customerBillsList').innerHTML = '<div class="empty-cart">Loading…</div>';
-    let query = sb.from('invoices').select('*').eq('mobile', currentCustomerMobile);
-    if (from) query = query.gte('invoice_date', from + 'T00:00:00'); if (to) query = query.lte('invoice_date', to + 'T23:59:59');
-    const { data: bills, error } = await query.order('invoice_date', { ascending: false });
-    if (error) { document.getElementById('customerBillsList').innerHTML = '<div class="empty-cart">Could not load bills.</div>'; return; }
-
-    const enriched = [];
-    for (const b of (bills || [])) {
-      const { data: items } = await sb.from('invoice_items').select('pending_qty').eq('invoice_no', b.invoice_no);
-      const { data: official } = await sb.from('official_sessions').select('total_sp_used').eq('invoice_no', b.invoice_no);
-      const pendingQty = (items || []).reduce(function (s, it) { return s + (Number(it.pending_qty) || 0); }, 0);
-      const spUsed = (official || []).reduce(function (s, o) { return s + (Number(o.total_sp_used) || 0); }, 0);
-      enriched.push({ invoiceNo: b.invoice_no, date: b.invoice_date, totalQty: b.total_qty, totalDP: b.total_dp, totalSP: b.total_sp, balance: b.balance, pendingQty: pendingQty, spRemaining: Math.max(0, b.total_sp - spUsed) });
-    }
-    const summary = { totalAmount: 0, totalSP: 0, totalQty: 0, totalBalance: 0, totalSPRemaining: 0, totalPendingQty: 0 };
-    enriched.forEach(function (b) { summary.totalAmount += b.totalDP; summary.totalSP += b.totalSP; summary.totalQty += b.totalQty; if (b.balance < -0.005) summary.totalBalance += -b.balance; summary.totalSPRemaining += b.spRemaining; summary.totalPendingQty += b.pendingQty; });
-    currentCustomerBills = enriched;
-    renderCustomerBillsSummary({ bills: enriched, summary: summary });
+    const { data, error } = await sb.rpc('get_customer_summary', { p_mobile: currentCustomerMobile, p_from: from || null, p_to: to || null, p_status: custStatus_ });
+    if (mine !== custReq_) return;
+    if (error) { document.getElementById('customerBillsList').innerHTML = '<div class="empty-cart">' + (/could not find the function|schema cache/i.test(error.message || '') ? 'This needs the database update <strong>customer_and_memo_tools.sql</strong>. Please run it in Supabase first.' : 'Could not load: ' + escapeHtml(error.message)) + '</div>'; return; }
+    currentCustomerBills = (data.bills || []).map(function (b) { return { invoiceNo: b.invoiceNo, date: b.date, balance: Number(b.balance), billStatus: b.billStatus }; });
+    renderCustomerBillsSummary(data);
   }
 
   let currentCustomerTotalDue = 0;
-  function renderCustomerBillsSummary(data) {
-    const s = data.summary;
-    document.getElementById('custTotalAmount').textContent = money(s.totalAmount);
-    document.getElementById('custTotalSP').textContent = trimNum(s.totalSP);
-    document.getElementById('custTotalQty').textContent = trimNum(s.totalQty);
-    document.getElementById('custTotalBalance').textContent = money(s.totalBalance);
-    document.getElementById('custTotalSPRemaining').textContent = trimNum(s.totalSPRemaining);
-    document.getElementById('custTotalPendingQty').textContent = trimNum(s.totalPendingQty);
-    currentCustomerTotalDue = s.totalBalance;
-    document.getElementById('custReminderBtn').style.display = s.totalBalance > 0.005 ? 'block' : 'none';
+    function renderCustomerBillsSummary(data) {
+    const a = data.approved || {}, ap = data.approval || {}, cx = data.cancelled || {};
+    document.getElementById('custTotalAmount').textContent = money(a.amount);
+    document.getElementById('custTotalSP').textContent = trimNum(a.sp);
+    document.getElementById('custTotalQty').textContent = trimNum(a.qty);
+    document.getElementById('custTotalBalance').textContent = money(a.due);
+    document.getElementById('custTotalSPRemaining').textContent = trimNum(a.spRemaining);
+    document.getElementById('custTotalPendingQty').textContent = trimNum(a.pendingQty);
+    currentCustomerTotalDue = Number(a.due) || 0;
+    document.getElementById('custReminderBtn').style.display = currentCustomerTotalDue > 0.005 ? 'block' : 'none';
+    const day = function (iso) { return iso ? new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'; };
+    document.getElementById('custApprovalBox').innerHTML = Number(ap.bills) > 0
+      ? '<div class="memo-note" id="custApprovalNote" style="background:var(--gold-100);border:1.5px solid var(--gold-500);"><strong>⏳ ' + ap.bills + ' bill' + (ap.bills === 1 ? ' is' : 's are') + ' in approval</strong> · ' + money(ap.amount) + '<br><span class="hint">Not counted in the amounts above or in the due. <a href="#" onclick="setCustomerStatus_(\'approval\'); return false;">Show ' + (ap.bills === 1 ? 'it' : 'them') + '</a></span></div>' : '';
+    document.getElementById('custSummaryExtra').innerHTML = '<div class="es-box" id="custSummaryBox"><div><strong>' + (a.bills || 0) + '</strong> approved bill' + (a.bills === 1 ? '' : 's') + ' · <strong>' + (a.dueBills || 0) + '</strong> with due · ' + (ap.bills || 0) + ' in approval · ' + (cx.bills || 0) + ' cancelled</div>' +
+      '<div>Paid: Cash ' + money(a.cash) + ' · Online ' + money(a.online) + ((Number(a.walletUsed) || 0) > 0.005 ? ' · Wallet ' + money(a.walletUsed) : '') + '</div>' +
+      '<div>First bill ' + day(data.first) + ' · Last bill ' + day(data.last) + ' · Wallet balance ' + money(data.wallet) + '</div>' +
+      ((data.topProducts || []).length ? '<div>Most bought: ' + data.topProducts.map(function (p) { return escapeHtml(p.name) + ' ×' + trimNum(p.qty); }).join(', ') + '</div>' : '') + '</div>';
+    document.getElementById('custBillsLabel').textContent = 'Bills' + (custStatus_ !== 'all' ? ' (' + ({ approval: 'in approval', approved: 'approved', due: 'with due', cancelled: 'cancelled' }[custStatus_] || custStatus_) + ')' : '') + (data.total > (data.shown || 0) && custStatus_ === 'all' ? ' - newest ' + data.shown + ' of ' + data.total : '');
     const box = document.getElementById('customerBillsList');
-    if (!data.bills.length) { box.innerHTML = '<div class="empty-cart">No bills in this range.</div>'; return; }
+    if (!(data.bills || []).length) { box.innerHTML = '<div class="empty-cart">No bills in this range' + (custStatus_ !== 'all' ? ' for this filter' : '') + '.</div>'; return; }
     box.innerHTML = data.bills.map(function (b) {
-      const dateStr = new Date(b.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-      const payCls = b.balance >= -0.005 ? 'badge-paid' : 'badge-unpaid', payLabel = b.balance >= -0.005 ? 'Paid' : 'Due ' + money(-b.balance);
-      const delCls = b.pendingQty > 0.0001 ? 'badge-partial' : 'badge-paid', delLabel = b.pendingQty > 0.0001 ? 'Pending ' + trimNum(b.pendingQty) : 'Delivered';
-      const spCls = b.spRemaining > 0.0001 ? 'badge-partial' : 'badge-paid', spLabel = b.spRemaining > 0.0001 ? trimNum(b.spRemaining) + ' SP left' : 'SP complete';
-      return '<div class="list-row" data-inv="' + b.invoiceNo + '"><div><div class="result-name">' + b.invoiceNo + '</div><div class="result-meta">' + dateStr + ' · ' + trimNum(b.totalQty) + ' qty · ' + trimNum(b.totalSP) + ' SP</div>' +
-        '<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;"><span class="badge ' + payCls + '">' + payLabel + '</span><span class="badge ' + delCls + '">' + delLabel + '</span><span class="badge ' + spCls + '">' + spLabel + '</span></div></div>' +
-        '<div class="cart-amount"><div class="amt">' + money(b.totalDP) + '</div></div></div>';
+      const pending = b.billStatus === 'Pending', cancelled = b.billStatus === 'Cancelled';
+      const statusBadge = pending ? '<span class="badge badge-partial">⏳ In approval</span>' : (cancelled ? '<span class="badge badge-unpaid">Cancelled</span>' : '');
+      const payCls = Number(b.balance) >= -0.005 ? 'badge-paid' : 'badge-unpaid', payLabel = Number(b.balance) >= -0.005 ? 'Paid' : 'Due ' + money(-b.balance);
+      const delCls = Number(b.pendingQty) > 0.0001 ? 'badge-partial' : 'badge-paid', delLabel = Number(b.pendingQty) > 0.0001 ? 'Pending ' + trimNum(b.pendingQty) : 'Delivered';
+      const spCls = Number(b.spRemaining) > 0.0001 ? 'badge-partial' : 'badge-paid', spLabel = Number(b.spRemaining) > 0.0001 ? trimNum(b.spRemaining) + ' SP left' : 'SP complete';
+      return '<div class="list-row" data-inv="' + escapeHtml(b.invoiceNo) + '" data-status="' + escapeHtml(b.billStatus || '') + '" style="' + (cancelled ? 'opacity:.6;' : '') + '"><div><div class="result-name">' + escapeHtml(b.invoiceNo) + '</div><div class="result-meta">' + day(b.date) + ' · ' + trimNum(b.qty) + ' qty · ' + trimNum(b.sp) + ' SP</div>' +
+        '<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;">' + (statusBadge || ('<span class="badge ' + payCls + '">' + payLabel + '</span><span class="badge ' + delCls + '">' + delLabel + '</span><span class="badge ' + spCls + '">' + spLabel + '</span>')) + '</div></div>' +
+        '<div class="cart-amount"><div class="amt">' + money(b.amount) + '</div></div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { document.getElementById('customerDetailModal').classList.remove('show'); viewBill(row.dataset.inv); }); });
   }
@@ -9010,6 +9274,7 @@
     let query = sb.from('invoices').select('invoice_no, invoice_date, customer_name, total_sp').gt('total_sp', 0).eq('bill_status', 'Active')
       .order('invoice_date', { ascending: false }).limit(q ? 20 : 40);
     if (q) { const safe = q.replace(/[%,()]/g, ' '); query = query.or('invoice_no.ilike.%' + safe + '%,customer_name.ilike.%' + safe + '%'); }
+    const sdr = dateRangeOf_('spsBills'); if (sdr.from) query = query.gte('invoice_date', sdr.from + 'T00:00:00'); if (sdr.to) query = query.lte('invoice_date', sdr.to + 'T23:59:59');
     const { data, error } = await query;
     if (error) { box.innerHTML = '<div class="empty-cart">' + escapeHtml(error.message) + '</div>'; return; }
     const used = await fetchSpUsedByInvoice_((data || []).map(function (h) { return h.invoice_no; }));
