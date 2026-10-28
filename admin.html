@@ -4709,17 +4709,27 @@
     if (fromDt) purQ = purQ.gte('purchase_date', fromDt); if (toDt) purQ = purQ.lte('purchase_date', toDt);
     let expQ = sb.from('expenses').select('cash,online,total');
     if (from) expQ = expQ.gte('expense_date', from); if (to) expQ = expQ.lte('expense_date', to);
-    const [{ data: invoices }, { data: purchases }, { data: expenses }, { data: pendingItems }, { data: approvalRows }] = await Promise.all([
+    let apprQ = sb.from('invoices').select('*').eq('bill_status', 'Pending');        // waiting in Bill Approval, bills of the chosen dates
+    if (fromDt) apprQ = apprQ.gte('invoice_date', fromDt); if (toDt) apprQ = apprQ.lte('invoice_date', toDt);
+    const pubReq = function (a, b) { return Promise.resolve(sb.rpc('get_pending_public_orders', { p_start_date: a || null, p_end_date: b || null })).catch(function (e) { return { data: null, error: e }; }); };
+    const [{ data: invoices }, { data: purchases }, { data: expenses }, { data: pendingItems }, { data: approvalRows }, { data: apprRows }, pubRes, pubAllRes] = await Promise.all([
       invQ, purQ, expQ, sb.from('invoice_items').select('id, invoices(bill_status)').gt('pending_qty', 0),
-      sb.from('invoices').select('*').eq('bill_status', 'Pending')        // everything waiting in Bill Approval right now
+      sb.from('invoices').select('*').eq('bill_status', 'Pending'),        // everything waiting in Bill Approval right now, any date
+      apprQ, pubReq(from, to), pubReq(null, null)                           // the Public Order tab's own list: chosen dates, and any date
     ]);
 
     const s = { bills: 0, qty: 0, amount: 0, sp: 0, cash: 0, online: 0, pendingAmount: 0, pendingDeliveries: (pendingItems || []).filter(function (r) { return r.invoices && r.invoices.bill_status === 'Active'; }).length,
       purchaseCount: 0, purchaseQty: 0, purchaseAmount: 0, purchaseSP: 0, expenseCount: 0, expenseAmount: 0, expenseCash: 0, expenseOnline: 0 };
-    (invoices || []).forEach(function (h) { s.bills++; s.qty += Number(h.total_qty); s.amount += Number(h.total_dp); s.sp += Number(h.total_sp); s.cash += Number(h.cash); s.online += Number(h.online); if (h.bill_status === 'Active' && h.balance < -0.005) s.pendingAmount += -h.balance; });   // same rule as Accounting: only bills that went through approval
+    (invoices || []).forEach(function (h) { if (h.bill_status !== 'Active') return; s.bills++; s.qty += Number(h.total_qty); s.amount += Number(h.total_dp); s.sp += Number(h.total_sp); s.cash += Number(h.cash); s.online += Number(h.online); if (h.balance < -0.005) s.pendingAmount += -h.balance; });   // Sales = approved bills only (waiting and cancelled bills are not sales); Amount pending = same rule as Accounting
     (purchases || []).forEach(function (p) { s.purchaseCount++; s.purchaseQty += Number(p.total_qty); s.purchaseAmount += Number(p.total_dp); s.purchaseSP += Number(p.total_sp); });
     (expenses || []).forEach(function (e) { s.expenseCount++; s.expenseAmount += Number(e.total); s.expenseCash += Number(e.cash); s.expenseOnline += Number(e.online); });
-    s.approvalBills = (approvalRows || []).length; s.approvalAmount = (approvalRows || []).reduce(function (a, r) { return a + (Number(billGrand_(r)) || 0); }, 0);
+    const sumBills = function (rows) { return (rows || []).reduce(function (a, r) { return a + (Number(billGrand_(r)) || 0); }, 0); };
+    const sumPublic = function (rows) { return (rows || []).reduce(function (a, r) { return a + (Number(r.total_amount) || 0); }, 0); };
+    s.apprBills = (apprRows || []).length; s.apprBillsAmt = sumBills(apprRows);                                   // Bill Approval tab, dates of the filter
+    s.apprAllBills = (approvalRows || []).length; s.apprAllBillsAmt = sumBills(approvalRows);                     // ... any date
+    s.apprPublicErr = !!(pubRes && pubRes.error);
+    s.apprPublic = ((pubRes && pubRes.data) || []).length; s.apprPublicAmt = sumPublic(pubRes && pubRes.data);      // Public Order tab, dates of the filter
+    s.apprAllPublic = ((pubAllRes && pubAllRes.data) || []).length; s.apprAllPublicAmt = sumPublic(pubAllRes && pubAllRes.data);
     renderDashboardStats(s);
 
     loadDashboardTopProducts(from, to);
@@ -4793,16 +4803,35 @@
     }
   }
 
+  // a tap on an approval box opens that tab showing exactly what was counted (the dashboard's dates are put into the tab's own date filter)
+  function dashGoApproval_(which) {
+    const from = document.getElementById('dashFrom').value, to = document.getElementById('dashTo').value, set = function (id, v) { const e = document.getElementById(id); if (e) e.value = v; };
+    if (which === 'public') { set('publicOrderFrom', from); set('publicOrderTo', to); switchTab('publicorder'); loadPublicOrders(); }
+    else { set('approvalFrom', from); set('approvalTo', to); switchTab('approval'); searchApprovalBills(); }
+  }
   function renderDashboardStats(s) {
     function grid(cards) {
       return '<div class="stat-grid">' + cards.map(function (c) { return '<div class="stat-card' + (c.warn ? ' warn' : '') + '"><div class="stat-label">' + c.label + '</div><div class="stat-value">' + c.value + '</div></div>'; }).join('') + '</div>';
     }
     const salesCards = [{ label: 'Bills', value: trimNum(s.bills) }, { label: 'Qty sold', value: trimNum(s.qty) }, { label: 'Total amount', value: money(s.amount) }, { label: 'Total SP', value: trimNum(s.sp) },
-      { label: 'Cash', value: money(s.cash) }, { label: 'Online', value: money(s.online) }, { label: 'Amount pending', value: money(s.pendingAmount), warn: s.pendingAmount > 0 }, { label: 'Bills in approval', value: trimNum(s.approvalBills || 0), warn: (s.approvalBills || 0) > 0 }, { label: 'Amount in approval', value: money(s.approvalAmount || 0), warn: (s.approvalAmount || 0) > 0 }, { label: 'Pending deliveries', value: trimNum(s.pendingDeliveries), warn: s.pendingDeliveries > 0 }];
+      { label: 'Cash', value: money(s.cash) }, { label: 'Online', value: money(s.online) }, { label: 'Amount pending', value: money(s.pendingAmount), warn: s.pendingAmount > 0 }, { label: 'Pending deliveries', value: trimNum(s.pendingDeliveries), warn: s.pendingDeliveries > 0 }];
     const purchaseCards = [{ label: 'Purchases', value: trimNum(s.purchaseCount) }, { label: 'Qty purchased', value: trimNum(s.purchaseQty) }, { label: 'Purchase amount', value: money(s.purchaseAmount) }, { label: 'Purchase SP', value: trimNum(s.purchaseSP) }];
     const expenseCards = [{ label: 'Expenses', value: trimNum(s.expenseCount) }, { label: 'Total expense', value: money(s.expenseAmount) }, { label: 'Cash spent', value: money(s.expenseCash) }, { label: 'Online spent', value: money(s.expenseOnline) }];
+    const pubN = s.apprPublicErr ? 0 : (s.apprPublic || 0), pubAmt = s.apprPublicErr ? 0 : (s.apprPublicAmt || 0), billN = s.apprBills || 0, billAmt = s.apprBillsAmt || 0;
+    const totN = pubN + billN, totAmt = pubAmt + billAmt;
+    const allN = (s.apprPublicErr ? 0 : (s.apprAllPublic || 0)) + (s.apprAllBills || 0), allAmt = (s.apprPublicErr ? 0 : (s.apprAllPublicAmt || 0)) + (s.apprAllBillsAmt || 0);
+    const tap = function (id, label, value, sub, n, which) {
+      return '<div class="stat-card' + (n > 0 ? ' warn' : '') + '" id="' + id + '" role="button" tabindex="0" style="cursor:pointer;" onclick="dashGoApproval_(\'' + which + '\')" onkeydown="if(event.key===\'Enter\'){dashGoApproval_(\'' + which + '\');}"><div class="stat-label">' + label + '</div><div class="stat-value">' + value + '</div><div class="hint" style="margin:2px 0 0;">' + sub + '</div></div>';
+    };
+    const approvalBlock = '<p class="section-label" id="dashApprovalLabel" style="margin-top:16px;">⏳ In approval</p>' +
+      '<div class="stat-card' + (totN > 0 ? ' warn' : '') + '" id="dashApprTotal"><div class="stat-label">Waiting for approval (both together)</div><div class="stat-value">' + money(totAmt) + '</div><div class="hint" style="margin:2px 0 0;">' + totN + ' in all</div></div>' +
+      '<div class="stat-grid" style="margin-top:10px;">' +
+        tap('dashApprPublic', 'Public Orders', s.apprPublicErr ? '—' : money(pubAmt), s.apprPublicErr ? 'could not load' : (pubN + ' request' + (pubN === 1 ? '' : 's') + ' · Public Order tab'), pubN, 'public') +
+        tap('dashApprBills', 'Bill Approval', money(billAmt), billN + ' bill' + (billN === 1 ? '' : 's') + ' · Approval tab', billN, 'bills') + '</div>' +
+      '<p class="hint" id="dashApprHint" style="margin:6px 0 0;">Follows the date range above.' + (allN !== totN || Math.abs(allAmt - totAmt) > 0.005 ? ' Waiting right now, any date: <strong>' + allN + '</strong> · ' + money(allAmt) + '.' : '') + ' Tap a box to open that tab with the same dates.</p>';
     document.getElementById('dashStats').innerHTML =
-      '<p class="section-label">Sales</p>' + grid(salesCards) + '<p class="hint" style="margin:6px 0 0;">Amount pending counts only bills that are through the approval step (the same bills as Accounting). Bills / Amount in approval are everything waiting in Bill Approval right now, whatever its date.</p>' +
+      '<p class="section-label">Sales</p>' + grid(salesCards) + '<p class="hint" style="margin:6px 0 0;">Sales are approved bills only. Amount pending counts only bills that are through the approval step (the same bills as Accounting). Bills that are still waiting are shown right below, under In approval.</p>' +
+      approvalBlock +
       '<p class="section-label" style="margin-top:16px;">Purchases</p>' + grid(purchaseCards) +
       '<p class="section-label" style="margin-top:16px;">Expenses</p>' + grid(expenseCards);
   }
