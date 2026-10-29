@@ -169,6 +169,22 @@ document.addEventListener('visibilitychange',function(){if(document.visibilitySt
 window.addEventListener('pageshow',function(e){if(e.persisted)ask();});
 setInterval(function(){if(document.visibilityState==='visible')ask();},window.__lookPollMs||60000);
 })();</script>
+<style id="mwShareCss">
+.link-box{word-break:break-all; font-size:12px; line-height:1.4; background:var(--bg); border:1.5px dashed var(--line); border-radius:10px; padding:9px 11px; color:var(--green-800); margin-top:10px;}
+.share-app{display:flex; align-items:center; gap:14px; width:100%; padding:14px 16px; border-radius:14px; border:none; font-size:16px; font-weight:800; font-family:inherit; cursor:pointer; margin-bottom:10px; color:#fff; text-align:left;}
+.share-app .ic{font-size:26px;} .share-app small{display:block; font-weight:600; font-size:11.5px; opacity:.92; margin-top:1px;}
+.share-app.wa{background:#1FA855;} .share-app.w4b{background:#0E7C6B;}
+#shareToast{position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(12px); max-width:88vw; background:var(--green-900); color:#fff; padding:10px 18px; border-radius:12px; font-size:13px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:90; text-align:center;}
+#shareToast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+@media screen{
+  html.nl .share-app{border-radius:18px; text-shadow:0 1px 2px rgba(0,0,0,.25);}
+  html.nl .share-app.wa{background:linear-gradient(180deg,#3DDC84,#0FA35A); box-shadow:0 5px 0 #0A7A41, 0 10px 16px rgba(15,163,90,.35), inset 0 2px 0 rgba(255,255,255,.4);}
+  html.nl .share-app.w4b{background:linear-gradient(180deg,#36C5DB,#0E8FA3); box-shadow:0 5px 0 #0A6F80, 0 10px 16px rgba(14,143,163,.35), inset 0 2px 0 rgba(255,255,255,.4);}
+  html.nl .share-app:active{transform:translateY(4px); box-shadow:0 1px 0 rgba(0,0,0,.25);}
+  html.nl #shareToast{background:linear-gradient(135deg,#3D2FB5,#7048E8); border-radius:16px; box-shadow:0 10px 26px rgba(61,47,181,.45);}
+  html.nl .link-box{background:#FBFAFF; border-color:#C9C3FF; color:#2B1F8F;}
+}
+</style>
 </head>
 <body>
   <header class="topbar" style="position:relative;">
@@ -1108,37 +1124,169 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     showThankYou(data.orderId, data.totalAmount, false);
   }
 
-  // ---- The customer is given a BILL NO. (kept for them when the request is saved; our team's bill gets exactly this number),
-  //      with what to do next: screenshot it and send it to the office / call / come to the office.
+  // ---- The customer is given a BILL NO. (kept for them when the request is saved; our team's bill gets exactly this number)
+  //      and then the LAST STEP, compulsory: "Save & share on WhatsApp" - the bill goes to the office on WhatsApp (the customer picks WhatsApp or
+  //      WhatsApp Business), and the message carries a LIVE bill-status link, so the customer can always check the status himself.
   let lastBillNo_ = '';
   const OFFICE_ = { call: '6265083987', whatsapp: '916265083987', whatsappShown: '6265083987' };
+  let orderLink_ = null, shareDone_ = false, shareOrderId_ = null;
   function orderRef_(orderId) { return lastBillNo_ ? { label: 'Bill No.', value: lastBillNo_ } : { label: 'Request No.', value: String(orderId) }; }
-  function orderStepsHtml_(orderId, total, name) {
-    const r = orderRef_(orderId);
-    const msg = r.label + ' ' + r.value + (name ? ' - ' + name : '') + ' - ' + money(total) + ' (screenshot attached)';
-    return '<div class="box warn" id="orderSteps" style="margin-top:12px;text-align:left;">' +
-        '<div style="font-weight:700;font-size:13.5px;margin-bottom:6px;">📸 Is ' + r.label + ' ka screenshot le lo</div>' +
-        '<div style="margin-bottom:6px;">Aage ki process poori karne ke liye screenshot ke saath ye karo:</div>' +
-        '<div>• <strong>WhatsApp</strong> par bhejo: <strong>' + OFFICE_.whatsappShown + '</strong></div>' +
-        '<div>• Ya <strong>call</strong> karo: <strong>' + OFFICE_.call + '</strong> (' + r.label + ' batao)</div>' +
-        '<div>• Ya <strong>office jaakar</strong> milo (' + r.label + ' dikhao)</div></div>' +
-      '<a class="btn btn-outline" id="orderWhatsappBtn" style="display:block;text-align:center;text-decoration:none;margin:10px 0 14px;" href="https://wa.me/' + OFFICE_.whatsapp + '?text=' + encodeURIComponent(msg) + '" target="_blank" rel="noopener">💬 WhatsApp par bhejo</a>';
+  function billUrl_(token) { return new URL('bill.html', location.href).href.split('#')[0].split('?')[0] + '?token=' + encodeURIComponent(token); }
+  function fmtShareDate_(iso) { return new Date(iso || Date.now()).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }); }
+  // the link code of the order that was just placed (the order id AND the customer's own mobile number must match); asked up to 3 times
+  async function fetchOrderLink_(orderId, mobile) {
+    for (let k = 0; k < 3; k++) {
+      try {
+        const r = await sb.rpc('get_public_order_link', { p_order_id: orderId, p_mobile: mobile || '' });
+        if (!r.error && r.data && r.data.found) { orderLink_ = r.data; return true; }
+        if (!r.error && r.data && r.data.found === false) return false;
+      } catch (e) { /* no network just now: try again */ }
+      await new Promise(function (res) { setTimeout(res, (window.__linkRetryMs || 700) * (k + 1)); });
+    }
+    return false;
+  }
+  function orderMessage_(orderId) {
+    const r = orderRef_(orderId), s = lastOrderSnapshot || {}, retail = s.custType === 'Retail';
+    const items = (s.cartSnapshot || []).slice(0, 15).map(function (it) { return '• ' + it.name + ' × ' + trimNum(it.qty) + ' - ' + money(it.qty * (retail ? it.mrp : it.dp)); });
+    return '*Mahakal Wellness - Order*\n' + r.label + ': *' + r.value + '*\n' +
+      'Date: ' + fmtShareDate_(orderLink_ && orderLink_.createdAt) + '\n' +
+      'Name: ' + (s.name || 'Customer') + (s.mobile ? ' (' + s.mobile + ')' : '') + '\n' +
+      (items.length ? 'Items:\n' + items.join('\n') + '\n' : '') +
+      'Total SP: *' + trimNum(s.totalSp) + '*\n' +
+      'Total Amount: *' + money(s.totalAmount) + '*\n' +
+      'Status: Waiting for approval' + (s.payment ? ' (payment submitted)' : '') +
+      (orderLink_ ? '\nLive bill status: ' + billUrl_(orderLink_.token || orderLink_.shareToken) : '');
+  }
+  function openUrl_(url) { if (typeof window.__openUrl === 'function') return window.__openUrl(url); window.location.href = url; }
+  // where the message goes: the office's WhatsApp number, in the app the customer chose (Android: that exact app; the wa.me link is the fallback everywhere)
+  function waTargets_(app, text) {
+    const phone = OFFICE_.whatsapp, enc = encodeURIComponent(text), web = 'https://wa.me/' + phone + '?text=' + enc;
+    const ua = String(navigator.userAgent || ''), android = /android/i.test(ua), ios = /iphone|ipad|ipod/i.test(ua);
+    if (android && (app === 'whatsapp' || app === 'business')) {
+      const pkg = app === 'business' ? 'com.whatsapp.w4b' : 'com.whatsapp';
+      return { url: 'intent://send/?phone=' + phone + '&text=' + enc + '#Intent;scheme=whatsapp;package=' + pkg + ';S.browser_fallback_url=' + encodeURIComponent(web) + ';end', web: web };
+    }
+    if (ios && app === 'business') return { url: 'whatsapp-business://send?phone=' + phone + '&text=' + enc, web: web, fallbackMs: 1500 };
+    return { url: web, web: web };
+  }
+  function ensureShareChooser_() {
+    if (document.getElementById('shareChooser')) return;
+    document.body.insertAdjacentHTML('beforeend',
+      '<div class="qty-modal-overlay" id="shareChooser"><div class="qty-modal-sheet">' +
+        '<h2>Kaun sa WhatsApp?</h2>' +
+        '<p class="hint" style="margin:4px 0 14px;">Jo app aapke phone me hai wahi chuno. Dono hain to jisse bhejna ho.</p>' +
+        '<button class="share-app wa" id="shareWaApp" type="button" onclick="shareWith_(\'whatsapp\')"><span class="ic">💬</span><span>WhatsApp<small>Normal WhatsApp</small></span></button>' +
+        '<button class="share-app w4b" id="shareW4bApp" type="button" onclick="shareWith_(\'business\')"><span class="ic">💼</span><span>WhatsApp Business<small>Business wala app</small></span></button>' +
+        '<button class="btn btn-outline" id="shareNativeBtn" type="button" style="display:none;margin-bottom:10px;" onclick="shareWith_(\'native\')">↗ Doosre app se bhejo (Share…)</button>' +
+        '<button class="btn btn-outline" id="shareCancelBtn" type="button" onclick="closeShareChooser_()">Cancel</button>' +
+      '</div></div>');
+  }
+  function openShareChooser_() {
+    ensureShareChooser_();
+    document.getElementById('shareNativeBtn').style.display = (typeof navigator.share === 'function') ? 'block' : 'none';
+    document.getElementById('shareChooser').classList.add('show');
+  }
+  function closeShareChooser_() { const c = document.getElementById('shareChooser'); if (c) c.classList.remove('show'); }
+  // a real floating message (the page's showToast_ only writes into the closed notification panel)
+  function shareToast_(msg) {
+    let el = document.getElementById('shareToast');
+    if (!el) { el = document.createElement('div'); el.id = 'shareToast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+    el.textContent = msg; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(function () { el.classList.remove('show'); }, 3500);
+  }
+  function markShared_(hintHtml) {
+    shareDone_ = true;
+    const done = document.getElementById('shareDoneBtn'), btn = document.getElementById('shareWaBtn'), hint = document.getElementById('shareHint');
+    if (done) done.style.display = 'block';
+    if (btn) { btn.classList.remove('btn-gold'); btn.classList.add('btn-outline'); btn.innerHTML = '💬 Dobara bhejo (WhatsApp)'; }
+    if (hint) hint.innerHTML = hintHtml || '✓ WhatsApp me message <strong>Send</strong> karna mat bhoolna. Ho gaya to neeche <strong>Done</strong> dabao.';
+  }
+  async function shareWith_(app) {
+    closeShareChooser_();
+    const text = orderMessage_(shareOrderId_);
+    if (app === 'native') {
+      try { await navigator.share({ text: text }); } catch (e) { if (e && e.name === 'AbortError') return; }
+      markShared_(); return;
+    }
+    const t = waTargets_(app, text);
+    markShared_();
+    openUrl_(t.url);
+    if (t.fallbackMs) setTimeout(function () { if (document.visibilityState === 'visible') openUrl_(t.web); }, t.fallbackMs);
+  }
+  async function copyShareText_() {
+    const text = orderMessage_(shareOrderId_);
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
+      try { const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (e2) { /* shown below */ }
+    }
+    shareToast_(ok ? 'Bill details copy ho gaye' : 'Copy nahi ho paya');
+    markShared_(ok ? '✓ Bill details copy ho gaye. Kisi bhi WhatsApp chat me paste karke <strong>' + OFFICE_.whatsappShown + '</strong> par bhejo. Ho gaya to <strong>Done</strong> dabao.'
+                   : '⚠ Copy nahi ho paya - is screen ka screenshot lekar WhatsApp par <strong>' + OFFICE_.whatsappShown + '</strong> bhejo. Phir <strong>Done</strong> dabao.');
+  }
+  async function copyLiveLink_() {
+    if (!orderLink_) return;
+    const url = billUrl_(orderLink_.token || orderLink_.shareToken); let ok = false;
+    try { await navigator.clipboard.writeText(url); ok = true; } catch (e) { /* the link is also shown in full */ }
+    shareToast_(ok ? 'Live link copy ho gaya' : 'Link ko dabakar copy kar lo');
+  }
+  function liveLinkCardHtml_() {
+    if (!orderLink_) return '';
+    const url = billUrl_(orderLink_.token || orderLink_.shareToken);
+    return '<div class="link-box" id="liveLinkText">' + escapeHtml(url) + '</div>' +
+      '<div style="display:flex;gap:8px;margin:8px 0 12px;"><button class="btn btn-outline" type="button" id="liveLinkCopy" style="font-size:13px;padding:10px;" onclick="copyLiveLink_()">📋 Link copy</button>' +
+      '<a class="btn btn-outline" id="liveLinkOpen" style="font-size:13px;padding:10px;" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">🔗 Status dekho</a></div>';
+  }
+  function shareSummaryHtml_(orderId, state) {
+    const r = orderRef_(orderId), s = lastOrderSnapshot || {};
+    const linkState = orderLink_ ? '<span class="v" id="linkStatus" style="color:var(--ok);">✓ Live · ready</span>'
+      : (state === 'failed' ? '<span class="v" id="linkStatus" style="color:var(--danger);">⚠ abhi nahi bana</span>' : '<span class="v" id="linkStatus" style="color:var(--gold-600);">⏳ ban raha hai…</span>');
+    return '<div class="kv"><span class="k">Customer</span><span class="v" id="shName">' + escapeHtml(s.name || 'Customer') + '</span></div>' +
+      '<div class="kv"><span class="k">Bill date</span><span class="v" id="shDate">' + escapeHtml(fmtShareDate_(orderLink_ && orderLink_.createdAt)) + '</span></div>' +
+      '<div class="kv"><span class="k">' + r.label + '</span><span class="v" id="shBillNo">' + escapeHtml(r.value) + '</span></div>' +
+      '<div class="kv"><span class="k">Total SP</span><span class="v" id="shSp">' + trimNum(s.totalSp) + '</span></div>' +
+      '<div class="kv"><span class="k">Total amount</span><span class="v" id="shAmount">' + money(s.totalAmount) + '</span></div>' +
+      '<div class="kv"><span class="k">Bill status</span><span class="v" id="shStatus" style="color:var(--gold-600);">⏳ Waiting for approval</span></div>' +
+      '<div class="kv"><span class="k">Live link</span>' + linkState + '</div>';
+  }
+  function paintShareStep_(orderId, state) {
+    const box = document.getElementById('shareDetails'); if (!box) return;
+    box.innerHTML = shareSummaryHtml_(orderId, state) +
+      (state === 'ready' ? liveLinkCardHtml_() :
+       state === 'failed' ? '<div class="box warn" id="linkFailed">Live link abhi nahi ban paya. Bina link ke bhi bhej sakte ho (Bill No. likha hoga) - ya <a href="#" onclick="retryOrderLink_(); return false;" style="color:inherit;font-weight:700;">dobara koshish karo</a>.</div>' : '');
+    const btn = document.getElementById('shareWaBtn'); if (btn && state !== 'loading') btn.disabled = false;
+  }
+  async function retryOrderLink_() {
+    const id = shareOrderId_; paintShareStep_(id, 'loading');
+    const ok = await fetchOrderLink_(id, lastOrderSnapshot && lastOrderSnapshot.mobile);
+    if (shareOrderId_ === id) paintShareStep_(id, ok ? 'ready' : 'failed');
   }
 
-  function showThankYou(orderId, totalAmount, paid) {
-    const r = orderRef_(orderId), who = lastOrderSnapshot && lastOrderSnapshot.name;
+  // THE LAST STEP: the order is saved; the customer must now send the bill on WhatsApp (no way past this screen without it)
+  async function showThankYou(orderId, totalAmount, paid) {
+    shareOrderId_ = orderId; shareDone_ = false; orderLink_ = null;
+    const r = orderRef_(orderId), snap = lastOrderSnapshot || {};
     document.getElementById('mainArea').innerHTML =
       '<div class="card" style="text-align:center;">' +
         '<div class="success-icon">✓</div>' +
-        '<h2 style="font-size:18px;color:var(--green-800);margin-bottom:6px;">Thank you!</h2>' +
+        '<h2 style="font-size:18px;color:var(--green-800);margin-bottom:6px;">Thank you! Order save ho gaya</h2>' +
         '<p class="hint">' + r.label + '</p>' +
         '<div id="billNoBig" style="font-size:26px;font-weight:800;letter-spacing:.5px;color:var(--green-900);margin:2px 0 4px;word-break:break-all;">' + escapeHtml(r.value) + '</div>' +
         '<p class="hint">' + money(totalAmount) + '</p>' +
         '<p class="hint" style="margin-top:10px;">' + (paid ? 'We\'ve noted your payment — our team will verify and confirm shortly.' : 'Our team will review and confirm your order shortly.') + '</p>' +
-        orderStepsHtml_(orderId, totalAmount, who) +
       '</div>' +
-      (paid && lastOrderSnapshot && lastOrderSnapshot.payment ? paymentCardHtml_(lastOrderSnapshot.payment) : '') +
-      '<button class="btn btn-gold" onclick="showFinalReceipt(' + orderId + ')">Continue</button>';
+      '<div class="card" id="shareStep">' +
+        '<p class="section-label">Last step · zaroori</p>' +
+        '<h2 style="font-size:16px;color:var(--green-800);margin-bottom:4px;">Save &amp; share on WhatsApp</h2>' +
+        '<p class="hint" style="margin-bottom:10px;">Apna bill hamare WhatsApp (<strong>' + OFFICE_.whatsappShown + '</strong>) par bhejo, taaki hum aapka order turant dekh saken. Message me ek <strong>live bill status link</strong> bhi judega - hum WhatsApp par na bhej saken tab bhi aap us link se bill ka status kabhi bhi dekh sakte ho.</p>' +
+        '<div id="shareDetails"></div>' +
+        '<button class="btn btn-gold" id="shareWaBtn" type="button" onclick="openShareChooser_()" disabled>💬 Save &amp; share on WhatsApp</button>' +
+        '<p class="hint" id="shareHint" style="margin-top:8px;text-align:center;"></p>' +
+        '<button class="btn btn-gold" id="shareDoneBtn" type="button" style="display:none;margin-top:10px;" onclick="showFinalReceipt(' + orderId + ')">✓ Done — meri bill slip dikhao</button>' +
+        '<button class="btn btn-outline" id="shareCopyBtn" type="button" style="margin-top:10px;font-size:13px;" onclick="copyShareText_()">📋 WhatsApp nahi chal raha? Bill details copy karo</button>' +
+      '</div>' +
+      (paid && snap.payment ? paymentCardHtml_(snap.payment) : '');
+    paintShareStep_(orderId, 'loading');
+    const ok = await fetchOrderLink_(orderId, snap.mobile);
+    if (shareOrderId_ === orderId && document.getElementById('shareStep')) paintShareStep_(orderId, ok ? 'ready' : 'failed');
   }
 
   function showFinalReceipt(orderId) {
@@ -1148,7 +1296,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
         '<button class="btn btn-gold" onclick="goBackToForm()">← Place another order</button>';
       return;
     }
-    const dateStr = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    const dateStr = fmtShareDate_(orderLink_ && orderLink_.createdAt);
     const isRetail = snap.custType === 'Retail';
     let totalMrp = 0;
     const rows = snap.cartSnapshot.map(function (it) {
@@ -1163,7 +1311,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
         '<h2 style="font-size:17px;color:var(--green-800);text-align:center;margin-bottom:2px;">Mahakal Wellness</h2>' +
         '<p class="hint" style="text-align:center;margin-bottom:2px;">' + orderRef_(orderId).label + '</p>' +
         '<div id="billNoSlip" style="text-align:center;font-size:24px;font-weight:800;color:var(--green-900);margin-bottom:2px;word-break:break-all;">' + escapeHtml(orderRef_(orderId).value) + '</div>' +
-        '<p class="hint" style="text-align:center;margin-bottom:14px;">' + dateStr + '</p>' +
+        '<p class="hint" style="text-align:center;margin-bottom:14px;">' + escapeHtml(dateStr) + '</p>' +
         '<p class="hint" style="margin-bottom:10px;">' + escapeHtml(snap.name || 'Customer') + ' · ' + escapeHtml(snap.mobile || '') + ' · ' + escapeHtml(snap.custType) + '</p>' +
         rows +
         (discountAmount > 0 ? '<div class="total-row"><span class="lbl">Discount (' + trimNum(snap.discountPercent) + '%)</span><span class="val" style="font-size:14px;color:var(--danger);">−' + money(discountAmount) + '</span></div>' : '') +
@@ -1171,13 +1319,18 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
         '<div class="total-row"><span class="lbl">Total</span><span class="val">' + money(snap.totalAmount) + '</span></div>' +
       '</div>' +
       (snap.payment ? paymentCardHtml_(snap.payment) : '') +
-      orderStepsHtml_(orderId, snap.totalAmount, snap.name) +
+      '<div class="card" id="finalLinkCard"><p class="section-label">Live bill status</p>' +
+        (orderLink_ ? '<p class="hint" style="margin-bottom:8px;">Is link se aap bill ka status kabhi bhi dekh sakte ho - ye apne aap taza hota rehta hai. Isse save kar lo.</p>' + liveLinkCardHtml_()
+                    : '<p class="hint" style="margin-bottom:8px;">Live link nahi ban paya - Bill No. <strong>' + escapeHtml(orderRef_(orderId).value) + '</strong> yaad rakho.</p>') +
+        '<button class="btn btn-gold" id="shareAgainBtn" type="button" onclick="openShareChooser_()">💬 WhatsApp par dobara bhejo</button>' +
+        '<p class="hint" style="text-align:center;margin-top:10px;">Call: <strong>' + OFFICE_.call + '</strong> · ' + orderRef_(orderId).label + ' batao</p>' +
+      '</div>' +
       '<p class="hint" style="text-align:center;margin-bottom:14px;">This is a request — our team will confirm it shortly.</p>' +
       '<button class="btn btn-gold" onclick="goBackToForm()">← Place another order</button>';
   }
 
   function goBackToForm() {
-    CART = {}; lastBillNo_ = '';
+    CART = {}; lastBillNo_ = ''; orderLink_ = null; shareDone_ = false; shareOrderId_ = null; closeShareChooser_();
     pendingPaymentOrder = null; payState = null;
     clearPayDraft_();
     renderForm();
