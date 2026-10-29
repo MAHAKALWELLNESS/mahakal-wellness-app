@@ -308,7 +308,7 @@
     .print-copy table.receipt-table th:not(:first-child), .print-copy table.receipt-table td:not(:first-child){white-space:nowrap; width:16.5%; padding-left:6px; overflow:hidden; text-overflow:ellipsis;}
   }
 </style>
-<style id="mwListCss">.receipt-meta .rcpt-no,.receipt-meta .rcpt-memo{font-size:15px;font-weight:800;color:var(--green-900);} .rcpt-name{font-weight:800;font-size:14px;color:var(--green-900);} .receipt-meta{flex-wrap:wrap;gap:2px 10px;} [data-pdf-capturing="1"] .screen-only{display:none !important;} @media print{.screen-only{display:none !important;}} .quickbtn.on{background:var(--green-700);color:#fff;border-color:var(--green-700);} .date-filter{margin-top:8px;} .memo-note{margin:8px 0;padding:8px 10px;border-radius:8px;background:var(--gold-100);font-size:12.5px;color:var(--ink);} .memo-note a{color:var(--green-800);font-weight:700;}</style>
+<style id="mwListCss">.sps-opt{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;margin:6px 0;font-size:13.5px;cursor:pointer;} .sps-imp{border-top:1px solid var(--line);padding:10px 0;} .receipt-meta .rcpt-no,.receipt-meta .rcpt-memo{font-size:15px;font-weight:800;color:var(--green-900);} .rcpt-name{font-weight:800;font-size:14px;color:var(--green-900);} .receipt-meta{flex-wrap:wrap;gap:2px 10px;} [data-pdf-capturing="1"] .screen-only{display:none !important;} @media print{.screen-only{display:none !important;}} .quickbtn.on{background:var(--green-700);color:#fff;border-color:var(--green-700);} .date-filter{margin-top:8px;} .memo-note{margin:8px 0;padding:8px 10px;border-radius:8px;background:var(--gold-100);font-size:12.5px;color:var(--ink);} .memo-note a{color:var(--green-800);font-weight:700;}</style>
 </head>
 <body>
 
@@ -964,6 +964,10 @@
             <div class="field"><label for="spsTarget">Target SP per set</label><input type="number" id="spsTarget" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 100"></div>
             <div class="field"><label for="spsCount">Kitne set (khali = jitne ban sake)</label><input type="number" id="spsCount" min="1" step="1" inputmode="numeric" placeholder="max"></div>
           </div>
+          <div id="spsExtraRows"></div>
+          <button class="quickbtn" type="button" id="spsAddRowBtn" onclick="spsAddTargetRow_()" style="margin:0 0 10px;">＋ Aur SP ka set add karo</button>
+          <label style="display:flex;align-items:flex-start;gap:8px;font-size:13.5px;margin:0 0 6px;"><input type="checkbox" id="spsRestSet" checked style="margin-top:3px;"><span>Baaki bacha hua SP ek alag <strong>Remaining set</strong> me bana do</span></label>
+          <p class="hint" id="spsRowsHint" style="margin:0 0 10px;">Jaise 52 aur 27 likho to 3 set banenge: 52 SP, 27 SP aur baaki SP ka Remaining set. Ek se zyada target ho to "kitne set" khali = 1.</p>
           <button class="btn btn-primary btn-block" id="spsBuildBtn" onclick="buildSpSetsClicked_()">Sets banao</button>
           <div id="spsPlanNote" style="margin-top:10px;"></div>
         </div>
@@ -1945,6 +1949,17 @@
   </div>
 
   <!-- ============ CORRECT A BILL'S DATE (main admin) ============ -->
+  <!-- ============ SP SETS: a target that cannot be made exactly -> what can be made instead ============ -->
+  <div class="modal-overlay" id="spsImpModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;">Ye set exact nahi ban sakta</h2>
+      <p class="hint" style="margin-bottom:10px;">In products ke SP ke hisaab se neeche ka SP exact nahi judta. Jo ban sakta hai wo chuno.</p>
+      <div id="spsImpBody"></div>
+      <p class="hint" id="spsImpRest" style="margin:8px 0 0;">Baaki bacha hua SP <strong>Remaining set</strong> me chala jayega.</p>
+      <div class="modal-actions"><button class="btn btn-outline" type="button" id="spsImpCancel">Cancel</button><button class="btn btn-primary" type="button" id="spsImpGo">Aage badho</button></div>
+    </div>
+  </div>
+
   <!-- ============ CORRECT PAYMENT (main admin): reverse a wrong entry, add the right one ============ -->
   <div class="modal-overlay" id="payCorrModal" style="z-index:75;">
     <div class="modal-sheet">
@@ -9144,10 +9159,50 @@
     return null;
   }
 
-  function spBuildWithStrategy_(base, specs, strategy, opts) {
+  // ---- NEW: what the LEFT-OVER units can still do. spReach_ = every SP total a set of units can make (bounded knapsack, O(items x total)).
+  function spRng_(seed) {
+    let a = (Math.imul(seed | 0, 2654435761) + 0x9E3779B9) >>> 0;
+    return function () { a = (a + 0x6D2B79F5) >>> 0; let x = a; x = Math.imul(x ^ (x >>> 15), x | 1); x ^= x + Math.imul(x ^ (x >>> 7), x | 61); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
+  }
+  function spReach_(s, q) {
+    let R = 0; for (let i = 0; i < s.length; i++) R += s[i] * q[i];
+    if (!(R > 0)) return { R: 0, reach: new Uint8Array(1) };
+    if (R > 400000) return { R: R, reach: null };
+    const reach = new Uint8Array(R + 1), cnt = new Int32Array(R + 1); reach[0] = 1;
+    for (let i = 0; i < s.length; i++) {
+      const si = s[i], qi = q[i]; if (!(qi > 0)) continue;
+      for (let j = 0; j <= R; j++) {
+        if (reach[j]) cnt[j] = 0;
+        else if (j >= si && reach[j - si] && cnt[j - si] < qi) { reach[j] = 1; cnt[j] = cnt[j - si] + 1; }
+        else cnt[j] = 0;
+      }
+    }
+    return { R: R, reach: reach };
+  }
+  // flexibility of a pool = how many different SP totals (1..all) it can still make. A pool full of small-SP units scores high, one of a few big units scores low.
+  function spFlex_(s, q) { const r = spReach_(s, q); if (!r.reach) return 0; let c = 0; for (let j = 1; j <= r.R; j++) c += r.reach[j]; return c; }
+  // the totals nearest to T that these units CAN make: lo = the largest one below T, hi = the smallest one above T (null when there is none)
+  function spNearest_(s, q, T) {
+    const r = spReach_(s, q); if (!r.reach) return { lo: null, hi: null };
+    let lo = null, hi = null;
+    for (let j = Math.min(Math.floor(T), r.R); j >= 1; j--) if (r.reach[j]) { lo = j; break; }
+    for (let j = Math.max(Math.ceil(T), 1); j <= r.R; j++) if (r.reach[j]) { hi = j; break; }
+    return { lo: lo, hi: hi };
+  }
+
+    function spBuildWithStrategy_(base, specs, strategy, opts) {
     const s = base.s, q = base.q.slice(), n = s.length;
-    const byDesc = s.map(function (_, i) { return i; }).sort(function (a, b) { return s[b] - s[a] || q[b] - q[a]; });
+    const idx = s.map(function (_, i) { return i; });
+    const byDesc = idx.slice().sort(function (a, b) { return s[b] - s[a] || q[b] - q[a]; });
     const byAsc = byDesc.slice().reverse();
+    // NEW: { rand: k } = "large SP first" with a little shaken order (k = the seed), so different tries leave different left-overs
+    let randOrder = null;
+    if (strategy && typeof strategy === 'object') {
+      const rnd = spRng_(strategy.rand);
+      const key = s.map(function (v) { return v * (0.5 + rnd()); });
+      randOrder = idx.slice().sort(function (a, b) { return key[b] - key[a]; });
+      if (strategy.rand % 6 === 0) { for (let i = randOrder.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const x = randOrder[i]; randOrder[i] = randOrder[j]; randOrder[j] = x; } }
+    }
     const sets = [], shortfalls = [];
     const minS = Math.min.apply(null, s);
     let tooBig = false;
@@ -9162,7 +9217,7 @@
           res = spFewestFind_(s, q, sp.T, opts.maxProductsPerSet || 4, rank, minS);
         }
         if (!res && !opts.maxProductsPerSet) {
-          const order = strategy === 'small_first' ? byAsc : byDesc;
+          const order = randOrder || (strategy === 'small_first' ? byAsc : byDesc);
           const dp = spDpFind_(s, q, order, sp.T, opts.closest, sp.minAccept);
           if (dp && dp.tooBig) { tooBig = true; break; }
           res = dp;
@@ -9172,18 +9227,20 @@
         sets.push({ counts: res.counts, total: res.total, specT: sp.T, specTarget: sp.target });
         built++;
       }
-      if (sp.count !== 'max' && built < sp.count) shortfalls.push({ target: sp.target, requested: sp.count, built: built });
+      if (sp.count !== 'max' && built < sp.count) shortfalls.push({ target: sp.target, T: sp.T, requested: sp.count, built: built });
     });
-    return { sets: sets, leftoverQ: q, shortfalls: shortfalls, tooBig: tooBig, strategy: strategy };
+    return { sets: sets, leftoverQ: q, shortfalls: shortfalls, tooBig: tooBig, strategy: randOrder ? 'flex' : strategy };
   }
 
   // Main entry. Returns { sets, leftover, shortfalls, strategyUsed, warnings, remainingSp }.
-  function spBuildSets_(pool, spec) {
+    function spBuildSets_(pool, spec) {
     const warnings = [];
+    const TOOBIG = 'Target bahut bada hai ya products bahut zyada - is combination ko calculate nahi kar paaya.';
+    const none = function (w) { return { sets: [], leftover: [], shortfalls: [], strategyUsed: null, warnings: w, remainingSp: 0, failed: [], leftoverPool: [] }; };
     let items = pool.filter(function (p) { return (Number(p.qty) || 0) > 0 && (Number(p.sp) || 0) > 0; });
     if (spec.onlyCodes && spec.onlyCodes.length) items = items.filter(function (p) { return spec.onlyCodes.indexOf(String(p.code)) > -1; });
     if (spec.excludeCodes && spec.excludeCodes.length) items = items.filter(function (p) { return spec.excludeCodes.indexOf(String(p.code)) === -1; });
-    if (!items.length) return { sets: [], leftover: [], shortfalls: [], strategyUsed: null, warnings: ['Is bill mein ab koi SP wala product free nahi bacha.'], remainingSp: 0 };
+    if (!items.length) return none(['Is bill mein ab koi SP wala product free nahi bacha.']);
 
     let d = 0;
     items.forEach(function (p) { d = Math.max(d, spDecimals_(p.sp)); });
@@ -9195,10 +9252,10 @@
     const closest = spec.mode === 'closest';
     const tol = Math.max(0, Number(spec.tolerance) || 0);
 
-    const specs = [];
+    const specs = [], dropped = [];
     spec.specs.forEach(function (sp) {
       const Tfull = Math.round(Number(sp.targetSp) * scale);
-      if (!closest && Tfull % g !== 0) { warnings.push(sp.targetSp + ' SP exact banana possible nahi hai - in products ke SP ' + trimNum(g / scale) + ' ke multiples mein hi jud sakte hain.'); return; }
+      if (!closest && Tfull % g !== 0) { warnings.push(sp.targetSp + ' SP exact banana possible nahi hai - in products ke SP ' + trimNum(g / scale) + ' ke multiples mein hi jud sakte hain.'); dropped.push({ target: Number(sp.targetSp), count: sp.count, Tg: Tfull / g }); return; }
       specs.push({ count: sp.count, target: Number(sp.targetSp), T: Math.floor(Tfull / g), minAccept: Math.max(1, Math.ceil(Math.round((Number(sp.targetSp) - tol) * scale) / g)) });
     });
     // fixed-count requests first, "as many as possible" last, so a 'max' never starves the others
@@ -9206,27 +9263,97 @@
 
     const base = { s: sInt.map(function (v) { return v / g; }), q: items.map(function (p) { return Math.floor(Number(p.qty)); }) };
     const opts = { closest: closest, maxProductsPerSet: spec.maxProductsPerSet || null };
-    const requested = spec.strategy && spec.strategy !== 'auto' ? [spec.strategy] : ['fewest_products', 'large_first', 'small_first'];
-    let best = null;
+    const auto = !(spec.strategy && spec.strategy !== 'auto');
+    const requested = auto ? ['fewest_products', 'large_first', 'small_first'] : [spec.strategy];
+    // NEW: besides the three fixed ways, a few "large SP first, a little shaken" tries - they find a way to make SEVERAL targets together, and leave different left-overs to choose from
+    if (auto && !opts.maxProductsPerSet && specs.length) {
+      const wantSets = specs.reduce(function (t, x) { return t + (x.count === 'max' ? 8 : x.count); }, 0);
+      const hasMax = specs.some(function (x) { return x.count === 'max'; });
+      const extra = hasMax ? 6 : (wantSets <= 14 ? 48 : 12);
+      for (let k = 1; k <= extra; k++) requested.push({ rand: k });
+    }
+    const t0 = Date.now(), cands = [];
     requested.forEach(function (st) {
+      if (cands.length >= 4 && Date.now() - t0 > 900) return;
       const r = spBuildWithStrategy_(base, specs, st, opts);
-      if (r.tooBig) { warnings.push('Target bahut bada hai ya products bahut zyada - is combination ko calculate nahi kar paaya.'); return; }
-      const used = r.sets.reduce(function (t, x) { return t + x.total; }, 0);
-      const lines = r.sets.reduce(function (t, x) { return t + x.counts.filter(function (c) { return c > 0; }).length; }, 0);
-      r.score = [r.sets.length, used, -lines];
-      if (!best || r.score[0] > best.score[0] || (r.score[0] === best.score[0] && (r.score[1] > best.score[1] || (r.score[1] === best.score[1] && r.score[2] > best.score[2])))) best = r;
+      if (r.tooBig) { if (warnings.indexOf(TOOBIG) < 0) warnings.push(TOOBIG); return; }
+      r.used = r.sets.reduce(function (t, x) { return t + x.total; }, 0);
+      r.lines = r.sets.reduce(function (t, x) { return t + x.counts.filter(function (c) { return c > 0; }).length; }, 0);
+      cands.push(r);
     });
-    if (!best) return { sets: [], leftover: [], shortfalls: [], strategyUsed: null, warnings: warnings, remainingSp: 0 };
+    if (!cands.length) return none(warnings);
+    // 1) the most sets, 2) the most SP in them, 3) NEW: the left-over that can still be split in the most ways (small-SP units kept back for the later sets),
+    // 4) the fewest lines to type - among the plans whose left-over is nearly as flexible as the best one
+    const maxSets = Math.max.apply(null, cands.map(function (r) { return r.sets.length; }));
+    let top = cands.filter(function (r) { return r.sets.length === maxSets; });
+    const maxUsed = Math.max.apply(null, top.map(function (r) { return r.used; }));
+    top = top.filter(function (r) { return r.used === maxUsed; });
+    let best = top[0];
+    if (auto && top.length > 1) {
+      top.forEach(function (r) { r.flex = spFlex_(base.s, r.leftoverQ); });
+      const maxFlex = Math.max.apply(null, top.map(function (r) { return r.flex; }));
+      const keep = top.filter(function (r) { return r.flex >= 0.92 * maxFlex; });
+      keep.sort(function (a, b) { return a.lines - b.lines || b.flex - a.flex; });
+      best = keep[0];
+    }
 
+    const lineOf = function (i, c) { return { code: items[i].code, name: items[i].name, sp: Number(items[i].sp), dp: Number(items[i].dp) || 0, qty: c }; };
     const outSets = best.sets.map(function (st) {
       const lines = [];
-      st.counts.forEach(function (c, i) { if (c > 0) lines.push({ code: items[i].code, name: items[i].name, sp: Number(items[i].sp), dp: Number(items[i].dp) || 0, qty: c }); });
+      st.counts.forEach(function (c, i) { if (c > 0) lines.push(lineOf(i, c)); });
       return { targetSp: st.specTarget, totalSp: (st.total * g) / scale, items: lines };
     });
-    const leftover = [];
-    let remainingSp = 0;
-    items.forEach(function (p, i) { if (best.leftoverQ[i] > 0) { leftover.push({ code: p.code, name: p.name, sp: Number(p.sp), qty: best.leftoverQ[i] }); remainingSp += best.leftoverQ[i] * sInt[i]; } });
-    return { sets: outSets, leftover: leftover, shortfalls: best.shortfalls, strategyUsed: best.strategy, warnings: warnings, remainingSp: remainingSp / scale };
+    const leftoverPool = [];
+    let remScaled = 0;
+    items.forEach(function (p, i) { if (best.leftoverQ[i] > 0) { leftoverPool.push(lineOf(i, best.leftoverQ[i])); remScaled += best.leftoverQ[i] * sInt[i]; } });
+    const remainingSp = remScaled / scale;
+
+    // NEW: what could NOT be made exactly, and the nearest SP that CAN be made from what is left (with the products for it)
+    const failed = [];
+    if (!closest && !spec.noNearest) {
+      const orderDesc = base.s.map(function (_, i) { return i; }).sort(function (a, b) { return base.s[b] - base.s[a]; });
+      const mk = function (v) {
+        if (v == null) return null;
+        const dp = spDpFind_(base.s, best.leftoverQ, orderDesc, v, false, 0);
+        if (!dp || dp.tooBig) return null;
+        const lines = []; dp.counts.forEach(function (c, i) { if (c > 0) lines.push(lineOf(i, c)); });
+        return { sp: (v * g) / scale, set: { totalSp: (v * g) / scale, items: lines } };
+      };
+      const add = function (target, requested, built, Tg) {
+        const nr = spNearest_(base.s, best.leftoverQ, Tg);
+        failed.push({ target: target, requested: requested, built: built, missing: requested === 'max' ? 1 : requested - built, lo: mk(nr.lo), hi: mk(nr.hi) });
+      };
+      best.shortfalls.forEach(function (f) { add(f.target, f.requested, f.built, f.T); });
+      dropped.forEach(function (x) { add(x.target, x.count, 0, x.Tg); });
+    }
+    // NEW: spec.restSet = everything that is left becomes one more set (the "Remaining set")
+    let leftover = leftoverPool.slice(), remOut = remainingSp;
+    if (spec.restSet && remainingSp > 0.0000001) {
+      outSets.push({ targetSp: remainingSp, totalSp: remainingSp, items: leftoverPool.map(function (l) { return { code: l.code, name: l.name, sp: l.sp, dp: l.dp, qty: l.qty }; }), isRemaining: true });
+      leftover = []; remOut = 0;
+    }
+    return { sets: outSets, leftover: leftover, shortfalls: best.shortfalls, strategyUsed: best.strategy, warnings: warnings, remainingSp: remOut, failed: failed, leftoverPool: leftoverPool };
+  }
+
+  // NEW: after the staff chose what to make instead of an impossible target: each pick = { sp, copies } is built from what the plan left over (the Remaining set is rebuilt from the rest)
+  function spAddFromLeftover_(plan, picks, restOn) {
+    const sets = plan.sets.filter(function (x) { return !x.isRemaining; }).slice();
+    let pool = (plan.leftoverPool || []).map(function (p) { return { code: p.code, name: p.name, sp: p.sp, dp: p.dp, qty: p.qty }; });
+    const warnings = plan.warnings.filter(function (w) { return !/exact banana possible nahi hai/.test(w); });
+    picks.forEach(function (pk) {
+      for (let c = 0; c < (pk.copies || 1); c++) {
+        const r = spBuildSets_(pool, { specs: [{ count: 1, targetSp: pk.sp }], mode: 'exact', tolerance: 0, strategy: 'auto', excludeCodes: [], onlyCodes: [], maxProductsPerSet: null, restSet: false, noNearest: true });
+        if (!r.sets.length) { warnings.push(trimNum(pk.sp) + ' SP ka set ab nahi ban paaya.'); break; }
+        sets.push(r.sets[0]); pool = r.leftoverPool;
+      }
+    });
+    const remainingSp = Math.round(pool.reduce(function (t, p) { return t + p.qty * p.sp; }, 0) * 1000) / 1000;
+    let leftover = pool.slice(), remOut = remainingSp;
+    if (restOn && remainingSp > 0.0000001) {
+      sets.push({ targetSp: remainingSp, totalSp: remainingSp, items: pool.map(function (l) { return { code: l.code, name: l.name, sp: l.sp, dp: l.dp, qty: l.qty }; }), isRemaining: true });
+      leftover = []; remOut = 0;
+    }
+    return { sets: sets, leftover: leftover, shortfalls: [], strategyUsed: plan.strategyUsed, warnings: warnings, remainingSp: remOut, failed: [], leftoverPool: pool };
   }
 
   // Independent re-check of a finished plan (does not reuse any solver internals).
@@ -9268,7 +9395,7 @@
     return {
       specs: specs, mode: raw.mode === 'closest' ? 'closest' : 'exact', tolerance: Math.max(0, Number(raw.tolerance) || 0),
       strategy: strategies.indexOf(raw.strategy) > -1 ? raw.strategy : 'auto',
-      excludeCodes: cleanCodes(raw.excludeCodes), onlyCodes: cleanCodes(raw.onlyCodes), maxProductsPerSet: mpp
+      excludeCodes: cleanCodes(raw.excludeCodes), onlyCodes: cleanCodes(raw.onlyCodes), maxProductsPerSet: mpp, restSet: raw.restSet === true
     };
   }
 
@@ -9401,6 +9528,7 @@
   function spsFillExample_(text) {
     document.getElementById('spsCommand').value = text;
     document.getElementById('spsTarget').value = ''; document.getElementById('spsCount').value = '';
+    document.getElementById('spsExtraRows').innerHTML = ''; spsRelabel_();
   }
 
   // AI reads the request; if it is unavailable or fails, plain-text parsing is the fallback.
@@ -9419,14 +9547,80 @@
     return { error: 'Samajh nahi aaya. "Target SP per set" box mein SP likh do, ya request ko aur saaf likho (jaise "100 SP ke 5 set").' };
   }
 
+  // ---- several targets at once (52, 27, ...): row 1 is the old Target / Kitne set boxes, more rows can be added
+  function spsManualRows_() {
+    const rows = [];
+    const t0 = Number(document.getElementById('spsTarget').value);
+    if (t0 > 0) rows.push({ targetSp: t0, countRaw: document.getElementById('spsCount').value.trim() });
+    Array.prototype.forEach.call(document.querySelectorAll('#spsExtraRows .spsx-row'), function (r) {
+      const t = Number(r.querySelector('.spsx-target').value);
+      if (t > 0) rows.push({ targetSp: t, countRaw: r.querySelector('.spsx-count').value.trim() });
+    });
+    return rows;
+  }
+  function spsRelabel_() {
+    const many = document.querySelectorAll('#spsExtraRows .spsx-row').length > 0, l = document.querySelector('label[for="spsCount"]');
+    if (l) l.textContent = many ? 'Kitne set (khali = 1)' : 'Kitne set (khali = jitne ban sake)';
+  }
+  function spsAddTargetRow_() {
+    const box = document.getElementById('spsExtraRows');
+    box.insertAdjacentHTML('beforeend', '<div class="spsx-row"><div class="field-row"><div class="field"><label>Target SP</label><input type="number" class="spsx-target" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 27"></div><div class="field"><label>Kitne set (khali = 1)</label><input type="number" class="spsx-count" min="1" step="1" inputmode="numeric" placeholder="1"></div></div><div style="text-align:right;margin:-4px 0 10px;"><button class="quickbtn" type="button" onclick="spsRemoveTargetRow_(this)">✕ Ye row hatao</button></div></div>');
+    spsRelabel_();
+    const last = box.querySelector('.spsx-row:last-child .spsx-target'); if (last) last.focus();
+  }
+  function spsRemoveTargetRow_(btn) { btn.closest('.spsx-row').remove(); spsRelabel_(); }
+
+  // ---- a target that cannot be made exactly: show the nearest SP that CAN be made (and the products in it); the rest goes to the Remaining set
+  function spsAskImpossible_(plan, spec) {
+    return new Promise(function (resolve) {
+      const modal = document.getElementById('spsImpModal');
+      const combo = function (set) { return set ? set.items.map(function (i) { return escapeHtml(i.name) + ' ×' + trimNum(i.qty); }).join(' + ') : ''; };
+      document.getElementById('spsImpBody').innerHTML = plan.failed.map(function (f, k) {
+        const opts = [];
+        if (f.lo) opts.push({ v: 'lo', o: f.lo }); if (f.hi) opts.push({ v: 'hi', o: f.hi });
+        let def = opts.length ? opts[0].v : 'skip';
+        if (f.lo && f.hi) def = (f.target - f.lo.sp) <= (f.hi.sp - f.target) ? 'lo' : 'hi';
+        const missing = f.requested !== 'max' && f.built > 0 ? ' (' + f.requested + ' set maange the, ' + f.built + ' ban gaye)' : (f.requested !== 'max' && f.requested > 1 ? ' (' + f.requested + ' set maange the)' : '');
+        return '<div class="sps-imp" data-k="' + k + '"><p style="margin:0 0 4px;"><strong>' + trimNum(f.target) + ' SP</strong> ka exact set in products se nahi ban sakta' + missing + '.</p>' +
+          '<p class="hint" style="margin:0 0 4px;">' + (opts.length ? 'Ye ban sakta hai - kaun sa banau?' : 'Bache hue products se koi set nahi ban sakta.') + '</p>' +
+          opts.map(function (x) { return '<label class="sps-opt"><input type="radio" name="spsImp' + k + '" value="' + x.v + '"' + (x.v === def ? ' checked' : '') + ' style="margin-top:3px;"><span><strong>' + trimNum(x.o.sp) + ' SP</strong><span class="hint" style="display:block;margin:0;">' + combo(x.o.set) + '</span></span></label>'; }).join('') +
+          '<label class="sps-opt"><input type="radio" name="spsImp' + k + '" value="skip"' + (def === 'skip' ? ' checked' : '') + ' style="margin-top:3px;"><span>Ye set mat banao</span></label></div>';
+      }).join('');
+      document.getElementById('spsImpRest').style.display = spec.restSet ? 'block' : 'none';
+      modal.classList.add('show');
+      const done = function (val) { modal.classList.remove('show'); resolve(val); };
+      document.getElementById('spsImpCancel').onclick = function () { done(null); };
+      document.getElementById('spsImpGo').onclick = function () {
+        const picks = [];
+        plan.failed.forEach(function (f, k) {
+          const sel = document.querySelector('input[name="spsImp' + k + '"]:checked'); if (!sel || sel.value === 'skip') return;
+          const o = sel.value === 'lo' ? f.lo : f.hi;
+          if (o) picks.push({ sp: o.sp, copies: f.missing > 0 ? f.missing : 1 });
+        });
+        done(spAddFromLeftover_(plan, picks, !!spec.restSet));
+      };
+    });
+  }
+  // the Remaining set gets its own heading in the preview
+  function spsPreviewDecorate_() {
+    const p = spsPreview_ && spsPreview_.plan; if (!p) return;
+    const cards = document.getElementById('spsPreviewCard').querySelectorAll(':scope > .card');
+    p.sets.forEach(function (s, i) {
+      if (!s.isRemaining || !cards[i]) return;
+      const head = cards[i].firstElementChild;
+      if (head) head.innerHTML = '🧺 Remaining set · ' + trimNum(s.totalSp) + ' SP <span class="hint" style="font-weight:600;">(baaki sab products)</span>';
+      cards[i].setAttribute('data-remaining', '1');
+    });
+  }
+
   async function buildSpSetsClicked_() {
     if (!spsState_) return;
     const pool = spsPool_();
     const noteBox = document.getElementById('spsPlanNote');
     if (!pool.length) { noteBox.innerHTML = '<p class="login-error">Is bill mein ab koi free product nahi bacha (sab Official mein use ho chuka ya saved sets mein hai).</p>'; return; }
     const cmd = document.getElementById('spsCommand').value.trim();
-    const manualTarget = Number(document.getElementById('spsTarget').value);
-    const manualCountRaw = document.getElementById('spsCount').value.trim();
+    const manualRows = spsManualRows_();
+    const manualTarget = manualRows.length ? manualRows[0].targetSp : 0;
     if (!(manualTarget > 0) && !cmd) { showToast('Request likho ya Target SP daalo.', true); return; }
 
     const btn = document.getElementById('spsBuildBtn');
@@ -9435,7 +9629,7 @@
     if (!(manualTarget > 0)) { noteBox.innerHTML = readBusyHtml_('Request padh rahe hain…', '10 second ruko - sets apne aap ban jayenge.'); readBusyArm_('spsPlanNote', 'Thoda aur ruko…', 'Ho raha hai - 30 second tak lag sakte hain.'); }
     let spec, note = '', via = 'manual';
     if (manualTarget > 0) {
-      spec = spNormalizeSpec_({ specs: [{ count: manualCountRaw ? Number(manualCountRaw) : 'max', targetSp: manualTarget }] });
+      spec = spNormalizeSpec_({ specs: manualRows.map(function (r) { return { count: r.countRaw ? Number(r.countRaw) : (manualRows.length > 1 ? 1 : 'max'), targetSp: r.targetSp }; }) });
       note = 'Aapke bhare hue numbers se.';
     } else {
       const r = await spsInterpret_(cmd, pool);
@@ -9445,8 +9639,14 @@
     }
     btn.disabled = false; btn.textContent = 'Sets banao';
     if (spec.error) { noteBox.innerHTML = '<p class="login-error">' + escapeHtml(spec.error) + '</p>'; return; }
+    spec.restSet = !!(document.getElementById('spsRestSet') && document.getElementById('spsRestSet').checked);
 
-    const plan = spBuildSets_(pool, spec);
+    let plan = spBuildSets_(pool, spec);
+    if (plan.failed && plan.failed.length && spec.mode !== 'closest') {
+      const fixed = await spsAskImpossible_(plan, spec);
+      if (!fixed) { noteBox.innerHTML = '<p class="hint" style="margin:0;">Cancel kiya - koi set nahi banaya.</p>'; spsPreview_ = null; document.getElementById('spsPreviewCard').style.display = 'none'; return; }
+      plan = fixed;
+    }
     const problems = spVerifyPlan_(pool, plan, spec);
     if (problems.length) { noteBox.innerHTML = '<p class="login-error">Hisaab verify nahi hua, isliye sets nahi dikha raha: ' + escapeHtml(problems.slice(0, 2).join(' ')) + '</p>'; return; }
 
@@ -9486,6 +9686,7 @@
       html += '<div class="modal-actions" style="margin-top:6px;"><button class="btn btn-outline" onclick="spsDiscardPreview_()">Discard</button><button class="btn btn-primary" id="spsSaveBtn" onclick="saveSpsPreview_()">Save ' + p.sets.length + ' set' + (p.sets.length > 1 ? 's' : '') + '</button></div>';
     }
     card.innerHTML = html; card.style.display = 'block';
+    spsPreviewDecorate_();
   }
 
   function spsDiscardPreview_() { spsPreview_ = null; document.getElementById('spsPreviewCard').style.display = 'none'; }
