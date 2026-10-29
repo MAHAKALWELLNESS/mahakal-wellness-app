@@ -636,6 +636,7 @@
       <div class="subtabs">
         <button class="subtab active" data-subtab="bills" onclick="switchApprovalSubtab_('bills')">Bills</button>
         <button class="subtab" data-subtab="cashmemo" onclick="switchApprovalSubtab_('cashmemo')">Cash Memo</button>
+        <button class="subtab" data-subtab="customers" onclick="switchApprovalSubtab_('customers')">Customers</button>
       </div>
       <div id="apprsub-bills" class="subtab-panel active">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="searchApprovalBills()">↻ Refresh</button>
@@ -643,6 +644,7 @@
       <div class="card"><h2>Awaiting approval</h2><div id="approvalList"><div class="empty-cart">Loading…</div></div></div>
       </div>
       <div id="apprsub-cashmemo" class="subtab-panel"></div>
+      <div id="apprsub-customers" class="subtab-panel"></div>
     </section>
 
     <!-- ============ PAST BILLS TAB ============ -->
@@ -650,6 +652,7 @@
       <div class="subtabs">
         <button class="subtab active" data-subtab="bills" onclick="switchHistorySubtab_('bills')">Bills</button>
         <button class="subtab" data-subtab="cashmemo" onclick="switchHistorySubtab_('cashmemo')">Cash Memo</button>
+        <button class="subtab" data-subtab="customers" onclick="switchHistorySubtab_('customers')">Customers</button>
       </div>
       <div id="histsub-bills" class="subtab-panel active">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="searchHistory()">↻ Refresh</button>
@@ -669,6 +672,7 @@
       <div class="card"><p class="section-label">Find a bill</p><input type="text" id="historySearch" class="search-input" placeholder="Invoice no, name or mobile…" oninput="searchHistory()"></div>
       <div class="card"><div id="historyList"><div class="empty-cart">Type above, or leave blank to see recent bills.</div></div></div>
       </div>
+      <div id="histsub-customers" class="subtab-panel"></div>
       <div id="histsub-cashmemo" class="subtab-panel">
         <div id="cmRegisterRoot">
         <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadCashMemoRegister_()">↻ Refresh</button>
@@ -6352,6 +6356,125 @@
   function historyToggleOrder_() { historyAsc_ = !historyAsc_; const b = document.getElementById('historyOrderBtn'); if (b) b.textContent = historyAsc_ ? '↑ Oldest first' : '↓ Newest first'; searchHistory(); }
   function historyOtherMatches_() { historySkipMemo_ = true; searchHistory(); }
 
+  // =================== CUSTOMERS SUB-TAB (Bill Approval + Past Bill) ===================
+  // Customer names with bills in a date range (Today / Yesterday / This week / Last week / Custom), A to Z; tap a customer for his bills (same filter to start with), tap a bill to open it.
+  // Bill Approval: only the bills waiting for approval. Past Bill: every other bill (cancelled ones are listed but not counted). Days are India days.
+  const CV_ = {}, CV_PANEL_ = { approval: 'apprsub-customers', past: 'histsub-customers' };
+  const CV_COLS = 'invoice_no, invoice_date, customer_name, mobile, customer_type, total_sp, total_dp, net_amount, transport_charges, cash_memo_no, cash_memo_more, bill_status, status, balance';
+  const CV_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], CV_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function cvState_(scope) { return CV_[scope] || (CV_[scope] = { view: 'list', list: { kind: 'today', from: '', to: '' }, detail: null, cur: null, groups: [], req: 0 }); }
+  function cvDayText_(ymd) { const d = new Date(ymd + 'T00:00:00Z'); return CV_DAYS[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + CV_MON[d.getUTCMonth()] + ' ' + d.getUTCFullYear(); }
+  function cvRange_(f) {
+    const today = dfToday_();
+    if (f.kind === 'today') return { from: today, to: today };
+    if (f.kind === 'yesterday') { const y = dfShift_(today, -1); return { from: y, to: y }; }
+    const dow = new Date(today + 'T00:00:00Z').getUTCDay(), wk = dfShift_(today, -((dow - 4 + 7) % 7));      // the business week runs Thursday to Wednesday (as on the dashboard)
+    if (f.kind === 'week') return { from: wk, to: dfShift_(wk, 6) };
+    if (f.kind === 'lastweek') return { from: dfShift_(wk, -7), to: dfShift_(wk, -1) };
+    return { from: f.from || '', to: f.to || '' };
+  }
+  function cvRangeText_(f) {
+    const r = cvRange_(f), names = { today: 'Today', yesterday: 'Yesterday', week: 'This week (Thu–Wed)', lastweek: 'Last week (Thu–Wed)', custom: 'Custom' };
+    const span = r.from && r.to ? (r.from === r.to ? cvDayText_(r.from) : cvDayText_(r.from) + ' – ' + cvDayText_(r.to)) : (r.from ? 'from ' + cvDayText_(r.from) : (r.to ? 'up to ' + cvDayText_(r.to) : 'pick From and To'));
+    return names[f.kind] + ' · ' + span;
+  }
+  async function cvFetchBills_(scope, range, extra) {
+    const rows = [];
+    for (let page = 0; page < 10; page++) {
+      let q = sb.from('invoices').select(CV_COLS).order('invoice_date', { ascending: false }).range(page * 1000, page * 1000 + 999);
+      q = scope === 'approval' ? q.eq('bill_status', 'Pending') : q.neq('bill_status', 'Pending');
+      if (range.from) q = q.gte('invoice_date', new Date(range.from + 'T00:00:00+05:30').toISOString());
+      if (range.to) q = q.lte('invoice_date', new Date(range.to + 'T23:59:59.999+05:30').toISOString());
+      if (extra) q = extra(q);
+      const res = await q; if (res.error) throw res.error;
+      (res.data || []).forEach(function (r) { rows.push(r); });
+      if ((res.data || []).length < 1000) break;
+    }
+    return rows;
+  }
+  function cvGroup_(rows) {
+    const map = {};
+    rows.forEach(function (r) {
+      const mob = String(r.mobile || '').trim(), name = String(r.customer_name || '').trim() || 'Walk-in', key = mob ? 'm:' + mob : 'n:' + name.toUpperCase();
+      const g = map[key] || (map[key] = { key: key, mobile: mob, name: name, bills: 0, sp: 0, amount: 0, cancelled: 0, last: '' });
+      if (r.bill_status === 'Cancelled') g.cancelled++; else { g.bills++; g.sp += Number(r.total_sp) || 0; g.amount += Number(billGrand_(r)) || 0; }
+      if (!g.last || r.invoice_date > g.last) { g.last = r.invoice_date; g.name = name; }
+    });
+    return Object.keys(map).map(function (k) { return map[k]; }).sort(function (a, b) { return a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }); });
+  }
+  function cvBuild_(scope) {
+    const root = document.getElementById(CV_PANEL_[scope]); if (!root || root.dataset.built) return;
+    root.dataset.built = '1';
+    root.innerHTML = '<button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="cvRefresh_(\'' + scope + '\')">↻ Refresh</button><div class="card" id="cv-' + scope + '-filter" style="padding:12px 14px;"></div><div id="cv-' + scope + '-body"></div>';
+  }
+  function cvRenderFilter_(scope) {
+    const st = cvState_(scope), f = st.view === 'detail' ? st.detail : st.list, box = document.getElementById('cv-' + scope + '-filter'); if (!box) return;
+    const chip = function (k, label) { return '<button class="quickbtn' + (f.kind === k ? ' on' : '') + '" type="button" data-k="' + k + '" onclick="cvSetFilter_(\'' + scope + '\', \'' + k + '\')">' + label + '</button>'; };
+    box.innerHTML = '<p class="section-label" style="margin:0 0 8px;">Filter by date</p><div style="display:flex;gap:6px;flex-wrap:wrap;">' + chip('today', 'Today') + chip('yesterday', 'Yesterday') + chip('week', 'This week') + chip('lastweek', 'Last week') + chip('custom', 'Custom') + '</div>' +
+      (f.kind === 'custom' ? '<div class="field-row" style="margin-top:10px;"><div class="field" style="margin-bottom:0;"><label>From</label><input type="date" class="cv-from" value="' + escapeHtml(f.from) + '" onchange="cvCustom_(\'' + scope + '\')"></div><div class="field" style="margin-bottom:0;"><label>To</label><input type="date" class="cv-to" value="' + escapeHtml(f.to) + '" onchange="cvCustom_(\'' + scope + '\')"></div></div>' : '') +
+      '<p class="hint cv-range" style="margin:8px 0 0;font-weight:700;color:var(--ink);">' + escapeHtml(cvRangeText_(f)) + '</p>';
+  }
+  function cvSetFilter_(scope, kind) {
+    const st = cvState_(scope), f = st.view === 'detail' ? st.detail : st.list;
+    f.kind = kind; if (kind === 'custom' && !f.from && !f.to) { f.from = dfToday_(); f.to = dfToday_(); }
+    cvRenderFilter_(scope); cvLoad_(scope);
+  }
+  function cvCustom_(scope) {
+    const st = cvState_(scope), f = st.view === 'detail' ? st.detail : st.list, box = document.getElementById('cv-' + scope + '-filter');
+    f.from = box.querySelector('.cv-from').value; f.to = box.querySelector('.cv-to').value;
+    box.querySelector('.cv-range').textContent = cvRangeText_(f); cvLoad_(scope);
+  }
+  function cvShow_(scope) { cvBuild_(scope); cvRenderFilter_(scope); cvLoad_(scope); }
+  function cvRefresh_(scope) { cvLoad_(scope); }
+  async function cvLoad_(scope) {
+    const st = cvState_(scope), body = document.getElementById('cv-' + scope + '-body'); if (!body) return;
+    const mine = ++st.req, detail = st.view === 'detail', f = detail ? st.detail : st.list;
+    if (f.kind === 'custom' && !f.from && !f.to) { body.innerHTML = '<div class="card"><div class="empty-cart">Pick the From and To dates.</div></div>'; return; }
+    body.innerHTML = '<div class="card"><div class="empty-cart">Loading…</div></div>';
+    try {
+      const g = st.cur;
+      const rows = await cvFetchBills_(scope, cvRange_(f), detail ? function (q) { return g.mobile ? q.eq('mobile', g.mobile) : q.eq('customer_name', g.name); } : null);
+      if (mine !== st.req) return;
+      if (detail) cvRenderDetail_(scope, g.mobile ? rows : rows.filter(function (r) { return !String(r.mobile || '').trim(); }));
+      else { st.groups = cvGroup_(rows); cvRenderList_(scope); }
+    } catch (e) { if (mine === st.req) body.innerHTML = '<div class="card"><div class="empty-cart">Could not load: ' + escapeHtml((e && e.message) || 'error') + '</div></div>'; }
+  }
+  function cvRenderList_(scope) {
+    const st = cvState_(scope), body = document.getElementById('cv-' + scope + '-body'), g = st.groups;
+    if (!g.length) { body.innerHTML = '<div class="card"><div class="empty-cart">No customer has ' + (scope === 'approval' ? 'a bill waiting for approval' : 'a bill') + ' in this range.</div></div>'; return; }
+    const bills = g.reduce(function (t, x) { return t + x.bills; }, 0), sp = g.reduce(function (t, x) { return t + x.sp; }, 0), amt = g.reduce(function (t, x) { return t + x.amount; }, 0);
+    body.innerHTML = '<p class="hint" id="cv-' + scope + '-total" style="font-weight:800;margin:0 0 8px;color:var(--ink);">' + g.length + ' customer' + (g.length === 1 ? '' : 's') + ' · ' + bills + ' bill' + (bills === 1 ? '' : 's') + ' · SP ' + trimNum(sp) + ' · ' + money(amt) + '</p><div class="card">' +
+      g.map(function (x) {
+        return '<div class="list-row cv-cust" data-key="' + escapeHtml(x.key) + '" style="cursor:pointer;"><div><div class="result-name" style="font-weight:800;">' + escapeHtml(x.name) + '</div><div class="result-meta" style="font-weight:700;">' + (x.mobile ? escapeHtml(x.mobile) + ' · ' : '') + x.bills + ' bill' + (x.bills === 1 ? '' : 's') + ' · SP ' + trimNum(x.sp) + (x.cancelled ? ' · ' + x.cancelled + ' cancelled' : '') + '</div></div><div class="cart-amount"><div class="amt" style="font-weight:800;">' + money(x.amount) + '</div></div></div>';
+      }).join('') + '</div>';
+    Array.prototype.forEach.call(body.querySelectorAll('.cv-cust'), function (row) { row.addEventListener('click', function () { cvOpenCustomer_(scope, row.dataset.key); }); });
+  }
+  // the customer's bills start with the SAME filter as the customer list (and can then be changed on their own)
+  function cvOpenCustomer_(scope, key) {
+    const st = cvState_(scope), g = st.groups.find(function (x) { return x.key === key; }); if (!g) return;
+    st.cur = g; st.view = 'detail'; st.detail = { kind: st.list.kind, from: st.list.from, to: st.list.to };
+    cvRenderFilter_(scope); cvLoad_(scope);
+  }
+  function cvBack_(scope) { const st = cvState_(scope); st.view = 'list'; cvRenderFilter_(scope); cvLoad_(scope); }
+  function cvRenderDetail_(scope, rows) {
+    const st = cvState_(scope), g = st.cur, body = document.getElementById('cv-' + scope + '-body');
+    const live = rows.filter(function (r) { return r.bill_status !== 'Cancelled'; });
+    const sp = live.reduce(function (t, r) { return t + (Number(r.total_sp) || 0); }, 0), amt = live.reduce(function (t, r) { return t + (Number(billGrand_(r)) || 0); }, 0);
+    const day = function (iso) { return new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }); };
+    body.innerHTML = '<button class="btn btn-outline btn-block" id="cv-' + scope + '-back" style="margin-bottom:10px;" onclick="cvBack_(\'' + scope + '\')">← All customers</button>' +
+      '<div class="card" id="cv-' + scope + '-head"><div style="font-weight:800;font-size:17px;color:var(--green-900);">' + escapeHtml(g.name) + '</div><div class="hint" style="font-weight:700;margin:2px 0 6px;color:var(--ink);">' + escapeHtml(g.mobile || 'no mobile number') + '</div><div style="font-weight:800;">' + live.length + ' bill' + (live.length === 1 ? '' : 's') + ' · SP ' + trimNum(sp) + ' · ' + money(amt) + '</div></div>' +
+      '<div class="card">' + (rows.length ? rows.map(function (r) {
+        const cancelled = r.bill_status === 'Cancelled';
+        const memo = r.cash_memo_no ? 'Cash Memo ' + escapeHtml(r.cash_memo_no) + String(r.cash_memo_more || '').split(/\s*,\s*/).filter(Boolean).map(function (m) { return ' +' + escapeHtml(m); }).join('') : 'No cash memo';
+        return '<div class="list-row cv-bill" data-inv="' + escapeHtml(r.invoice_no) + '" style="cursor:pointer;' + (cancelled ? 'opacity:.6;' : '') + '"><div>' +
+          '<div class="cv-b-name" style="font-weight:800;font-size:14.5px;color:var(--green-900);">' + escapeHtml(r.customer_name || 'Walk-in') + '</div>' +
+          '<div class="cv-b-no" style="font-weight:800;">' + escapeHtml(r.invoice_no) + ' · ' + memo + '</div>' +
+          '<div class="cv-b-sp" style="font-weight:700;font-size:12.5px;">' + day(r.invoice_date) + ' · SP ' + trimNum(r.total_sp) + (cancelled ? ' · Cancelled' : '') + '</div></div>' +
+          '<div class="cart-amount"><div class="amt cv-b-amt" style="font-weight:800;">' + money(billGrand_(r)) + '</div></div></div>';
+      }).join('') : '<div class="empty-cart">No bills of this customer in this range.</div>') + '</div>';
+    Array.prototype.forEach.call(body.querySelectorAll('.cv-bill'), function (row) { row.addEventListener('click', function () { viewBill(row.dataset.inv, false); }); });
+  }
+
   // =================== CORRECT A WRONG PAYMENT ENTRY (main admin only) ===================
   // The wrong entry is KEPT and reversed by a minus entry on the same day; the right entry is added; the bill (cash, online, balance, status) and the customer's wallet follow, all in one step.
   let PC_ = null;
@@ -6486,7 +6609,7 @@
     c.querySelectorAll(':scope > .subtabs > .subtab[data-subtab]').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
     c.querySelectorAll(':scope > .subtab-panel').forEach(function (p) { p.classList.remove('active'); });
     document.getElementById('histsub-' + name).classList.add('active');
-    if (name === 'cashmemo') { cmMoveTo_('histsub-cashmemo'); loadCashMemoRegister_(); }
+    if (name === 'cashmemo') { cmMoveTo_('histsub-cashmemo'); loadCashMemoRegister_(); } else if (name === 'customers') cvShow_('past');
   }
   // the cash memo register is ONE piece of the page: it lives under Past Bill > Cash Memo, and moves under Bill Approval > Cash Memo when that is opened
   function cmMoveTo_(paneId) { const root = document.getElementById('cmRegisterRoot'), pane = document.getElementById(paneId); if (root && pane && root.parentNode !== pane) pane.appendChild(root); }
@@ -6495,7 +6618,7 @@
     c.querySelectorAll(':scope > .subtabs > .subtab[data-subtab]').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
     c.querySelectorAll(':scope > .subtab-panel').forEach(function (p) { p.classList.remove('active'); });
     document.getElementById('apprsub-' + name).classList.add('active');
-    if (name === 'cashmemo') { cmMoveTo_('apprsub-cashmemo'); loadCashMemoRegister_(); } else searchApprovalBills();
+    if (name === 'cashmemo') { cmMoveTo_('apprsub-cashmemo'); loadCashMemoRegister_(); } else if (name === 'customers') cvShow_('approval'); else searchApprovalBills();
   }
   let cmView_ = 'serial', cmDesc_ = true, cmPage_ = 0, cmFrom_ = null, cmSearch_ = '', cmNoSearch_ = '', cmNoPage_ = 0;
   let cmGaps_ = null, cmSummary_ = null, cmReq_ = 0, cmViewReq_ = 0, cmTimer_ = null, cmNoTotal_ = 0, cmSerialTotal_ = 0;
