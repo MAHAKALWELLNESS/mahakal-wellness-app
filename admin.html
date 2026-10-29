@@ -312,7 +312,7 @@
 <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('mwLook')!=='old'){d.classList.add('nl');var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content','#2B1F8F');}}catch(e){document.documentElement.classList.add('nl');}})();</script>
 <style id="mwNewLook">
 @media screen{
-/* ===================== NAYA LOOK (trial): colourful, 3D tabs, app-like. Everything is under html.nl - remove the class and the old look is back exactly ===================== */
+/* ===================== NEW LOOK (final): colourful, 3D tabs, app-like. Everything is under html.nl - the main admin can switch it off for the whole app (old look = no class) ===================== */
 html.nl{
   --green-900:#241B6E; --green-800:#3D2FB5; --green-700:#5B4BDB; --green-100:#E9E6FF;
   --gold-500:#FFB020; --gold-600:#B85F00; --gold-100:#FFF0CC;
@@ -545,7 +545,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div class="brand-mark"><img src="" id="logoImg" alt="Mahakal Wellness logo"></div>
       <div><h1>Mahakal Wellness</h1><p class="tagline">Billing Counter</p></div>
       <div class="topbar-links">
-        <button class="header-link" id="lookToggle" type="button" onclick="toggleLook_()">🎨 Purana look</button>
+        <button class="header-link" id="lookToggle" type="button" style="display:none;" onclick="toggleLook_()">🎨 New look: ON</button>
         <a class="header-link" href="index.html" style="text-decoration:none;display:inline-block;">← Main Page</a>
         <button class="header-link" onclick="openChangePassword()">Change password</button>
         <button class="header-link" id="changeAdminCodeBtn" style="display:none;" onclick="openChangeAdminCode()">Change admin link code</button>
@@ -748,12 +748,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div class="card" style="box-shadow:none;background:var(--gold-100);"><p style="color:var(--gold-600);font-weight:700;font-size:13px;margin:0;">These are customer requests from the public order form. Nothing here touches stock or bills until you Approve it.</p></div>
       <div class="card">
         <p class="section-label">Filter by date</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-          <button class="quickbtn" type="button" onclick="setPublicOrderRange_('today')">Today</button>
-          <button class="quickbtn" type="button" onclick="setPublicOrderRange_('week')">This week</button>
-          <button class="quickbtn" type="button" onclick="setPublicOrderRange_('month')">This month</button>
-          <button class="quickbtn" type="button" onclick="setPublicOrderRange_('prevmonth')">Prev month</button>
-          <button class="quickbtn" type="button" onclick="setPublicOrderRange_('all')">All</button>
+        <div class="qr-host" data-qr-key="publicorder" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
         </div>
         <div class="field-row">
           <div class="field"><label for="publicOrderFrom">From</label><input type="date" id="publicOrderFrom" onchange="loadPublicOrders()"></div>
@@ -797,11 +792,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="searchHistory()">↻ Refresh</button>
       <div class="card">
         <p class="section-label">Filter by date</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-          <button class="quickbtn" type="button" onclick="setHistoryRange_('today')">Today</button>
-          <button class="quickbtn" type="button" onclick="setHistoryRange_('week')">This week</button>
-          <button class="quickbtn" type="button" onclick="setHistoryRange_('month')">This month</button>
-          <button class="quickbtn" type="button" onclick="setHistoryRange_('prevmonth')">Prev month</button>
+        <div class="qr-host" data-qr-key="history" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
         </div>
         <div class="field-row">
           <div class="field"><label for="historyFrom">From</label><input type="date" id="historyFrom" onchange="searchHistory()"></div>
@@ -916,10 +907,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       </div>
       <div class="card" id="dashboardHallStats" style="display:none;">
         <p class="section-label">🏛️ Hall Booking</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-          <button class="quickbtn" type="button" onclick="setDashboardHallRange_('today')">Today</button>
-          <button class="quickbtn" type="button" onclick="setDashboardHallRange_('week')">This week</button>
-          <button class="quickbtn" type="button" onclick="setDashboardHallRange_('month')">This month</button>
+        <div class="qr-host" data-qr-key="dashhall" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
         </div>
         <div class="field-row">
           <div class="field"><label for="dashHallFrom">From</label><input type="date" id="dashHallFrom"></div>
@@ -935,10 +923,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       </div>
       <div class="card">
         <p class="section-label">Quick range</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="quickbtn" type="button" onclick="setDashboardRange('today')">Today</button>
-          <button class="quickbtn" type="button" onclick="setDashboardRange('week')">This week (Thu–Wed)</button>
-          <button class="quickbtn" type="button" onclick="setDashboardRange('month')">This month</button>
+        <div class="qr-host" data-qr-key="dashboard" style="display:flex;gap:8px;flex-wrap:wrap;">
         </div>
         <p class="section-label" style="margin-top:14px;">Custom range</p>
         <div class="field-row">
@@ -1002,12 +987,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div id="esub-report" class="subtab-panel">
         <div class="card">
           <p class="section-label">Filter</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <button class="quickbtn" type="button" onclick="setExpenseReportRange_('today')">Today</button>
-            <button class="quickbtn" type="button" onclick="setExpenseReportRange_('week')">This week</button>
-            <button class="quickbtn" type="button" onclick="setExpenseReportRange_('month')">This month</button>
-            <button class="quickbtn" type="button" onclick="setExpenseReportRange_('prevmonth')">Prev month</button>
-            <button class="quickbtn" type="button" onclick="setExpenseReportRange_('all')">All time</button>
+          <div class="qr-host" data-qr-key="exprep" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           </div>
           <div class="field-row">
             <div class="field"><label for="expReportFrom">From</label><input type="date" id="expReportFrom"></div>
@@ -1024,12 +1004,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div id="esub-ledger" class="subtab-panel">
         <div class="card">
           <p class="section-label">Filter</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <button class="quickbtn" type="button" onclick="setExpenseLedgerRange_('today')">Today</button>
-            <button class="quickbtn" type="button" onclick="setExpenseLedgerRange_('week')">This week</button>
-            <button class="quickbtn" type="button" onclick="setExpenseLedgerRange_('month')">This month</button>
-            <button class="quickbtn" type="button" onclick="setExpenseLedgerRange_('prevmonth')">Prev month</button>
-            <button class="quickbtn" type="button" onclick="setExpenseLedgerRange_('all')">All time</button>
+          <div class="qr-host" data-qr-key="expledger" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           </div>
           <div class="field-row">
             <div class="field"><label for="expLedgerFrom">From</label><input type="date" id="expLedgerFrom"></div>
@@ -1060,11 +1035,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadOfficialPending()">↻ Refresh</button>
       <div class="card">
         <p class="section-label">Filter by date</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-          <button class="quickbtn" type="button" onclick="setOfficialRange_('today')">Today</button>
-          <button class="quickbtn" type="button" onclick="setOfficialRange_('week')">This week</button>
-          <button class="quickbtn" type="button" onclick="setOfficialRange_('month')">This month</button>
-          <button class="quickbtn" type="button" onclick="setOfficialRange_('prevmonth')">Prev month</button>
+        <div class="qr-host" data-qr-key="official" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
         </div>
         <div class="field-row">
           <div class="field"><label for="officialFrom">From</label><input type="date" id="officialFrom" onchange="loadOfficialPending()"></div>
@@ -1143,10 +1114,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div id="ssub-online" class="subtab-panel active">
         <div class="card">
           <p class="section-label">Quick range</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <button class="quickbtn" type="button" onclick="setOnlineStockRange('today')">Today</button>
-            <button class="quickbtn" type="button" onclick="setOnlineStockRange('week')">This week (Thu–Wed)</button>
-            <button class="quickbtn" type="button" onclick="setOnlineStockRange('net')">Net Stock (all-time)</button>
+          <div class="qr-host" data-qr-key="onlinestock" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           </div>
           <div class="field-row"><div class="field"><label>From</label><input type="date" id="onlineStockFrom"></div><div class="field"><label>To</label><input type="date" id="onlineStockTo"></div></div>
           <button class="btn btn-primary btn-block" onclick="applyOnlineStockFilter()">Apply filter</button>
@@ -1163,10 +1131,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div id="ssub-physical" class="subtab-panel">
         <div class="card">
           <p class="section-label">Quick range</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <button class="quickbtn" type="button" onclick="setPhysicalStockRange('today')">Today</button>
-            <button class="quickbtn" type="button" onclick="setPhysicalStockRange('week')">This week (Thu–Wed)</button>
-            <button class="quickbtn" type="button" onclick="setPhysicalStockRange('net')">Net Stock (all-time)</button>
+          <div class="qr-host" data-qr-key="physicalstock" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           </div>
           <div class="field-row"><div class="field"><label>From</label><input type="date" id="physicalStockFrom"></div><div class="field"><label>To</label><input type="date" id="physicalStockTo"></div></div>
           <button class="btn btn-primary btn-block" onclick="applyPhysicalStockFilter()">Apply filter</button>
@@ -1183,10 +1148,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div id="ssub-ordercalc" class="subtab-panel">
         <div class="card">
           <p class="section-label">Quick range (for Off. Use / Delivered columns)</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <button class="quickbtn" type="button" onclick="setOrderCalcRange('today')">Today</button>
-            <button class="quickbtn" type="button" onclick="setOrderCalcRange('week')">This week (Thu–Wed)</button>
-            <button class="quickbtn" type="button" onclick="setOrderCalcRange('net')">Net (all-time)</button>
+          <div class="qr-host" data-qr-key="ordercalc" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           </div>
           <div class="field-row"><div class="field"><label>From</label><input type="date" id="orderCalcFrom"></div><div class="field"><label>To</label><input type="date" id="orderCalcTo"></div></div>
           <button class="btn btn-primary btn-block" onclick="applyOrderCalcFilter()">Apply filter</button>
@@ -1225,10 +1187,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
           <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadTopProductsOffline()">↻ Refresh</button>
           <div class="card">
             <p class="section-label">Quick range</p>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-              <button class="quickbtn" type="button" onclick="setTopProductsRange('offline','today')">Today</button>
-              <button class="quickbtn" type="button" onclick="setTopProductsRange('offline','week')">This week (Thu–Wed)</button>
-              <button class="quickbtn" type="button" onclick="setTopProductsRange('offline','net')">All-time</button>
+            <div class="qr-host" data-qr-key="tpoffline" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
             </div>
             <div class="field-row"><div class="field"><label>From</label><input type="date" id="tpOfflineFrom"></div><div class="field"><label>To</label><input type="date" id="tpOfflineTo"></div></div>
             <button class="btn btn-primary btn-block" onclick="loadTopProductsOffline()">Apply filter</button>
@@ -1247,10 +1206,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
           <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadTopProductsOnline()">↻ Refresh</button>
           <div class="card">
             <p class="section-label">Quick range</p>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-              <button class="quickbtn" type="button" onclick="setTopProductsRange('online','today')">Today</button>
-              <button class="quickbtn" type="button" onclick="setTopProductsRange('online','week')">This week (Thu–Wed)</button>
-              <button class="quickbtn" type="button" onclick="setTopProductsRange('online','net')">All-time</button>
+            <div class="qr-host" data-qr-key="tponline" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
             </div>
             <div class="field-row"><div class="field"><label>From</label><input type="date" id="tpOnlineFrom"></div><div class="field"><label>To</label><input type="date" id="tpOnlineTo"></div></div>
             <button class="btn btn-primary btn-block" onclick="loadTopProductsOnline()">Apply filter</button>
@@ -1270,10 +1226,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div id="tpfsub-customer" class="subtab-panel">
         <div class="card">
           <p class="section-label">Quick range</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <button class="quickbtn" type="button" onclick="setTopCustomersRange('today')">Today</button>
-            <button class="quickbtn" type="button" onclick="setTopCustomersRange('week')">This week (Thu–Wed)</button>
-            <button class="quickbtn" type="button" onclick="setTopCustomersRange('month')">This month</button>
+          <div class="qr-host" data-qr-key="topcust" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           </div>
           <div class="field-row"><div class="field"><label>From</label><input type="date" id="topCustFrom"></div><div class="field"><label>To</label><input type="date" id="topCustTo"></div></div>
           <button class="btn btn-primary btn-block" onclick="loadTopCustomers()">Apply filter</button>
@@ -1387,6 +1340,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="openNewHallBooking()">+ New Booking</button>
       <div class="card">
         <p class="section-label">Filter by date</p>
+        <div class="qr-host" data-qr-key="hallbookings" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div>
         <div class="field-row">
           <div class="field"><label for="hallFilterFrom">From</label><input type="date" id="hallFilterFrom"></div>
           <div class="field"><label for="hallFilterTo">To</label><input type="date" id="hallFilterTo"></div>
@@ -1415,10 +1369,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadPaymentStmt('online')">↻ Refresh</button>
         <div class="card">
           <p class="section-label">Quick range</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('online','today')">Today</button>
-            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('online','week')">This week (Thu–Wed)</button>
-            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('online','month')">This month</button>
+          <div class="qr-host" data-qr-key="pstonline" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           </div>
           <div class="field-row"><div class="field"><label>From</label><input type="date" id="pstmtOnlineFrom"></div><div class="field"><label>To</label><input type="date" id="pstmtOnlineTo"></div></div>
           <button class="btn btn-primary btn-block" onclick="loadPaymentStmt('online')">Apply filter</button>
@@ -1434,10 +1385,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadPaymentStmt('cash')">↻ Refresh</button>
         <div class="card">
           <p class="section-label">Quick range</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('cash','today')">Today</button>
-            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('cash','week')">This week (Thu–Wed)</button>
-            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('cash','month')">This month</button>
+          <div class="qr-host" data-qr-key="pstcash" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           </div>
           <div class="field-row"><div class="field"><label>From</label><input type="date" id="pstmtCashFrom"></div><div class="field"><label>To</label><input type="date" id="pstmtCashTo"></div></div>
           <button class="btn btn-primary btn-block" onclick="loadPaymentStmt('cash')">Apply filter</button>
@@ -1471,10 +1419,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         </div>
         <div class="card">
           <p class="section-label">Quick range</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('deposits','today')">Today</button>
-            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('deposits','week')">This week (Thu–Wed)</button>
-            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('deposits','month')">This month</button>
+          <div class="qr-host" data-qr-key="pstdeposits" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           </div>
           <div class="field-row"><div class="field"><label>From</label><input type="date" id="pstmtDepositsFrom"></div><div class="field"><label>To</label><input type="date" id="pstmtDepositsTo"></div></div>
           <button class="btn btn-primary btn-block" onclick="loadCashDeposits()">Apply filter</button>
@@ -1489,6 +1434,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div id="pstmt-due" class="subtab-panel">
         <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadDueStatement()">↻ Refresh</button>
         <div class="card">
+          <div class="qr-host" data-qr-key="due" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div>
           <div class="field-row"><div class="field"><label>From</label><input type="date" id="dueFrom"></div><div class="field"><label>To</label><input type="date" id="dueTo"></div></div>
           <button class="btn btn-primary btn-block" onclick="loadDueStatement()">Apply filter</button>
         </div>
@@ -1501,10 +1447,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadWalletStatement()">↻ Refresh</button>
         <div class="card">
           <p class="section-label">Quick range</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('wallet','today')">Today</button>
-            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('wallet','week')">This week (Thu–Wed)</button>
-            <button class="quickbtn" type="button" onclick="setPaymentStmtRange('wallet','month')">This month</button>
+          <div class="qr-host" data-qr-key="pstwallet" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           </div>
           <div class="field-row"><div class="field"><label>From</label><input type="date" id="pstmtWalletFrom"></div><div class="field"><label>To</label><input type="date" id="pstmtWalletTo"></div></div>
           <button class="btn btn-primary btn-block" onclick="loadWalletStatement()">Apply filter</button>
@@ -1609,6 +1552,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div id="mpsub-mphistory" class="subtab-panel">
         <div class="card">
           <p class="section-label">Filter by date</p>
+          <div class="qr-host" data-qr-key="mphist" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div>
           <div class="field-row">
             <div class="field"><label for="mpHistFrom">From</label><input type="date" id="mpHistFrom"></div>
             <div class="field"><label for="mpHistTo">To</label><input type="date" id="mpHistTo"></div>
@@ -2403,12 +2347,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       </div>
       <div id="customerDetailExtra" style="display:none;margin-bottom:14px;background:var(--gold-100);border:1.5px solid var(--gold-500);border-radius:8px;padding:8px 10px;font-size:12.5px;font-weight:700;color:var(--green-900);"></div>
       <p class="section-label">Quick range</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-        <button class="quickbtn" type="button" onclick="setCustomerRange('all')">All time</button>
-        <button class="quickbtn" type="button" onclick="setCustomerRange('today')">Today</button>
-        <button class="quickbtn" type="button" onclick="setCustomerRange('week')">This week (Thu–Wed)</button>
-        <button class="quickbtn" type="button" onclick="setCustomerRange('month')">This month</button>
-        <button class="quickbtn" type="button" onclick="setCustomerRange('30d')">Last 30 days</button>
+      <div class="qr-host" data-qr-key="custdetail" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
       </div>
       <p class="section-label">Custom range</p>
       <div class="field-row"><div class="field"><label>From</label><input type="date" id="customerFromDate"></div><div class="field"><label>To</label><input type="date" id="customerToDate"></div></div>
@@ -2834,6 +2773,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     document.getElementById('loginOverlay').style.display = 'none';       // a person who is logged in never sees the login form on top of the app
     hideBootSplash_();
     document.getElementById('appRoot').style.display = 'block';
+    loadGlobalLook_();                    // the look the main admin chose for the whole app (shown at once if it differs from the copy remembered on this phone)
     await loadSettings();
     await loadProducts();
     wireSearch();
@@ -2844,6 +2784,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     const isSuperAdmin = !!(user && user.id === SUPER_ADMIN_USER_ID);
     isSuperAdminUser = isSuperAdmin;
     document.getElementById('changeAdminCodeBtn').style.display = isSuperAdmin ? 'inline-block' : 'none';
+    document.getElementById('lookToggle').style.display = isSuperAdmin ? 'inline-block' : 'none';        // the look switch: the main admin only
     document.getElementById('tabBtnCompanyPayout').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnMarketPurchase').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnProfitReport').style.display = isSuperAdmin ? 'block' : 'none';
@@ -5002,20 +4943,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
 
   // ---------------- PAST BILLS ----------------
   let historySearchDebounce = null;
-  function computeRangePreset_(preset) {
-    const now = new Date();
-    let from = new Date(now), to = new Date(now);
-    if (preset === 'week') {
-      const day = now.getDay(); const daysSinceThursday = (day - 4 + 7) % 7;
-      from = new Date(now); from.setDate(now.getDate() - daysSinceThursday);
-    } else if (preset === 'month') {
-      from = new Date(now.getFullYear(), now.getMonth(), 1);
-    } else if (preset === 'prevmonth') {
-      from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      to = new Date(now.getFullYear(), now.getMonth(), 0);
-    }
-    return { from: fmtDateInput_(from), to: fmtDateInput_(to) };
-  }
+    function computeRangePreset_(preset) { return qrRange_(preset === 'prevmonth' ? 'lastmonth' : preset); }
 
   function setHistoryRange_(preset) {
     const r = computeRangePreset_(preset);
@@ -6456,16 +6384,16 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   function dfToday_() { return new Date(Date.now() + 19800000).toISOString().slice(0, 10); }
   function dfShift_(ymd, days) { const d = new Date(ymd + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10); }
   function dfDayOf_(iso) { return iso ? new Date(new Date(iso).getTime() + 19800000).toISOString().slice(0, 10) : ''; }
-  function setDateRange_(prefix, kind) {
+    function setDateRange_(prefix, kind) {
     const f = document.getElementById(prefix + 'From'), to = document.getElementById(prefix + 'To'); if (!f || !to) return;
-    const today = dfToday_(); let a = '', b = '';
-    if (kind === 'today') { a = today; b = today; } else if (kind === '7d') { a = dfShift_(today, -6); b = today; } else if (kind === '30d') { a = dfShift_(today, -29); b = today; } else if (kind === 'month') { a = today.slice(0, 8) + '01'; b = today; }
+    let a = '', b = '';
+    if (kind && kind !== 'all') { const r = qrRange_(kind); a = r.from; b = r.to; }
     f.value = a; to.value = b; f.dispatchEvent(new Event('change'));
   }
   function dateRangeOf_(prefix) { const f = document.getElementById(prefix + 'From'), to = document.getElementById(prefix + 'To'); return { from: f ? f.value : '', to: to ? to.value : '' }; }
-  function dateBarHtml_(prefix, handler) {
-    const chip = function (k, label) { return '<button class="quickbtn" type="button" onclick="setDateRange_(\'' + prefix + '\', \'' + k + '\')">' + label + '</button>'; };
-    return '<div class="card date-filter" id="' + prefix + 'DateBar" style="padding:10px 12px;"><p class="section-label" style="margin:0 0 6px;">Filter by date</p><div class="field-row"><div class="field" style="margin-bottom:6px;"><label for="' + prefix + 'From">From</label><input type="date" id="' + prefix + 'From" onchange="' + handler + '"></div><div class="field" style="margin-bottom:6px;"><label for="' + prefix + 'To">To</label><input type="date" id="' + prefix + 'To" onchange="' + handler + '"></div></div><div style="display:flex;gap:6px;flex-wrap:wrap;">' + chip('today', 'Today') + chip('7d', 'Last 7 days') + chip('month', 'This month') + chip('', 'All dates') + '</div></div>';
+    function dateBarHtml_(prefix, handler) {
+    QR_SCREENS_['bar:' + prefix] = { from: prefix + 'From', to: prefix + 'To', extras: [['all', 'All dates', "setDateRange_('" + prefix + "','')"]] };
+    return '<div class="card date-filter" id="' + prefix + 'DateBar" style="padding:10px 12px;"><p class="section-label" style="margin:0 0 6px;">Filter by date</p><div class="qr-host" data-qr-key="bar:' + prefix + '" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div><div class="field-row"><div class="field" style="margin-bottom:6px;"><label for="' + prefix + 'From">From</label><input type="date" id="' + prefix + 'From" onchange="' + handler + '"></div><div class="field" style="margin-bottom:6px;"><label for="' + prefix + 'To">To</label><input type="date" id="' + prefix + 'To" onchange="' + handler + '"></div></div></div>';
   }
   // the bills that carry exactly this cash memo number (the first or any further number of a bill)
   async function memoInvoiceNos_(q) {
@@ -6503,17 +6431,9 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   const CV_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], CV_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   function cvState_(scope) { return CV_[scope] || (CV_[scope] = { view: 'list', list: { kind: 'today', from: '', to: '' }, detail: null, cur: null, groups: [], req: 0 }); }
   function cvDayText_(ymd) { const d = new Date(ymd + 'T00:00:00Z'); return CV_DAYS[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + CV_MON[d.getUTCMonth()] + ' ' + d.getUTCFullYear(); }
-  function cvRange_(f) {
-    const today = dfToday_();
-    if (f.kind === 'today') return { from: today, to: today };
-    if (f.kind === 'yesterday') { const y = dfShift_(today, -1); return { from: y, to: y }; }
-    const dow = new Date(today + 'T00:00:00Z').getUTCDay(), wk = dfShift_(today, -((dow - 4 + 7) % 7));      // the business week runs Thursday to Wednesday (as on the dashboard)
-    if (f.kind === 'week') return { from: wk, to: dfShift_(wk, 6) };
-    if (f.kind === 'lastweek') return { from: dfShift_(wk, -7), to: dfShift_(wk, -1) };
-    return { from: f.from || '', to: f.to || '' };
-  }
+    function cvRange_(f) { return f.kind === 'custom' ? { from: f.from || '', to: f.to || '' } : qrRange_(f.kind); }
   function cvRangeText_(f) {
-    const r = cvRange_(f), names = { today: 'Today', yesterday: 'Yesterday', week: 'This week (Thu–Wed)', lastweek: 'Last week (Thu–Wed)', custom: 'Custom' };
+    const r = cvRange_(f), names = Object.assign({ custom: 'Custom' }, QR_LABELS_);
     const span = r.from && r.to ? (r.from === r.to ? cvDayText_(r.from) : cvDayText_(r.from) + ' – ' + cvDayText_(r.to)) : (r.from ? 'from ' + cvDayText_(r.from) : (r.to ? 'up to ' + cvDayText_(r.to) : 'pick From and To'));
     return names[f.kind] + ' · ' + span;
   }
@@ -6549,7 +6469,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   function cvRenderFilter_(scope) {
     const st = cvState_(scope), f = st.view === 'detail' ? st.detail : st.list, box = document.getElementById('cv-' + scope + '-filter'); if (!box) return;
     const chip = function (k, label) { return '<button class="quickbtn' + (f.kind === k ? ' on' : '') + '" type="button" data-k="' + k + '" onclick="cvSetFilter_(\'' + scope + '\', \'' + k + '\')">' + label + '</button>'; };
-    box.innerHTML = '<p class="section-label" style="margin:0 0 8px;">Filter by date</p><div style="display:flex;gap:6px;flex-wrap:wrap;">' + chip('today', 'Today') + chip('yesterday', 'Yesterday') + chip('week', 'This week') + chip('lastweek', 'Last week') + chip('custom', 'Custom') + '</div>' +
+    box.innerHTML = '<p class="section-label" style="margin:0 0 8px;">Filter by date</p><div style="display:flex;gap:6px;flex-wrap:wrap;">' + QR_KINDS_.map(function (x) { return chip(x[0], x[1]); }).join('') + '</div>' +
       (f.kind === 'custom' ? '<div class="field-row" style="margin-top:10px;"><div class="field" style="margin-bottom:0;"><label>From</label><input type="date" class="cv-from" value="' + escapeHtml(f.from) + '" onchange="cvCustom_(\'' + scope + '\')"></div><div class="field" style="margin-bottom:0;"><label>To</label><input type="date" class="cv-to" value="' + escapeHtml(f.to) + '" onchange="cvCustom_(\'' + scope + '\')"></div></div>' : '') +
       '<p class="hint cv-range" style="margin:8px 0 0;font-weight:700;color:var(--ink);">' + escapeHtml(cvRangeText_(f)) + '</p>';
   }
@@ -6615,16 +6535,115 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   }
 
 
-  // =================== NAYA LOOK (trial): one tap switches the whole app between the new colourful 3D look and the old look; remembered on this phone ===================
-  function updateLookBtn_() { const b = document.getElementById('lookToggle'); if (b) b.textContent = document.documentElement.classList.contains('nl') ? '🎨 Purana look' : '🎨 Naya look'; }
-  function toggleLook_() {
-    const on = document.documentElement.classList.toggle('nl');
-    try { localStorage.setItem('mwLook', on ? 'new' : 'old'); } catch (e) { /* the switch still works until the page is reloaded */ }
+  // =================== THE LOOK OF THE APP: the new look is final for everyone; ONLY the main admin can switch it (for the whole app, all staff) ===================
+  function updateLookBtn_() { const b = document.getElementById('lookToggle'); if (b) b.textContent = document.documentElement.classList.contains('nl') ? '🎨 New look: ON' : '🎨 New look: OFF'; }
+  function applyLook_(look) {
+    const on = look !== 'old';
+    document.documentElement.classList.toggle('nl', on);
+    try { localStorage.setItem('mwLook', on ? 'new' : 'old'); } catch (e) { /* only the remembered copy is lost */ }
     const m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', on ? '#2B1F8F' : '#132E26');
     updateLookBtn_();
-    if (typeof showToast === 'function') showToast(on ? 'Naya look ON' : 'Purana look wapas aa gaya');
+  }
+  // every time the app opens, the look chosen by the main admin is asked from the database (the copy remembered on the phone shows meanwhile, e.g. on the login screen)
+  async function loadGlobalLook_() {
+    try { const r = await sb.rpc('get_app_look'); if (!r.error && (r.data === 'new' || r.data === 'old')) applyLook_(r.data); } catch (e) { /* offline: keep what is shown */ }
+  }
+  async function toggleLook_() {
+    if (!isSuperAdminUser) return;                                    // the button is only shown to the main admin, and the database refuses anybody else anyway
+    const goOld = document.documentElement.classList.contains('nl');
+    if (!confirm(goOld ? 'Switch the WHOLE app (all staff) back to the OLD look?' : 'Switch the NEW look ON for the WHOLE app (all staff)?')) return;
+    const { error } = await sb.rpc('set_app_look', { p_look: goOld ? 'old' : 'new' });
+    if (error) { showToast(/could not find the function|schema cache/i.test(error.message || '') ? 'Please run app_look.sql in Supabase first.' : error.message, true); return; }
+    applyLook_(goOld ? 'old' : 'new');
+    showToast(goOld ? 'Old look is ON for all staff.' : 'New look is ON for all staff.');
   }
   document.addEventListener('DOMContentLoaded', updateLookBtn_); if (document.readyState !== 'loading') updateLookBtn_();
+
+  // =================== THE SAME QUICK RANGES ON EVERY FILTER: Today, Yesterday, This week, Previous week, This month, Previous month, Custom ===================
+  // India days; the business week runs Thursday to Wednesday. A running period (this week / this month) ends today; opts.future makes it end with the period (hall bookings of the coming days).
+  const QR_KINDS_ = [['today', 'Today'], ['yesterday', 'Yesterday'], ['week', 'This week'], ['lastweek', 'Previous week'], ['month', 'This month'], ['lastmonth', 'Previous month'], ['custom', 'Custom']];
+  const QR_LABELS_ = { today: 'Today', yesterday: 'Yesterday', week: 'This week (Thu–Wed)', lastweek: 'Previous week (Thu–Wed)', month: 'This month', lastmonth: 'Previous month' };
+  function qrRange_(kind, opts) {
+    const today = dfToday_(), future = !!(opts && opts.future);
+    if (kind === 'yesterday') { const y = dfShift_(today, -1); return { from: y, to: y }; }
+    const dow = new Date(today + 'T00:00:00Z').getUTCDay(), wk = dfShift_(today, -((dow - 4 + 7) % 7));
+    if (kind === 'week') return { from: wk, to: future ? dfShift_(wk, 6) : today };
+    if (kind === 'lastweek') return { from: dfShift_(wk, -7), to: dfShift_(wk, -1) };
+    const y = Number(today.slice(0, 4)), m = Number(today.slice(5, 7));
+    const ymd = function (yy, mm, dd) { return yy + '-' + String(mm).padStart(2, '0') + '-' + String(dd).padStart(2, '0'); };
+    const lastDay = function (yy, mm) { return new Date(Date.UTC(yy, mm, 0)).getUTCDate(); };
+    if (kind === 'month') return { from: ymd(y, m, 1), to: future ? ymd(y, m, lastDay(y, m)) : today };
+    if (kind === 'lastmonth') { const py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1; return { from: ymd(py, pm, 1), to: ymd(py, pm, lastDay(py, pm)) }; }
+    return { from: today, to: today };
+  }
+  const QR_SCREENS_ = {};      // key -> { from, to, label, future, load, after, extras: [[kind, text, jsToRun]] }
+  function qrChipsHtml_(key) {
+    const c = QR_SCREENS_[key]; if (!c) return '';
+    const chip = function (k, text, js) { return '<button class="quickbtn qr-chip" type="button" data-qr="' + k + '" onclick="' + js + '">' + text + '</button>'; };
+    return QR_KINDS_.map(function (x) { return chip(x[0], x[1], x[0] === 'custom' ? "qrCustom_('" + key + "')" : "qrPick_('" + key + "','" + x[0] + "')"); }).join('') + (c.extras || []).map(function (x) { return chip(x[0], x[1], x[2]); }).join('');
+  }
+  function qrInstallAll_() {
+    Array.prototype.forEach.call(document.querySelectorAll('.qr-host'), function (h) { if (h.dataset.qrDone || !QR_SCREENS_[h.dataset.qrKey]) return; h.dataset.qrDone = '1'; h.innerHTML = qrChipsHtml_(h.dataset.qrKey); });
+    qrSyncAll_();
+  }
+  // the chip that matches what the From / To boxes show is lit; boxes that match no quick range = Custom; both empty = the screen's All / Net chip
+  function qrSyncAll_() {
+    Array.prototype.forEach.call(document.querySelectorAll('.qr-host'), function (h) {
+      const c = QR_SCREENS_[h.dataset.qrKey]; if (!c) return;
+      const f = document.getElementById(c.from), t = document.getElementById(c.to); if (!f || !t) return;
+      let on = null;
+      if (h.dataset.forceCustom === '1') on = 'custom';
+      else if (!f.value && !t.value) on = h.querySelector('[data-qr="all"]') ? 'all' : (h.querySelector('[data-qr="net"]') ? 'net' : null);
+      else { on = 'custom'; QR_KINDS_.forEach(function (x) { if (x[0] === 'custom') return; const r = qrRange_(x[0], { future: !!c.future }); if (r.from === f.value && r.to === t.value) on = x[0]; }); }
+      Array.prototype.forEach.call(h.querySelectorAll('.qr-chip'), function (b) { b.classList.toggle('on', b.dataset.qr === on); });
+    });
+  }
+  function qrPick_(key, kind) {
+    const c = QR_SCREENS_[key]; if (!c) return;
+    const r = qrRange_(kind, { future: !!c.future }), f = document.getElementById(c.from), t = document.getElementById(c.to); if (!f || !t) return;
+    Array.prototype.forEach.call(document.querySelectorAll('.qr-host[data-qr-key="' + key + '"]'), function (h) { delete h.dataset.forceCustom; });
+    f.value = r.from; t.value = r.to;
+    if (c.label) { const l = document.getElementById(c.label); if (l) l.textContent = QR_LABELS_[kind] || ''; }
+    if (c.after) c.after(kind);
+    if (c.load) c.load(); else f.dispatchEvent(new Event('change'));
+    setTimeout(qrSyncAll_, 0);
+  }
+  // "Custom": the From box opens so the dates can be picked (the screen's own Apply button, or the change itself, then loads them)
+  function qrCustom_(key) {
+    const c = QR_SCREENS_[key]; if (!c) return; const f = document.getElementById(c.from); if (!f) return;
+    Array.prototype.forEach.call(document.querySelectorAll('.qr-host[data-qr-key="' + key + '"]'), function (h) { h.dataset.forceCustom = '1'; });
+    qrSyncAll_();
+    try { f.scrollIntoView({ block: 'center', behavior: 'smooth' }); f.focus(); if (typeof f.showPicker === 'function') f.showPicker(); } catch (e) { /* the box is focused anyway */ }
+  }
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.type === 'date') { Array.prototype.forEach.call(document.querySelectorAll('.qr-host'), function (h) { const c = QR_SCREENS_[h.dataset.qrKey]; if (c && (c.from === e.target.id || c.to === e.target.id)) delete h.dataset.forceCustom; }); qrSyncAll_(); }
+  });
+  document.addEventListener('click', function () { setTimeout(qrSyncAll_, 60); });
+  document.addEventListener('DOMContentLoaded', qrInstallAll_); if (document.readyState !== 'loading') qrInstallAll_();
+  Object.assign(QR_SCREENS_, {
+    dashboard: { from: 'dashFrom', to: 'dashTo', label: 'dashRangeLabel', load: function () { loadDashboard(); } },
+    dashhall: { from: 'dashHallFrom', to: 'dashHallTo', future: true, load: function () { loadDashboardHallSummary_(); } },
+    history: { from: 'historyFrom', to: 'historyTo', load: function () { searchHistory(); } },
+    publicorder: { from: 'publicOrderFrom', to: 'publicOrderTo', load: function () { loadPublicOrders(); }, extras: [['all', 'All', "setPublicOrderRange_('all')"]] },
+    exprep: { from: 'expReportFrom', to: 'expReportTo', load: function () { loadExpenseReport(); }, extras: [['all', 'All time', "setExpenseReportRange_('all')"]] },
+    expledger: { from: 'expLedgerFrom', to: 'expLedgerTo', load: function () { loadExpenseLedger(); }, extras: [['all', 'All time', "setExpenseLedgerRange_('all')"]] },
+    official: { from: 'officialFrom', to: 'officialTo', load: function () { loadOfficialPending(); } },
+    onlinestock: { from: 'onlineStockFrom', to: 'onlineStockTo', label: 'onlineStockRangeLabel', load: function () { loadOnlineStockReport(); }, extras: [['net', 'Net', "setOnlineStockRange('net')"]] },
+    physicalstock: { from: 'physicalStockFrom', to: 'physicalStockTo', label: 'physicalStockRangeLabel', load: function () { loadPhysicalStockReport(); }, extras: [['net', 'Net', "setPhysicalStockRange('net')"]] },
+    ordercalc: { from: 'orderCalcFrom', to: 'orderCalcTo', label: 'orderCalcRangeLabel', load: function () { loadOrderCalcReport(); }, extras: [['net', 'Net', "setOrderCalcRange('net')"]] },
+    tpoffline: { from: 'tpOfflineFrom', to: 'tpOfflineTo', label: 'tpOfflineRangeLabel', after: function () { document.getElementById('tpOfflineFrom').dataset.loaded = '1'; }, load: function () { loadTopProductsOffline(); }, extras: [['net', 'Net', "setTopProductsRange('offline','net')"]] },
+    tponline: { from: 'tpOnlineFrom', to: 'tpOnlineTo', label: 'tpOnlineRangeLabel', after: function () { document.getElementById('tpOnlineFrom').dataset.loaded = '1'; }, load: function () { loadTopProductsOnline(); }, extras: [['net', 'Net', "setTopProductsRange('online','net')"]] },
+    topcust: { from: 'topCustFrom', to: 'topCustTo', label: 'topCustRangeLabel', load: function () { loadTopCustomers(); } },
+    pstonline: { from: 'pstmtOnlineFrom', to: 'pstmtOnlineTo', load: function () { loadPaymentStmt('online'); } },
+    pstcash: { from: 'pstmtCashFrom', to: 'pstmtCashTo', load: function () { loadPaymentStmt('cash'); } },
+    pstdeposits: { from: 'pstmtDepositsFrom', to: 'pstmtDepositsTo', load: function () { loadCashDeposits(); } },
+    pstwallet: { from: 'pstmtWalletFrom', to: 'pstmtWalletTo', load: function () { loadWalletStatement(); } },
+    custdetail: { from: 'customerFromDate', to: 'customerToDate', label: 'customerRangeLabel', load: function () { loadCustomerBills(); }, extras: [['all', 'All time', "setCustomerRange('all')"]] },
+    hallbookings: { from: 'hallFilterFrom', to: 'hallFilterTo', future: true, load: function () { loadHallBookings(); } },
+    due: { from: 'dueFrom', to: 'dueTo', load: function () { loadDueStatement(); } },
+    mphist: { from: 'mpHistFrom', to: 'mpHistTo', load: function () { loadMarketPurchaseHistory(); } }
+  });
+  { const idb = installDateBars_; installDateBars_ = function () { idb(); qrInstallAll_(); }; }      // the generic date bars (Approval, Accounting, ...) get their chips the moment they are built
 
   // =================== CORRECT A WRONG PAYMENT ENTRY (main admin only) ===================
   // The wrong entry is KEPT and reversed by a minus entry on the same day; the right entry is added; the bill (cash, online, balance, status) and the customer's wallet follow, all in one step.

@@ -196,7 +196,7 @@
 <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('mwLook')!=='old'){d.classList.add('nl');var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content','#2B1F8F');}}catch(e){document.documentElement.classList.add('nl');}})();</script>
 <style id="mwNewLook">
 @media screen{
-/* ===================== NAYA LOOK (trial): colourful, 3D tabs, app-like. Everything is under html.nl - remove the class and the old look is back exactly ===================== */
+/* ===================== NEW LOOK (final): colourful, 3D tabs, app-like. Everything is under html.nl - the main admin can switch it off for the whole app (old look = no class) ===================== */
 html.nl{
   --green-900:#241B6E; --green-800:#3D2FB5; --green-700:#5B4BDB; --green-100:#E9E6FF;
   --gold-500:#FFB020; --gold-600:#B85F00; --gold-100:#FFF0CC;
@@ -364,7 +364,6 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
 
   <div id="appArea" style="display:none;">
     <header class="topbar" style="background:var(--green-900);padding:16px;text-align:center;position:relative;display:block;">
-      <button class="header-link" id="lookToggle" type="button" onclick="toggleLook_()" style="position:absolute;bottom:10px;right:12px;margin:0;z-index:5;">🎨 Purana look</button>
       <a href="index.html" onclick="signOutAndLeave_(event)" style="display:inline-block;margin-bottom:8px;color:var(--green-100);font-size:12px;font-weight:600;text-decoration:none;opacity:.9;">← Back to Main Page</a>
       <h1 style="font-size:17px;font-weight:600;color:#fff;margin:0;">🏛️ Hall Booking</h1>
       <p style="margin:2px 0 0;font-size:11.5px;color:var(--green-100);opacity:.85;">Mahakal Wellness</p>
@@ -381,6 +380,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="openNewHallBooking()">+ New Booking</button>
         <div class="card">
           <p class="section-label">Filter by date</p>
+          <div class="qr-host" data-qr-key="hallbookings" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div>
           <div class="field-row">
             <div class="field"><label for="hallFilterFrom">From</label><input type="date" id="hallFilterFrom"></div>
             <div class="field"><label for="hallFilterTo">To</label><input type="date" id="hallFilterTo"></div>
@@ -398,10 +398,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div id="hsub-accounting" class="subtab-panel">
         <div class="card">
           <p class="section-label">Quick range</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <button class="quickbtn" type="button" onclick="setHallAcctRange_('today')">Today</button>
-            <button class="quickbtn" type="button" onclick="setHallAcctRange_('week')">This week</button>
-            <button class="quickbtn" type="button" onclick="setHallAcctRange_('month')">This month</button>
+          <div class="qr-host" data-qr-key="hallacct" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
           </div>
           <div class="field-row">
             <div class="field"><label for="acctFrom">From</label><input type="date" id="acctFrom"></div>
@@ -574,6 +571,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     }
     document.getElementById('loginOverlay').style.display = 'none';
     document.getElementById('appArea').style.display = 'block';
+    loadGlobalLook_();                    // the look the main admin chose for the whole app (asked after the account check)
     const today = new Date();
     document.getElementById('hallFilterFrom').value = fmtDateInput_(today);
     const future = new Date(today); future.setDate(future.getDate() + 60);
@@ -1009,16 +1007,84 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   };
 })();
 
-  // =================== NAYA LOOK (trial): one tap switches the whole app between the new colourful 3D look and the old look; remembered on this phone ===================
-  function updateLookBtn_() { const b = document.getElementById('lookToggle'); if (b) b.textContent = document.documentElement.classList.contains('nl') ? '🎨 Purana look' : '🎨 Naya look'; }
-  function toggleLook_() {
-    const on = document.documentElement.classList.toggle('nl');
-    try { localStorage.setItem('mwLook', on ? 'new' : 'old'); } catch (e) { /* the switch still works until the page is reloaded */ }
+  // =================== THE LOOK OF THE APP: chosen by the main admin (in the main admin page) for all staff; this page just follows it ===================
+  function applyLook_(look) {
+    const on = look !== 'old';
+    document.documentElement.classList.toggle('nl', on);
+    try { localStorage.setItem('mwLook', on ? 'new' : 'old'); } catch (e) { /* only the remembered copy is lost */ }
     const m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', on ? '#2B1F8F' : '#132E26');
-    updateLookBtn_();
-    if (typeof showToast === 'function') showToast(on ? 'Naya look ON' : 'Purana look wapas aa gaya');
   }
-  document.addEventListener('DOMContentLoaded', updateLookBtn_); if (document.readyState !== 'loading') updateLookBtn_();
+  async function loadGlobalLook_() {
+    try { const r = await sb.rpc('get_app_look'); if (!r.error && (r.data === 'new' || r.data === 'old')) applyLook_(r.data); } catch (e) { /* offline: keep what is shown */ }
+  }
+  // India day helpers (the same as the main admin page)
+  function dfToday_() { return new Date(Date.now() + 19800000).toISOString().slice(0, 10); }
+  function dfShift_(ymd, days) { const d = new Date(ymd + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10); }
+  // =================== THE SAME QUICK RANGES ON EVERY FILTER: Today, Yesterday, This week, Previous week, This month, Previous month, Custom ===================
+  // India days; the business week runs Thursday to Wednesday. A running period (this week / this month) ends today; opts.future makes it end with the period (hall bookings of the coming days).
+  const QR_KINDS_ = [['today', 'Today'], ['yesterday', 'Yesterday'], ['week', 'This week'], ['lastweek', 'Previous week'], ['month', 'This month'], ['lastmonth', 'Previous month'], ['custom', 'Custom']];
+  const QR_LABELS_ = { today: 'Today', yesterday: 'Yesterday', week: 'This week (Thu–Wed)', lastweek: 'Previous week (Thu–Wed)', month: 'This month', lastmonth: 'Previous month' };
+  function qrRange_(kind, opts) {
+    const today = dfToday_(), future = !!(opts && opts.future);
+    if (kind === 'yesterday') { const y = dfShift_(today, -1); return { from: y, to: y }; }
+    const dow = new Date(today + 'T00:00:00Z').getUTCDay(), wk = dfShift_(today, -((dow - 4 + 7) % 7));
+    if (kind === 'week') return { from: wk, to: future ? dfShift_(wk, 6) : today };
+    if (kind === 'lastweek') return { from: dfShift_(wk, -7), to: dfShift_(wk, -1) };
+    const y = Number(today.slice(0, 4)), m = Number(today.slice(5, 7));
+    const ymd = function (yy, mm, dd) { return yy + '-' + String(mm).padStart(2, '0') + '-' + String(dd).padStart(2, '0'); };
+    const lastDay = function (yy, mm) { return new Date(Date.UTC(yy, mm, 0)).getUTCDate(); };
+    if (kind === 'month') return { from: ymd(y, m, 1), to: future ? ymd(y, m, lastDay(y, m)) : today };
+    if (kind === 'lastmonth') { const py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1; return { from: ymd(py, pm, 1), to: ymd(py, pm, lastDay(py, pm)) }; }
+    return { from: today, to: today };
+  }
+  const QR_SCREENS_ = {};      // key -> { from, to, label, future, load, after, extras: [[kind, text, jsToRun]] }
+  function qrChipsHtml_(key) {
+    const c = QR_SCREENS_[key]; if (!c) return '';
+    const chip = function (k, text, js) { return '<button class="quickbtn qr-chip" type="button" data-qr="' + k + '" onclick="' + js + '">' + text + '</button>'; };
+    return QR_KINDS_.map(function (x) { return chip(x[0], x[1], x[0] === 'custom' ? "qrCustom_('" + key + "')" : "qrPick_('" + key + "','" + x[0] + "')"); }).join('') + (c.extras || []).map(function (x) { return chip(x[0], x[1], x[2]); }).join('');
+  }
+  function qrInstallAll_() {
+    Array.prototype.forEach.call(document.querySelectorAll('.qr-host'), function (h) { if (h.dataset.qrDone || !QR_SCREENS_[h.dataset.qrKey]) return; h.dataset.qrDone = '1'; h.innerHTML = qrChipsHtml_(h.dataset.qrKey); });
+    qrSyncAll_();
+  }
+  // the chip that matches what the From / To boxes show is lit; boxes that match no quick range = Custom; both empty = the screen's All / Net chip
+  function qrSyncAll_() {
+    Array.prototype.forEach.call(document.querySelectorAll('.qr-host'), function (h) {
+      const c = QR_SCREENS_[h.dataset.qrKey]; if (!c) return;
+      const f = document.getElementById(c.from), t = document.getElementById(c.to); if (!f || !t) return;
+      let on = null;
+      if (h.dataset.forceCustom === '1') on = 'custom';
+      else if (!f.value && !t.value) on = h.querySelector('[data-qr="all"]') ? 'all' : (h.querySelector('[data-qr="net"]') ? 'net' : null);
+      else { on = 'custom'; QR_KINDS_.forEach(function (x) { if (x[0] === 'custom') return; const r = qrRange_(x[0], { future: !!c.future }); if (r.from === f.value && r.to === t.value) on = x[0]; }); }
+      Array.prototype.forEach.call(h.querySelectorAll('.qr-chip'), function (b) { b.classList.toggle('on', b.dataset.qr === on); });
+    });
+  }
+  function qrPick_(key, kind) {
+    const c = QR_SCREENS_[key]; if (!c) return;
+    const r = qrRange_(kind, { future: !!c.future }), f = document.getElementById(c.from), t = document.getElementById(c.to); if (!f || !t) return;
+    Array.prototype.forEach.call(document.querySelectorAll('.qr-host[data-qr-key="' + key + '"]'), function (h) { delete h.dataset.forceCustom; });
+    f.value = r.from; t.value = r.to;
+    if (c.label) { const l = document.getElementById(c.label); if (l) l.textContent = QR_LABELS_[kind] || ''; }
+    if (c.after) c.after(kind);
+    if (c.load) c.load(); else f.dispatchEvent(new Event('change'));
+    setTimeout(qrSyncAll_, 0);
+  }
+  // "Custom": the From box opens so the dates can be picked (the screen's own Apply button, or the change itself, then loads them)
+  function qrCustom_(key) {
+    const c = QR_SCREENS_[key]; if (!c) return; const f = document.getElementById(c.from); if (!f) return;
+    Array.prototype.forEach.call(document.querySelectorAll('.qr-host[data-qr-key="' + key + '"]'), function (h) { h.dataset.forceCustom = '1'; });
+    qrSyncAll_();
+    try { f.scrollIntoView({ block: 'center', behavior: 'smooth' }); f.focus(); if (typeof f.showPicker === 'function') f.showPicker(); } catch (e) { /* the box is focused anyway */ }
+  }
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.type === 'date') { Array.prototype.forEach.call(document.querySelectorAll('.qr-host'), function (h) { const c = QR_SCREENS_[h.dataset.qrKey]; if (c && (c.from === e.target.id || c.to === e.target.id)) delete h.dataset.forceCustom; }); qrSyncAll_(); }
+  });
+  document.addEventListener('click', function () { setTimeout(qrSyncAll_, 60); });
+  document.addEventListener('DOMContentLoaded', qrInstallAll_); if (document.readyState !== 'loading') qrInstallAll_();
+  Object.assign(QR_SCREENS_, {
+    hallbookings: { from: 'hallFilterFrom', to: 'hallFilterTo', future: true, load: function () { loadHallBookings(); } },
+    hallacct: { from: 'acctFrom', to: 'acctTo', load: function () { loadHallAccounting_(); } }
+  });
 </script>
 <!-- MW-UX-END -->
 </body>
