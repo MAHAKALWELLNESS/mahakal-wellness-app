@@ -447,6 +447,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
 }
 @media screen and (prefers-reduced-motion:reduce){ html.nl *{animation:none !important; transition:none !important;} }
 </style>
+<script id="mwLookFetch">(function(){try{fetch('https://lrrqdmmugvizkbjfwneb.supabase.co/rest/v1/rpc/get_app_look',{method:'POST',headers:{'apikey':'sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP','Authorization':'Bearer sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP','Content-Type':'application/json'},body:'{}'}).then(function(r){return r.ok?r.json():null;}).then(function(v){if(v!=='new'&&v!=='old')return;var go=function(){if(typeof applyLook_==='function')applyLook_(v);else{document.documentElement.classList.toggle('nl',v!=='old');try{localStorage.setItem('mwLook',v==='old'?'old':'new');}catch(e){}}};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();}).catch(function(){});}catch(e){}})();</script>
 </head>
 <body>
 
@@ -2774,6 +2775,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     hideBootSplash_();
     document.getElementById('appRoot').style.display = 'block';
     loadGlobalLook_();                    // the look the main admin chose for the whole app (shown at once if it differs from the copy remembered on this phone)
+    startLookPolling_();
     await loadSettings();
     await loadProducts();
     wireSearch();
@@ -6548,6 +6550,9 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   async function loadGlobalLook_() {
     try { const r = await sb.rpc('get_app_look'); if (!r.error && (r.data === 'new' || r.data === 'old')) applyLook_(r.data); } catch (e) { /* offline: keep what is shown */ }
   }
+  // a screen that stays open follows the main admin's switch too (the first answer is the one at opening)
+  let lookPollTimer_ = null;
+  function startLookPolling_() { if (lookPollTimer_) return; lookPollTimer_ = setInterval(function () { if (document.visibilityState === 'visible') loadGlobalLook_(); }, window.__lookPollMs || 60000); }
   async function toggleLook_() {
     if (!isSuperAdminUser) return;                                    // the button is only shown to the main admin, and the database refuses anybody else anyway
     const goOld = document.documentElement.classList.contains('nl');

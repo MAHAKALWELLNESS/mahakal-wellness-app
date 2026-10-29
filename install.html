@@ -18,6 +18,21 @@
 <title>Mahakal Wellness — App Install Karo</title>
 <link rel="manifest" href="manifest-main.json">
 <meta name="theme-color" content="#132E26">
+<script id="mwLookEarly">(function(){var SU='https://lrrqdmmugvizkbjfwneb.supabase.co',KEY='sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP',d=document.documentElement,m=document.querySelector('meta[name=theme-color]'),orig=m?m.getAttribute('content'):null,cached=null;
+try{cached=localStorage.getItem('mwLook');}catch(e){}
+function paint(on){d.classList.toggle('nl',on);if(m&&orig)m.setAttribute('content',on?'#2B1F8F':orig);}
+function apply(look){var on=look!=='old';paint(on);try{localStorage.setItem('mwLook',on?'new':'old');}catch(e){}}
+paint(cached!=='old');window.mwApplyLook_=apply;
+// which look did the main admin choose? asked when the page opens, when it comes back to the front, and every minute while it stays open (a page that is already open follows the switch too)
+// the same way the app's own database library asks (apikey + Authorization); if the server does not like that, once more with the apikey alone - so the answer never depends on one way of asking
+function post(withAuth){var h={'apikey':KEY,'Content-Type':'application/json'};if(withAuth)h['Authorization']='Bearer '+KEY;return fetch(SU+'/rest/v1/rpc/get_app_look',{method:'POST',headers:h,body:'{}'}).then(function(r){return r.ok?r.json():null;});}
+function got(v){if(v==='new'||v==='old'){apply(v);return true;}return false;}
+function ask(){try{post(true).then(function(v){if(!got(v))return post(false).then(got);}).catch(function(){try{post(false).then(got).catch(function(){});}catch(e){}});}catch(e){}}
+ask();window.mwAskLook_=ask;
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')ask();});
+window.addEventListener('pageshow',function(e){if(e.persisted)ask();});
+setInterval(function(){if(document.visibilityState==='visible')ask();},window.__lookPollMs||60000);
+})();</script>
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
@@ -69,6 +84,48 @@
   .qr{image-rendering:pixelated; width:240px;}
   .spin{display:inline-block; width:14px; height:14px; border:2px solid var(--line); border-top-color:var(--gold-600); border-radius:50%; vertical-align:-2px; margin-right:6px; animation:spin .8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+<style id="mwNewLook">
+@media screen{
+/* ===================== NEW LOOK of the install page (every rule is under html.nl: without it the page is the old page, exactly) ===================== */
+html.nl body{background:linear-gradient(165deg,#E4EAFF 0%,#F3E8FF 42%,#FFEBDD 100%) fixed; color:#1F2347;}
+html.nl body::before{content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:radial-gradient(circle at 10% 8%, rgba(255,141,179,.42), transparent 230px), radial-gradient(circle at 94% 16%, rgba(124,108,255,.34), transparent 250px),
+             radial-gradient(circle at 6% 80%, rgba(54,197,219,.32), transparent 260px), radial-gradient(circle at 98% 92%, rgba(255,174,87,.38), transparent 240px);}
+html.nl .logo{background:#fff; box-shadow:0 0 0 4px #fff, 0 0 0 8px #FF8DB3, 0 14px 26px rgba(61,47,181,.38); animation:mwFloat 3.2s ease-in-out infinite;}
+@keyframes mwFloat{0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);}}
+html.nl .brand h1{font-size:30px; color:#3D2FB5; margin-top:22px;}
+@supports ((-webkit-background-clip:text) or (background-clip:text)){
+  html.nl .brand h1{background:linear-gradient(90deg,#3D2FB5 0%,#D6336C 55%,#F77F00 100%); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; filter:drop-shadow(0 3px 2px rgba(61,47,181,.2));}
+}
+html.nl .tag{color:#6A5FD0; font-weight:600;}
+html.nl .card{--acc:#7C6CFF; border-radius:26px; background:linear-gradient(180deg,#fff,#FAF8FF); margin-top:22px;
+  box-shadow:inset 0 6px 0 var(--acc), 0 8px 0 rgba(150,140,230,.28), 0 18px 28px rgba(82,64,230,.16);}
+html.nl #stateMain{--acc:#34D87F;} html.nl #stateInstalled, html.nl #stateDone{--acc:#36C5DB;} html.nl #stateInApp{--acc:#FFAE57;}
+html.nl .card h2{color:#2B1F8F; font-weight:800; padding-top:4px;}
+html.nl .card .sub, html.nl .note{color:#5B6290;}
+html.nl .btn{border-radius:18px; background:linear-gradient(180deg,#3DDC84,#0FA35A); color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.25);
+  box-shadow:0 6px 0 #0A7A41, 0 12px 18px rgba(15,163,90,.35), inset 0 2px 0 rgba(255,255,255,.4); transition:transform .1s ease, box-shadow .1s ease;}
+html.nl .btn:active{transform:translateY(5px); box-shadow:0 1px 0 #0A7A41, 0 3px 8px rgba(15,163,90,.3);}
+html.nl .btn.green{background:linear-gradient(180deg,#8B7BFF,#5B3FE0); box-shadow:0 6px 0 #3A2BB0, 0 12px 18px rgba(91,63,224,.38), inset 0 2px 0 rgba(255,255,255,.38);}
+html.nl .btn.green:active{box-shadow:0 1px 0 #3A2BB0, 0 3px 8px rgba(91,63,224,.3);}
+html.nl .btn.secondary{background:#fff; color:#4B3FD0; border:2px solid #C9C3FF; text-shadow:none; box-shadow:0 5px 0 #D6D1FF, 0 9px 14px rgba(82,64,230,.12);}
+html.nl .btn.secondary:active{box-shadow:0 1px 0 #D6D1FF;}
+html.nl .btn[disabled]{opacity:.55; filter:grayscale(.3);}
+html.nl .steps li::before{background:linear-gradient(180deg,#FFB04D,#F57C00); box-shadow:0 3px 0 #B35A00, inset 0 2px 0 rgba(255,255,255,.4);}
+html.nl .steps li:nth-child(2)::before{background:linear-gradient(180deg,#FF7FB0,#D6336C); box-shadow:0 3px 0 #962350, inset 0 2px 0 rgba(255,255,255,.4);}
+html.nl .steps li:nth-child(3)::before{background:linear-gradient(180deg,#B79BFF,#7048E8); box-shadow:0 3px 0 #4D2FA8, inset 0 2px 0 rgba(255,255,255,.4);}
+html.nl .steps li:nth-child(n+4)::before{background:linear-gradient(180deg,#4DD6E8,#0E9FB5); box-shadow:0 3px 0 #0A6F80, inset 0 2px 0 rgba(255,255,255,.4);}
+html.nl .box{border-radius:16px; box-shadow:0 3px 0 rgba(0,0,0,.07);}
+html.nl .box.warn{background:linear-gradient(90deg,#FFF0CC,#FFF8E6); color:#8A5600;}
+html.nl .box.ok{background:linear-gradient(90deg,#D8F7EC,#F0FFF9); color:#0A7A5A;}
+html.nl .qr{border:none; border-radius:18px; box-shadow:0 0 0 4px #fff, 0 0 0 8px #C9C3FF, 0 12px 20px rgba(82,64,230,.2);}
+html.nl details{border-top:1px dashed #DAD6FF;} html.nl details:first-of-type{border-top:none;}
+html.nl summary{color:#3D2FB5; font-weight:800;}
+html.nl .plain{color:#4B3FD0;}
+html.nl .spin{border-top-color:#7C6CFF;}
+}
+@media screen and (prefers-reduced-motion:reduce){ html.nl .logo{animation:none;} html.nl .btn{transition:none;} }
 </style>
 </head>
 <body>

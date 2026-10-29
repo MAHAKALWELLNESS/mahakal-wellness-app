@@ -59,6 +59,72 @@
   .qr-box{text-align:center; padding:18px 0 6px;}
   .qr-box img{width:220px; height:220px; border-radius:12px; border:1px solid var(--line);}
 </style>
+<style id="mwPubLook">
+@media screen{
+html.nl{ --green-900:#241B6E; --green-800:#3D2FB5; --green-700:#5B4BDB; --green-100:#E9E6FF; --gold-500:#FFB020; --gold-600:#B85F00; --gold-100:#FFF0CC; --surface:#FFFFFF; --bg:#EEF1FF; --ink-soft:#4B5275; --ink-faint:#757CA3; --line:#E0E3F5; --danger:#E03131; --danger-100:#FFE4E5; --ok:#0A9F73; --ok-100:#D8F7EC; }
+html.nl body{background:linear-gradient(180deg,#E7ECFF 0%,#F4EEFF 42%,#FFF1E8 100%) fixed; color:#1F2347;}
+html.nl .topbar{background:linear-gradient(135deg,#2B1F8F 0%,#5B3FE0 48%,#D6336C 100%); border-radius:0 0 28px 28px; box-shadow:0 10px 24px rgba(61,47,181,.38); padding:18px 16px 24px;}
+html.nl .topbar h1{font-size:19px; font-weight:700; text-shadow:0 2px 5px rgba(0,0,0,.28);}
+html.nl .topbar p{color:#EDE9FF; opacity:1;}
+html.nl main{padding-top:22px;}
+html.nl .card{border-radius:22px; border:1px solid rgba(255,255,255,.85); background:linear-gradient(180deg,#FFFFFF 0%,#FBFAFF 100%); box-shadow:inset 0 5px 0 var(--acc,#7C6CFF), 0 5px 0 rgba(150,140,230,.22), 0 12px 24px rgba(82,64,230,.13);}
+html.nl .card:nth-of-type(6n+2){--acc:#FF8DB3;} html.nl .card:nth-of-type(6n+3){--acc:#34D87F;} html.nl .card:nth-of-type(6n+4){--acc:#FFAE57;} html.nl .card:nth-of-type(6n+5){--acc:#36C5DB;} html.nl .card:nth-of-type(6n){--acc:#A483FF;}
+html.nl .card h2{color:#2B1F8F; font-weight:800;}
+html.nl .section-label{color:#6A5FD0; font-weight:800; letter-spacing:.6px;}
+html.nl .section-label::before{content:''; display:inline-block; width:9px; height:9px; margin-right:7px; border-radius:50%; background:linear-gradient(135deg,#FF8DB3,#7C6CFF); box-shadow:0 2px 0 rgba(0,0,0,.12); vertical-align:-1px;}
+html.nl .field label{color:#4B5275; font-weight:700;}
+html.nl .field input:not([type=radio]):not([type=checkbox]), html.nl .field select, html.nl .field textarea{border:2px solid #DAD6FF; border-radius:14px; background:#FBFAFF; transition:border-color .15s, box-shadow .15s;}
+html.nl .field input:not([type=radio]):not([type=checkbox]):focus, html.nl .field select:focus, html.nl .field textarea:focus{border-color:#7C6CFF; box-shadow:0 0 0 4px rgba(124,108,255,.2); background:#fff;}
+html.nl select{border:2px solid #DAD6FF !important; border-radius:14px !important; background-color:#FBFAFF !important;}
+html.nl select:focus{border-color:#7C6CFF !important; box-shadow:0 0 0 4px rgba(124,108,255,.2);}
+html.nl .btn{border-radius:16px; font-weight:800; letter-spacing:.2px; transition:transform .1s ease, box-shadow .1s ease;}
+html.nl .btn:active{transform:translateY(4px);}
+html.nl .btn-gold{background:linear-gradient(180deg,#FFD66B 0%,#FFA62B 100%); color:#4A2B00; box-shadow:0 5px 0 #C97A00, 0 10px 18px rgba(255,166,43,.45), inset 0 2px 0 rgba(255,255,255,.55);}
+html.nl .btn-gold:active{box-shadow:0 1px 0 #C97A00, 0 3px 8px rgba(255,166,43,.35), inset 0 2px 0 rgba(255,255,255,.45);}
+html.nl .btn-outline{background:#fff; border:2px solid #C9C3FF; color:#4B3FD0; box-shadow:0 4px 0 #D6D1FF, 0 8px 14px rgba(82,64,230,.12);}
+html.nl .btn-outline:active{box-shadow:0 1px 0 #D6D1FF;}
+html.nl .btn:disabled{opacity:.5; filter:grayscale(.3);}
+html.nl .search-results{background:#fff; border-radius:18px; box-shadow:0 10px 26px rgba(82,64,230,.18), 0 4px 0 rgba(150,140,230,.2); padding:2px 10px;}
+html.nl .search-row{border-bottom:1px dashed #DAD6FF;} html.nl .search-row:active, html.nl .search-row.kbd-active{background:#EEEAFF;}
+html.nl .search-name{color:#2B1F8F;} html.nl .search-price{color:#D9480F;}
+html.nl .cart-row{border-bottom:1px dashed #D8D3FF;}
+html.nl .qty-btn{border:none; border-radius:10px; background:linear-gradient(180deg,#F1EFFF,#DDD8FF); color:#4B3FD0; box-shadow:0 3px 0 #C7C0FF;}
+html.nl .qty-btn:active{transform:translateY(2px); box-shadow:0 1px 0 #C7C0FF;}
+html.nl .total-row{border-top:2px dashed #D8D3FF;} html.nl .total-row .val{color:#D9480F;}
+html.nl .modal-overlay, html.nl .qty-modal-overlay{background:rgba(36,27,110,.55); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);}
+html.nl .modal-sheet, html.nl .qty-modal-sheet{border-radius:30px 30px 0 0; background:linear-gradient(180deg,#FFFFFF 0%,#F8F6FF 100%); box-shadow:0 -14px 40px rgba(36,27,110,.4), inset 0 6px 0 #7C6CFF;}
+html.nl .modal-sheet::before, html.nl .qty-modal-sheet::before{content:''; display:block; width:46px; height:5px; border-radius:3px; background:#D3CDFF; margin:-8px auto 14px;}
+html.nl .qty-modal-sheet h2{color:#2B1F8F; font-weight:800;}
+html.nl .summary-bar{background:linear-gradient(180deg,#FFFFFF,#F1EEFF); border-top:none; border-radius:24px 24px 0 0; box-shadow:0 -10px 26px rgba(82,64,230,.22);}
+html.nl .toast{background:linear-gradient(135deg,#3D2FB5,#7048E8); border-radius:16px; box-shadow:0 10px 26px rgba(61,47,181,.45); font-weight:700;}
+html.nl .chip{border:2px solid #DAD6FF; border-radius:14px; background:#fff; color:#4B5275; font-weight:800; box-shadow:0 3px 0 #E4E0FF;}
+html.nl .chip.on{border-color:#5B3FE0; background:linear-gradient(180deg,#8B7BFF,#5B3FE0); color:#fff; box-shadow:0 3px 0 #3A2BB0, 0 6px 12px rgba(91,63,224,.3);}
+html.nl .copy-btn{border:none; background:linear-gradient(180deg,#F1EFFF,#DDD8FF); color:#4B3FD0; border-radius:10px; box-shadow:0 3px 0 #C7C0FF;}
+html.nl .kv{border-bottom:1px dashed #DAD6FF;} html.nl .kv .v{color:#2B1F8F;}
+html.nl .box{border-radius:14px;} html.nl .box.warn{background:linear-gradient(180deg,#FFF3D1,#FFEBB5); box-shadow:0 3px 0 #FFD98A;} html.nl .box.bad{box-shadow:0 3px 0 #FFB3B6;} html.nl .box.good{box-shadow:0 3px 0 #9BE3C7;}
+html.nl .qr-box img{box-shadow:0 0 0 4px #fff, 0 0 0 7px #C9C3FF, 0 9px 0 rgba(150,140,230,.3); background:#fff;}
+html.nl #payQrImg{box-shadow:0 0 0 4px #fff, 0 0 0 7px #C9C3FF, 0 9px 0 rgba(150,140,230,.3); background:#fff;}
+html.nl .proof-img{box-shadow:0 0 0 3px #fff, 0 0 0 5px #C9C3FF;}
+html.nl .pay-amount{color:#D9480F;}
+html.nl .success-icon{background:linear-gradient(180deg,#5BE3A5,#12A85A); color:#fff; box-shadow:0 5px 0 #0B7A40, 0 10px 16px rgba(18,168,90,.35);}
+}
+@media screen and (prefers-reduced-motion:reduce){ html.nl .logo, html.nl #mainBrandLogoImg, html.nl #welcomeLogoImg{animation:none !important;} html.nl *{transition:none !important;} }
+</style>
+<script id="mwLookEarly">(function(){var SU='https://lrrqdmmugvizkbjfwneb.supabase.co',KEY='sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP',d=document.documentElement,m=document.querySelector('meta[name=theme-color]'),orig=m?m.getAttribute('content'):null,cached=null;
+try{cached=localStorage.getItem('mwLook');}catch(e){}
+function paint(on){d.classList.toggle('nl',on);if(m&&orig)m.setAttribute('content',on?'#2B1F8F':orig);}
+function apply(look){var on=look!=='old';paint(on);try{localStorage.setItem('mwLook',on?'new':'old');}catch(e){}}
+paint(cached!=='old');window.mwApplyLook_=apply;
+// which look did the main admin choose? asked when the page opens, when it comes back to the front, and every minute while it stays open (a page that is already open follows the switch too)
+// the same way the app's own database library asks (apikey + Authorization); if the server does not like that, once more with the apikey alone - so the answer never depends on one way of asking
+function post(withAuth){var h={'apikey':KEY,'Content-Type':'application/json'};if(withAuth)h['Authorization']='Bearer '+KEY;return fetch(SU+'/rest/v1/rpc/get_app_look',{method:'POST',headers:h,body:'{}'}).then(function(r){return r.ok?r.json():null;});}
+function got(v){if(v==='new'||v==='old'){apply(v);return true;}return false;}
+function ask(){try{post(true).then(function(v){if(!got(v))return post(false).then(got);}).catch(function(){try{post(false).then(got).catch(function(){});}catch(e){}});}catch(e){}}
+ask();window.mwAskLook_=ask;
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')ask();});
+window.addEventListener('pageshow',function(e){if(e.persisted)ask();});
+setInterval(function(){if(document.visibilityState==='visible')ask();},window.__lookPollMs||60000);
+})();</script>
 </head>
 <body>
   <header class="topbar">
