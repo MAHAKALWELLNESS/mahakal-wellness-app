@@ -54,6 +54,9 @@
   .cc-opt small{display:block; font-size:10.5px; color:var(--ink-faint); font-weight:700; text-transform:uppercase; letter-spacing:.3px;}
   .cc-opt.on{border-color:var(--green-800); background:var(--green-100);} .cc-opt:disabled{opacity:.5; cursor:default;}
   .cc-final{width:100%; padding:9px 10px; border:1.5px solid var(--line); border-radius:10px; font-size:14px; font-family:inherit; background:#fff;} .cc-final:focus{outline:none; border-color:var(--gold-500);}
+  .reg-chips{display:flex; gap:8px; margin:0 0 8px;} .reg-chip{flex:1; padding:8px 6px; border-radius:10px; border:1.5px solid var(--line); background:#fff; font-size:12.5px; font-weight:700; color:var(--ink-soft); cursor:pointer; font-family:inherit;} .reg-chip.on{border-color:var(--green-800); background:var(--green-800); color:#fff;}
+  .reg-row{cursor:pointer;} .reg-row:active{background:var(--bg);}
+  .cc-card .badge, .reg-row .badge{white-space:normal; display:inline-block; margin-bottom:4px; line-height:1.3;}
   .tab{position:relative;}
   .tab-badge{position:absolute; top:3px; right:2px; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:#E03A3A; color:#fff; font-size:11px; font-weight:800; line-height:18px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.3);}
   .cl-av{width:40px; height:40px; border-radius:50%; object-fit:cover; background:var(--green-100); color:var(--green-800); display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; flex:none; overflow:hidden;}
@@ -394,6 +397,7 @@ html.nl .tab[data-tab="productsearch"]{--c1:#E083F7;--c2:#AE3EC9;--c3:#7A2B8E;--
 html.nl .tab[data-tab="custlogins"]{--c1:#FFD84D;--c2:#E8A200;--c3:#9C6B00;--ic:"🔑";}
 html.nl .tab[data-tab="custcorrect"]{--c1:#9AE6FF;--c2:#2BA8D8;--c3:#14708F;--ic:"🛠️";}
 html.nl .cc-opt.on{background:linear-gradient(180deg,#8B7BFF,#5B3FE0); border-color:#5B3FE0; color:#fff;} html.nl .cc-opt.on small{color:#E4E0FF;}
+html.nl .reg-chip.on{background:linear-gradient(180deg,#8B7BFF,#5B3FE0); border-color:#5B3FE0;}
 html.nl .tab-badge{background:linear-gradient(180deg,#FF6B6B,#E03131); box-shadow:0 2px 0 #A32020;}
 
 /* ---------- screens: a soft fade when the tab changes (opacity only, so fixed bars inside keep their place) ---------- */
@@ -595,7 +599,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <button class="tab" data-tab="spsets" onclick="switchTab('spsets')">SP Sets</button>
       <button class="tab" data-tab="customers" onclick="switchTab('customers')">Customers</button>
       <button class="tab" data-tab="custlogins" onclick="switchTab('custlogins')">Customer Logins<span class="tab-badge" id="custLoginsBadge" style="display:none;"></span></button>
-      <button class="tab" data-tab="custcorrect" onclick="switchTab('custcorrect')">Customer Correction<span class="tab-badge" id="custCorrectBadge" style="display:none;"></span></button>
+      <button class="tab" data-tab="custcorrect" onclick="switchTab('custcorrect')">Customer Approval<span class="tab-badge" id="custCorrectBadge" style="display:none;"></span></button>
       <button class="tab" data-tab="stockreport" onclick="switchTab('stockreport')">Stock</button>
       <button class="tab" data-tab="wallet" onclick="switchTab('wallet')">Wallet</button>
       <button class="tab" data-tab="topperformer" onclick="switchTab('topperformer')">Top Performer</button>
@@ -648,6 +652,9 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         </div>
         <div class="field-row">
           <div class="field" style="margin-bottom:0;"><label for="custCity">City</label><input type="text" id="custCity" placeholder="Optional" oninput="this.value = this.value.toUpperCase();"></div>
+        </div>
+        <div class="field-row" style="margin-top:14px;">
+          <div class="field" style="margin-bottom:0;"><label for="custWhatsapp">WhatsApp number</label><input type="tel" id="custWhatsapp" placeholder="Same as mobile if empty" maxlength="15"></div>
         </div>
         <div class="field-row" style="margin-top:14px;">
           <div class="field"><label for="idName">ID Name</label><input type="text" id="idName" placeholder="Optional"></div>
@@ -1144,7 +1151,11 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     <!-- ============ CUSTOMER CORRECTION TAB ============ -->
     <section id="tab-custcorrect" class="tab-panel">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadCustCorrections_()">↻ Refresh</button>
-      <div class="card"><p class="section-label">Customer correction</p><p class="hint" style="margin-bottom:10px;line-height:1.5;">Customer ne register karte waqt jo details daali aur jo system me hain, dono yahan saath dikhti hain. Sahi wali chuno (ya type karo) aur Approve dabao: wo customer ki profile (jahan se New Bill aur order form details lete hain), uske login, uske abhi ke orders aur approval wale bills me save ho jati hai. Pehle se approved bills ka record badalta nahi.</p><div id="ccPending"><div class="empty-cart">Loading…</div></div></div>
+      <div class="card"><p class="section-label">Customer approval</p><p class="hint" style="margin-bottom:10px;line-height:1.5;">Har customer jo register karta hai yahan aata hai. Jo details customer ne daali aur jo database me pehle se hain, dono saath dikhti hain. Sahi wali chuno (ya type karo) aur Approve dabao: wo customer ki profile (jahan se New Bill aur order form details lete hain), uske login, uske abhi ke orders aur approval wale bills me save ho jati hai, aur customer ko turant popup aa jata hai. Naya customer ho to Approve se uski profile ban jati hai. Pehle se approved bills ka record badalta nahi.</p><div id="ccPending"><div class="empty-cart">Loading…</div></div></div>
+      <div class="card"><p class="section-label">Registered customers</p><p class="hint" style="margin-bottom:8px;">Jis jis ne register kiya, sabki list (naye upar). Database se match karne ke liye dekho: kaun pehle se database me tha aur kaun naya hai.</p>
+        <input type="text" id="regSearch" class="search-input" placeholder="Name, mobile or DS ID…" oninput="regSearch_()" style="margin-bottom:8px;">
+        <div class="reg-chips"><button class="reg-chip on" data-f="all" onclick="regPick_('all')">All <span id="regCntAll"></span></button><button class="reg-chip" data-f="waiting" onclick="regPick_('waiting')">Waiting <span id="regCntWaiting"></span></button><button class="reg-chip" data-f="approved" onclick="regPick_('approved')">Approved <span id="regCntApproved"></span></button></div>
+        <div id="ccRegistered"><div class="empty-cart">Loading…</div></div></div>
       <div class="card"><p class="section-label">Recently handled</p><div id="ccHandled"><div class="empty-cart">—</div></div></div>
     </section>
 
@@ -2313,6 +2324,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:14px;">Add New Customer</h2>
       <div class="field-row">
         <div class="field"><label for="newCustMobile">Mobile</label><input type="tel" id="newCustMobile" placeholder="10-digit mobile" maxlength="15"></div>
+        <div class="field"><label for="newCustWhatsapp">WhatsApp number</label><input type="tel" id="newCustWhatsapp" placeholder="Same as mobile if empty" maxlength="15"></div>
         <div class="field"><label for="newCustName">Name</label><input type="text" id="newCustName" placeholder="Customer name" oninput="this.value = this.value.toUpperCase();"></div>
       </div>
       <div class="field-row">
@@ -2347,6 +2359,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       </div>
       <div class="field-row">
         <div class="field"><label for="editCustCity">City</label><input type="text" id="editCustCity" placeholder="Optional"></div>
+        <div class="field"><label for="editCustWhatsapp">WhatsApp number</label><input type="tel" id="editCustWhatsapp" placeholder="Same as mobile if empty" maxlength="15"></div>
         <div class="field"><label for="editCustGst">GST No.</label><input type="text" id="editCustGst" placeholder="Optional"></div>
       </div>
       <div class="field"><label for="editCustAddress">Address</label><input type="text" id="editCustAddress" placeholder="Optional"></div>
@@ -2429,6 +2442,15 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
 
   <!-- ============ OFFICIAL WORK: STEP 1 - Proceed/Close ============ -->
   <div id="custAlertBar"><span id="custAlertText"></span><button id="custAlertOpen" onclick="openCustLoginsFromAlert_()" style="background:#fff;color:var(--danger);">Open</button><button onclick="hideCustAlert_()" style="background:rgba(255,255,255,.25);color:#fff;">✕</button></div>
+
+  <div class="modal-overlay" id="newRegModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:8px;">🆕 New customer registration</h2>
+      <div id="newRegBody" style="font-weight:800;color:var(--green-900);margin-bottom:8px;word-break:break-word;"></div>
+      <p class="hint" style="margin-bottom:12px;line-height:1.5;">Customer Approval me database ki details aur customer ki bhari hui details dono dekhkar approve karo.</p>
+      <div class="modal-actions"><button class="btn btn-outline" id="newRegLater" onclick="closeNewReg_()">Later</button><button class="btn btn-gold" id="newRegOpen" onclick="openNewReg_()">Open Customer Approval</button></div>
+    </div>
+  </div>
 
   <div class="modal-overlay" id="custResetModal">
     <div class="modal-sheet">
@@ -2855,7 +2877,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     hideBootSplash_();
     document.getElementById('appRoot').style.display = 'block';
     loadGlobalLook_();                    // the look the main admin chose for the whole app (shown at once if it differs from the copy remembered on this phone)
-    startLookPolling_(); if (typeof startCustLoginPolling_ === 'function') startCustLoginPolling_();
+    startLookPolling_(); if (typeof startCustLoginPolling_ === 'function') startCustLoginPolling_(); if (typeof startWaMap_ === 'function') startWaMap_();
     await loadSettings();
     await loadProducts();
     wireSearch();
@@ -2953,7 +2975,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     billLookedUpMobile_ = mobile;
 
     const results = await Promise.all([
-      sb.from('customers').select('name, city, id_name, id_no, reference_name, reference_mobile').eq('mobile', mobile).maybeSingle(),
+      sb.from('customers').select('name, city, id_name, id_no, reference_name, reference_mobile, whatsapp').eq('mobile', mobile).maybeSingle(),
       sb.from('invoices').select('customer_type').eq('mobile', mobile).order('invoice_date', { ascending: false }).limit(1)
     ]);
     if (document.getElementById('custMobile').value.trim() !== mobile) return; // number was changed while loading
@@ -2962,7 +2984,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
 
     const fieldMap = {
       custName: c && c.name, custCity: c && c.city, idName: c && c.id_name, idNo: c && c.id_no,
-      referenceName: c && c.reference_name, referenceMobile: c && c.reference_mobile
+      referenceName: c && c.reference_name, referenceMobile: c && c.reference_mobile, custWhatsapp: c && c.whatsapp
     };
     Object.keys(fieldMap).forEach(function (id) {
       const el = document.getElementById(id);
@@ -3239,6 +3261,8 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     const billDateIso = billMode_ === 'past' ? new Date(billDateInput + 'T12:00:00').toISOString() : null;
     const transportCharges = Number(document.getElementById('transportCharges').value) || 0;
 
+    const waBill = document.getElementById('custWhatsapp').value.replace(/\D/g, '');
+    if (waBill && waBill.length < 10) { showToast('Enter a valid 10-digit WhatsApp number (or leave it empty).', true); btn.disabled = false; btn.textContent = 'Save & Print'; return; }
     const payload = {
       p_customer_name: custName, p_mobile: custMobile, p_customer_type: custType,
       p_salesman: salesman, p_remark: document.getElementById('remark').value.trim(),
@@ -3253,6 +3277,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     const { data: invoiceNo, error } = await sb.rpc('save_invoice', payload);
     btn.disabled = false; btn.textContent = 'Save & Print';
     if (error) { showToast('Could not save: ' + error.message, true); return; }
+    if (waBill.length >= 10) { await sb.from('customers').update({ whatsapp: waBill.slice(-10) }).eq('mobile', custMobile); loadWaMap_(); }
     document.getElementById('cashMemoNo').value = '';
     document.getElementById('cashMemoError').textContent = '';
     cashMemoValid_ = false;
@@ -3289,6 +3314,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     billLookedUpMobile_ = ''; billAutoFilled_ = {};
     document.getElementById('custName').value = '';
     document.getElementById('custCity').value = '';
+    document.getElementById('custWhatsapp').value = '';
     document.getElementById('custType').value = '';
     document.getElementById('remark').value = '';
     document.getElementById('idName').value = '';
@@ -3310,6 +3336,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     billLookedUpMobile_ = ''; billAutoFilled_ = {};
     document.getElementById('custName').value = '';
     document.getElementById('custCity').value = '';
+    document.getElementById('custWhatsapp').value = '';
     document.getElementById('custType').value = '';
     document.getElementById('remark').value = '';
     document.getElementById('idName').value = '';
@@ -5279,7 +5306,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     box.innerHTML = rows.map(function (r) {
       const dateStr = new Date(r.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
       const isNew = r.status === 'New';
-      let digits = String(r.mobile || '').replace(/\D/g, ''); if (digits.length === 10) digits = '91' + digits;
+      let digits = waRaw_(r.mobile); if (digits.length === 10) digits = '91' + digits;
       return '<div class="card">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">' +
           '<div><div style="font-weight:700;color:var(--green-800);">' + escapeHtml(r.name || 'Anonymous') + '</div><div class="hint">' + escapeHtml(r.mobile) + ' · ' + dateStr + '</div></div>' +
@@ -5410,7 +5437,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         '- Mahakal Wellness'
       ];
     }
-    let digits = String(r.mobile || '').replace(/\D/g, ''); if (digits.length === 10) digits = '91' + digits;
+    let digits = waRaw_(r.mobile); if (digits.length === 10) digits = '91' + digits;
     window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(lines.join('\n')), '_blank');
   }
 
@@ -5654,7 +5681,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   }
 
   function sendPaymentReminder(info) {
-    let digits = String(info.mobile || '').replace(/\D/g, '');
+    let digits = waRaw_(info.mobile);
     if (!digits) { showToast('No mobile number on this bill.', true); return; }
     if (digits.length === 10) digits = '91' + digits;
     const dateStr = info.date ? new Date(info.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
@@ -7655,7 +7682,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     html2pdf().set(billPdfOptions_(currentDetailInvoice + '.pdf')).from(el).save().then(async function () {
       hidePdfCapture_();
       resumeScrollLock();
-      let digits = String(currentDetailMobile || '').replace(/\D/g, ''); if (digits.length === 10) digits = '91' + digits;
+      let digits = waRaw_(currentDetailMobile); if (digits.length === 10) digits = '91' + digits;
       const text = await buildBillShareText_(currentDetailInvoice, currentDetailShareToken, null, lastShowAdvanceChoice);
       const waUrl = digits ? 'https://wa.me/' + digits + '?text=' + encodeURIComponent(text) : 'https://wa.me/?text=' + encodeURIComponent(text);
       setTimeout(function () { window.open(waUrl, '_blank'); }, 900);
@@ -8085,9 +8112,11 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     const idNo = document.getElementById('newCustIdNo').value.trim();
     const refName = document.getElementById('newCustRefName').value.trim();
     const refMobile = document.getElementById('newCustRefMobile').value.trim();
+    const waNew = document.getElementById('newCustWhatsapp').value.replace(/\D/g, '');
+    if (waNew && waNew.length < 10) { showToast('Enter a valid 10-digit WhatsApp number (or leave it empty).', true); return; }
     const { error } = await sb.from('customers').upsert({
       mobile: mobile, name: name || null, id_name: idName || null, id_no: idNo || null,
-      reference_name: refName || null, reference_mobile: refMobile || null
+      reference_name: refName || null, reference_mobile: refMobile || null, whatsapp: waNew ? waNew.slice(-10) : null
     }, { onConflict: 'mobile' });
     if (error) { showToast(error.message, true); return; }
     showToast('Customer saved.');
@@ -8108,6 +8137,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     document.getElementById('editCustRefName').value = data.reference_name || '';
     document.getElementById('editCustRefMobile').value = data.reference_mobile || '';
     document.getElementById('editCustCity').value = data.city || '';
+    document.getElementById('editCustWhatsapp').value = data.whatsapp || '';
     document.getElementById('editCustGst').value = data.gst || '';
     document.getElementById('editCustAddress').value = data.address || '';
     document.getElementById('editCustRemark').value = data.remark || '';
@@ -8120,6 +8150,8 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     const errBox = document.getElementById('editCustError');
     errBox.textContent = '';
     if (!newMobile) { errBox.textContent = 'Mobile number is required.'; return; }
+    const waEdit = document.getElementById('editCustWhatsapp').value.replace(/\D/g, '');
+    if (waEdit && waEdit.length < 10) { errBox.textContent = 'Enter a valid 10-digit WhatsApp number (or leave it empty).'; return; }
     const { error } = await sb.rpc('update_customer_profile', {
       p_old_mobile: editCustomerOriginalMobile_, p_new_mobile: newMobile,
       p_name: document.getElementById('editCustName').value.trim(),
@@ -8133,6 +8165,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       p_remark: document.getElementById('editCustRemark').value.trim()
     });
     if (error) { errBox.textContent = error.message; return; }
+    await sb.from('customers').update({ whatsapp: waEdit ? waEdit.slice(-10) : null }).eq('mobile', newMobile); loadWaMap_();
     showToast('Customer profile updated.');
     document.getElementById('editCustomerModal').classList.remove('show');
     currentCustomerMobile = newMobile;
@@ -8278,12 +8311,13 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     const extraBox = document.getElementById('customerDetailExtra');
     extraBox.style.display = 'none';
     if (mobile) {
-      const { data: custRow } = await sb.from('customers').select('id_no, reference_name, reference_mobile').eq('mobile', mobile).maybeSingle();
-      if (custRow && (custRow.id_no || custRow.reference_name || custRow.reference_mobile)) {
+      const { data: custRow } = await sb.from('customers').select('id_no, reference_name, reference_mobile, whatsapp').eq('mobile', mobile).maybeSingle();
+      if (custRow && (custRow.id_no || custRow.reference_name || custRow.reference_mobile || custRow.whatsapp)) {
         extraBox.innerHTML =
           (custRow.id_no ? 'DS ID: ' + escapeHtml(custRow.id_no) + '&nbsp;&nbsp; ' : '') +
           (custRow.reference_name || custRow.reference_mobile ? 'Reference/Upline: ' + escapeHtml(custRow.reference_name || '') +
-            (custRow.reference_mobile ? ' (' + escapeHtml(String(custRow.reference_mobile)) + ')' : '') : '');
+            (custRow.reference_mobile ? ' (' + escapeHtml(String(custRow.reference_mobile)) + ')' : '') : '') +
+          (custRow.whatsapp ? '&nbsp;&nbsp; WhatsApp: ' + escapeHtml(String(custRow.whatsapp)) : '');
         extraBox.style.display = 'block';
       }
     }
@@ -8309,7 +8343,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
 
   let currentCustomerBills = [];
   function sendCustomerReminder() {
-    let digits = String(currentCustomerMobile || '').replace(/\D/g, '');
+    let digits = waRaw_(currentCustomerMobile);
     if (!digits) { showToast('No mobile number for this customer.', true); return; }
     if (digits.length === 10) digits = '91' + digits;
     const dueBills = currentCustomerBills.filter(function (b) { return b.billStatus === 'Active' && b.balance < -0.005; });
@@ -8636,7 +8670,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   function sendCustomMessage() {
     const text = document.getElementById('sendMessageText').value.trim();
     if (!text) { showToast('Type a message first.', true); return; }
-    let digits = String(sendMessageContext.mobile || '').replace(/\D/g, '');
+    let digits = waRaw_(sendMessageContext.mobile);
     if (!digits) { showToast('No mobile number.', true); return; }
     if (digits.length === 10) digits = '91' + digits;
     window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(text), '_blank');
@@ -8983,7 +9017,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   function sendBroadcastRecipient() {
     const c = broadcastQueue[broadcastIndex];
     const text = document.getElementById('broadcastMessage').value.trim();
-    let digits = String(c.mobile || '').replace(/\D/g, '');
+    let digits = waRaw_(c.mobile);
     if (digits.length === 10) digits = '91' + digits;
     window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(text), '_blank');
     broadcastIndex++;
@@ -10961,7 +10995,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     html2pdf().set(billPdfOptions_(lastSavedBill.invoiceNo + '.pdf')).from(el).save().then(async function () {
       hidePdfCapture_();
       resumeScrollLock();
-      let digits = String(lastSavedBill.mobile || '').replace(/\D/g, '');
+      let digits = waRaw_(lastSavedBill.mobile);
       if (digits.length === 10) digits = '91' + digits;
       const grandTotal = (lastSavedBill.customerType === 'Retail' ? lastSavedBill.netAmount : lastSavedBill.totalDP) + (Number(lastSavedBill.transportCharges) || 0);
       const text = await buildBillShareText_(lastSavedBill.invoiceNo, lastSavedBill.shareToken, grandTotal, lastShowAdvanceChoice);
@@ -11022,7 +11056,7 @@ function closeCustReset_() { document.getElementById('custResetModal').classList
 function custResetMessage_() {
   return 'Namaste ' + (clReset_.name || 'Customer') + ' ji, Mahakal Wellness app ka aapka naya password: *' + clReset_.password + '*\n\nLogin: ' + new URL('account.html', location.href).href + '\nLogin karne ke baad Profile me jaakar apna password badal lena.\n\n- Mahakal Wellness';
 }
-function custResetSendWa_() { if (!clReset_ || !clReset_.password) return; window.open('https://wa.me/91' + String(clReset_.mobile).replace(/\D/g, '').slice(-10) + '?text=' + encodeURIComponent(custResetMessage_()), '_blank'); }
+function custResetSendWa_() { if (!clReset_ || !clReset_.password) return; window.open('https://wa.me/91' + waRaw_(clReset_.mobile).slice(-10) + '?text=' + encodeURIComponent(custResetMessage_()), '_blank'); }
 async function custResetCopy_() { if (!clReset_ || !clReset_.password) return; try { await navigator.clipboard.writeText(custResetMessage_()); showToast('Message copied.'); } catch (e) { showToast('Could not copy. Select the message and copy it.', true); } }
 async function doCustReset_() {
   if (!clReset_ || clReset_.busy || clReset_.password) return;
@@ -11057,7 +11091,7 @@ async function loadCustAcctInfo_(mobile, name) {
   if (data.photo && av) av.innerHTML = clAvatar_(name, data.photo, true);
   box.style.display = 'block';
   box.innerHTML = data.registered ? '📱 <strong>Customer login:</strong> ' + (data.verified ? 'Verified ✓' : '<span style="color:var(--danger);font-weight:700;">Not verified</span>') + ' · last login ' + (data.lastLoginAt ? escapeHtml(clAgo_(data.lastLoginAt)) : 'never') + (data.mustChange ? ' · temporary password' : '') + (data.pendingRequest ? ' · <span style="color:var(--danger);font-weight:700;">password request waiting</span>' : '') +
-    '<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn btn-outline" id="custAcctReset" style="flex:1;padding:8px;font-size:12.5px;" onclick="openCustReset_(currentCustomerMobile)">🔑 Reset password</button>' + (data.pendingCorrection ? '<button class="btn btn-gold" id="custAcctCorrect" style="flex:1;padding:8px;font-size:12.5px;" onclick="openCorrectionFor_()">🛠 Open correction</button>' : (data.verified ? '' : '<button class="btn btn-gold" id="custAcctVerify" style="flex:1;padding:8px;font-size:12.5px;" onclick="verifyCustAcct_(currentCustomerMobile)">✓ Verify login</button>')) + '</div>' : '📱 Customer login: not registered yet';
+    '<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn btn-outline" id="custAcctReset" style="flex:1;padding:8px;font-size:12.5px;" onclick="openCustReset_(currentCustomerMobile)">🔑 Reset password</button>' + (data.pendingCorrection ? '<button class="btn btn-gold" id="custAcctCorrect" style="flex:1;padding:8px;font-size:12.5px;" onclick="openCorrectionFor_()">🛠 Open approval</button>' : (data.verified ? '' : '<button class="btn btn-gold" id="custAcctVerify" style="flex:1;padding:8px;font-size:12.5px;" onclick="verifyCustAcct_(currentCustomerMobile)">✓ Verify login</button>')) + '</div>' : '📱 Customer login: not registered yet';
 }
 async function custFillAvatars_(rows) {
   const mobiles = (rows || []).map(function (r) { return r.mobile; }).filter(Boolean); if (!mobiles.length || clMissing_) return;
@@ -11074,7 +11108,7 @@ function sysNotifyCl_(title, body) {
   } catch (e) { /* not available on this phone */ }
 }
 let clAlertTab_ = 'custlogins';
-function showCustAlert_(text, loud, tab) { clAlertTab_ = tab || 'custlogins'; document.getElementById('custAlertText').textContent = text; document.getElementById('custAlertBar').classList.add('show'); if (loud) { beepCl_(); sysNotifyCl_(clAlertTab_ === 'custcorrect' ? 'Customer correction' : 'Customer password request', text); } }
+function showCustAlert_(text, loud, tab) { clAlertTab_ = tab || 'custlogins'; document.getElementById('custAlertText').textContent = text; document.getElementById('custAlertBar').classList.add('show'); if (loud) { beepCl_(); sysNotifyCl_(clAlertTab_ === 'custcorrect' ? 'New customer registration' : 'Customer password request', text); } }
 function hideCustAlert_() { document.getElementById('custAlertBar').classList.remove('show'); }
 function openCustLoginsFromAlert_() { hideCustAlert_(); switchTab(clAlertTab_ || 'custlogins'); }
 async function enableClAlerts_() { try { await Notification.requestPermission(); } catch (e) { /* not supported */ } const ac = document.getElementById('clAlertsCard'); if (ac) ac.style.display = ('Notification' in window && Notification.permission === 'default') ? 'block' : 'none'; }
@@ -11090,7 +11124,8 @@ async function custLoginPoll_() {
   let seenC = ccSeen_; if (!seenC) { try { seenC = localStorage.getItem('mwCcSeen') || ''; } catch (e) { seenC = ''; } }
   if (d.latestCorrAt && d.latestCorrAt > seenC) {
     const firstC = ccFirst_; ccSeen_ = d.latestCorrAt; try { localStorage.setItem('mwCcSeen', d.latestCorrAt); } catch (e) { /* no storage */ }
-    showCustAlert_(firstC ? d.corrections + ' customer correction' + (d.corrections === 1 ? '' : 's') + ' waiting' : '🛠 New customer correction: ' + (d.latestCorrName || 'Customer') + ' (' + d.latestCorrMobile + ')', !firstC, 'custcorrect');
+    if (!firstC) showNewRegPopup_(d.latestCorrName, d.latestCorrMobile);
+    showCustAlert_(firstC ? d.corrections + ' customer registration' + (d.corrections === 1 ? '' : 's') + ' waiting for approval' : '🆕 New customer registration: ' + (d.latestCorrName || 'Customer') + ' (' + d.latestCorrMobile + ')', !firstC, 'custcorrect');
   }
   clFirst_ = false; ccFirst_ = false;
   const tab = document.getElementById('tab-custlogins'); if (tab && tab.classList.contains('active') && !(clReset_ && clReset_.password)) loadCustLogins_();
@@ -11103,16 +11138,16 @@ function startCustLoginPolling_() {
 }
 
 // ---------------- CUSTOMER CORRECTION: what the system has and what the customer typed, side by side; the staff choose; Approve = saved everywhere ----------------
-const CC_FIELDS_ = [['name', 'Name'], ['dsId', 'DS ID'], ['uplineName', 'Upline name'], ['uplineMobile', 'Upline mobile'], ['city', 'City']];
+const CC_FIELDS_ = [['name', 'Name'], ['dsId', 'DS ID'], ['uplineName', 'Upline name'], ['uplineMobile', 'Upline mobile'], ['city', 'City'], ['whatsapp', 'WhatsApp']];
 let ccState_ = { pending: [], handled: [] }, ccSeen_ = '', ccFirst_ = true;
 function setCcBadge_(n) { const b = document.getElementById('custCorrectBadge'); if (!b) return; b.textContent = n > 99 ? '99+' : String(n); b.style.display = n > 0 ? 'inline-block' : 'none'; }
 function ccDigits_(v) { return String(v == null ? '' : v).replace(/\D/g, '').slice(-10); }
-function ccDiffers_(f, a, b) { if (!a || !b) return false; return f === 'uplineMobile' ? ccDigits_(a) !== ccDigits_(b) : String(a).toLowerCase().replace(/[^a-z0-9]/g, '') !== String(b).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+function ccDiffers_(f, a, b) { if (!a || !b) return false; return (f === 'uplineMobile' || f === 'whatsapp') ? ccDigits_(a) !== ccDigits_(b) : String(a).toLowerCase().replace(/[^a-z0-9]/g, '') !== String(b).toLowerCase().replace(/[^a-z0-9]/g, ''); }
 function ccCase_(id) { return (ccState_.pending || []).filter(function (c) { return Number(c.id) === Number(id); })[0]; }
 async function loadCustCorrections_() {
   const { data, error } = await sb.rpc('get_customer_corrections');
   if (error) { document.getElementById('ccPending').innerHTML = '<div class="empty-cart">' + escapeHtml(clMissingMsg_(error)) + '</div>'; return; }
-  ccState_ = data || { pending: [], handled: [] }; renderCustCorrections_(); setCcBadge_((ccState_.pending || []).length);
+  ccState_ = data || { pending: [], handled: [] }; renderCustCorrections_(); setCcBadge_((ccState_.pending || []).length); loadRegistered_();
 }
 function ccCardHtml_(c) {
   const name = (c.form && c.form.name) || (c.sys && c.sys.name) || 'Customer';
@@ -11124,12 +11159,12 @@ function ccCardHtml_(c) {
       '<input class="cc-final" type="text" value="' + escapeHtml(init) + '" placeholder="' + (diff ? 'Tap System or Form (or type the right one)' : '') + '" oninput="ccUpdate_(' + c.id + ')"></div>';
   }).join('');
   return '<div class="cc-card" data-id="' + c.id + '" data-mobile="' + escapeHtml(c.mobile) + '"><div class="cl-top">' + clAvatar_(name, c.photoThumb) + '<div class="cl-info"><div class="result-name">' + escapeHtml(String(name).toUpperCase()) + '</div><div class="result-meta">' + escapeHtml(c.mobile) + ' · ' + escapeHtml(clAgo_(c.createdAt)) + ' · bills: ' + (c.bills || 0) + '</div></div></div>' +
-    '<div style="margin:8px 0 2px;">' + (c.dsConflict ? '<span class="badge badge-unpaid">⚠ DS ID differs · his login is on hold</span>' : '<span class="badge badge-partial">Details differ</span>') + '</div>' + rows +
+    '<div style="margin:8px 0 2px;">' + (function () { const anyDiff = CC_FIELDS_.some(function (f) { return ccDiffers_(f[0], c.sys ? c.sys[f[0]] : null, c.form ? c.form[f[0]] : null); }); return !c.sys ? '<span class="badge badge-partial">🆕 New customer · not in the database</span>' : c.dsConflict ? '<span class="badge badge-unpaid">⚠ DS ID differs from the database</span>' : anyDiff ? '<span class="badge badge-partial">Details differ from the database</span>' : '<span class="badge badge-paid">✓ All details match the database</span>'; })() + '<span class="badge" style="margin-left:6px;">login on hold until approved</span>' + '</div>' + rows +
     '<div class="cl-actions"><button class="btn btn-gold" id="ccApprove' + c.id + '" disabled onclick="approveCustCorr_(' + c.id + ')">✓ Approve &amp; update everywhere</button><button class="btn btn-outline" id="ccReject' + c.id + '" onclick="rejectCustCorr_(' + c.id + ')">✖ Reject (remove login)</button></div></div>';
 }
 function renderCustCorrections_() {
   const p = ccState_.pending || [], h = ccState_.handled || [];
-  document.getElementById('ccPending').innerHTML = p.length ? p.map(ccCardHtml_).join('') : '<div class="empty-cart">No customer correction waiting.</div>';
+  document.getElementById('ccPending').innerHTML = p.length ? p.map(ccCardHtml_).join('') : '<div class="empty-cart">No customer approval waiting.</div>';
   p.forEach(function (c) { ccUpdate_(c.id); });
   document.getElementById('ccHandled').innerHTML = h.length ? h.map(function (r) {
     return '<div class="cl-row"><div class="cl-top">' + clAvatar_(r.name, r.photoThumb) + '<div class="cl-info"><div class="result-name">' + escapeHtml(String(r.name || '(No name)').toUpperCase()) + '</div><div class="result-meta">' + escapeHtml(r.mobile) + ' · ' + (r.status === 'Approved' ? '✓ approved' : '✖ rejected') + ' · ' + escapeHtml(r.handledAt ? clAgo_(r.handledAt) : '') + '</div></div></div></div>';
@@ -11142,21 +11177,22 @@ function ccValues_(id) {
 }
 function ccUpdate_(id) {
   const c = ccCase_(id), card = document.querySelector('.cc-card[data-id="' + id + '"]'); if (!c || !card) return;
-  const v = ccValues_(id), ok = !!(v.name && v.dsId && v.uplineName && v.city && ccDigits_(v.uplineMobile).length === 10);
+  const v = ccValues_(id), unresolved = Array.prototype.some.call(card.querySelectorAll('.cc-field.conflict'), function (f) { return !f.querySelector('.cc-final').value.trim(); });
+  const ok = !unresolved && !!(v.name && v.dsId && v.uplineName && v.city && ccDigits_(v.uplineMobile).length === 10 && (!v.whatsapp || ccDigits_(v.whatsapp).length === 10));
   const btn = document.getElementById('ccApprove' + id); if (btn) btn.disabled = !ok;
   Array.prototype.forEach.call(card.querySelectorAll('.cc-field'), function (fld) {
     const f = fld.dataset.f, val = fld.querySelector('.cc-final').value.trim();
-    Array.prototype.forEach.call(fld.querySelectorAll('.cc-opt'), function (b) { const src = (b.dataset.which === 'sys' ? c.sys : c.form)[f]; b.classList.toggle('on', !!src && val === String(src)); });
+    Array.prototype.forEach.call(fld.querySelectorAll('.cc-opt'), function (b) { const src = ((b.dataset.which === 'sys' ? c.sys : c.form) || {})[f]; b.classList.toggle('on', !!src && val === String(src)); });
   });
 }
 function ccPick_(id, field, which) {
-  const c = ccCase_(id); if (!c) return; const v = (which === 'sys' ? c.sys : c.form)[field]; if (!v) return;
+  const c = ccCase_(id); if (!c) return; const v = ((which === 'sys' ? c.sys : c.form) || {})[field]; if (!v) return;
   const inp = document.querySelector('.cc-card[data-id="' + id + '"] .cc-field[data-f="' + field + '"] .cc-final'); inp.value = v; ccUpdate_(id);
 }
 async function approveCustCorr_(id) {
   const btn = document.getElementById('ccApprove' + id); if (!btn || btn.disabled) return;
   const v = ccValues_(id); btn.disabled = true; btn.textContent = 'Saving…';
-  const { data, error } = await sb.rpc('approve_customer_correction', { p_id: id, p_name: v.name, p_ds_id: v.dsId, p_upline_name: v.uplineName, p_upline_mobile: v.uplineMobile, p_city: v.city });
+  const { data, error } = await sb.rpc('approve_customer_correction', { p_id: id, p_name: v.name, p_ds_id: v.dsId, p_upline_name: v.uplineName, p_upline_mobile: v.uplineMobile, p_city: v.city, p_whatsapp: v.whatsapp });
   if (error) { showToast(clMissingMsg_(error), true); btn.textContent = '✓ Approve & update everywhere'; ccUpdate_(id); return; }
   showToast('Saved everywhere' + (data && (data.orders || data.bills) ? ' (' + (data.orders || 0) + ' order and ' + (data.bills || 0) + ' bill in approval updated)' : '') + '.');
   loadCustCorrections_(); custLoginPoll_();
@@ -11167,6 +11203,52 @@ async function rejectCustCorr_(id) {
   showToast('Login removed.'); loadCustCorrections_(); custLoginPoll_();
 }
 function openCorrectionFor_() { document.getElementById('customerDetailModal').classList.remove('show'); switchTab('custcorrect'); }
+
+// ---------------- the registered customers list + the new-registration popup ----------------
+let regState_ = [], regFilter_ = 'all', regQ_ = '';
+async function loadRegistered_() {
+  const { data, error } = await sb.rpc('get_registered_customers');
+  if (error) { regState_ = null; const b = document.getElementById('ccRegistered'); if (b) b.innerHTML = '<div class="empty-cart">' + escapeHtml(clMissingMsg_(error)) + '</div>'; return; }
+  regState_ = data || []; renderRegistered_();
+}
+function regPick_(f) { regFilter_ = f; Array.prototype.forEach.call(document.querySelectorAll('.reg-chip'), function (b) { b.classList.toggle('on', b.dataset.f === f); }); renderRegistered_(); }
+function regSearch_() { regQ_ = (document.getElementById('regSearch').value || '').trim().toLowerCase(); renderRegistered_(); }
+function renderRegistered_() {
+  const box = document.getElementById('ccRegistered'); if (!box || !regState_) return;
+  const all = regState_, waiting = all.filter(function (r) { return !r.approved; }).length;
+  document.getElementById('regCntAll').textContent = '(' + all.length + ')'; document.getElementById('regCntWaiting').textContent = '(' + waiting + ')'; document.getElementById('regCntApproved').textContent = '(' + (all.length - waiting) + ')';
+  const rows = all.filter(function (r) {
+    if (regFilter_ === 'waiting' && r.approved) return false; if (regFilter_ === 'approved' && !r.approved) return false;
+    return !regQ_ || String(r.name || '').toLowerCase().indexOf(regQ_) >= 0 || String(r.mobile).indexOf(regQ_) >= 0 || String(r.dsId || '').toLowerCase().indexOf(regQ_) >= 0;
+  });
+  box.innerHTML = rows.length ? rows.map(function (r) {
+    return '<div class="cl-row reg-row" data-mobile="' + escapeHtml(r.mobile) + '" onclick="regOpen_(\'' + escapeHtml(r.mobile) + '\')"><div class="cl-top">' + clAvatar_(r.name, r.photoThumb) + '<div class="cl-info"><div class="result-name">' + escapeHtml(String(r.name || '(No name)').toUpperCase()) + '</div>' +
+      '<div class="result-meta">' + escapeHtml(r.mobile) + (r.whatsapp && String(r.whatsapp) !== String(r.mobile) ? ' · WhatsApp ' + escapeHtml(r.whatsapp) : '') + '</div>' +
+      '<div class="result-meta">' + (r.dsId ? 'DS ID ' + escapeHtml(r.dsId) : 'no DS ID') + (r.city ? ' · ' + escapeHtml(r.city) : '') + ' · registered ' + escapeHtml(clAgo_(r.registeredAt)) + '</div></div></div>' +
+      '<div style="margin-top:6px;">' + (r.approved ? '<span class="badge badge-paid">✓ Approved</span>' : '<span class="badge badge-partial">⏳ Waiting for approval</span>') + '<span class="badge" style="margin-left:6px;">' + (r.wasInDatabase ? '🗂 Was in the database' : '🆕 New customer') + '</span></div></div>';
+  }).join('') : '<div class="empty-cart">No registered customers.</div>';
+}
+function regOpen_(mobile) {
+  const r = (regState_ || []).filter(function (x) { return x.mobile === mobile; })[0]; if (!r) return;
+  if (r.caseId) { const card = document.querySelector('.cc-card[data-id="' + r.caseId + '"]'); if (card) { card.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } }
+  if (r.inDatabase) openCustomerDetail(mobile, r.name); else showToast('Not in the customer database yet.', true);
+}
+function showNewRegPopup_(name, mobile) { document.getElementById('newRegBody').textContent = String(name || 'Customer').toUpperCase() + ' · ' + (mobile || ''); document.getElementById('newRegModal').classList.add('show'); }
+function closeNewReg_() { document.getElementById('newRegModal').classList.remove('show'); }
+function openNewReg_() { closeNewReg_(); hideCustAlert_(); switchTab('custcorrect'); }
+
+// ---------------- the WhatsApp number: every WhatsApp message to a customer goes to HIS WhatsApp number (his mobile number if he has none) ----------------
+let WA_MAP_ = {}, waTimer_ = null;
+function waRaw_(mobile) { const m = String(mobile == null ? '' : mobile).replace(/\D/g, ''), w = WA_MAP_[m.slice(-10)]; return w ? String(w).replace(/\D/g, '').slice(-10) : m; }
+async function loadWaMap_() {
+  try {
+    const { data, error } = await sb.from('customers').select('mobile, whatsapp').not('whatsapp', 'is', null).limit(5000);
+    if (error || !data) return;                       // before customer_accounts.sql is run there is no such column: every message goes to the mobile number as before
+    const map = {}; data.forEach(function (r) { const mob = String(r.mobile || '').replace(/\D/g, '').slice(-10), w = String(r.whatsapp || '').replace(/\D/g, '').slice(-10); if (mob.length === 10 && w.length === 10 && w !== mob) map[mob] = w; });
+    WA_MAP_ = map;
+  } catch (e) { /* no network just now */ }
+}
+function startWaMap_() { loadWaMap_(); if (!waTimer_) waTimer_ = setInterval(loadWaMap_, 300000); }
 </script>
 <!-- MW-UX-START (keyboard + back button; the same in every page, built by tools/apply_ux_snippets.py) -->
 <style id="mwUxCss">

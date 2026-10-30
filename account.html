@@ -264,11 +264,14 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
           <div class="field"><label for="regUpMobile">Upline mobile</label><div class="inp-wrap"><input type="tel" id="regUpMobile" inputmode="numeric" maxlength="15" placeholder="10-digit" oninput="onRegEdit_()"><button class="clr-btn" type="button" id="clr_regUpMobile" onclick="clearReg_('regUpMobile')" aria-label="Clear" style="display:none;">✕</button></div></div>
         </div>
         <div class="field"><label for="regCity">City</label><div class="inp-wrap"><input type="text" id="regCity" autocomplete="address-level2" placeholder="Your city" oninput="onRegEdit_()"><button class="clr-btn" type="button" id="clr_regCity" onclick="clearReg_('regCity')" aria-label="Clear" style="display:none;">✕</button></div></div>
+        <div class="field" style="margin-bottom:6px;"><label style="display:flex;align-items:center;gap:8px;font-weight:700;"><input type="checkbox" id="regWaSame" checked onchange="onRegWaSame_()" style="width:auto;margin:0;"> Mera WhatsApp number wahi hai jo mobile number hai</label></div>
+        <div class="field" id="regWaBox" style="display:none;"><label for="regWa">WhatsApp number</label><input type="tel" id="regWa" inputmode="numeric" maxlength="15" placeholder="10-digit WhatsApp number"><p class="hint" style="margin-top:4px;">Hamari team isi number par aapko bill aur updates WhatsApp par bhejegi.</p></div>
         <div class="field pw-row"><label for="regPass">Set your password</label><input type="password" id="regPass" autocomplete="new-password" placeholder="At least 6 characters"><button class="pw-eye" type="button" onclick="togglePw_('regPass', this)">Show</button></div>
         <div class="field pw-row"><label for="regPass2">Confirm password</label><input type="password" id="regPass2" autocomplete="new-password" placeholder="Type it again" onkeydown="if(event.key==='Enter')doRegister_()"><button class="pw-eye" type="button" onclick="togglePw_('regPass2', this)">Show</button></div>
         <div class="box" id="regChangeNote" style="display:none;margin:0 0 12px;"></div>
         <p class="error-msg" id="regError"></p>
         <button class="btn btn-gold" id="regBtn" type="button" onclick="doRegister_()">Register &amp; Login</button>
+        <p class="hint" style="text-align:center;margin-top:10px;">Har registration hamari team approve karti hai. Approve hote hi aapko yahin popup aa jayega.</p>
         <p class="hint" style="text-align:center;margin-top:12px;">Pehle se account hai? <button class="a-link" type="button" onclick="showAuth_('login')">Login karo</button></p>
       </div>
 
@@ -289,6 +292,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
       </div>
       <div class="box warn" id="tempBanner" style="display:none;margin:0 0 14px;">Aapne temporary password se login kiya hai. <button class="a-link" type="button" onclick="setTab_('profile')">Apna password badal lo</button></div>
       <div class="box warn" id="reviewBanner" style="display:none;margin:0 0 14px;"></div>
+      <div class="box warn" id="waBanner" style="display:none;margin:0 0 14px;">📱 Aapka WhatsApp number hamare paas nahi hai. <button class="a-link" id="waBannerBtn" type="button" onclick="showWaPopup_()">Abhi add karo</button></div>
       <div class="a-tabs" id="homeTabs">
         <button class="a-tab on" data-tab="order" type="button" onclick="setTab_('order')">🛒 Order</button>
         <button class="a-tab" data-tab="bills" type="button" onclick="setTab_('bills')">🧾 My Bills</button>
@@ -338,6 +342,9 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
           <button class="a-link" id="photoRemove" type="button" style="display:none;margin-top:6px;" onclick="removePhoto_()">Remove photo</button>
           <p class="error-msg" id="photoError" style="text-align:center;"></p>
         </div>
+        <div class="card" id="waCard"><p class="section-label">WhatsApp number</p><p class="hint" style="margin-bottom:10px;">Hamari team isi number par aapko bill aur updates WhatsApp par bhejegi (calling number se alag ho to yahi number do).</p>
+          <div class="field"><input type="tel" id="waInput" inputmode="numeric" maxlength="15" placeholder="10-digit WhatsApp number" onkeydown="if(event.key==='Enter')saveWa_('waInput','waError')"></div>
+          <p class="error-msg" id="waError"></p><button class="btn btn-gold" id="waSaveBtn" type="button" onclick="saveWa_('waInput','waError')">Save WhatsApp number</button></div>
         <div class="card"><p class="section-label">My details</p><div id="profileKv"></div><p class="hint" style="margin-top:10px;">Kuch galat ho to hamari team se kehkar badalwa lo.</p></div>
         <div class="card">
           <p class="section-label">Change password</p>
@@ -355,6 +362,14 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     <div class="sv-bar"><button class="sv-back" id="svClose" type="button" onclick="closeStatus_()">← Back to my bills</button><span class="sv-title" id="svTitle"></span></div>
     <div class="sv-body"><div class="sv-loading" id="svLoading">Loading…</div><iframe id="svFrame" title="Live status" src="about:blank"></iframe></div>
   </div>
+  <div class="qty-modal-overlay" id="waModal"><div class="qty-modal-sheet">
+    <h2 style="margin-bottom:6px;">📱 WhatsApp number add karo</h2>
+    <p class="hint" style="line-height:1.5;margin-bottom:12px;">Hamari team isi number par aapko bill aur updates WhatsApp par bhejegi. Calling aur WhatsApp number alag hain to WhatsApp wala number do.</p>
+    <div class="field"><input type="tel" id="waPopInput" inputmode="numeric" maxlength="15" placeholder="10-digit WhatsApp number" onkeydown="if(event.key==='Enter')saveWa_('waPopInput','waPopError')"></div>
+    <button class="a-link" id="waSameBtn" type="button" onclick="waSame_()" style="margin-bottom:6px;">Wahi jo mera mobile number hai</button>
+    <p class="error-msg" id="waPopError"></p>
+    <div class="qty-modal-actions"><button class="btn btn-outline" id="waLater" type="button" onclick="closeWaPopup_()">Baad me</button><button class="btn btn-gold" id="waPopSave" type="button" onclick="saveWa_('waPopInput','waPopError')">Save</button></div>
+  </div></div>
   <div class="qty-modal-overlay" id="newsModal"><div class="qty-modal-sheet" style="text-align:center;">
     <div class="success-icon" id="newsIcon">✓</div>
     <h2 id="newsTitle" style="margin-bottom:6px;"></h2>
@@ -406,7 +421,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   // ---------------- signed out: login / register / forgot password ----------------
   let ME = null, authTab_ = 'login', homeTab_ = 'order';
   function showAuth_(tab, note) {
-    stopLive_(); closeStatus_();
+    stopLive_(); closeStatus_(); waAsked_ = false; closeWaPopup_();
     authTab_ = tab;
     show_('acctLoading', false); show_('homeView', false); show_('authView', true);
     show_('viewLogin', tab === 'login'); show_('viewRegister', tab === 'register'); show_('viewForgot', tab === 'forgot');
@@ -449,11 +464,13 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     if (!f.upName) { err.textContent = 'Please enter your Upline name.'; return; }
     if (digits_(f.upMobile).length < 10) { err.textContent = 'Enter a valid 10-digit Upline mobile number.'; return; }
     if (!f.city) { err.textContent = 'Please enter your city.'; return; }
+    const waSame = document.getElementById('regWaSame').checked, wa = waSame ? f.mobile : val_('regWa');
+    if (!waSame && digits_(wa).length < 10) { err.textContent = 'Enter a valid 10-digit WhatsApp number.'; return; }
     if (pw.length < 6) { err.textContent = 'The password must have at least 6 characters.'; return; }
     if (pw !== pw2) { err.textContent = 'The two passwords are not the same.'; return; }
     btn.disabled = true; btn.textContent = 'Please wait…';
     try {
-      const { data, error } = await sb.rpc('customer_register', { p_mobile: f.mobile, p_name: f.name, p_ds_id: f.ds, p_upline_name: f.upName, p_upline_mobile: f.upMobile, p_city: f.city, p_password: pw });
+      const { data, error } = await sb.rpc('customer_register', { p_mobile: f.mobile, p_name: f.name, p_ds_id: f.ds, p_upline_name: f.upName, p_upline_mobile: f.upMobile, p_city: f.city, p_password: pw, p_whatsapp: wa });
       if (error) { err.textContent = msgOf_(error); return; }
       if (!data || !data.ok) { err.textContent = 'Could not register. Please try again.'; return; }
       ['regPass', 'regPass2'].forEach(function (id) { document.getElementById(id).value = ''; });
@@ -541,8 +558,8 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     show_('acctLoading', false); show_('authView', false); show_('homeView', true);
     renderHead_(); show_('tempBanner', !!ME.mustChange); showReview_();
     const want = (location.hash || '').replace('#', ''); setTab_(['order', 'bills', 'offers', 'profile'].indexOf(want) >= 0 ? want : 'order');
-    startLive_(); newsOnEnter_();
-    if (fresh) toast_(ME.pendingCorrection ? 'Account ban gaya. Hamari team aapki details check karegi.' : (ME.verified ? 'Welcome! Aapka account ban gaya.' : 'Account ban gaya. Hamari team aapko jaldi verify karegi.'));
+    startLive_(); newsOnEnter_(); waPrompt_();
+    if (fresh) toast_(ME.pendingCorrection ? 'Registration ho gaya. Hamari team approve karegi.' : (ME.verified ? 'Welcome! Aapka account ban gaya.' : 'Account ban gaya. Hamari team aapko jaldi verify karegi.'));
   }
   function renderHead_() {
     document.getElementById('homeHead').innerHTML = avatarHtml_(false) + '<div style="min-width:0;"><h2>' + escapeHtml(ME.name || 'Customer') + '</h2><p class="a-sub">' + escapeHtml(ME.mobile) + (ME.dsId ? ' · DS ID ' + escapeHtml(ME.dsId) : '') + '</p>' +
@@ -553,7 +570,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     const b = document.getElementById('reviewBanner');
     if (!ME || !ME.pendingCorrection) { b.style.display = 'none'; return; }
     b.innerHTML = ME.verified ? 'Aapki kuch details hamare record se alag hain. Hamari team check karke sahi details approve karegi. Aapke bills dikhte rahenge.'
-      : 'Aapki details hamare record se match nahi hui. Hamari team check karke approve karegi. Tab tak aap order de sakte ho; purane bills aur offer progress approve hone ke baad dikhenge.';
+      : 'Aapka registration hamari team ke paas <strong>approval ke liye</strong> hai. Approve hote hi yahin popup aa jayega. Tab tak aap order de sakte ho; purane bills aur offer progress approve hone ke baad dikhenge.';
     b.style.display = 'block';
   }
   function setTab_(name) {
@@ -699,7 +716,8 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   function renderProfile_() {
     document.getElementById('profileAvatar').innerHTML = avatarHtml_(true); show_('photoRemove', !!ME.photo); document.getElementById('photoError').textContent = '';
     const kv = function (k, v) { return '<div class="kv"><span class="k">' + k + '</span><span class="v">' + (v ? escapeHtml(v) : '—') + '</span></div>'; };
-    document.getElementById('profileKv').innerHTML = kv('Name', ME.name) + kv('Mobile', ME.mobile) + kv('DS ID', ME.dsId) + kv('Upline', (ME.uplineName || '') + (ME.uplineMobile ? ' (' + ME.uplineMobile + ')' : '')) + kv('City', ME.city) +
+    document.getElementById('waInput').value = ME.whatsapp || '';
+    document.getElementById('profileKv').innerHTML = kv('Name', ME.name) + kv('Mobile', ME.mobile) + kv('WhatsApp', ME.whatsapp) + kv('DS ID', ME.dsId) + kv('Upline', (ME.uplineName || '') + (ME.uplineMobile ? ' (' + ME.uplineMobile + ')' : '')) + kv('City', ME.city) +
       '<div class="kv"><span class="k">Account</span><span class="v">' + (ME.verified ? '✓ Verified' : '⏳ Verification pending') + '</span></div>' +
       (ME.pendingCorrection ? '<div class="kv"><span class="k">Details</span><span class="v">⏳ Under review by our team</span></div>' : '');
   }
@@ -743,6 +761,26 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
       ME.mustChange = false; show_('tempBanner', false); toast_('Password changed');
     } catch (e) { /* handled */ }
     finally { btn.disabled = false; btn.textContent = 'Change password'; }
+  }
+
+  // ---------------- the WhatsApp number: asked once per visit from a login that has none (popup + banner), changed in Profile ----------------
+  let waAsked_ = false;
+  function onRegWaSame_() { const same = document.getElementById('regWaSame').checked; show_('regWaBox', !same); if (!same) document.getElementById('regWa').focus(); }
+  function waPrompt_() {
+    const need = !!ME && !ME.whatsapp; show_('waBanner', need);
+    if (need && !waAsked_ && !document.getElementById('newsModal').classList.contains('show')) { waAsked_ = true; showWaPopup_(); }
+  }
+  function showWaPopup_() { document.getElementById('waPopInput').value = ''; document.getElementById('waPopError').textContent = ''; document.getElementById('waModal').classList.add('show'); }
+  function closeWaPopup_() { document.getElementById('waModal').classList.remove('show'); }
+  function waSame_() { document.getElementById('waPopInput').value = ME ? ME.mobile : ''; }
+  async function saveWa_(inputId, errId) {
+    const err = document.getElementById(errId); err.textContent = ''; const v = val_(inputId);
+    if (digits_(v).length < 10) { err.textContent = 'Enter a valid 10-digit WhatsApp number.'; return; }
+    try {
+      const { data, error } = await rpcA_('customer_set_whatsapp', { p_whatsapp: v });
+      if (error) { err.textContent = msgOf_(error); return; }
+      ME.whatsapp = data.whatsapp; closeWaPopup_(); waPrompt_(); if (homeTab_ === 'profile') renderProfile_(); toast_('WhatsApp number save ho gaya');
+    } catch (e) { /* a lost login is handled in rpcA_ */ }
   }
 
   // ---------------- the live status opens INSIDE this window: tap a bill, see its live status, go back, tap another ----------------
@@ -791,7 +829,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
       const prev = { v: !!ME.verified, p: !!ME.pendingCorrection }, now = data.profile;
       if (JSON.stringify(now) === JSON.stringify(ME)) return;
       ME = now; lsSet_(LS_.name, ME.name || ''); rememberSeen_();
-      renderHead_(); show_('tempBanner', !!ME.mustChange); showReview_();
+      renderHead_(); show_('tempBanner', !!ME.mustChange); showReview_(); waPrompt_();
       if (prev.v !== !!ME.verified || prev.p !== !!ME.pendingCorrection) {
         BILLS = null; OFFERS = null;
         if (homeTab_ === 'bills' || homeTab_ === 'order') loadBills_(false, homeTab_ === 'order'); if (homeTab_ === 'offers') loadOffers_();
@@ -816,7 +854,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     document.getElementById('newsModal').classList.add('show');
     try { if (navigator.vibrate) navigator.vibrate([180, 80, 180]); } catch (e) { /* not on every phone */ }
   }
-  function closeNews_() { document.getElementById('newsModal').classList.remove('show'); }
+  function closeNews_() { document.getElementById('newsModal').classList.remove('show'); waPrompt_(); }
   function newsGoBills_() { closeNews_(); setTab_('bills'); }
 
   // ---------------- start: a login that is still valid goes straight in (no login again and again) ----------------
