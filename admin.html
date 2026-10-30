@@ -65,6 +65,11 @@
   .due-stats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;} .due-stat{background:var(--surface-2,#f6f6fb); border-radius:12px; padding:10px 8px; text-align:center;} .due-stat .n{font-size:17px; font-weight:800; color:#c0392b;} .due-stat .t{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; color:var(--ink-soft); margin-top:2px;}
   .due-amt{font-size:17px; font-weight:800; color:#c0392b; white-space:nowrap; text-align:right;}
   .due-actions{display:flex; gap:8px; margin-top:8px;} .due-actions .btn{flex:1; width:auto; padding:9px 8px; font-size:13px;} .due-actions .btn.sm{flex:none; padding:9px 12px;}
+  .bday-sheet{max-height:92vh; overflow:auto;} .bday-hero{text-align:center; padding:4px 0 8px;} .bday-hero .bday-cake{font-size:50px; line-height:1;} .bday-hero h2{margin:4px 0 2px; font-size:20px; color:#c2255c;} .bday-hero p{margin:0; font-size:12.5px; color:var(--ink-soft);}
+  .bday-sum{background:#fff0f6; border-radius:12px; padding:10px 12px; font-size:13px; line-height:1.6; margin:8px 0;} .bday-warn{color:#c92a2a; font-weight:700; margin-top:4px;} .bday-staff{margin-top:6px; padding-top:6px; border-top:1px dashed #f3b6cd;}
+  .bday-bar{display:flex; align-items:center; gap:10px; margin:8px 0;} .bday-all{display:flex; align-items:center; gap:6px; font-weight:700; font-size:13px; white-space:nowrap;} .bday-all input{width:auto; margin:0;} .bday-bar .btn{flex:1; width:auto; padding:9px 8px; font-size:13px;}
+  .bday-day{font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:#a61e4d; margin:12px 0 2px;} .bday-chk{display:flex; align-items:center;} .bday-chk input{width:20px; height:20px; margin:0 8px 0 0;}
+  .bday-chip{display:inline-block; font-size:11.5px; font-weight:700; border-radius:10px; padding:3px 8px; margin:3px 4px 0 0; background:#e6fcf5; color:#0b7285;} .bday-chip.wait{background:#fff3bf; color:#8f6b00;}
   .cl-top{display:flex; align-items:center; gap:10px;} .cl-info{min-width:0; flex:1;}
   .cl-actions{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;} .cl-actions .btn{flex:1; min-width:120px; padding:10px; font-size:13px;}
   #custAlertBar{display:none; position:fixed; top:0; left:0; right:0; z-index:195; background:var(--danger); color:#fff; padding:10px 12px; font-size:13.5px; font-weight:700; align-items:center; gap:10px; box-shadow:0 3px 10px rgba(0,0,0,.3);}
@@ -400,6 +405,8 @@ html.nl .tab[data-tab="productsearch"]{--c1:#E083F7;--c2:#AE3EC9;--c3:#7A2B8E;--
 html.nl .tab[data-tab="custlogins"]{--c1:#FFD84D;--c2:#E8A200;--c3:#9C6B00;--ic:"🔑";}
 html.nl .tab[data-tab="custcorrect"]{--c1:#9AE6FF;--c2:#2BA8D8;--c3:#14708F;--ic:"🛠️";}
 html.nl .tab[data-tab="duerem"]{--c1:#FF9F9F;--c2:#EF4B6C;--c3:#A82846;--ic:"💰";}
+html.nl .tab[data-tab="birthdays"]{--c1:#FFB8D2;--c2:#F06595;--c3:#B02A5E;--ic:"🎂";}
+html.nl .bday-sum{background:linear-gradient(135deg,#FFE3EE,#FFD0E2); box-shadow:0 3px 0 #F2A6C4;}
 html.nl .due-stat{background:linear-gradient(180deg,#FFF1F3,#FFE0E5); box-shadow:0 3px 0 #F2B6C0;} html.nl .due-amt, html.nl .due-stat .n{color:#D6336C;}
 html.nl .cc-opt.on{background:linear-gradient(180deg,#8B7BFF,#5B3FE0); border-color:#5B3FE0; color:#fff;} html.nl .cc-opt.on small{color:#E4E0FF;}
 html.nl .reg-chip.on{background:linear-gradient(180deg,#8B7BFF,#5B3FE0); border-color:#5B3FE0;}
@@ -483,6 +490,14 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
 @media screen and (prefers-reduced-motion:reduce){ html.nl *{animation:none !important; transition:none !important;} }
 </style>
 <script id="mwLookFetch">(function(){try{fetch('https://lrrqdmmugvizkbjfwneb.supabase.co/rest/v1/rpc/get_app_look',{method:'POST',headers:{'apikey':'sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP','Authorization':'Bearer sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP','Content-Type':'application/json'},body:'{}'}).then(function(r){return r.ok?r.json():null;}).then(function(v){if(v!=='new'&&v!=='old')return;var go=function(){if(typeof applyLook_==='function')applyLook_(v);else{document.documentElement.classList.toggle('nl',v!=='old');try{localStorage.setItem('mwLook',v==='old'?'old':'new');}catch(e){}}};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();}).catch(function(){});}catch(e){}})();</script>
+<style id="mwBold">
+  /* the text a little bolder everywhere (Inter Medium for the text, SemiBold for the small grey texts) */
+  body{font-weight:500;}
+  input,select,textarea{font-weight:500;}
+  button{font-weight:600;}
+  .hint,.result-meta,.a-sub,.sub,small,.opt{font-weight:600;}
+  .opt{font-size:12px; color:var(--ink-soft,#777);}
+</style>
 </head>
 <body>
 
@@ -606,6 +621,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <button class="tab" data-tab="custlogins" onclick="switchTab('custlogins')">Customer Logins<span class="tab-badge" id="custLoginsBadge" style="display:none;"></span></button>
       <button class="tab" data-tab="custcorrect" onclick="switchTab('custcorrect')">Customer Approval<span class="tab-badge" id="custCorrectBadge" style="display:none;"></span></button>
       <button class="tab" data-tab="duerem" onclick="switchTab('duerem')">Due Reminders</button>
+      <button class="tab" data-tab="birthdays" onclick="switchTab('birthdays')">Birthdays</button>
       <button class="tab" data-tab="stockreport" onclick="switchTab('stockreport')">Stock</button>
       <button class="tab" data-tab="wallet" onclick="switchTab('wallet')">Wallet</button>
       <button class="tab" data-tab="topperformer" onclick="switchTab('topperformer')">Top Performer</button>
@@ -1177,6 +1193,17 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         <button class="btn btn-gold btn-block" id="dueSendAll" style="margin-top:10px;" onclick="dueRemindAll_()">🔔 Remind all shown in app</button>
       </div>
       <div class="card"><div id="dueList"><div class="empty-cart">Loading…</div></div></div>
+    </section>
+
+    <!-- ============ BIRTHDAYS TAB ============ -->
+    <section id="tab-birthdays" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadBirthdays_()">↻ Refresh</button>
+      <div class="card"><p class="section-label">🎂 Birthdays</p>
+        <p class="hint" style="margin-bottom:8px;line-height:1.5;">Aaj aur pichhle 3 din ke birthday. <b>💬 WhatsApp wish</b>: us customer ke WhatsApp number par Hindi + English wish khulti hai (har ek ko alag). <b>🎉 Happy Birthday popup</b>: unke app me popup jata hai (jinka approved login hai). Kisne kisko wish kiya, ye yahan dikhta hai.</p>
+        <div id="bdayTabSummary"></div>
+        <div class="bday-bar"><label class="bday-all"><input type="checkbox" id="bdayAll2" onchange="bdayAll_(this.checked, 'tab')"> Select all</label><button class="btn btn-gold" id="bdayAppBtn2" onclick="bdaySend_('tab')">🎉 Send Happy Birthday popup</button></div>
+        <div id="bdayTabList"><div class="empty-cart">Loading…</div></div>
+      </div>
     </section>
 
     <!-- ============ STOCK TAB ============ -->
@@ -2338,6 +2365,15 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     </div>
   </div>
 
+  <!-- ============ TODAY'S BIRTHDAYS (opens first thing every morning) ============ -->
+  <div class="modal-overlay" id="bdayModal"><div class="modal-sheet bday-sheet">
+    <div class="bday-hero"><div class="bday-cake">🎂</div><h2>Happy Birthday!</h2><p id="bdayModalSub"></p></div>
+    <div id="bdayModalSummary"></div>
+    <div class="bday-bar"><label class="bday-all"><input type="checkbox" id="bdayAll" onchange="bdayAll_(this.checked, 'modal')"> Select all</label><button class="btn btn-gold" id="bdayAppBtn" onclick="bdaySend_('modal')">🎉 Send Happy Birthday popup</button></div>
+    <div id="bdayList"></div>
+    <div class="modal-actions"><button class="btn btn-outline" id="bdayClose" onclick="closeBdayModal_()">Close</button><button class="btn btn-primary" id="bdayOpenTab" onclick="bdayOpenTab_()">Open Birthdays tab</button></div>
+  </div></div>
+
   <!-- ============ ADD NEW CUSTOMER MODAL ============ -->
   <div class="modal-overlay" id="addCustomerModal">
     <div class="modal-sheet">
@@ -2350,6 +2386,9 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div class="field-row">
         <div class="field"><label for="newCustIdName">ID Name</label><input type="text" id="newCustIdName" placeholder="Optional"></div>
         <div class="field"><label for="newCustIdNo">DS ID No.</label><input type="text" id="newCustIdNo" placeholder="Optional"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="newCustDob">Date of birth</label><input type="date" id="newCustDob"></div>
       </div>
       <div class="field-row" style="margin-bottom:0;">
         <div class="field" style="margin-bottom:0;"><label for="newCustRefName">Reference/Upline name</label><input type="text" id="newCustRefName" placeholder="Optional"></div>
@@ -2380,7 +2419,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div class="field-row">
         <div class="field"><label for="editCustCity">City</label><input type="text" id="editCustCity" placeholder="Optional"></div>
         <div class="field"><label for="editCustWhatsapp">WhatsApp number</label><input type="tel" id="editCustWhatsapp" placeholder="Same as mobile if empty" maxlength="15"></div>
-        <div class="field"><label for="editCustGst">GST No.</label><input type="text" id="editCustGst" placeholder="Optional"></div>
+        <div class="field"><label for="editCustDob">Date of birth</label><input type="date" id="editCustDob"><input type="hidden" id="editCustGst"></div>
       </div>
       <div class="field"><label for="editCustAddress">Address</label><input type="text" id="editCustAddress" placeholder="Optional"></div>
       <div class="field" style="margin-bottom:0;"><label for="editCustRemark">Remark</label><input type="text" id="editCustRemark" placeholder="Optional"></div>
@@ -2492,7 +2531,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <h2 style="font-size:17px;color:var(--danger);margin-bottom:4px;">Delete customer profile?</h2>
       <p style="font-size:14px;font-weight:800;color:var(--green-900);margin:0 0 10px;word-break:break-word;" id="delCustWho"></p>
       <div id="delCustInfo" style="background:var(--gold-100);border:1.5px solid var(--gold-500);border-radius:8px;padding:9px 11px;font-size:12.5px;font-weight:700;color:var(--green-900);margin-bottom:10px;">Checking…</div>
-      <p class="hint" style="margin-bottom:6px;line-height:1.5;">Sirf iska <strong>profile</strong> (naam, DS ID, upline, city, GST, address, remark) delete hoga aur ye Customers list me nahi dikhega. Iske <strong>bills, payments aur wallet nahi hatenge</strong> - bills apne naam aur mobile ke saath waise hi rahenge.</p>
+      <p class="hint" style="margin-bottom:6px;line-height:1.5;">Sirf iska <strong>profile</strong> (naam, DS ID, upline, city, address, remark) delete hoga aur ye Customers list me nahi dikhega. Iske <strong>bills, payments aur wallet nahi hatenge</strong> - bills apne naam aur mobile ke saath waise hi rahenge.</p>
       <p class="hint" style="margin-bottom:0;line-height:1.5;">Delete ki ek copy database me safe rehti hai. Is mobile se naya bill ya order aayega to profile dobara ban jayega.</p>
       <p class="login-error" id="delCustError" style="min-height:0;margin:8px 0 0;"></p>
       <div class="modal-actions">
@@ -2917,6 +2956,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     document.getElementById('tabBtnProductSearch').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('dashboardHallStats').style.display = isSuperAdmin ? 'block' : 'none';
     if (isSuperAdmin) loadDashboardProfitStats_();
+    if (typeof bdayMorning_ === 'function') bdayMorning_(user);          // first thing every morning: whose birthday is today
   }
 
 
@@ -4189,6 +4229,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     if (name === 'custlogins') loadCustLogins_();
     if (name === 'custcorrect') loadCustCorrections_();
     if (name === 'duerem') loadDueList_();
+    if (name === 'birthdays') loadBirthdays_();
     if (name === 'stockreport' && !onlineStockLoadedOnce) switchStockSubtab('online');
     if (name === 'wallet') searchWalletCustomers();
     if (name === 'publicorder') loadPublicOrders();
@@ -8122,30 +8163,37 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     document.getElementById('newCustIdNo').value = '';
     document.getElementById('newCustRefName').value = '';
     document.getElementById('newCustRefMobile').value = '';
+    document.getElementById('newCustWhatsapp').value = ''; document.getElementById('newCustDob').value = ''; document.getElementById('newCustDob').max = bdayToday_();
     document.getElementById('addCustomerModal').classList.add('show');
   }
 
   async function submitAddCustomer() {
     const mobile = document.getElementById('newCustMobile').value.trim();
     if (!mobile) { showToast('Mobile number is required.', true); return; }
+    if (!/^\d{10}$/.test(mobile)) { showToast('Enter a valid 10-digit mobile number (digits only).', true); return; }
     const name = document.getElementById('newCustName').value.trim();
     const idName = document.getElementById('newCustIdName').value.trim();
     const idNo = document.getElementById('newCustIdNo').value.trim();
     const refName = document.getElementById('newCustRefName').value.trim();
     const refMobile = document.getElementById('newCustRefMobile').value.trim();
     const waNew = document.getElementById('newCustWhatsapp').value.replace(/\D/g, '');
-    if (waNew && waNew.length < 10) { showToast('Enter a valid 10-digit WhatsApp number (or leave it empty).', true); return; }
+    if (waNew && waNew.length !== 10) { showToast('Enter a valid 10-digit WhatsApp number (or leave it empty).', true); return; }
+    if (refMobile && !/^\d{10}$/.test(refMobile)) { showToast('Enter a valid 10-digit upline mobile number (or leave it empty).', true); return; }
+    const dobNew = document.getElementById('newCustDob').value;
+    if (dobNew && !(dobNew >= '1900-01-01' && dobNew <= bdayToday_())) { showToast('Enter a valid date of birth.', true); return; }
     const { error } = await sb.from('customers').upsert({
       mobile: mobile, name: name || null, id_name: idName || null, id_no: idNo || null,
       reference_name: refName || null, reference_mobile: refMobile || null, whatsapp: waNew ? waNew.slice(-10) : null
     }, { onConflict: 'mobile' });
     if (error) { showToast(error.message, true); return; }
-    showToast('Customer saved.');
+    let dobFailed = false;
+    if (dobNew) { const r = await sb.from('customers').update({ dob: dobNew }).eq('mobile', mobile); dobFailed = !!r.error; }
+    showToast(dobFailed ? 'Customer saved, but the date of birth could not be saved - run customer_accounts.sql in Supabase first.' : 'Customer saved.', dobFailed);
     document.getElementById('addCustomerModal').classList.remove('show');
     searchCustomersTab();
   }
 
-  let editCustomerOriginalMobile_ = '';
+  let editCustomerOriginalMobile_ = '', editCustomerOriginalDob_ = '';
   async function openEditCustomerProfile() {
     if (!currentCustomerMobile) return;
     const { data, error } = await sb.from('customers').select('*').eq('mobile', currentCustomerMobile).maybeSingle();
@@ -8159,7 +8207,8 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     document.getElementById('editCustRefMobile').value = data.reference_mobile || '';
     document.getElementById('editCustCity').value = data.city || '';
     document.getElementById('editCustWhatsapp').value = data.whatsapp || '';
-    document.getElementById('editCustGst').value = data.gst || '';
+    document.getElementById('editCustGst').value = data.gst || '';              // not shown any more - kept exactly as it is when the profile is saved
+    editCustomerOriginalDob_ = data.dob || ''; document.getElementById('editCustDob').value = data.dob || ''; document.getElementById('editCustDob').max = bdayToday_();
     document.getElementById('editCustAddress').value = data.address || '';
     document.getElementById('editCustRemark').value = data.remark || '';
     document.getElementById('editCustError').textContent = '';
@@ -8171,8 +8220,13 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     const errBox = document.getElementById('editCustError');
     errBox.textContent = '';
     if (!newMobile) { errBox.textContent = 'Mobile number is required.'; return; }
+    if (newMobile !== editCustomerOriginalMobile_ && !/^\d{10}$/.test(newMobile)) { errBox.textContent = 'Enter a valid 10-digit mobile number (digits only).'; return; }
+    const refEdit = document.getElementById('editCustRefMobile').value.replace(/\D/g, '');
+    if (refEdit && refEdit.length !== 10) { errBox.textContent = 'Enter a valid 10-digit upline mobile number (or leave it empty).'; return; }
     const waEdit = document.getElementById('editCustWhatsapp').value.replace(/\D/g, '');
-    if (waEdit && waEdit.length < 10) { errBox.textContent = 'Enter a valid 10-digit WhatsApp number (or leave it empty).'; return; }
+    if (waEdit && waEdit.length !== 10) { errBox.textContent = 'Enter a valid 10-digit WhatsApp number (or leave it empty).'; return; }
+    const dobEdit = document.getElementById('editCustDob').value;
+    if (dobEdit && !(dobEdit >= '1900-01-01' && dobEdit <= bdayToday_())) { errBox.textContent = 'Enter a valid date of birth.'; return; }
     const { error } = await sb.rpc('update_customer_profile', {
       p_old_mobile: editCustomerOriginalMobile_, p_new_mobile: newMobile,
       p_name: document.getElementById('editCustName').value.trim(),
@@ -8187,7 +8241,9 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     });
     if (error) { errBox.textContent = error.message; return; }
     await sb.from('customers').update({ whatsapp: waEdit ? waEdit.slice(-10) : null }).eq('mobile', newMobile); loadWaMap_();
-    showToast('Customer profile updated.');
+    let dobFailed = false;
+    if (dobEdit !== editCustomerOriginalDob_) { const r = await sb.from('customers').update({ dob: dobEdit || null }).eq('mobile', newMobile); dobFailed = !!r.error; }
+    showToast(dobFailed ? 'Profile updated, but the date of birth could not be saved - run customer_accounts.sql in Supabase first.' : 'Customer profile updated.', dobFailed);
     document.getElementById('editCustomerModal').classList.remove('show');
     currentCustomerMobile = newMobile;
     currentCustomerName = document.getElementById('editCustName').value.trim();
@@ -11159,11 +11215,12 @@ function startCustLoginPolling_() {
 }
 
 // ---------------- CUSTOMER CORRECTION: what the system has and what the customer typed, side by side; the staff choose; Approve = saved everywhere ----------------
-const CC_FIELDS_ = [['name', 'Name'], ['dsId', 'DS ID'], ['uplineName', 'Upline name'], ['uplineMobile', 'Upline mobile'], ['city', 'City'], ['whatsapp', 'WhatsApp']];
+const CC_FIELDS_ = [['name', 'Name'], ['dsId', 'DS ID'], ['uplineName', 'Upline name'], ['uplineMobile', 'Upline mobile'], ['city', 'City'], ['whatsapp', 'WhatsApp'], ['dob', 'Date of birth']];
 let ccState_ = { pending: [], handled: [] }, ccSeen_ = '', ccFirst_ = true;
 function setCcBadge_(n) { const b = document.getElementById('custCorrectBadge'); if (!b) return; b.textContent = n > 99 ? '99+' : String(n); b.style.display = n > 0 ? 'inline-block' : 'none'; }
 function ccDigits_(v) { return String(v == null ? '' : v).replace(/\D/g, '').slice(-10); }
 function ccDiffers_(f, a, b) { if (!a || !b) return false; return (f === 'uplineMobile' || f === 'whatsapp') ? ccDigits_(a) !== ccDigits_(b) : String(a).toLowerCase().replace(/[^a-z0-9]/g, '') !== String(b).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+function ccShow_(f, v) { if (!v) return ''; if (f === 'dob') { const d = new Date(v + 'T00:00:00'); return isNaN(d) ? String(v) : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); } return String(v); }
 function ccCase_(id) { return (ccState_.pending || []).filter(function (c) { return Number(c.id) === Number(id); })[0]; }
 async function loadCustCorrections_() {
   const { data, error } = await sb.rpc('get_customer_corrections');
@@ -11175,9 +11232,9 @@ function ccCardHtml_(c) {
   const rows = CC_FIELDS_.map(function (f) {
     const sv = c.sys ? c.sys[f[0]] : null, fv = c.form ? c.form[f[0]] : null, diff = ccDiffers_(f[0], sv, fv), init = diff ? '' : (sv || fv || '');
     return '<div class="cc-field' + (diff ? ' conflict' : '') + '" data-f="' + f[0] + '"><div class="cc-label">' + f[1] + (diff ? ' <span class="cc-flag">· differs</span>' : '') + '</div><div class="cc-opts">' +
-      '<button type="button" class="cc-opt" data-which="sys"' + (sv ? '' : ' disabled') + ' onclick="ccPick_(' + c.id + ', \'' + f[0] + '\', \'sys\')"><small>In system</small>' + (sv ? escapeHtml(sv) : '—') + '</button>' +
-      '<button type="button" class="cc-opt" data-which="form" onclick="ccPick_(' + c.id + ', \'' + f[0] + '\', \'form\')"><small>In the form</small>' + (fv ? escapeHtml(fv) : '—') + '</button></div>' +
-      '<input class="cc-final" type="text" value="' + escapeHtml(init) + '" placeholder="' + (diff ? 'Tap System or Form (or type the right one)' : '') + '" oninput="ccUpdate_(' + c.id + ')"></div>';
+      '<button type="button" class="cc-opt" data-which="sys"' + (sv ? '' : ' disabled') + ' onclick="ccPick_(' + c.id + ', \'' + f[0] + '\', \'sys\')"><small>In system</small>' + (sv ? escapeHtml(ccShow_(f[0], sv)) : '—') + '</button>' +
+      '<button type="button" class="cc-opt" data-which="form" onclick="ccPick_(' + c.id + ', \'' + f[0] + '\', \'form\')"><small>In the form</small>' + (fv ? escapeHtml(ccShow_(f[0], fv)) : '—') + '</button></div>' +
+      '<input class="cc-final" type="' + (f[0] === 'dob' ? 'date' : (f[0] === 'whatsapp' || f[0] === 'uplineMobile') ? 'tel' : 'text') + '" value="' + escapeHtml(init) + '" placeholder="' + (diff ? 'Tap System or Form (or type the right one)' : '') + '" oninput="ccUpdate_(' + c.id + ')"></div>';
   }).join('');
   return '<div class="cc-card" data-id="' + c.id + '" data-mobile="' + escapeHtml(c.mobile) + '"><div class="cl-top">' + clAvatar_(name, c.photoThumb) + '<div class="cl-info"><div class="result-name">' + escapeHtml(String(name).toUpperCase()) + '</div><div class="result-meta">' + escapeHtml(c.mobile) + ' · ' + escapeHtml(clAgo_(c.createdAt)) + ' · bills: ' + (c.bills || 0) + '</div></div></div>' +
     '<div style="margin:8px 0 2px;">' + (function () { const anyDiff = CC_FIELDS_.some(function (f) { return ccDiffers_(f[0], c.sys ? c.sys[f[0]] : null, c.form ? c.form[f[0]] : null); }); return !c.sys ? '<span class="badge badge-partial">🆕 New customer · not in the database</span>' : c.dsConflict ? '<span class="badge badge-unpaid">⚠ DS ID differs from the database</span>' : anyDiff ? '<span class="badge badge-partial">Details differ from the database</span>' : '<span class="badge badge-paid">✓ All details match the database</span>'; })() + '<span class="badge" style="margin-left:6px;">login on hold until approved</span>' + '</div>' + rows +
@@ -11199,7 +11256,7 @@ function ccValues_(id) {
 function ccUpdate_(id) {
   const c = ccCase_(id), card = document.querySelector('.cc-card[data-id="' + id + '"]'); if (!c || !card) return;
   const v = ccValues_(id), unresolved = Array.prototype.some.call(card.querySelectorAll('.cc-field.conflict'), function (f) { return !f.querySelector('.cc-final').value.trim(); });
-  const ok = !unresolved && !!(v.name && v.dsId && v.uplineName && v.city && ccDigits_(v.uplineMobile).length === 10 && (!v.whatsapp || ccDigits_(v.whatsapp).length === 10));
+  const ok = !unresolved && !!(v.name && v.dsId && v.uplineName && v.city && (!v.uplineMobile || ccDigits_(v.uplineMobile).length === 10) && (!v.whatsapp || ccDigits_(v.whatsapp).length === 10) && (!v.dob || (v.dob >= '1900-01-01' && v.dob <= bdayToday_())));
   const btn = document.getElementById('ccApprove' + id); if (btn) btn.disabled = !ok;
   Array.prototype.forEach.call(card.querySelectorAll('.cc-field'), function (fld) {
     const f = fld.dataset.f, val = fld.querySelector('.cc-final').value.trim();
@@ -11213,7 +11270,7 @@ function ccPick_(id, field, which) {
 async function approveCustCorr_(id) {
   const btn = document.getElementById('ccApprove' + id); if (!btn || btn.disabled) return;
   const v = ccValues_(id); btn.disabled = true; btn.textContent = 'Saving…';
-  const { data, error } = await sb.rpc('approve_customer_correction', { p_id: id, p_name: v.name, p_ds_id: v.dsId, p_upline_name: v.uplineName, p_upline_mobile: v.uplineMobile, p_city: v.city, p_whatsapp: v.whatsapp });
+  const { data, error } = await sb.rpc('approve_customer_correction', { p_id: id, p_name: v.name, p_ds_id: v.dsId, p_upline_name: v.uplineName, p_upline_mobile: v.uplineMobile, p_city: v.city, p_whatsapp: v.whatsapp, p_dob: v.dob || null });
   if (error) { showToast(clMissingMsg_(error), true); btn.textContent = '✓ Approve & update everywhere'; ccUpdate_(id); return; }
   showToast('Saved everywhere' + (data && (data.orders || data.bills) ? ' (' + (data.orders || 0) + ' order and ' + (data.bills || 0) + ' bill in approval updated)' : '') + '.');
   loadCustCorrections_(); custLoginPoll_();
@@ -11257,6 +11314,121 @@ function regOpen_(mobile) {
 function showNewRegPopup_(name, mobile) { document.getElementById('newRegBody').textContent = String(name || 'Customer').toUpperCase() + ' · ' + (mobile || ''); document.getElementById('newRegModal').classList.add('show'); }
 function closeNewReg_() { document.getElementById('newRegModal').classList.remove('show'); }
 function openNewReg_() { closeNewReg_(); hideCustAlert_(); switchTab('custcorrect'); }
+
+// ---------------- Birthdays: whose birthday is it (today + the last 3 days); a WhatsApp wish for each (Hindi + English), a Happy Birthday popup in the app, and the main admin sees who did it ----------------
+// ten warm wishes, written (by an AI) in Hindi and English; every customer gets one with HIS name, and the same wish is used on WhatsApp and in the app popup
+const BDAY_WISHES_ = [
+  { hi: 'आज आपका खास दिन है! भगवान महाकाल की कृपा से आपका जीवन सदा स्वस्थ, सुखी और खुशियों से भरा रहे। आपके हर सपने पूरे हों, यही हमारी दिल से दुआ है।', en: 'Today is your special day! By the grace of Lord Mahakal, may your life always be healthy, happy and full of joy. May every dream of yours come true - that is our heartfelt wish.' },
+  { hi: 'जन्मदिन मुबारक! आपकी मुस्कान यूँ ही बनी रहे और सेहत, सफलता व सुख-समृद्धि हमेशा आपके साथ चलें।', en: 'Many happy returns of the day! May your smile always stay and may health, success and prosperity walk with you every day.' },
+  { hi: 'आप हमारे परिवार का बहुत अहम हिस्सा हैं। आपके जन्मदिन पर हम कामना करते हैं कि आने वाला हर दिन आपके लिए नई खुशियाँ और अच्छी सेहत लेकर आए।', en: 'You are a very important part of our family. On your birthday we wish that every coming day brings you new happiness and good health.' },
+  { hi: 'नया साल, नई उमंग, नया उत्साह! आपका यह जन्मदिन आपकी ज़िंदगी में ढेर सारी रोशनी और तंदुरुस्ती लेकर आए।', en: 'A new year of life, new hopes and new energy! May this birthday fill your life with plenty of light and wellness.' },
+  { hi: 'ईश्वर आपको लंबी उम्र, उत्तम स्वास्थ्य और अपार सफलता दे। जन्मदिन की ढेरों बधाइयाँ!', en: 'May God bless you with a long life, excellent health and endless success. Heartiest birthday wishes!' },
+  { hi: 'आपके साथ का यह रिश्ता हमारे लिए बहुत कीमती है। आज के दिन आपको ढेर सारा प्यार, हँसी और अच्छी सेहत मिले।', en: 'Our bond with you is very precious to us. Today, may you receive lots of love, laughter and good health.' },
+  { hi: 'सेहत सबसे बड़ी दौलत है, भगवान आपको यह दौलत हमेशा दे। जन्मदिन की बहुत-बहुत शुभकामनाएँ!', en: 'Health is the greatest wealth - may God always bless you with it. Warmest wishes on your birthday!' },
+  { hi: 'आपका हर दिन उत्सव जैसा हो और हर रात सुकून भरी। जन्मदिन पर आपको दिल से बधाई!', en: 'May every day of yours feel like a celebration and every night be peaceful. Heartfelt birthday greetings to you!' },
+  { hi: 'ज़िंदगी के इस नए पड़ाव पर आपको कामयाबी, खुशहाली और सुकून मिले। हम सब आपके साथ हैं। जन्मदिन मुबारक!', en: 'On this new milestone of life, may you find success, prosperity and peace. We are all with you. Happy Birthday!' },
+  { hi: 'फूलों की तरह महकती रहे आपकी ज़िंदगी, सितारों की तरह चमकती रहे आपकी हर सुबह। जन्मदिन की शुभकामनाएँ!', en: 'May your life keep fragrant like flowers and may every morning of yours shine like the stars. Happy Birthday!' }
+];
+function bdayToday_() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function bdayPick_(p) { const s = String(p.mobile || '') + String(p.date || ''); let h = 0; for (let k = 0; k < s.length; k++) h = (h * 31 + s.charCodeAt(k)) % 100000; return h % BDAY_WISHES_.length; }
+function bdayWish_(p, forWa) {          // forWa: *bold* markers for WhatsApp; the app popup is plain text
+  const n = String(p.name || '').trim() || 'Customer', w = BDAY_WISHES_[bdayPick_(p)], b = forWa ? '*' : '';
+  return '🎂 ' + b + 'जन्मदिन की हार्दिक शुभकामनाएँ, ' + n + ' जी!' + b + ' 🎉\n\n' + w.hi + '\n\n🎂 ' + b + 'Happy Birthday, ' + n + '!' + b + ' 🎉\n\n' + w.en + '\n\n— ' + b + 'Mahakal Wellness Family' + b + ' 🙏';
+}
+let bdayState_ = null, bdaySel_ = {}, bdaySeen_ = {};
+function bdayKey_(m, d) { return m + '|' + d; }
+function bdayApp_(p) { return (p.wishes || []).some(function (w) { return w.channel === 'app'; }); }
+function bdayEligible_(p) { return !!p.hasLogin && !!p.approved && !bdayApp_(p); }
+function bdayTime_(iso) { try { return new Date(iso).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }); } catch (e) { return ''; } }
+function bdayDayLabel_(d, today) {
+  if (d === today) return 'Today';
+  const y = new Date(today + 'T00:00:00'); y.setDate(y.getDate() - 1); const ys = y.getFullYear() + '-' + String(y.getMonth() + 1).padStart(2, '0') + '-' + String(y.getDate()).padStart(2, '0');
+  return d === ys ? 'Yesterday' : new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+async function loadBirthdays_() {
+  const { data, error } = await sb.rpc('get_birthdays', { p_days_back: 3 });
+  if (error) { bdayState_ = null; const m = '<div class="empty-cart">' + escapeHtml(clMissingMsg_(error)) + '</div>'; ['bdayList', 'bdayTabList'].forEach(function (id) { const b = document.getElementById(id); if (b) b.innerHTML = m; }); return null; }
+  bdayState_ = data || { today: bdayToday_(), people: [], summary: {}, byStaff: [] };
+  (bdayState_.people || []).forEach(function (p) { const k = bdayKey_(p.mobile, p.date); if (!(k in bdaySeen_)) { bdaySeen_[k] = 1; bdaySel_[k] = bdayEligible_(p); } if (!bdayEligible_(p)) bdaySel_[k] = false; });
+  renderBirthdays_(); return bdayState_;
+}
+function bdayCtxList_(ctx) { const d = bdayState_; if (!d) return []; return ctx === 'modal' ? (d.people || []).filter(function (p) { return p.date === d.today || !(p.wishes || []).length; }) : (d.people || []); }
+function bdayRowHtml_(p) {
+  const m = escapeHtml(p.mobile), k = bdayKey_(p.mobile, p.date), elig = bdayEligible_(p), ws = p.wishes || [];
+  const wa = ws.filter(function (w) { return w.channel === 'whatsapp'; }), ap = ws.filter(function (w) { return w.channel === 'app'; });
+  const chips = (wa.length ? '<span class="bday-chip">✓ WhatsApp · ' + escapeHtml(wa[wa.length - 1].byName) + ' · ' + escapeHtml(bdayTime_(wa[wa.length - 1].at)) + '</span>' : '') +
+    (ap.length ? '<span class="bday-chip">✓ App popup · ' + escapeHtml(ap[0].byName) + ' · ' + escapeHtml(bdayTime_(ap[0].at)) + (ap[0].seen ? ' · seen' : ' · not seen yet') + '</span>' : '') +
+    (ws.length ? '' : '<span class="bday-chip wait">⏳ Not wished yet</span>') + (!p.hasLogin ? '<span class="bday-chip wait">📵 No app login</span>' : (!p.approved ? '<span class="bday-chip wait">⏳ Login waiting for approval</span>' : ''));
+  return '<div class="cl-row bday-row" data-mobile="' + m + '" data-date="' + escapeHtml(p.date) + '"><div class="cl-top"><label class="bday-chk"><input type="checkbox" class="bday-sel" data-k="' + escapeHtml(k) + '"' + (bdaySel_[k] ? ' checked' : '') + (elig ? '' : ' disabled') + ' onchange="bdaySelect_(this)"></label>' + clAvatar_(p.name, p.photoThumb) +
+    '<div class="cl-info"><div class="result-name">' + escapeHtml(String(p.name || '(No name)').toUpperCase()) + ' · turns ' + (p.age || '') + '</div><div class="result-meta">' + m + (p.whatsapp && String(p.whatsapp) !== String(p.mobile) ? ' · WhatsApp ' + escapeHtml(p.whatsapp) : '') + '</div></div></div>' +
+    '<div>' + chips + '</div><div class="due-actions"><button class="btn btn-gold bday-wa" onclick="bdayWa_(\'' + m + '\', \'' + escapeHtml(p.date) + '\')">💬 WhatsApp wish' + (wa.length ? ' again' : '') + '</button><button class="btn btn-outline sm bday-open" onclick="openCustomerDetail(\'' + m + '\', \'' + escapeHtml(String(p.name || '').replace(/'/g, '')) + '\')">👤</button></div></div>';
+}
+function bdayListHtml_(list, today) {
+  if (!list.length) return '<div class="empty-cart">🎈 Abhi kisi ka birthday nahi hai.</div>';
+  let out = '', cur = null;
+  list.forEach(function (p) { if (p.date !== cur) { cur = p.date; out += '<div class="bday-day">' + escapeHtml(bdayDayLabel_(p.date, today)) + '</div>'; } out += bdayRowHtml_(p); });
+  return out;
+}
+function bdaySummaryHtml_(d) {
+  const s = d.summary || {}, people = d.people || [], names = people.filter(function (p) { return p.date === d.today && !(p.wishes || []).length; }).map(function (p) { return escapeHtml(String(p.name || p.mobile)); });
+  let h = '<div class="bday-sum"><b>Aaj: ' + (s.total || 0) + ' birthday' + (s.total === 1 ? '' : 's') + '</b> · ✓ wish ho chuki: ' + (s.wished || 0) + ' · ' + (s.left ? '⏳ baaki: ' + s.left + ' (' + names.join(', ') + ')' : (s.total ? '✅ sabko wish ho gayi' : '—'));
+  if (s.missed) h += '<div class="bday-warn">⚠ Pichhle dino ke ' + s.missed + ' birthday abhi tak wish nahi hue.</div>';
+  if (isSuperAdminUser && d.byStaff && d.byStaff.length) h += '<div class="bday-staff"><b>Staff report (aaj):</b> ' + d.byStaff.map(function (st) { return escapeHtml(st.name) + ' <b>' + (st.people || 0) + '</b>' + (st.people ? '' : ' ⚠ abhi kuch nahi kiya'); }).join(' · ') + '</div>';
+  return h + '</div>';
+}
+function renderBirthdays_() {
+  const d = bdayState_; if (!d) return; const today = d.today || bdayToday_();
+  const ml = document.getElementById('bdayList'); if (ml) ml.innerHTML = bdayListHtml_(bdayCtxList_('modal'), today);
+  const tl = document.getElementById('bdayTabList'); if (tl) tl.innerHTML = bdayListHtml_(d.people || [], today);
+  const sm = bdaySummaryHtml_(d); ['bdayModalSummary', 'bdayTabSummary'].forEach(function (id) { const b = document.getElementById(id); if (b) b.innerHTML = sm; });
+  const sub = document.getElementById('bdayModalSub'), s = d.summary || {};
+  if (sub) sub.textContent = (s.total ? 'Aaj ' + s.total + ' customer' + (s.total === 1 ? '' : 's') + ' ka birthday hai' : 'Pichhle dino ke birthday abhi baaki hain') + ' · ' + new Date(today + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  bdayCounts_();
+}
+function bdayCounts_() {
+  Array.prototype.forEach.call(document.querySelectorAll('.bday-sel'), function (el) { el.checked = !!bdaySel_[el.dataset.k]; });
+  [['modal', 'bdayAll', 'bdayAppBtn'], ['tab', 'bdayAll2', 'bdayAppBtn2']].forEach(function (c) {
+    const el = bdayCtxList_(c[0]).filter(bdayEligible_), sel = el.filter(function (p) { return bdaySel_[bdayKey_(p.mobile, p.date)]; });
+    const all = document.getElementById(c[1]), btn = document.getElementById(c[2]);
+    if (all) { all.checked = !!el.length && sel.length === el.length; all.indeterminate = sel.length > 0 && sel.length < el.length; all.disabled = !el.length; }
+    if (btn) { btn.textContent = '🎉 Send Happy Birthday popup (' + sel.length + ')'; btn.disabled = !sel.length; }
+  });
+}
+function bdaySelect_(el) { bdaySel_[el.dataset.k] = el.checked; bdayCounts_(); }
+function bdayAll_(on, ctx) { bdayCtxList_(ctx).filter(bdayEligible_).forEach(function (p) { bdaySel_[bdayKey_(p.mobile, p.date)] = !!on; }); bdayCounts_(); }
+function bdayResultText_(d) {
+  d = d || {}; const p = [];
+  if (d.sent) p.push('Happy Birthday popup sent to ' + d.sent + ' customer' + (d.sent === 1 ? '' : 's')); if (d.alreadySent) p.push(d.alreadySent + ' already had one');
+  if (d.noLogin) p.push(d.noLogin + ' without an approved app login'); if (d.notBirthday) p.push(d.notBirthday + ' not a birthday that day');
+  return p.join(' · ') || 'Nothing was sent.';
+}
+async function bdaySend_(ctx) {
+  const items = bdayCtxList_(ctx).filter(function (p) { return bdayEligible_(p) && bdaySel_[bdayKey_(p.mobile, p.date)]; }).map(function (p) { return { mobile: p.mobile, date: p.date, message: bdayWish_(p, false) }; });
+  if (!items.length) { showToast('Select at least one customer who has an app login.', true); return; }
+  const { data, error } = await sb.rpc('send_birthday_popups', { p_items: items });
+  if (error) { showToast(clMissingMsg_(error), true); return; }
+  showToast(bdayResultText_(data), !(data && data.sent)); loadBirthdays_();
+}
+function bdayWa_(mobile, date) {
+  const p = ((bdayState_ && bdayState_.people) || []).filter(function (x) { return x.mobile === mobile && x.date === date; })[0]; if (!p) return;
+  const own = String(p.whatsapp || '').replace(/\D/g, '').slice(-10);          // his WhatsApp number comes straight from his record
+  let digits = own.length === 10 ? own : waRaw_(mobile); if (!digits) { showToast('No mobile number for this customer.', true); return; } if (digits.length === 10) digits = '91' + digits;
+  const text = bdayWish_(p, true);
+  window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(text), '_blank');
+  sb.rpc('record_birthday_wish', { p_mobile: mobile, p_date: date, p_message: text.slice(0, 1000) }).then(function (r) { if (r && r.error) showToast(clMissingMsg_(r.error), true); loadBirthdays_(); });
+}
+function openBdayModal_() { document.getElementById('bdayModal').classList.add('show'); if (bdayState_) renderBirthdays_(); loadBirthdays_(); }
+function closeBdayModal_() { document.getElementById('bdayModal').classList.remove('show'); }
+function bdayOpenTab_() { closeBdayModal_(); switchTab('birthdays'); }
+// first thing every morning (the first time the panel is opened that day) the staff and the main admin see whose birthday it is; later in the day only while somebody is still left
+async function bdayMorning_(user) {
+  let d = null; try { d = await loadBirthdays_(); } catch (e) { return; } if (!d) return;
+  const s = d.summary || {}; if (!((s.total || 0) > 0 || (s.missed || 0) > 0)) return;
+  const key = 'mwBdayShown_' + ((user && user.id) || '') + '_' + (d.today || ''); let shown = false; try { shown = !!localStorage.getItem(key); } catch (e) { /* private mode */ }
+  if (shown && !((s.left || 0) > 0 || (s.missed || 0) > 0)) return;
+  try { localStorage.setItem(key, '1'); } catch (e) { /* private mode */ }
+  document.getElementById('bdayModal').classList.add('show');
+}
 
 // ---------------- Due Reminders: everybody who owes, a reminder popup in their app (or a WhatsApp message) ----------------
 let dueState_ = null, dueFilter_ = 'all', dueQ_ = '';
@@ -11460,5 +11632,15 @@ function startWaMap_() { loadWaMap_(); if (!waTimer_) waTimer_ = setInterval(loa
 })();
 </script>
 <!-- MW-UX-END -->
+<script id="mwPhone">
+/* every mobile / WhatsApp box: digits only and 10 digits at most (a pasted +91 or 0 in front is dropped) */
+(function () {
+  function clean(v) { var d = String(v == null ? '' : v).replace(/\D/g, ''); if (d.length === 12 && d.slice(0, 2) === '91') d = d.slice(2); else if (d.length === 11 && d.charAt(0) === '0') d = d.slice(1); return d.slice(0, 10); }
+  window.phoneClean_ = clean;
+  document.addEventListener('input', function (e) { var el = e.target; if (el && el.tagName === 'INPUT' && (el.type === 'tel' || el.hasAttribute('data-phone'))) { var c = clean(el.value); if (c !== el.value) el.value = c; } }, true);
+  function mark() { Array.prototype.forEach.call(document.querySelectorAll('input[type=tel]'), function (el) { el.setAttribute('inputmode', 'numeric'); }); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mark); else mark();
+})();
+</script>
 </body>
 </html>

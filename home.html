@@ -130,6 +130,14 @@ document.addEventListener('visibilitychange',function(){if(document.visibilitySt
 window.addEventListener('pageshow',function(e){if(e.persisted)ask();});
 setInterval(function(){if(document.visibilityState==='visible')ask();},window.__lookPollMs||60000);
 })();</script>
+<style id="mwBold">
+  /* the text a little bolder everywhere (Inter Medium for the text, SemiBold for the small grey texts) */
+  body{font-weight:500;}
+  input,select,textarea{font-weight:500;}
+  button{font-weight:600;}
+  .hint,.result-meta,.a-sub,.sub,small,.opt{font-weight:600;}
+  .opt{font-size:12px; color:var(--ink-soft,#777);}
+</style>
 </head>
 <body>
   <div class="brand">
@@ -187,6 +195,16 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     if (!ok) { errEl.textContent = 'Incorrect code.'; return; }
     window.location.href = 'index.html';
   }
+</script>
+<script id="mwPhone">
+/* every mobile / WhatsApp box: digits only and 10 digits at most (a pasted +91 or 0 in front is dropped) */
+(function () {
+  function clean(v) { var d = String(v == null ? '' : v).replace(/\D/g, ''); if (d.length === 12 && d.slice(0, 2) === '91') d = d.slice(2); else if (d.length === 11 && d.charAt(0) === '0') d = d.slice(1); return d.slice(0, 10); }
+  window.phoneClean_ = clean;
+  document.addEventListener('input', function (e) { var el = e.target; if (el && el.tagName === 'INPUT' && (el.type === 'tel' || el.hasAttribute('data-phone'))) { var c = clean(el.value); if (c !== el.value) el.value = c; } }, true);
+  function mark() { Array.prototype.forEach.call(document.querySelectorAll('input[type=tel]'), function (el) { el.setAttribute('inputmode', 'numeric'); }); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mark); else mark();
+})();
 </script>
 </body>
 </html>
