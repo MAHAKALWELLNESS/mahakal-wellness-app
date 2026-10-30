@@ -1326,6 +1326,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
         '<p class="hint" style="text-align:center;margin-top:10px;">Call: <strong>' + OFFICE_.call + '</strong> · ' + orderRef_(orderId).label + ' batao</p>' +
       '</div>' +
       '<p class="hint" style="text-align:center;margin-bottom:14px;">This is a request — our team will confirm it shortly.</p>' +
+      (ACCT_ ? '<a class="btn btn-outline" id="acctBillsAfter" href="account.html#bills" style="margin-bottom:10px;">🧾 My Bills &amp; live status</a>' : '') +
       '<button class="btn btn-gold" onclick="goBackToForm()">← Place another order</button>';
   }
 
@@ -1336,7 +1337,43 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     renderForm();
   }
 
+  // ---------------- a customer who is logged in (account.html) gets the same form, filled in for him ----------------
+  let ACCT_ = null;
+  function acctInitials_(n) { const p = String(n || '?').trim().split(/\s+/); return ((p[0] || '?')[0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase(); }
+  function showAcctStrip_() {
+    if (!ACCT_ || document.getElementById('acctStrip')) return;
+    const av = ACCT_.photo ? '<img src="' + ACCT_.photo + '" alt="" style="width:42px;height:42px;border-radius:50%;object-fit:cover;flex:none;">' :
+      '<div style="width:42px;height:42px;border-radius:50%;background:var(--green-100);color:var(--green-800);font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;">' + escapeHtml(acctInitials_(ACCT_.name)) + '</div>';
+    const d = document.createElement('div'); d.id = 'acctStrip'; d.style.cssText = 'max-width:520px;margin:14px auto 0;padding:0 16px;';
+    d.innerHTML = '<div class="card" style="display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:0;">' + av +
+      '<div style="flex:1;min-width:0;"><div style="font-weight:800;color:var(--green-800);font-size:14px;word-break:break-word;">Namaste ' + escapeHtml(ACCT_.name || 'Customer') + '</div><div class="hint">' + escapeHtml(ACCT_.mobile) + ' · logged in</div></div>' +
+      '<a class="btn btn-outline" id="acctBillsLink" href="account.html#bills" style="width:auto;padding:8px 10px;font-size:12px;">My Bills</a><a class="btn btn-outline" id="acctHomeLink" href="account.html" style="width:auto;padding:8px 10px;font-size:12px;">Account</a></div>';
+    const main = document.getElementById('mainArea'); main.parentNode.insertBefore(d, main);
+  }
+  function applyAccountToForm_() {
+    if (!ACCT_) return;
+    const m = document.getElementById('custMobile'); if (!m) return;
+    m.value = ACCT_.mobile; m.readOnly = true; orderLookedUpMobile_ = '';
+    lookupOrderCustomer_().then(function () {
+      const set = function (id, v) { const el = document.getElementById(id); if (el && v && !el.value.trim()) { el.value = String(v).toUpperCase(); orderAutoFilled_[id] = el.value; } };
+      set('custName', ACCT_.name); set('custCity', ACCT_.city); set('custIdName', ACCT_.idName || ACCT_.name); set('custDsId', ACCT_.dsId); set('custRefName', ACCT_.uplineName); set('custRefMobile', ACCT_.uplineMobile);
+    });
+  }
+  const renderFormBase_ = renderForm;
+  renderForm = function () { renderFormBase_.apply(this, arguments); applyAccountToForm_(); };
+  async function loadAccount_() {
+    let t = ''; try { t = localStorage.getItem('mwCustToken') || ''; } catch (e) { /* no storage: the plain form stays */ }
+    if (!t) return;
+    try {
+      const { data, error } = await sb.rpc('customer_me', { p_token: t });
+      if (error) return;
+      if (!data || !data.valid) { try { localStorage.removeItem('mwCustToken'); localStorage.removeItem('mwCustName'); localStorage.removeItem('mwCustMobile'); } catch (e) { /* nothing to remove */ } return; }
+      ACCT_ = data.profile; showAcctStrip_(); applyAccountToForm_();
+    } catch (e) { /* no network: the plain form stays */ }
+  }
+
   init();
+  loadAccount_();
 
   const PUSH_VAPID_PUBLIC_KEY = 'BF8D3xu3flEF0NiA6DEQhOtYSe19SwHnlUBNI4wjgA9-kZn9PeUyfl8iFvMEBwVyJLUhedzyqBQ4xW1g_dCiLFQ';
 

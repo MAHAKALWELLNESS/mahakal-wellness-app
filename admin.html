@@ -46,6 +46,15 @@
   .btn-gold{background:var(--gold-500); color:var(--green-900);}
   .btn-red{background:var(--danger); color:#fff;}
   .btn-red:disabled{opacity:.5;}
+  .tab{position:relative;}
+  .tab-badge{position:absolute; top:3px; right:2px; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:#E03A3A; color:#fff; font-size:11px; font-weight:800; line-height:18px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.3);}
+  .cl-av{width:40px; height:40px; border-radius:50%; object-fit:cover; background:var(--green-100); color:var(--green-800); display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; flex:none; overflow:hidden;}
+  .cl-av.big{width:56px; height:56px; font-size:20px;}
+  .cl-row{padding:12px 0; border-bottom:1px solid var(--line);} .cl-row:last-child{border-bottom:none;}
+  .cl-top{display:flex; align-items:center; gap:10px;} .cl-info{min-width:0; flex:1;}
+  .cl-actions{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;} .cl-actions .btn{flex:1; min-width:120px; padding:10px; font-size:13px;}
+  #custAlertBar{display:none; position:fixed; top:0; left:0; right:0; z-index:195; background:var(--danger); color:#fff; padding:10px 12px; font-size:13.5px; font-weight:700; align-items:center; gap:10px; box-shadow:0 3px 10px rgba(0,0,0,.3);}
+  #custAlertBar.show{display:flex;} #custAlertBar span{flex:1;} #custAlertBar button{border:none; border-radius:8px; padding:7px 12px; font-weight:800; font-size:12.5px; cursor:pointer; font-family:inherit;}
   #editCustomerModal,#deleteCustomerModal{z-index:55;}
   .btn-outline{background:#fff; border:1.5px solid var(--line); color:var(--green-800);}
   .btn:disabled{opacity:.5; cursor:not-allowed;}
@@ -374,6 +383,8 @@ html.nl .tab[data-tab="marketpurchase"]{--c1:#94EBA3;--c2:#40C057;--c3:#2B8A3E;-
 html.nl .tab[data-tab="profitreport"]{--c1:#FFA45C;--c2:#D9480F;--c3:#983309;--ic:"💹";}
 html.nl .tab[data-tab="franchiseeinvestment"]{--c1:#58B4FF;--c2:#1C7ED6;--c3:#124F8C;--ic:"🤝";}
 html.nl .tab[data-tab="productsearch"]{--c1:#E083F7;--c2:#AE3EC9;--c3:#7A2B8E;--ic:"🔎";}
+html.nl .tab[data-tab="custlogins"]{--c1:#FFD84D;--c2:#E8A200;--c3:#9C6B00;--ic:"🔑";}
+html.nl .tab-badge{background:linear-gradient(180deg,#FF6B6B,#E03131); box-shadow:0 2px 0 #A32020;}
 
 /* ---------- screens: a soft fade when the tab changes (opacity only, so fixed bars inside keep their place) ---------- */
 html.nl .tab-panel.active{animation:nlFade .3s ease both;}
@@ -573,6 +584,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <button class="tab" data-tab="official" onclick="switchTab('official')">Official</button>
       <button class="tab" data-tab="spsets" onclick="switchTab('spsets')">SP Sets</button>
       <button class="tab" data-tab="customers" onclick="switchTab('customers')">Customers</button>
+      <button class="tab" data-tab="custlogins" onclick="switchTab('custlogins')">Customer Logins<span class="tab-badge" id="custLoginsBadge" style="display:none;"></span></button>
       <button class="tab" data-tab="stockreport" onclick="switchTab('stockreport')">Stock</button>
       <button class="tab" data-tab="wallet" onclick="switchTab('wallet')">Wallet</button>
       <button class="tab" data-tab="topperformer" onclick="switchTab('topperformer')">Top Performer</button>
@@ -1107,6 +1119,15 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <button class="btn btn-primary btn-block" style="margin-bottom:12px;" onclick="openAddCustomerModal()">+ Add New Customer</button>
       <div class="card"><p class="section-label">Find a customer</p><input type="text" id="customerSearch" class="search-input" placeholder="Name or mobile…" oninput="searchCustomersTab()"></div>
       <div class="card"><div id="customersList"><div class="empty-cart">Type above, or leave blank to see recent customers.</div></div></div>
+    </section>
+
+    <!-- ============ CUSTOMER LOGINS TAB ============ -->
+    <section id="tab-custlogins" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadCustLogins_()">↻ Refresh</button>
+      <div class="card" id="clAlertsCard" style="display:none;"><p class="hint" style="margin-bottom:10px;">Naya password request aate hi yahan banner aur awaaz aayegi (app khula ho tab). Phone ke upar alert ke liye ise chalu karo.</p><button class="btn btn-outline btn-block" id="clEnableBtn" onclick="enableClAlerts_()">🔔 Turn on alerts on this device</button></div>
+      <div class="card"><p class="section-label">Password requests</p><div id="clPending"><div class="empty-cart">Loading…</div></div></div>
+      <div class="card" id="clVerifyCard" style="display:none;"><p class="section-label">Logins waiting for verification</p><p class="hint" style="margin-bottom:8px;">Inke mobile par pehle se bills hain par DS ID record me nahi tha. Pehchaan check karke Verify dabao, tab customer apne bills dekh payega.</p><div id="clVerify"></div></div>
+      <div class="card"><p class="section-label">Recently handled</p><div id="clHandled"><div class="empty-cart">—</div></div></div>
     </section>
 
     <!-- ============ STOCK TAB ============ -->
@@ -2347,14 +2368,15 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   <div class="modal-overlay" id="customerDetailModal">
     <div class="modal-sheet">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div><h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;" id="customerDetailName"></h2>
-        <p class="hint" id="customerDetailMobile" style="margin-bottom:6px;"></p></div>
+        <div style="display:flex;gap:10px;align-items:center;min-width:0;"><span id="customerDetailAvatar"></span><div style="min-width:0;"><h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;" id="customerDetailName"></h2>
+        <p class="hint" id="customerDetailMobile" style="margin-bottom:6px;"></p></div></div>
         <div style="display:flex;gap:6px;flex:none;">
           <button class="btn btn-outline" id="deleteCustomerBtn" style="display:none;flex:none;padding:6px 12px;font-size:12.5px;color:var(--danger);border-color:var(--danger);" onclick="openDeleteCustomer()">🗑 Delete</button>
           <button class="btn btn-outline" style="flex:none;padding:6px 12px;font-size:12.5px;" onclick="openEditCustomerProfile()">✎ Edit Profile</button>
         </div>
       </div>
       <div id="customerDetailExtra" style="display:none;margin-bottom:14px;background:var(--gold-100);border:1.5px solid var(--gold-500);border-radius:8px;padding:8px 10px;font-size:12.5px;font-weight:700;color:var(--green-900);"></div>
+      <div id="customerDetailAcct" class="hint" style="display:none;margin:0 0 12px;line-height:1.5;"></div>
       <p class="section-label">Quick range</p>
       <div class="qr-host" data-qr-key="custdetail" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
       </div>
@@ -2388,6 +2410,23 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   </div>
 
   <!-- ============ OFFICIAL WORK: STEP 1 - Proceed/Close ============ -->
+  <div id="custAlertBar"><span id="custAlertText"></span><button id="custAlertOpen" onclick="openCustLoginsFromAlert_()" style="background:#fff;color:var(--danger);">Open</button><button onclick="hideCustAlert_()" style="background:rgba(255,255,255,.25);color:#fff;">✕</button></div>
+
+  <div class="modal-overlay" id="custResetModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:17px;color:var(--green-800);margin-bottom:10px;">Reset password &amp; send on WhatsApp</h2>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;"><span id="crAvatar"></span><div style="min-width:0;"><div id="crWho" style="font-weight:800;color:var(--green-900);word-break:break-word;"></div><div class="hint" id="crMobile"></div></div></div>
+      <div class="box warn" id="crInfo" style="margin:0 0 10px;">Naya password ban jayega. <strong>Purana password aur is customer ke saare login band ho jayenge.</strong> Naya password WhatsApp message me jayega.</div>
+      <div id="crResult" style="display:none;"><div class="kv"><span class="k">New password</span><span class="v" id="crPw" style="font-size:18px;letter-spacing:1px;"></span></div><p class="hint" style="margin:10px 0 4px;">Message:</p><div id="crMsg" style="white-space:pre-wrap;font-size:12.5px;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px;"></div></div>
+      <p class="login-error" id="crError" style="min-height:0;margin:8px 0 0;"></p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeCustReset_()">Close</button>
+        <button class="btn btn-gold" id="crBtn" onclick="doCustReset_()">🔑 Reset &amp; send on WhatsApp</button>
+      </div>
+      <div id="crAfter" style="display:none;margin-top:10px;display:none;gap:8px;"><button class="btn btn-gold" id="crWaBtn" style="flex:1;" onclick="custResetSendWa_()">💬 Open WhatsApp</button><button class="btn btn-outline" id="crCopyBtn" style="flex:1;" onclick="custResetCopy_()">📋 Copy message</button></div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="deleteCustomerModal">
     <div class="modal-sheet">
       <h2 style="font-size:17px;color:var(--danger);margin-bottom:4px;">Delete customer profile?</h2>
@@ -2798,7 +2837,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     hideBootSplash_();
     document.getElementById('appRoot').style.display = 'block';
     loadGlobalLook_();                    // the look the main admin chose for the whole app (shown at once if it differs from the copy remembered on this phone)
-    startLookPolling_();
+    startLookPolling_(); if (typeof startCustLoginPolling_ === 'function') startCustLoginPolling_();
     await loadSettings();
     await loadProducts();
     wireSearch();
@@ -4082,6 +4121,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     if (name === 'spsets') initSpSetsTab_();
     if (name === 'expense') searchExpenses();
     if (name === 'customers') searchCustomersTab();
+    if (name === 'custlogins') loadCustLogins_();
     if (name === 'stockreport' && !onlineStockLoadedOnce) switchStockSubtab('online');
     if (name === 'wallet') searchWalletCustomers();
     if (name === 'publicorder') loadPublicOrders();
@@ -8199,9 +8239,10 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     const box = document.getElementById('customersList');
     if (!rows.length) { box.innerHTML = '<div class="empty-cart">No customers found.</div>'; return; }
     box.innerHTML = rows.map(function (c) {
-      return '<div class="list-row" data-mobile="' + escapeHtml(c.mobile || '') + '" data-name="' + escapeHtml(c.name || '') + '"><div><div class="result-name">' + escapeHtml((c.name || '(No name)').toUpperCase()) + '</div><div class="result-meta">' + escapeHtml(c.mobile || '') + '</div></div></div>';
+      return '<div class="list-row" data-mobile="' + escapeHtml(c.mobile || '') + '" data-name="' + escapeHtml(c.name || '') + '"><div style="display:flex;align-items:center;gap:10px;min-width:0;"><span class="cl-av" data-av="' + escapeHtml(c.mobile || '') + '">' + escapeHtml(clInitials_(c.name)) + '</span><div><div class="result-name">' + escapeHtml((c.name || '(No name)').toUpperCase()) + '</div><div class="result-meta">' + escapeHtml(c.mobile || '') + '</div></div></div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { openCustomerDetail(row.dataset.mobile, row.dataset.name); }); });
+    custFillAvatars_(rows);
   }
 
   let currentCustomerName = '';
@@ -8213,6 +8254,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     document.getElementById('customerDetailModal').classList.add('show');
     const delBtn = document.getElementById('deleteCustomerBtn'); if (delBtn) delBtn.style.display = isSuperAdminUser ? '' : 'none';      // deleting a profile: main admin only
     custStatus_ = 'all'; setCustomerRange('all');
+    loadCustAcctInfo_(mobile, name);
 
     const extraBox = document.getElementById('customerDetailExtra');
     extraBox.style.display = 'none';
@@ -10913,6 +10955,126 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
   }
+</script>
+<script id="custLoginsJs">
+// ---------------- CUSTOMER LOGINS: password requests (a tab + an alert), logins to verify, pictures in the Customers list ----------------
+let clState_ = { pending: [], handled: [], toVerify: [] }, clReset_ = null, clPollTimer_ = null, clSeen_ = '', clFirst_ = true, clMissing_ = false;
+function clInitials_(n) { const p = String(n || '?').trim().split(/\s+/); return ((p[0] || '?')[0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase(); }
+function clAvatar_(name, thumb, big) { return thumb ? '<img class="cl-av' + (big ? ' big' : '') + '" src="' + thumb + '" alt="">' : '<span class="cl-av' + (big ? ' big' : '') + '">' + escapeHtml(clInitials_(name)) + '</span>'; }
+function clAgo_(iso) { const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000)); if (s < 60) return 'just now'; if (s < 3600) return Math.floor(s / 60) + ' min ago'; if (s < 86400) return Math.floor(s / 3600) + ' h ago'; return Math.floor(s / 86400) + ' d ago'; }
+function setClBadge_(n) { const b = document.getElementById('custLoginsBadge'); if (!b) return; b.textContent = n > 99 ? '99+' : String(n); b.style.display = n > 0 ? 'inline-block' : 'none'; }
+function clMissingMsg_(e) { return /could not find the function|schema cache/i.test((e && e.message) || '') ? 'Please run customer_accounts.sql in Supabase first.' : ((e && e.message) || 'Something went wrong.'); }
+async function loadCustLogins_() {
+  const { data, error } = await sb.rpc('get_customer_password_requests');
+  if (error) { document.getElementById('clPending').innerHTML = '<div class="empty-cart">' + escapeHtml(clMissingMsg_(error)) + '</div>'; return; }
+  clState_ = data || { pending: [], handled: [], toVerify: [] }; renderCustLogins_(); setClBadge_((clState_.pending || []).length + (clState_.toVerify || []).length);
+  const ac = document.getElementById('clAlertsCard'); if (ac) ac.style.display = ('Notification' in window && Notification.permission === 'default') ? 'block' : 'none';
+}
+function renderCustLogins_() {
+  const p = clState_.pending || [], v = clState_.toVerify || [], h = clState_.handled || [];
+  document.getElementById('clPending').innerHTML = p.length ? p.map(function (r) {
+    return '<div class="cl-row" data-id="' + r.id + '" data-mobile="' + escapeHtml(r.mobile) + '"><div class="cl-top">' + clAvatar_(r.name, r.photoThumb) + '<div class="cl-info"><div class="result-name">' + escapeHtml((r.name || '(No name)').toUpperCase()) + '</div><div class="result-meta">' + escapeHtml(r.mobile) + ' · asked ' + escapeHtml(clAgo_(r.requestedAt)) + (r.times > 1 ? ' · ' + r.times + ' times' : '') + '</div></div></div>' +
+      '<div class="cl-actions"><button class="btn btn-gold" onclick="openCustReset_(\'' + escapeHtml(r.mobile) + '\')">🔑 Reset &amp; send password on WhatsApp</button><button class="btn btn-outline" onclick="dismissCustReq_(' + r.id + ')">Dismiss</button></div></div>';
+  }).join('') : '<div class="empty-cart">No password request waiting.</div>';
+  show_cl_('clVerifyCard', v.length > 0);
+  document.getElementById('clVerify').innerHTML = v.map(function (r) {
+    return '<div class="cl-row" data-mobile="' + escapeHtml(r.mobile) + '"><div class="cl-top">' + clAvatar_(r.name, r.photoThumb) + '<div class="cl-info"><div class="result-name">' + escapeHtml((r.name || '(No name)').toUpperCase()) + '</div><div class="result-meta">' + escapeHtml(r.mobile) + ' · registered ' + escapeHtml(clAgo_(r.createdAt)) + '</div></div></div>' +
+      '<div class="cl-actions"><button class="btn btn-gold" onclick="verifyCustAcct_(\'' + escapeHtml(r.mobile) + '\')">✓ Verify</button><button class="btn btn-outline" onclick="openCustomerDetail(\'' + escapeHtml(r.mobile) + '\', \'' + escapeHtml(r.name || '') + '\')">Customer details</button></div></div>';
+  }).join('');
+  document.getElementById('clHandled').innerHTML = h.length ? h.map(function (r) {
+    return '<div class="cl-row"><div class="cl-top">' + clAvatar_(r.name, r.photoThumb) + '<div class="cl-info"><div class="result-name">' + escapeHtml((r.name || '(No name)').toUpperCase()) + '</div><div class="result-meta">' + escapeHtml(r.mobile) + ' · ' + (r.status === 'Done' ? '✓ password sent' : 'dismissed') + ' · ' + escapeHtml(r.handledAt ? clAgo_(r.handledAt) : '') + '</div></div></div></div>';
+  }).join('') : '<div class="empty-cart">Nothing handled yet.</div>';
+}
+function show_cl_(id, on) { const e = document.getElementById(id); if (e) e.style.display = on ? 'block' : 'none'; }
+function custPerson_(mobile) {
+  const all = (clState_.pending || []).concat(clState_.toVerify || [], clState_.handled || []);
+  const r = all.filter(function (x) { return x.mobile === mobile; })[0] || {};
+  return { mobile: mobile, name: r.name || (mobile === currentCustomerMobile ? currentCustomerName : ''), thumb: r.photoThumb || null };
+}
+// ---- reset + send on WhatsApp (one tap does both: the new password is made, the old one stops, and WhatsApp opens with the message)
+function openCustReset_(mobile) {
+  const p = custPerson_(mobile); clReset_ = { mobile: mobile, name: p.name, password: null, busy: false };
+  document.getElementById('crAvatar').innerHTML = clAvatar_(p.name, p.thumb, true); document.getElementById('crWho').textContent = (p.name || 'Customer').toUpperCase(); document.getElementById('crMobile').textContent = mobile;
+  document.getElementById('crError').textContent = ''; show_cl_('crInfo', true); show_cl_('crResult', false); document.getElementById('crAfter').style.display = 'none';
+  const b = document.getElementById('crBtn'); b.style.display = ''; b.disabled = false; b.textContent = '🔑 Reset & send on WhatsApp';
+  document.getElementById('custResetModal').classList.add('show');
+}
+function closeCustReset_() { document.getElementById('custResetModal').classList.remove('show'); clReset_ = null; }
+function custResetMessage_() {
+  return 'Namaste ' + (clReset_.name || 'Customer') + ' ji, Mahakal Wellness app ka aapka naya password: *' + clReset_.password + '*\n\nLogin: ' + new URL('account.html', location.href).href + '\nLogin karne ke baad Profile me jaakar apna password badal lena.\n\n- Mahakal Wellness';
+}
+function custResetSendWa_() { if (!clReset_ || !clReset_.password) return; window.open('https://wa.me/91' + String(clReset_.mobile).replace(/\D/g, '').slice(-10) + '?text=' + encodeURIComponent(custResetMessage_()), '_blank'); }
+async function custResetCopy_() { if (!clReset_ || !clReset_.password) return; try { await navigator.clipboard.writeText(custResetMessage_()); showToast('Message copied.'); } catch (e) { showToast('Could not copy. Select the message and copy it.', true); } }
+async function doCustReset_() {
+  if (!clReset_ || clReset_.busy || clReset_.password) return;
+  const btn = document.getElementById('crBtn'), err = document.getElementById('crError'); err.textContent = ''; btn.disabled = true; btn.textContent = 'Resetting…'; clReset_.busy = true;
+  const mobile = clReset_.mobile, { data, error } = await sb.rpc('reset_customer_password', { p_mobile: mobile });
+  if (!clReset_ || clReset_.mobile !== mobile) return;
+  clReset_.busy = false;
+  if (error) { err.textContent = clMissingMsg_(error); btn.disabled = false; btn.textContent = '🔑 Reset & send on WhatsApp'; return; }
+  clReset_.password = data.password; clReset_.name = data.name || clReset_.name;
+  document.getElementById('crPw').textContent = data.password; document.getElementById('crMsg').textContent = custResetMessage_();
+  show_cl_('crInfo', false); show_cl_('crResult', true); btn.style.display = 'none'; const after = document.getElementById('crAfter'); after.style.display = 'flex';
+  custResetSendWa_();
+  showToast('Password reset. WhatsApp message is ready.'); loadCustLogins_(); custLoginPoll_(); if (currentCustomerMobile === mobile) loadCustAcctInfo_(mobile, currentCustomerName);
+}
+async function dismissCustReq_(id) {
+  if (!confirm('Dismiss this request? The password will NOT be changed.')) return;
+  const { error } = await sb.rpc('dismiss_customer_password_request', { p_id: id }); if (error) { showToast(clMissingMsg_(error), true); return; }
+  showToast('Request dismissed.'); loadCustLogins_(); custLoginPoll_();
+}
+async function verifyCustAcct_(mobile) {
+  const { error } = await sb.rpc('verify_customer_account', { p_mobile: mobile }); if (error) { showToast(clMissingMsg_(error), true); return; }
+  showToast('Login verified.'); loadCustLogins_(); custLoginPoll_(); if (currentCustomerMobile === mobile) loadCustAcctInfo_(mobile, currentCustomerName);
+}
+// ---- the customer window and the Customers list
+async function loadCustAcctInfo_(mobile, name) {
+  const av = document.getElementById('customerDetailAvatar'), box = document.getElementById('customerDetailAcct');
+  if (av) av.innerHTML = clAvatar_(name, null, true); if (box) { box.style.display = 'none'; box.innerHTML = ''; }
+  if (!mobile || clMissing_) return;
+  const { data, error } = await sb.rpc('get_customer_account_info', { p_mobile: mobile });
+  if (error) { clMissing_ = /could not find the function|schema cache/i.test(error.message || ''); return; }
+  if (currentCustomerMobile !== mobile || !data) return;
+  if (data.photo && av) av.innerHTML = clAvatar_(name, data.photo, true);
+  box.style.display = 'block';
+  box.innerHTML = data.registered ? '📱 <strong>Customer login:</strong> ' + (data.verified ? 'Verified ✓' : '<span style="color:var(--danger);font-weight:700;">Not verified</span>') + ' · last login ' + (data.lastLoginAt ? escapeHtml(clAgo_(data.lastLoginAt)) : 'never') + (data.mustChange ? ' · temporary password' : '') + (data.pendingRequest ? ' · <span style="color:var(--danger);font-weight:700;">password request waiting</span>' : '') +
+    '<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn btn-outline" id="custAcctReset" style="flex:1;padding:8px;font-size:12.5px;" onclick="openCustReset_(currentCustomerMobile)">🔑 Reset password</button>' + (data.verified ? '' : '<button class="btn btn-gold" id="custAcctVerify" style="flex:1;padding:8px;font-size:12.5px;" onclick="verifyCustAcct_(currentCustomerMobile)">✓ Verify login</button>') + '</div>' : '📱 Customer login: not registered yet';
+}
+async function custFillAvatars_(rows) {
+  const mobiles = (rows || []).map(function (r) { return r.mobile; }).filter(Boolean); if (!mobiles.length || clMissing_) return;
+  const { data, error } = await sb.rpc('get_customer_photos', { p_mobiles: mobiles });
+  if (error) { clMissing_ = /could not find the function|schema cache/i.test(error.message || ''); return; }
+  Object.keys(data || {}).forEach(function (m) { const el = document.querySelector('#customersList [data-av="' + m + '"]'); if (el) el.outerHTML = '<img class="cl-av" data-av="' + escapeHtml(m) + '" src="' + data[m] + '" alt="">'; });
+}
+// ---- the alert: a banner and a short beep while the app is open (and a phone notification when it is allowed and the app is in the background)
+function beepCl_() { try { const C = window.AudioContext || window.webkitAudioContext; if (!C) return; const c = new C(), o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = 880; g.gain.value = 0.08; o.connect(g); g.connect(c.destination); o.start(); setTimeout(function () { try { o.stop(); c.close(); } catch (e) { /* closed already */ } }, 260); } catch (e) { /* the browser does not allow a sound yet */ } }
+function sysNotifyCl_(title, body) {
+  try {
+    if (!('Notification' in window) || Notification.permission !== 'granted' || document.visibilityState !== 'hidden') return;
+    if (navigator.serviceWorker && navigator.serviceWorker.ready) navigator.serviceWorker.ready.then(function (r) { r.showNotification(title, { body: body, icon: 'icon-192.png', tag: 'cust-login' }); }); else new Notification(title, { body: body });
+  } catch (e) { /* not available on this phone */ }
+}
+function showCustAlert_(text, loud) { document.getElementById('custAlertText').textContent = text; document.getElementById('custAlertBar').classList.add('show'); if (loud) { beepCl_(); sysNotifyCl_('Customer password request', text); } }
+function hideCustAlert_() { document.getElementById('custAlertBar').classList.remove('show'); }
+function openCustLoginsFromAlert_() { hideCustAlert_(); switchTab('custlogins'); }
+async function enableClAlerts_() { try { await Notification.requestPermission(); } catch (e) { /* not supported */ } const ac = document.getElementById('clAlertsCard'); if (ac) ac.style.display = ('Notification' in window && Notification.permission === 'default') ? 'block' : 'none'; }
+async function custLoginPoll_() {
+  let r; try { r = await sb.rpc('get_customer_login_alerts'); } catch (e) { return; }
+  if (!r || r.error || !r.data) return; const d = r.data;
+  setClBadge_((d.pending || 0) + (d.toVerify || 0));
+  let seen = clSeen_; if (!seen) { try { seen = localStorage.getItem('mwClSeen') || ''; } catch (e) { seen = ''; } }
+  if (d.latestAt && d.latestAt > seen) {
+    const first = clFirst_; clSeen_ = d.latestAt; try { localStorage.setItem('mwClSeen', d.latestAt); } catch (e) { /* no storage */ }
+    showCustAlert_(first ? d.pending + ' customer password request' + (d.pending === 1 ? '' : 's') + ' waiting' : '🔑 New password request: ' + (d.latestName || 'Customer') + ' (' + d.latestMobile + ')', !first);
+  }
+  clFirst_ = false;
+  const tab = document.getElementById('tab-custlogins'); if (tab && tab.classList.contains('active') && !(clReset_ && clReset_.password)) loadCustLogins_();
+}
+function startCustLoginPolling_() {
+  if (clPollTimer_) return; custLoginPoll_();
+  clPollTimer_ = setInterval(function () { if (document.visibilityState === 'visible') custLoginPoll_(); }, window.__clPollMs || 45000);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') custLoginPoll_(); });
+}
 </script>
 <!-- MW-UX-START (keyboard + back button; the same in every page, built by tools/apply_ux_snippets.py) -->
 <style id="mwUxCss">

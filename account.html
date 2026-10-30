@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>My Account — Mahakal Wellness</title>
+<meta name="theme-color" content="#132E26">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --green-900:#132E26; --green-800:#1E4A3D; --green-700:#2A5C4C; --green-100:#DCE9E3;
+    --gold-500:#D9A441; --gold-600:#B8842C; --gold-100:#F7E9C7;
+    --surface:#FFFFFF; --bg:#F6F5F1; --ink-soft:#555; --ink-faint:#8A8A8A; --line:#E7E4DC;
+    --danger:#C0392B; --danger-100:#FBE7E4; --ok:#2E7D4F; --ok-100:#E3F1E8;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'Inter',sans-serif; background:var(--bg); color:#222; -webkit-font-smoothing:antialiased;}
+  h1,h2{font-family:'Fraunces',serif; margin:0;}
+  .topbar{background:var(--green-900); padding:14px 16px; text-align:center;}
+  .topbar h1{font-size:17px; font-weight:600; color:#fff;}
+  .topbar p{margin:2px 0 0; font-size:11.5px; color:var(--green-100); opacity:.85;}
+  main{max-width:520px; margin:0 auto; padding:16px 16px 90px;}
+  .card{background:var(--surface); border-radius:16px; padding:20px; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  .section-label{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--ink-faint); margin:0 0 10px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block; font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
+  .field input{width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; font-size:15px; font-family:inherit; background:#fff;}
+  .field input:focus{outline:none; border-color:var(--gold-500);}
+  .field-row{display:flex; gap:10px;}
+  .field-row .field{flex:1;}
+  .search-wrap{position:relative;}
+  .search-results{margin-top:8px; max-height:280px; overflow-y:auto;}
+  .search-row{display:flex; justify-content:space-between; align-items:center; padding:11px 4px; border-bottom:1px solid var(--line); cursor:pointer;}
+  .search-row:last-child{border-bottom:none;}
+  .search-row:active{background:var(--bg);}
+  .search-name{font-size:13.5px; font-weight:600;}
+  .search-meta{font-size:11.5px; color:var(--ink-faint);}
+  .read-busy{display:flex; align-items:flex-start; gap:12px; background:var(--gold-100); border:1.5px solid var(--gold-500); border-radius:12px; padding:12px 14px; margin:10px 0;}
+  .read-busy .spin{flex:none; width:26px; height:26px; border-radius:50%; border:3.5px solid #e6d3a3; border-top-color:var(--green-800); animation:readspin .9s linear infinite;}
+  .read-busy .rb-text{flex:1; min-width:0;} .read-busy .rb-title{font-weight:800; color:var(--green-900); font-size:14.5px;}
+  .read-busy .rb-sub{font-size:12.5px; color:var(--ink-soft); margin-top:3px; line-height:1.45;}
+  .read-busy .rb-bar{height:5px; background:#eadfbd; border-radius:3px; overflow:hidden; margin-top:9px;}
+  .read-busy .rb-bar i{display:block; height:100%; width:40%; background:var(--green-800); border-radius:3px; animation:readbar 1.4s ease-in-out infinite;}
+  @keyframes readspin{to{transform:rotate(360deg);}} @keyframes readbar{0%{margin-left:-40%;} 100%{margin-left:100%;}}
+  @media (prefers-reduced-motion: reduce){ .read-busy .spin{animation-duration:2.4s;} .read-busy .rb-bar i{animation-duration:3s;} }
+  .search-price{font-size:13.5px; font-weight:700; color:var(--green-800); white-space:nowrap; margin-left:10px;}
+  .cart-row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line);}
+  .cart-row:last-child{border-bottom:none;}
+  .cart-name{font-size:13.5px; font-weight:600;}
+  .cart-price{font-size:11.5px; color:var(--ink-faint);}
+  .qty-ctrl{display:flex; align-items:center; gap:10px;}
+  .qty-btn{width:30px; height:30px; border-radius:8px; border:1.5px solid var(--line); background:#fff; font-size:16px; font-weight:700; color:var(--green-800); cursor:pointer;}
+  .qty-val{min-width:22px; text-align:center; font-weight:700; font-size:14px;}
+  .empty-cart{padding:24px 0; text-align:center; color:var(--ink-faint); font-size:13px;}
+  .total-row{display:flex; justify-content:space-between; align-items:center; padding-top:12px; margin-top:4px; border-top:1px solid var(--line);}
+  .total-row .lbl{font-size:13px; color:var(--ink-soft);}
+  .total-row .val{font-size:20px; font-weight:700; color:var(--green-800);}
+  .btn{display:block; width:100%; padding:14px; border-radius:12px; border:none; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; text-align:center; text-decoration:none;}
+  .btn-gold{background:var(--gold-500); color:var(--green-900);}
+  .btn-gold:disabled{opacity:.5;}
+  .hint{font-size:12.5px; color:var(--ink-faint); margin:0;}
+  .error-msg{font-size:12.5px; color:var(--danger); margin:8px 0 0; min-height:16px;}
+  .empty{padding:40px 20px; text-align:center; color:var(--ink-faint);}
+  .success-icon{width:56px; height:56px; border-radius:50%; background:var(--ok-100); color:var(--ok); font-size:28px; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;}
+  .qr-box{text-align:center; padding:18px 0 6px;}
+  .qr-box img{width:220px; height:220px; border-radius:12px; border:1px solid var(--line);}
+  .search-row.kbd-active{background:var(--bg);}
+  .btn-outline{background:transparent; border:1.5px solid var(--line); color:var(--green-800);}
+  .qty-modal-overlay{display:none; position:fixed; inset:0; background:rgba(19,46,38,.45); z-index:70; align-items:flex-end; justify-content:center;}
+  .qty-modal-overlay.show{display:flex;}
+  .qty-modal-sheet{background:var(--surface); width:100%; max-width:520px; border-radius:20px 20px 0 0; padding:20px 20px 24px;}
+  .qty-modal-sheet h2{font-size:16px; color:var(--green-800);}
+  .qty-modal-actions{display:flex; gap:10px;}
+  .qty-modal-actions .btn{flex:1;}
+  a.btn{text-decoration:none;}
+  .pay-amount{font-size:30px; font-weight:700; color:var(--green-800); line-height:1.1;}
+  .chip-row{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .chip{display:flex; align-items:center; gap:8px; padding:10px 10px; border:1.5px solid var(--line); border-radius:10px; font-size:13px; font-weight:600; color:var(--ink-soft); background:#fff; cursor:pointer;}
+  .field .chip input{width:auto; padding:0; border:0; margin:0; flex:0 0 auto; accent-color:var(--green-800);}
+  .chip.on{border-color:var(--green-800); color:var(--green-800); background:var(--green-100);}
+  .copy-btn{border:1.5px solid var(--line); background:#fff; color:var(--green-800); border-radius:8px; padding:5px 11px; font-size:12px; font-weight:700; cursor:pointer;}
+  .kv{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;}
+  .kv:last-child{border-bottom:none;}
+  .kv .k{color:var(--ink-faint); flex:0 0 auto;}
+  .kv .v{font-weight:700; color:var(--green-800); text-align:right; word-break:break-all;}
+  .box{border-radius:10px; padding:10px 12px; font-size:12.5px; margin-top:10px; line-height:1.45;}
+  .box.warn{background:var(--gold-100); color:#7a5617;}
+  .box.bad{background:var(--danger-100); color:var(--danger);}
+  .box.good{background:var(--ok-100); color:var(--ok);}
+  .proof-img{max-width:100%; max-height:200px; border-radius:10px; border:1px solid var(--line); display:block; margin:8px auto 0;}
+</style>
+<style id="mwPubLook">
+@media screen{
+html.nl{ --green-900:#241B6E; --green-800:#3D2FB5; --green-700:#5B4BDB; --green-100:#E9E6FF; --gold-500:#FFB020; --gold-600:#B85F00; --gold-100:#FFF0CC; --surface:#FFFFFF; --bg:#EEF1FF; --ink-soft:#4B5275; --ink-faint:#757CA3; --line:#E0E3F5; --danger:#E03131; --danger-100:#FFE4E5; --ok:#0A9F73; --ok-100:#D8F7EC; }
+html.nl body{background:linear-gradient(180deg,#E7ECFF 0%,#F4EEFF 42%,#FFF1E8 100%) fixed; color:#1F2347;}
+html.nl .topbar{background:linear-gradient(135deg,#2B1F8F 0%,#5B3FE0 48%,#D6336C 100%); border-radius:0 0 28px 28px; box-shadow:0 10px 24px rgba(61,47,181,.38); padding:18px 16px 24px;}
+html.nl .topbar h1{font-size:19px; font-weight:700; text-shadow:0 2px 5px rgba(0,0,0,.28);}
+html.nl .topbar p{color:#EDE9FF; opacity:1;}
+html.nl main{padding-top:22px;}
+html.nl .card{border-radius:22px; border:1px solid rgba(255,255,255,.85); background:linear-gradient(180deg,#FFFFFF 0%,#FBFAFF 100%); box-shadow:inset 0 5px 0 var(--acc,#7C6CFF), 0 5px 0 rgba(150,140,230,.22), 0 12px 24px rgba(82,64,230,.13);}
+html.nl .card:nth-of-type(6n+2){--acc:#FF8DB3;} html.nl .card:nth-of-type(6n+3){--acc:#34D87F;} html.nl .card:nth-of-type(6n+4){--acc:#FFAE57;} html.nl .card:nth-of-type(6n+5){--acc:#36C5DB;} html.nl .card:nth-of-type(6n){--acc:#A483FF;}
+html.nl .card h2{color:#2B1F8F; font-weight:800;}
+html.nl .section-label{color:#6A5FD0; font-weight:800; letter-spacing:.6px;}
+html.nl .section-label::before{content:''; display:inline-block; width:9px; height:9px; margin-right:7px; border-radius:50%; background:linear-gradient(135deg,#FF8DB3,#7C6CFF); box-shadow:0 2px 0 rgba(0,0,0,.12); vertical-align:-1px;}
+html.nl .field label{color:#4B5275; font-weight:700;}
+html.nl .field input:not([type=radio]):not([type=checkbox]), html.nl .field select, html.nl .field textarea{border:2px solid #DAD6FF; border-radius:14px; background:#FBFAFF; transition:border-color .15s, box-shadow .15s;}
+html.nl .field input:not([type=radio]):not([type=checkbox]):focus, html.nl .field select:focus, html.nl .field textarea:focus{border-color:#7C6CFF; box-shadow:0 0 0 4px rgba(124,108,255,.2); background:#fff;}
+html.nl select{border:2px solid #DAD6FF !important; border-radius:14px !important; background-color:#FBFAFF !important;}
+html.nl select:focus{border-color:#7C6CFF !important; box-shadow:0 0 0 4px rgba(124,108,255,.2);}
+html.nl .btn{border-radius:16px; font-weight:800; letter-spacing:.2px; transition:transform .1s ease, box-shadow .1s ease;}
+html.nl .btn:active{transform:translateY(4px);}
+html.nl .btn-gold{background:linear-gradient(180deg,#FFD66B 0%,#FFA62B 100%); color:#4A2B00; box-shadow:0 5px 0 #C97A00, 0 10px 18px rgba(255,166,43,.45), inset 0 2px 0 rgba(255,255,255,.55);}
+html.nl .btn-gold:active{box-shadow:0 1px 0 #C97A00, 0 3px 8px rgba(255,166,43,.35), inset 0 2px 0 rgba(255,255,255,.45);}
+html.nl .btn-outline{background:#fff; border:2px solid #C9C3FF; color:#4B3FD0; box-shadow:0 4px 0 #D6D1FF, 0 8px 14px rgba(82,64,230,.12);}
+html.nl .btn-outline:active{box-shadow:0 1px 0 #D6D1FF;}
+html.nl .btn:disabled{opacity:.5; filter:grayscale(.3);}
+html.nl .search-results{background:#fff; border-radius:18px; box-shadow:0 10px 26px rgba(82,64,230,.18), 0 4px 0 rgba(150,140,230,.2); padding:2px 10px;}
+html.nl .search-row{border-bottom:1px dashed #DAD6FF;} html.nl .search-row:active, html.nl .search-row.kbd-active{background:#EEEAFF;}
+html.nl .search-name{color:#2B1F8F;} html.nl .search-price{color:#D9480F;}
+html.nl .cart-row{border-bottom:1px dashed #D8D3FF;}
+html.nl .qty-btn{border:none; border-radius:10px; background:linear-gradient(180deg,#F1EFFF,#DDD8FF); color:#4B3FD0; box-shadow:0 3px 0 #C7C0FF;}
+html.nl .qty-btn:active{transform:translateY(2px); box-shadow:0 1px 0 #C7C0FF;}
+html.nl .total-row{border-top:2px dashed #D8D3FF;} html.nl .total-row .val{color:#D9480F;}
+html.nl .modal-overlay, html.nl .qty-modal-overlay{background:rgba(36,27,110,.55); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);}
+html.nl .modal-sheet, html.nl .qty-modal-sheet{border-radius:30px 30px 0 0; background:linear-gradient(180deg,#FFFFFF 0%,#F8F6FF 100%); box-shadow:0 -14px 40px rgba(36,27,110,.4), inset 0 6px 0 #7C6CFF;}
+html.nl .modal-sheet::before, html.nl .qty-modal-sheet::before{content:''; display:block; width:46px; height:5px; border-radius:3px; background:#D3CDFF; margin:-8px auto 14px;}
+html.nl .qty-modal-sheet h2{color:#2B1F8F; font-weight:800;}
+html.nl .summary-bar{background:linear-gradient(180deg,#FFFFFF,#F1EEFF); border-top:none; border-radius:24px 24px 0 0; box-shadow:0 -10px 26px rgba(82,64,230,.22);}
+html.nl .toast{background:linear-gradient(135deg,#3D2FB5,#7048E8); border-radius:16px; box-shadow:0 10px 26px rgba(61,47,181,.45); font-weight:700;}
+html.nl .chip{border:2px solid #DAD6FF; border-radius:14px; background:#fff; color:#4B5275; font-weight:800; box-shadow:0 3px 0 #E4E0FF;}
+html.nl .chip.on{border-color:#5B3FE0; background:linear-gradient(180deg,#8B7BFF,#5B3FE0); color:#fff; box-shadow:0 3px 0 #3A2BB0, 0 6px 12px rgba(91,63,224,.3);}
+html.nl .copy-btn{border:none; background:linear-gradient(180deg,#F1EFFF,#DDD8FF); color:#4B3FD0; border-radius:10px; box-shadow:0 3px 0 #C7C0FF;}
+html.nl .kv{border-bottom:1px dashed #DAD6FF;} html.nl .kv .v{color:#2B1F8F;}
+html.nl .box{border-radius:14px;} html.nl .box.warn{background:linear-gradient(180deg,#FFF3D1,#FFEBB5); box-shadow:0 3px 0 #FFD98A;} html.nl .box.bad{box-shadow:0 3px 0 #FFB3B6;} html.nl .box.good{box-shadow:0 3px 0 #9BE3C7;}
+html.nl .qr-box img{box-shadow:0 0 0 4px #fff, 0 0 0 7px #C9C3FF, 0 9px 0 rgba(150,140,230,.3); background:#fff;}
+html.nl #payQrImg{box-shadow:0 0 0 4px #fff, 0 0 0 7px #C9C3FF, 0 9px 0 rgba(150,140,230,.3); background:#fff;}
+html.nl .proof-img{box-shadow:0 0 0 3px #fff, 0 0 0 5px #C9C3FF;}
+html.nl .pay-amount{color:#D9480F;}
+html.nl .success-icon{background:linear-gradient(180deg,#5BE3A5,#12A85A); color:#fff; box-shadow:0 5px 0 #0B7A40, 0 10px 16px rgba(18,168,90,.35);}
+}
+@media screen and (prefers-reduced-motion:reduce){ html.nl .logo, html.nl #mainBrandLogoImg, html.nl #welcomeLogoImg{animation:none !important;} html.nl *{transition:none !important;} }
+</style>
+<style id="acctCss">
+.topbar{position:relative;}
+.back-link{position:absolute; left:14px; top:16px; color:#fff; font-size:12.5px; font-weight:700; text-decoration:none; opacity:.9;}
+.a-tabs{display:flex; gap:8px; margin:0 0 14px;}
+.a-tab{flex:1; padding:11px 4px; border-radius:12px; border:1.5px solid var(--line); background:#fff; color:var(--ink-soft); font-weight:700; font-size:12.5px; font-family:inherit; cursor:pointer;}
+.a-tab.on{background:var(--green-800); border-color:var(--green-800); color:#fff;}
+.a-head{display:flex; gap:14px; align-items:center;}
+.avatar{width:64px; height:64px; border-radius:50%; object-fit:cover; background:var(--green-100); color:var(--green-800); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:24px; flex:none; overflow:hidden;}
+.avatar.big{width:104px; height:104px; font-size:38px; margin:0 auto 12px;}
+.a-head h2{font-size:17px; color:var(--green-800); margin-bottom:2px; word-break:break-word;}
+.a-sub{font-size:12.5px; color:var(--ink-faint); margin:0;}
+.a-link{background:none; border:none; color:var(--green-800); font-weight:700; font-size:12.5px; font-family:inherit; cursor:pointer; padding:6px 0; text-decoration:underline;}
+.badge{display:inline-block; padding:3px 9px; border-radius:20px; font-size:11.5px; font-weight:700; margin:0 6px 4px 0; background:var(--green-100); color:var(--green-800);}
+.badge.ok{background:var(--ok-100); color:var(--ok);} .badge.warn{background:var(--gold-100); color:#7a5617;} .badge.bad{background:var(--danger-100); color:var(--danger);}
+.q-row{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;}
+.q-chip{padding:8px 12px; border-radius:10px; border:1.5px solid var(--line); background:#fff; font-size:12.5px; font-weight:700; color:var(--ink-soft); cursor:pointer; font-family:inherit;}
+.q-chip.on{border-color:var(--green-800); background:var(--green-800); color:#fff;}
+.sum-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.sum-box{border-radius:14px; padding:12px; background:var(--green-100); color:var(--green-900);}
+.sum-box .t{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; opacity:.8;} .sum-box .n{font-size:19px; font-weight:800; margin-top:2px;}
+.bill-row{border-bottom:1px solid var(--line); padding:13px 0;} .bill-row:last-child{border-bottom:none;}
+.br-top{display:flex; justify-content:space-between; gap:10px; align-items:flex-start;}
+.br-no{font-weight:800; font-size:14.5px; color:var(--green-900);} .br-date{font-size:12px; color:var(--ink-faint); margin-top:1px;}
+.br-amt{text-align:right;} .br-amt .amt{font-weight:800; color:var(--green-800); font-size:15px;} .br-amt .sp{font-size:11.5px; color:var(--gold-600); font-weight:700;}
+.br-badges{margin-top:8px;} .br-link{display:inline-block; margin-top:2px; font-size:12.5px; font-weight:700; color:var(--green-800);}
+.offer-card .oc-title{font-weight:800; font-size:15px; color:var(--green-900);} .offer-card .oc-meta{font-size:12px; color:var(--ink-faint); margin:2px 0 10px;}
+.progress{height:11px; border-radius:6px; background:var(--green-100); overflow:hidden;} .progress i{display:block; height:100%; background:var(--green-800); border-radius:6px;}
+.progress-line{display:flex; justify-content:space-between; font-size:12.5px; margin-top:7px; color:var(--ink-soft);}
+.field-row .field{min-width:0;} .field input[type=date]{min-width:0; max-width:100%;}
+.pw-row{position:relative;} .pw-row input{padding-right:62px;} .pw-row .pw-eye{position:absolute; right:8px; top:6px; border:none; background:none; color:var(--green-800); font-weight:700; font-size:12px; cursor:pointer; padding:7px 6px; font-family:inherit;}
+.field input.pw-in{padding-right:62px;}
+#acctToast{position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(12px); max-width:88vw; background:var(--green-900); color:#fff; padding:10px 18px; border-radius:12px; font-size:13px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:90; text-align:center;}
+#acctToast.show{opacity:1; transform:translateX(-50%) translateY(0);} #acctToast.bad{background:var(--danger);}
+@media screen{
+  html.nl .a-tab{border:none; border-radius:14px; background:linear-gradient(180deg,#fff,#EFEBFF); color:#4B3FD0; font-weight:800; box-shadow:0 4px 0 #D3CDFF, 0 8px 14px rgba(82,64,230,.12);}
+  html.nl .a-tab:active{transform:translateY(3px); box-shadow:0 1px 0 #D3CDFF;}
+  html.nl .a-tab.on{background:linear-gradient(180deg,#8B7BFF,#5B3FE0); color:#fff; box-shadow:0 4px 0 #3A2BB0, 0 8px 14px rgba(91,63,224,.35);}
+  html.nl .a-tab[data-tab="order"].on{background:linear-gradient(180deg,#FFAE57,#F77F00); box-shadow:0 4px 0 #B35A00, 0 8px 14px rgba(247,127,0,.35);}
+  html.nl .a-tab[data-tab="bills"].on{background:linear-gradient(180deg,#36C5DB,#1098AD); box-shadow:0 4px 0 #0A6F80, 0 8px 14px rgba(16,152,173,.35);}
+  html.nl .a-tab[data-tab="offers"].on{background:linear-gradient(180deg,#FF94CE,#D6336C); box-shadow:0 4px 0 #962350, 0 8px 14px rgba(214,51,108,.35);}
+  html.nl .a-tab[data-tab="profile"].on{background:linear-gradient(180deg,#34D87F,#12A85A); box-shadow:0 4px 0 #0B7A40, 0 8px 14px rgba(18,168,90,.35);}
+  html.nl .avatar{box-shadow:0 0 0 3px #fff, 0 0 0 6px #C9C3FF, 0 6px 0 rgba(150,140,230,.3); background:linear-gradient(135deg,#E9E6FF,#FFE3EE); color:#3D2FB5;}
+  html.nl .a-head h2{color:#2B1F8F; font-weight:800;}
+  html.nl .a-link, html.nl .br-link{color:#4B3FD0;}
+  html.nl .q-chip{border:2px solid #DAD6FF; border-radius:14px; background:#fff; color:#4B5275; font-weight:800; box-shadow:0 3px 0 #E4E0FF;}
+  html.nl .q-chip.on{border-color:#5B3FE0; background:linear-gradient(180deg,#8B7BFF,#5B3FE0); color:#fff; box-shadow:0 3px 0 #3A2BB0, 0 6px 12px rgba(91,63,224,.3);}
+  html.nl .sum-box{color:#fff; box-shadow:0 4px 0 rgba(0,0,0,.18), 0 8px 14px rgba(0,0,0,.12);} html.nl .sum-box .t{opacity:.9;}
+  html.nl .sum-box:nth-child(1){background:linear-gradient(135deg,#5B9CFF,#2F6FED);} html.nl .sum-box:nth-child(2){background:linear-gradient(135deg,#34D87F,#12A85A);}
+  html.nl .sum-box:nth-child(3){background:linear-gradient(135deg,#FFAE57,#F77F00);} html.nl .sum-box:nth-child(4){background:linear-gradient(135deg,#FF8DB3,#E64980);}
+  html.nl .badge{background:#EEEAFF; color:#3D2FB5; font-weight:800;} html.nl .badge.ok{background:linear-gradient(180deg,#C8F5E0,#9BE3C7); color:#08674A;}
+  html.nl .badge.warn{background:linear-gradient(180deg,#FFF3D1,#FFE3A0); color:#7A4A00;} html.nl .badge.bad{background:linear-gradient(180deg,#FFE4E5,#FFB3B6); color:#A32020;}
+  html.nl .bill-row{border-bottom:1px dashed #DAD6FF;} html.nl .br-no{color:#2B1F8F;} html.nl .br-amt .amt{color:#D9480F;}
+  html.nl .progress{background:#E7E3FF; box-shadow:inset 0 2px 3px rgba(0,0,0,.12);} html.nl .progress i{background:linear-gradient(90deg,#34D87F,#12A85A);}
+  html.nl .offer-card .oc-title{color:#2B1F8F;}
+  html.nl #acctToast{background:linear-gradient(135deg,#3D2FB5,#7048E8); border-radius:16px; box-shadow:0 10px 26px rgba(61,47,181,.45);} html.nl #acctToast.bad{background:linear-gradient(135deg,#E03131,#B02A2A);}
+}
+</style>
+<script id="mwLookEarly">(function(){var SU='https://lrrqdmmugvizkbjfwneb.supabase.co',KEY='sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP',d=document.documentElement,m=document.querySelector('meta[name=theme-color]'),orig=m?m.getAttribute('content'):null,cached=null;
+try{cached=localStorage.getItem('mwLook');}catch(e){}
+function paint(on){d.classList.toggle('nl',on);if(m&&orig)m.setAttribute('content',on?'#2B1F8F':orig);}
+function apply(look){var on=look!=='old';paint(on);try{localStorage.setItem('mwLook',on?'new':'old');}catch(e){}}
+paint(cached!=='old');window.mwApplyLook_=apply;
+// which look did the main admin choose? asked when the page opens, when it comes back to the front, and every minute while it stays open (a page that is already open follows the switch too)
+// the same way the app's own database library asks (apikey + Authorization); if the server does not like that, once more with the apikey alone - so the answer never depends on one way of asking
+function post(withAuth){var h={'apikey':KEY,'Content-Type':'application/json'};if(withAuth)h['Authorization']='Bearer '+KEY;return fetch(SU+'/rest/v1/rpc/get_app_look',{method:'POST',headers:h,body:'{}'}).then(function(r){return r.ok?r.json():null;});}
+function got(v){if(v==='new'||v==='old'){apply(v);return true;}return false;}
+function ask(){try{post(true).then(function(v){if(!got(v))return post(false).then(got);}).catch(function(){try{post(false).then(got).catch(function(){});}catch(e){}});}catch(e){}}
+ask();window.mwAskLook_=ask;
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')ask();});
+window.addEventListener('pageshow',function(e){if(e.persisted)ask();});
+setInterval(function(){if(document.visibilityState==='visible')ask();},window.__lookPollMs||60000);
+})();</script>
+</head>
+<body>
+  <header class="topbar"><a class="back-link" href="index.html">← Main page</a><h1>My Account</h1><p>Mahakal Wellness · Customer login</p></header>
+  <main id="acct">
+    <div id="acctLoading" class="empty">Loading…</div>
+
+    <section id="authView" style="display:none;">
+      <div class="a-tabs" id="authTabs">
+        <button class="a-tab on" id="authTabLogin" type="button" onclick="showAuth_('login')">🔐 Login</button>
+        <button class="a-tab" id="authTabRegister" type="button" onclick="showAuth_('register')">📝 Register</button>
+      </div>
+      <p class="box warn" id="authNote" style="display:none;margin:0 0 14px;"></p>
+
+      <div class="card" id="viewLogin">
+        <h2 style="font-size:16px;margin-bottom:12px;">Login</h2>
+        <div class="field"><label for="loginMobile">Mobile number</label><input type="tel" id="loginMobile" inputmode="numeric" autocomplete="username" maxlength="15" placeholder="10-digit mobile" onkeydown="if(event.key==='Enter')doLogin_()"></div>
+        <div class="field pw-row"><label for="loginPass">Password</label><input type="password" id="loginPass" autocomplete="current-password" placeholder="Your password" onkeydown="if(event.key==='Enter')doLogin_()"><button class="pw-eye" type="button" onclick="togglePw_('loginPass', this)">Show</button></div>
+        <p class="error-msg" id="loginError"></p>
+        <button class="btn btn-gold" id="loginBtn" type="button" onclick="doLogin_()">Login</button>
+        <p style="text-align:center;margin:12px 0 0;"><button class="a-link" id="forgotLink" type="button" onclick="showAuth_('forgot')">Forgot password?</button></p>
+        <p class="hint" style="text-align:center;margin-top:6px;">Naye ho? <button class="a-link" type="button" onclick="showAuth_('register')">Register karo</button></p>
+      </div>
+
+      <div class="card" id="viewRegister" style="display:none;">
+        <h2 style="font-size:16px;margin-bottom:4px;">Customer Registration</h2>
+        <p class="hint" style="margin-bottom:12px;">Ek baar register karo, phir apne bills, offers aur order ek jagah dekho.</p>
+        <div class="field"><label for="regMobile">Mobile number</label><input type="tel" id="regMobile" inputmode="numeric" autocomplete="tel" maxlength="15" placeholder="10-digit mobile"></div>
+        <div class="field"><label for="regName">Name</label><input type="text" id="regName" autocomplete="name" placeholder="Your name"></div>
+        <div class="field"><label for="regDs">DS ID No.</label><input type="text" id="regDs" autocapitalize="characters" placeholder="Your DS ID"></div>
+        <div class="field-row">
+          <div class="field"><label for="regUpName">Upline name</label><input type="text" id="regUpName" placeholder="Upline name"></div>
+          <div class="field"><label for="regUpMobile">Upline mobile</label><input type="tel" id="regUpMobile" inputmode="numeric" maxlength="15" placeholder="10-digit"></div>
+        </div>
+        <div class="field"><label for="regCity">City</label><input type="text" id="regCity" autocomplete="address-level2" placeholder="Your city"></div>
+        <div class="field pw-row"><label for="regPass">Set your password</label><input type="password" id="regPass" autocomplete="new-password" placeholder="At least 6 characters"><button class="pw-eye" type="button" onclick="togglePw_('regPass', this)">Show</button></div>
+        <div class="field pw-row"><label for="regPass2">Confirm password</label><input type="password" id="regPass2" autocomplete="new-password" placeholder="Type it again" onkeydown="if(event.key==='Enter')doRegister_()"><button class="pw-eye" type="button" onclick="togglePw_('regPass2', this)">Show</button></div>
+        <p class="error-msg" id="regError"></p>
+        <button class="btn btn-gold" id="regBtn" type="button" onclick="doRegister_()">Register &amp; Login</button>
+        <p class="hint" style="text-align:center;margin-top:12px;">Pehle se account hai? <button class="a-link" type="button" onclick="showAuth_('login')">Login karo</button></p>
+      </div>
+
+      <div class="card" id="viewForgot" style="display:none;">
+        <h2 style="font-size:16px;margin-bottom:4px;">Forgot password</h2>
+        <p class="hint" style="margin-bottom:12px;">Apna mobile number daalo. Hamari team ko aapki request mil jayegi aur wo aapko naya password WhatsApp par bhej degi.</p>
+        <div class="field"><label for="forgotMobile">Mobile number</label><input type="tel" id="forgotMobile" inputmode="numeric" autocomplete="tel" maxlength="15" placeholder="10-digit mobile" onkeydown="if(event.key==='Enter')doForgot_()"></div>
+        <p class="error-msg" id="forgotError"></p>
+        <div class="box good" id="forgotDone" style="display:none;margin:0 0 12px;"></div>
+        <button class="btn btn-gold" id="forgotBtn" type="button" onclick="doForgot_()">Send request to our team</button>
+        <p style="text-align:center;margin:12px 0 0;"><button class="a-link" type="button" onclick="showAuth_('login')">← Back to Login</button></p>
+      </div>
+    </section>
+
+    <section id="homeView" style="display:none;">
+      <div class="card">
+        <div class="a-head" id="homeHead"></div>
+      </div>
+      <div class="box warn" id="tempBanner" style="display:none;margin:0 0 14px;">Aapne temporary password se login kiya hai. <button class="a-link" type="button" onclick="setTab_('profile')">Apna password badal lo</button></div>
+      <div class="a-tabs" id="homeTabs">
+        <button class="a-tab on" data-tab="order" type="button" onclick="setTab_('order')">🛒 Order</button>
+        <button class="a-tab" data-tab="bills" type="button" onclick="setTab_('bills')">🧾 My Bills</button>
+        <button class="a-tab" data-tab="offers" type="button" onclick="setTab_('offers')">🎁 Offers</button>
+        <button class="a-tab" data-tab="profile" type="button" onclick="setTab_('profile')">👤 Profile</button>
+      </div>
+
+      <div id="tabOrder">
+        <div class="card">
+          <h2 style="font-size:16px;margin-bottom:4px;">Purchase Product</h2>
+          <p class="hint" style="margin-bottom:14px;">Wahi order form, wahi process: products chuno, payment karo, bill WhatsApp par bhejo. Aapki details (naam, mobile, city, DS ID, upline) pehle se bhari hongi.</p>
+          <a class="btn btn-gold" id="openOrderBtn" href="order.html">🛒 Order form kholo</a>
+          <p class="hint" style="text-align:center;margin-top:12px;">Order dene ke baad <strong>My Bills</strong> me uska live status link milta hai.</p>
+        </div>
+        <div class="card" id="orderLast" style="display:none;"></div>
+      </div>
+
+      <div id="tabBills" style="display:none;">
+        <div class="card">
+          <p class="section-label">Quick range</p>
+          <div class="q-row" id="qRow"></div>
+          <div class="field-row">
+            <div class="field"><label for="fFrom">From</label><input type="date" id="fFrom" onchange="onDates_()"></div>
+            <div class="field"><label for="fTo">To</label><input type="date" id="fTo" onchange="onDates_()"></div>
+          </div>
+          <p class="section-label" style="margin-top:4px;">Show</p>
+          <div class="q-row" id="sRow"></div>
+          <div class="field" style="margin-bottom:8px;"><label for="fSearch">Search</label><input type="text" id="fSearch" placeholder="Bill no. or amount" oninput="onSearch_()"></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-outline" id="sortBtn" type="button" style="flex:1;padding:10px;font-size:13px;" onclick="toggleSort_()">↓ Newest first</button>
+            <button class="btn btn-outline" id="refreshBills" type="button" style="flex:1;padding:10px;font-size:13px;" onclick="loadBills_(true)">↻ Refresh</button>
+          </div>
+        </div>
+        <div class="card" id="billSummary" style="display:none;"></div>
+        <div class="card"><div id="billList"><div class="empty">Loading…</div></div></div>
+      </div>
+
+      <div id="tabOffers" style="display:none;">
+        <div id="offerList"><div class="card"><div class="empty" style="padding:20px;">Loading…</div></div></div>
+      </div>
+
+      <div id="tabProfile" style="display:none;">
+        <div class="card" style="text-align:center;">
+          <div id="profileAvatar"></div>
+          <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="onPhotoPicked_(this.files && this.files[0])">
+          <button class="btn btn-gold" id="photoBtn" type="button" onclick="document.getElementById('photoInput').click()">📷 Change profile photo</button>
+          <button class="a-link" id="photoRemove" type="button" style="display:none;margin-top:6px;" onclick="removePhoto_()">Remove photo</button>
+          <p class="error-msg" id="photoError" style="text-align:center;"></p>
+        </div>
+        <div class="card"><p class="section-label">My details</p><div id="profileKv"></div><p class="hint" style="margin-top:10px;">Kuch galat ho to hamari team se kehkar badalwa lo.</p></div>
+        <div class="card">
+          <p class="section-label">Change password</p>
+          <div class="field pw-row"><label for="pwOld">Old password</label><input type="password" id="pwOld" autocomplete="current-password"><button class="pw-eye" type="button" onclick="togglePw_('pwOld', this)">Show</button></div>
+          <div class="field pw-row"><label for="pwNew">New password</label><input type="password" id="pwNew" autocomplete="new-password" placeholder="At least 6 characters"><button class="pw-eye" type="button" onclick="togglePw_('pwNew', this)">Show</button></div>
+          <div class="field pw-row"><label for="pwNew2">Confirm new password</label><input type="password" id="pwNew2" autocomplete="new-password" onkeydown="if(event.key==='Enter')doChangePw_()"><button class="pw-eye" type="button" onclick="togglePw_('pwNew2', this)">Show</button></div>
+          <p class="error-msg" id="pwError"></p>
+          <button class="btn btn-gold" id="pwBtn" type="button" onclick="doChangePw_()">Change password</button>
+        </div>
+        <button class="btn btn-outline" id="logoutBtn" type="button" onclick="doLogout_()">Logout</button>
+      </div>
+    </section>
+  </main>
+  <div id="acctToast" role="status"></div>
+
+<script>
+  const SUPABASE_URL = 'https://lrrqdmmugvizkbjfwneb.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+  const LS_ = { token: 'mwCustToken', name: 'mwCustName', mobile: 'mwCustMobile' };
+  function lsGet_(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+  function lsSet_(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode: the login lasts until the page closes */ } }
+  function lsDel_(k) { try { localStorage.removeItem(k); } catch (e) { /* nothing to remove */ } }
+  function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function money(n) { return '₹' + (Number(n) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }); }
+  function trimNum(n) { return String(Math.round((Number(n) || 0) * 100) / 100); }
+  function fmtDate_(iso) { return iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : ''; }
+  function fmtDay_(ymd) { return ymd ? new Date(ymd + 'T00:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : ''; }
+  function show_(id, on, disp) { const e = document.getElementById(id); if (e) e.style.display = on ? (disp || 'block') : 'none'; }
+  function val_(id) { const e = document.getElementById(id); return e ? e.value.trim() : ''; }
+  function digits_(s) { return String(s || '').replace(/\D/g, ''); }
+  let toastT_ = null;
+  function toast_(msg, bad) { const t = document.getElementById('acctToast'); t.textContent = msg; t.classList.toggle('bad', !!bad); t.classList.add('show'); clearTimeout(toastT_); toastT_ = setTimeout(function () { t.classList.remove('show'); }, 3200); }
+  function togglePw_(id, btn) { const i = document.getElementById(id); const on = i.type === 'password'; i.type = on ? 'text' : 'password'; btn.textContent = on ? 'Hide' : 'Show'; }
+
+  // ---------------- the same quick ranges as everywhere in the app: India days, business week Thursday to Wednesday, running periods end today ----------------
+  function dfToday_() { return new Date(Date.now() + 19800000).toISOString().slice(0, 10); }
+  function dfShift_(ymd, days) { const d = new Date(ymd + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10); }
+  function dfDayOf_(iso) { return iso ? new Date(new Date(iso).getTime() + 19800000).toISOString().slice(0, 10) : ''; }
+  const QR_KINDS_ = [['today', 'Today'], ['yesterday', 'Yesterday'], ['week', 'This week'], ['lastweek', 'Previous week'], ['month', 'This month'], ['lastmonth', 'Previous month'], ['custom', 'Custom'], ['all', 'All time']];
+  function qrRange_(kind) {
+    const today = dfToday_();
+    if (kind === 'yesterday') { const y = dfShift_(today, -1); return { from: y, to: y }; }
+    const dow = new Date(today + 'T00:00:00Z').getUTCDay(), wk = dfShift_(today, -((dow - 4 + 7) % 7));
+    if (kind === 'week') return { from: wk, to: today };
+    if (kind === 'lastweek') return { from: dfShift_(wk, -7), to: dfShift_(wk, -1) };
+    const y = Number(today.slice(0, 4)), m = Number(today.slice(5, 7));
+    const ymd = function (yy, mm, dd) { return yy + '-' + String(mm).padStart(2, '0') + '-' + String(dd).padStart(2, '0'); };
+    const lastDay = function (yy, mm) { return new Date(Date.UTC(yy, mm, 0)).getUTCDate(); };
+    if (kind === 'month') return { from: ymd(y, m, 1), to: today };
+    if (kind === 'lastmonth') { const py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1; return { from: ymd(py, pm, 1), to: ymd(py, pm, lastDay(py, pm)) }; }
+    return { from: today, to: today };
+  }
+
+  // ---------------- signed out: login / register / forgot password ----------------
+  let ME = null, authTab_ = 'login', homeTab_ = 'order';
+  function showAuth_(tab, note) {
+    authTab_ = tab;
+    show_('acctLoading', false); show_('homeView', false); show_('authView', true);
+    show_('viewLogin', tab === 'login'); show_('viewRegister', tab === 'register'); show_('viewForgot', tab === 'forgot');
+    document.getElementById('authTabLogin').classList.toggle('on', tab === 'login' || tab === 'forgot');
+    document.getElementById('authTabRegister').classList.toggle('on', tab === 'register');
+    const n = document.getElementById('authNote'); n.textContent = note || ''; n.style.display = note ? 'block' : 'none';
+    ['loginError', 'regError', 'forgotError'].forEach(function (id) { document.getElementById(id).textContent = ''; });
+    show_('forgotDone', false);
+    if (tab === 'forgot' && !val_('forgotMobile') && val_('loginMobile')) document.getElementById('forgotMobile').value = val_('loginMobile');
+  }
+  function acctBackStep_() {
+    if (document.getElementById('homeView').style.display !== 'none') { if (homeTab_ !== 'order') { setTab_('order'); return true; } return false; }
+    if (authTab_ !== 'login') { showAuth_('login'); return true; }
+    return false;
+  }
+  function msgOf_(e) { return String((e && e.message) || e || 'Something went wrong. Please try again.').replace(/^ERROR:\s*/i, ''); }
+  async function doLogin_() {
+    const err = document.getElementById('loginError'), btn = document.getElementById('loginBtn'); err.textContent = '';
+    const mobile = val_('loginMobile'), pw = document.getElementById('loginPass').value;
+    if (digits_(mobile).length < 10) { err.textContent = 'Enter your 10-digit mobile number.'; return; }
+    if (!pw) { err.textContent = 'Enter your password.'; return; }
+    btn.disabled = true; btn.textContent = 'Please wait…';
+    try {
+      const { data, error } = await sb.rpc('customer_login', { p_mobile: mobile, p_password: pw });
+      if (error) { err.textContent = msgOf_(error); return; }
+      if (!data || !data.ok) { err.textContent = (data && data.error) || 'Mobile number or password is wrong.'; return; }
+      document.getElementById('loginPass').value = '';
+      signedIn_(data);
+    } catch (e) { err.textContent = 'No network. Please try again.'; }
+    finally { btn.disabled = false; btn.textContent = 'Login'; }
+  }
+  async function doRegister_() {
+    const err = document.getElementById('regError'), btn = document.getElementById('regBtn'); err.textContent = '';
+    const f = { mobile: val_('regMobile'), name: val_('regName'), ds: val_('regDs'), upName: val_('regUpName'), upMobile: val_('regUpMobile'), city: val_('regCity') };
+    const pw = document.getElementById('regPass').value, pw2 = document.getElementById('regPass2').value;
+    if (digits_(f.mobile).length < 10) { err.textContent = 'Enter a valid 10-digit mobile number.'; return; }
+    if (!f.name) { err.textContent = 'Please enter your name.'; return; }
+    if (!f.ds) { err.textContent = 'Please enter your DS ID No.'; return; }
+    if (!f.upName) { err.textContent = 'Please enter your Upline name.'; return; }
+    if (digits_(f.upMobile).length < 10) { err.textContent = 'Enter a valid 10-digit Upline mobile number.'; return; }
+    if (!f.city) { err.textContent = 'Please enter your city.'; return; }
+    if (pw.length < 6) { err.textContent = 'The password must have at least 6 characters.'; return; }
+    if (pw !== pw2) { err.textContent = 'The two passwords are not the same.'; return; }
+    btn.disabled = true; btn.textContent = 'Please wait…';
+    try {
+      const { data, error } = await sb.rpc('customer_register', { p_mobile: f.mobile, p_name: f.name, p_ds_id: f.ds, p_upline_name: f.upName, p_upline_mobile: f.upMobile, p_city: f.city, p_password: pw });
+      if (error) { err.textContent = msgOf_(error); return; }
+      if (!data || !data.ok) { err.textContent = 'Could not register. Please try again.'; return; }
+      ['regPass', 'regPass2'].forEach(function (id) { document.getElementById(id).value = ''; });
+      signedIn_(data, true);
+    } catch (e) { err.textContent = 'No network. Please try again.'; }
+    finally { btn.disabled = false; btn.textContent = 'Register & Login'; }
+  }
+  async function doForgot_() {
+    const err = document.getElementById('forgotError'), btn = document.getElementById('forgotBtn'), done = document.getElementById('forgotDone'); err.textContent = ''; show_('forgotDone', false);
+    const mobile = val_('forgotMobile');
+    if (digits_(mobile).length < 10) { err.textContent = 'Enter your 10-digit mobile number.'; return; }
+    btn.disabled = true; btn.textContent = 'Please wait…';
+    try {
+      const { data, error } = await sb.rpc('customer_forgot_password', { p_mobile: mobile });
+      if (error) { err.textContent = msgOf_(error); return; }
+      if (data && data.status === 'requested') {
+        done.className = 'box good'; done.innerHTML = '✓ Aapki request hamari team ko bhej di gayi. Team aapko <strong>naya password WhatsApp par</strong> bhej degi - thoda intezaar karo.'; show_('forgotDone', true);
+      } else {
+        done.className = 'box warn'; done.innerHTML = 'Is mobile number se koi account nahi mila. <button class="a-link" type="button" onclick="showAuth_(\'register\')">Pehle Register karo</button>'; show_('forgotDone', true);
+      }
+    } catch (e) { err.textContent = 'No network. Please try again.'; }
+    finally { btn.disabled = false; btn.textContent = 'Send request to our team'; }
+  }
+  function signedIn_(data, fresh) {
+    lsSet_(LS_.token, data.token); ME = data.profile; lsSet_(LS_.name, ME.name || ''); lsSet_(LS_.mobile, ME.mobile || '');
+    BILLS = null; OFFERS = null; enterHome_(fresh);
+  }
+  function sessionEnded_(note) { lsDel_(LS_.token); lsDel_(LS_.name); lsDel_(LS_.mobile); ME = null; BILLS = null; OFFERS = null; showAuth_('login', note); }
+  async function doLogout_() {
+    if (!confirm('Logout from this phone?')) return;
+    const t = lsGet_(LS_.token);
+    try { await sb.rpc('customer_logout', { p_token: t }); } catch (e) { /* the login on this phone is removed anyway */ }
+    lsDel_(LS_.token); lsDel_(LS_.name); lsDel_(LS_.mobile); ME = null; BILLS = null; OFFERS = null; showAuth_('login');
+  }
+
+  // ---------------- signed in ----------------
+  function initials_(n) { const p = String(n || '?').trim().split(/\s+/); return ((p[0] || '?')[0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase(); }
+  function avatarHtml_(big) { return ME.photo ? '<img class="avatar' + (big ? ' big' : '') + '" src="' + ME.photo + '" alt="Profile photo">' : '<div class="avatar' + (big ? ' big' : '') + '">' + escapeHtml(initials_(ME.name)) + '</div>'; }
+  function enterHome_(fresh) {
+    show_('acctLoading', false); show_('authView', false); show_('homeView', true);
+    renderHead_(); show_('tempBanner', !!ME.mustChange);
+    const want = (location.hash || '').replace('#', ''); setTab_(['order', 'bills', 'offers', 'profile'].indexOf(want) >= 0 ? want : 'order');
+    if (fresh) toast_(ME.verified ? 'Welcome! Aapka account ban gaya.' : 'Account ban gaya. Hamari team aapko jaldi verify karegi.');
+  }
+  function renderHead_() {
+    document.getElementById('homeHead').innerHTML = avatarHtml_(false) + '<div style="min-width:0;"><h2>' + escapeHtml(ME.name || 'Customer') + '</h2><p class="a-sub">' + escapeHtml(ME.mobile) + (ME.dsId ? ' · DS ID ' + escapeHtml(ME.dsId) : '') + '</p>' +
+      (ME.verified ? '' : '<span class="badge warn" style="margin-top:6px;">⏳ Verification pending</span>') + '</div>';
+  }
+  function setTab_(name) {
+    homeTab_ = name;
+    Array.prototype.forEach.call(document.querySelectorAll('#homeTabs .a-tab'), function (b) { b.classList.toggle('on', b.dataset.tab === name); });
+    show_('tabOrder', name === 'order'); show_('tabBills', name === 'bills'); show_('tabOffers', name === 'offers'); show_('tabProfile', name === 'profile');
+    if (name === 'bills') { initFilters_(); if (!BILLS) loadBills_(); else renderBills_(); }
+    if (name === 'offers' && !OFFERS) loadOffers_();
+    if (name === 'order' && !BILLS) loadBills_(false, true);
+    if (name === 'order') renderLast_();
+    if (name === 'profile') renderProfile_();
+  }
+  async function rpcA_(name, extra) {
+    const r = await sb.rpc(name, Object.assign({ p_token: lsGet_(LS_.token) }, extra || {}));
+    if (r.error && /SESSION_EXPIRED/.test(r.error.message || '')) { sessionEnded_('Aapka login khatam ho gaya — phir se login karo.'); throw new Error('SESSION_EXPIRED'); }
+    return r;
+  }
+
+  // ---------------- My Bills with every filter ----------------
+  let BILLS = null, OFFERS = null, billsVerified_ = true;
+  const F = { kind: 'all', from: '', to: '', status: 'all', q: '', sort: 'new', shown: 30 };
+  const STATUS_CHIPS_ = [['all', 'All'], ['approval', 'In approval'], ['due', 'Due'], ['paid', 'Paid'], ['delpending', 'Delivery pending'], ['delivered', 'Delivered'], ['cancelled', 'Cancelled / declined']];
+  let filtersReady_ = false;
+  function initFilters_() {
+    if (filtersReady_) return; filtersReady_ = true;
+    document.getElementById('qRow').innerHTML = QR_KINDS_.map(function (k) { return '<button class="q-chip" type="button" data-qk="' + k[0] + '" onclick="qPick_(\'' + k[0] + '\')">' + k[1] + '</button>'; }).join('');
+    document.getElementById('sRow').innerHTML = STATUS_CHIPS_.map(function (k) { return '<button class="q-chip" type="button" data-sk="' + k[0] + '" onclick="sPick_(\'' + k[0] + '\')">' + k[1] + '</button>'; }).join('');
+    syncChips_();
+  }
+  function syncChips_() {
+    Array.prototype.forEach.call(document.querySelectorAll('#qRow .q-chip'), function (b) { b.classList.toggle('on', b.dataset.qk === F.kind); });
+    Array.prototype.forEach.call(document.querySelectorAll('#sRow .q-chip'), function (b) { b.classList.toggle('on', b.dataset.sk === F.status); });
+    document.getElementById('sortBtn').textContent = F.sort === 'new' ? '↓ Newest first' : '↑ Oldest first';
+  }
+  function qPick_(kind) {
+    F.kind = kind;
+    if (kind === 'all') { F.from = ''; F.to = ''; } else if (kind !== 'custom') { const r = qrRange_(kind); F.from = r.from; F.to = r.to; }
+    document.getElementById('fFrom').value = F.from; document.getElementById('fTo').value = F.to;
+    if (kind === 'custom') document.getElementById('fFrom').focus();
+    F.shown = 30; syncChips_(); renderBills_();
+  }
+  function onDates_() {
+    F.from = val_('fFrom'); F.to = val_('fTo'); let on = 'custom';
+    if (!F.from && !F.to) on = 'all'; else QR_KINDS_.forEach(function (k) { if (k[0] === 'custom' || k[0] === 'all') return; const r = qrRange_(k[0]); if (r.from === F.from && r.to === F.to) on = k[0]; });
+    F.kind = on; F.shown = 30; syncChips_(); renderBills_();
+  }
+  function sPick_(s) { F.status = s; F.shown = 30; syncChips_(); renderBills_(); }
+  function onSearch_() { F.q = val_('fSearch').toLowerCase(); F.shown = 30; renderBills_(); }
+  function toggleSort_() { F.sort = F.sort === 'new' ? 'old' : 'new'; syncChips_(); renderBills_(); }
+  function billState_(b) {
+    if (b.kind === 'request') return b.billStatus === 'Rejected' ? { cls: 'bad', label: '✖ Order declined' } : { cls: 'warn', label: '⏳ Order request · waiting for approval' };
+    if (b.billStatus === 'Cancelled') return { cls: 'bad', label: 'Cancelled' };
+    if (b.billStatus === 'Pending') return { cls: 'warn', label: '⏳ In approval' };
+    if (Number(b.due) > 0.005) return { cls: 'bad', label: (Number(b.paid) > 0.005 ? 'Partly paid · Due ' : 'Unpaid · Due ') + money(b.due) };
+    return { cls: 'ok', label: '✓ Paid' };
+  }
+  function matchesStatus_(b, s) {
+    const cancelled = b.billStatus === 'Cancelled' || b.billStatus === 'Rejected', approval = b.kind === 'request' || b.billStatus === 'Pending', active = b.kind === 'bill' && b.billStatus === 'Active';
+    if (s === 'all') return !cancelled; if (s === 'cancelled') return cancelled; if (s === 'approval') return approval && !cancelled;
+    if (s === 'due') return active && Number(b.due) > 0.005; if (s === 'paid') return active && Number(b.due) <= 0.005;
+    if (s === 'delpending') return active && b.delivery === 'Pending'; if (s === 'delivered') return active && b.delivery === 'Delivered';
+    return true;
+  }
+  function visibleBills_() {
+    const q = F.q;
+    const list = (BILLS || []).filter(function (b) {
+      if (!matchesStatus_(b, F.status)) return false;
+      const day = dfDayOf_(b.date); if (F.from && day < F.from) return false; if (F.to && day > F.to) return false;
+      if (q && String(b.billNo).toLowerCase().indexOf(q) < 0 && trimNum(b.amount).indexOf(q) < 0 && String(Math.round(Number(b.amount))).indexOf(q) < 0) return false;
+      return true;
+    });
+    list.sort(function (a, c) { return F.sort === 'new' ? String(c.date).localeCompare(String(a.date)) : String(a.date).localeCompare(String(c.date)); });
+    return list;
+  }
+  async function loadBills_(manual, quiet) {
+    if (!quiet) document.getElementById('billList').innerHTML = '<div class="empty" style="padding:24px;">Loading…</div>';
+    try {
+      const { data, error } = await rpcA_('customer_get_bills');
+      if (error) { if (!quiet) document.getElementById('billList').innerHTML = '<div class="empty" style="padding:24px;">Could not load your bills. Please try again.</div>'; return; }
+      BILLS = (data && data.bills) || []; billsVerified_ = !data || data.verified !== false;
+      if (homeTab_ === 'bills') renderBills_(); if (homeTab_ === 'order') renderLast_();
+      if (manual) toast_('Bills updated');
+    } catch (e) { /* a lost login is handled in rpcA_ */ }
+  }
+  function renderBills_() {
+    const box = document.getElementById('billList'), sum = document.getElementById('billSummary');
+    if (!BILLS) return;
+    if (!billsVerified_) { show_('billSummary', false); box.innerHTML = '<div class="box warn" style="margin:0;">Aapka account abhi verify ho raha hai. Verify hone ke baad aapke purane bills yahan dikhenge. Jaldi chahiye to hamari team ko call karo.</div>'; return; }
+    const list = visibleBills_();
+    const counted = list.filter(function (b) { return b.kind === 'bill' && (b.billStatus === 'Active' || b.billStatus === 'Pending'); });
+    const tot = function (k) { return counted.reduce(function (s, b) { return s + (Number(b[k]) || 0); }, 0); };
+    sum.style.display = 'block';
+    sum.innerHTML = '<p class="section-label">Summary of the bills shown</p><div class="sum-grid"><div class="sum-box"><div class="t">Bills</div><div class="n" id="sumBills">' + list.length + '</div></div><div class="sum-box"><div class="t">Amount</div><div class="n" id="sumAmount">' + money(tot('amount')) + '</div></div><div class="sum-box"><div class="t">Total SP</div><div class="n" id="sumSp">' + trimNum(tot('sp')) + '</div></div><div class="sum-box"><div class="t">Due</div><div class="n" id="sumDue">' + money(tot('due')) + '</div></div></div>';
+    if (!list.length) { box.innerHTML = '<div class="empty" style="padding:24px;">' + (BILLS.length ? 'No bills match these filters.' : 'Abhi tak koi bill nahi. Pehla order dene ke liye <strong>Order</strong> tab kholo.') + '</div>'; return; }
+    const part = list.slice(0, F.shown);
+    box.innerHTML = part.map(billRowHtml_).join('') + (list.length > part.length ? '<button class="btn btn-outline" id="moreBills" type="button" style="margin-top:12px;" onclick="F.shown += 30; renderBills_();">Show more (' + (list.length - part.length) + ')</button>' : '');
+  }
+  function billRowHtml_(b) {
+    const st = billState_(b);
+    const del = (b.kind === 'bill' && b.billStatus === 'Active') ? '<span class="badge ' + (b.delivery === 'Delivered' ? 'ok' : 'warn') + '">' + (b.delivery === 'Delivered' ? '✓ Delivered' : 'Delivery pending' + (Number(b.pendingQty) > 0 ? ' (' + trimNum(b.pendingQty) + ')' : '')) + '</span>' : '';
+    return '<div class="bill-row" data-bill="' + escapeHtml(b.billNo) + '"><div class="br-top"><div><div class="br-no">' + escapeHtml(b.billNo) + '</div><div class="br-date">' + escapeHtml(fmtDate_(b.date)) + (b.type ? ' · ' + escapeHtml(b.type) : '') + '</div></div>' +
+      '<div class="br-amt"><div class="amt">' + money(b.amount) + '</div><div class="sp">' + trimNum(b.sp) + ' SP</div></div></div>' +
+      '<div class="br-badges"><span class="badge ' + st.cls + '">' + st.label + '</span>' + del + '</div>' +
+      '<a class="br-link" href="bill.html?token=' + encodeURIComponent(b.token) + '" target="_blank" rel="noopener">🔗 Live status</a></div>';
+  }
+  function renderLast_() {
+    const box = document.getElementById('orderLast'); if (!BILLS || !BILLS.length || !billsVerified_) { box.style.display = 'none'; return; }
+    const b = BILLS.slice().sort(function (a, c) { return String(c.date).localeCompare(String(a.date)); })[0], st = billState_(b);
+    box.style.display = 'block';
+    box.innerHTML = '<p class="section-label">Your latest order</p><div class="br-top"><div><div class="br-no">' + escapeHtml(b.billNo) + '</div><div class="br-date">' + escapeHtml(fmtDate_(b.date)) + '</div></div><div class="br-amt"><div class="amt">' + money(b.amount) + '</div><div class="sp">' + trimNum(b.sp) + ' SP</div></div></div><div class="br-badges"><span class="badge ' + st.cls + '">' + st.label + '</span></div><a class="br-link" href="bill.html?token=' + encodeURIComponent(b.token) + '" target="_blank" rel="noopener">🔗 Live status</a>';
+  }
+
+  // ---------------- Offers and my status in each ----------------
+  async function loadOffers_() {
+    document.getElementById('offerList').innerHTML = '<div class="card"><div class="empty" style="padding:20px;">Loading…</div></div>';
+    try {
+      const { data, error } = await rpcA_('customer_get_offers');
+      if (error) { document.getElementById('offerList').innerHTML = '<div class="card"><div class="empty" style="padding:20px;">Could not load offers. Please try again.</div></div>'; return; }
+      OFFERS = data || { offers: [], verified: true }; renderOffers_();
+    } catch (e) { /* a lost login is handled in rpcA_ */ }
+  }
+  function renderOffers_() {
+    const box = document.getElementById('offerList'), list = (OFFERS && OFFERS.offers) || [], today = dfToday_();
+    if (!list.length) { box.innerHTML = '<div class="card"><div class="empty" style="padding:20px;">Abhi koi offer nahi chal raha. Naye offers yahin dikhenge.</div></div>'; return; }
+    box.innerHTML = list.map(function (o) {
+      const target = Number(o.targetValue) || 0, isSp = o.targetType === 'SP', fmt = function (v) { return isSp ? trimNum(v) + ' SP' : money(v); };
+      const known = o.progress !== null && o.progress !== undefined, prog = known ? Number(o.progress) : 0, pct = target > 0 ? Math.max(0, Math.min(100, Math.round(prog / target * 100))) : 0, achieved = known && prog >= target;
+      let badge;
+      if (o.state === 'upcoming') badge = '<span class="badge">🗓 Starts ' + escapeHtml(fmtDay_(o.start)) + '</span>';
+      else if (!known) badge = '<span class="badge warn">⏳ Progress after verification</span>';
+      else if (achieved) badge = '<span class="badge ok">🎉 Achieved</span>';
+      else if (o.state === 'ended') badge = '<span class="badge bad">Ended · not achieved</span>';
+      else badge = '<span class="badge warn">' + fmt(target - prog) + ' more needed</span>';
+      const left = o.state === 'running' ? Math.max(0, Math.round((new Date(o.end + 'T00:00:00Z') - new Date(today + 'T00:00:00Z')) / 86400000)) : null;
+      return '<div class="card offer-card" data-offer="' + escapeHtml(o.id) + '"><div class="oc-title">' + escapeHtml(o.title) + '</div><div class="oc-meta">' + escapeHtml(fmtDay_(o.start)) + ' – ' + escapeHtml(fmtDay_(o.end)) + ' · Target ' + fmt(target) + (left !== null ? ' · ' + left + ' day' + (left === 1 ? '' : 's') + ' left' : '') + '</div>' +
+        (known ? '<div class="progress"><i style="width:' + pct + '%"></i></div><div class="progress-line"><span>Your progress: <strong>' + fmt(prog) + '</strong></span><span>' + pct + '%</span></div>' : '') + '<div style="margin-top:10px;">' + badge + '</div></div>';
+    }).join('');
+  }
+
+  // ---------------- Profile: photo, details, password ----------------
+  function renderProfile_() {
+    document.getElementById('profileAvatar').innerHTML = avatarHtml_(true); show_('photoRemove', !!ME.photo); document.getElementById('photoError').textContent = '';
+    const kv = function (k, v) { return '<div class="kv"><span class="k">' + k + '</span><span class="v">' + (v ? escapeHtml(v) : '—') + '</span></div>'; };
+    document.getElementById('profileKv').innerHTML = kv('Name', ME.name) + kv('Mobile', ME.mobile) + kv('DS ID', ME.dsId) + kv('Upline', (ME.uplineName || '') + (ME.uplineMobile ? ' (' + ME.uplineMobile + ')' : '')) + kv('City', ME.city) +
+      '<div class="kv"><span class="k">Account</span><span class="v">' + (ME.verified ? '✓ Verified' : '⏳ Verification pending') + '</span></div>';
+  }
+  function squareJpeg_(img, size, q) {
+    const c = document.createElement('canvas'); c.width = c.height = size; const x = c.getContext('2d'), s = Math.min(img.naturalWidth, img.naturalHeight);
+    x.fillStyle = '#fff'; x.fillRect(0, 0, size, size); x.drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, size, size); return c.toDataURL('image/jpeg', q);
+  }
+  async function onPhotoPicked_(file) {
+    const err = document.getElementById('photoError'); err.textContent = '';
+    document.getElementById('photoInput').value = '';
+    if (!file) return;
+    if (!/^image\//.test(file.type || 'image/jpeg')) { err.textContent = 'Please choose a photo.'; return; }
+    const btn = document.getElementById('photoBtn'); btn.disabled = true; btn.textContent = 'Please wait…';
+    try {
+      const url = URL.createObjectURL(file), img = new Image();
+      await new Promise(function (res, rej) { img.onload = res; img.onerror = rej; img.src = url; });
+      let q = 0.8, photo = squareJpeg_(img, 256, q);
+      while (photo.length > 80000 && q > 0.35) { q -= 0.1; photo = squareJpeg_(img, 256, q); }
+      const thumb = squareJpeg_(img, 64, 0.7); URL.revokeObjectURL(url);
+      const { error } = await rpcA_('customer_set_photo', { p_photo: photo, p_thumb: thumb });
+      if (error) { err.textContent = msgOf_(error); return; }
+      ME.photo = photo; renderHead_(); renderProfile_(); toast_('Profile photo updated');
+    } catch (e) { if (String(e && e.message) !== 'SESSION_EXPIRED') err.textContent = 'Could not use this photo. Please try another one.'; }
+    finally { btn.disabled = false; btn.textContent = '📷 Change profile photo'; }
+  }
+  async function removePhoto_() {
+    try { const { error } = await rpcA_('customer_set_photo', { p_photo: null, p_thumb: null }); if (error) { document.getElementById('photoError').textContent = msgOf_(error); return; } ME.photo = null; renderHead_(); renderProfile_(); toast_('Photo removed'); } catch (e) { /* handled */ }
+  }
+  async function doChangePw_() {
+    const err = document.getElementById('pwError'), btn = document.getElementById('pwBtn'); err.textContent = '';
+    const o = document.getElementById('pwOld').value, n = document.getElementById('pwNew').value, n2 = document.getElementById('pwNew2').value;
+    if (!o) { err.textContent = 'Enter your old password.'; return; }
+    if (n.length < 6) { err.textContent = 'The new password must have at least 6 characters.'; return; }
+    if (n !== n2) { err.textContent = 'The two new passwords are not the same.'; return; }
+    btn.disabled = true; btn.textContent = 'Please wait…';
+    try {
+      const { data, error } = await rpcA_('customer_change_password', { p_old: o, p_new: n });
+      if (error) { err.textContent = msgOf_(error); return; }
+      if (!data || !data.ok) { err.textContent = (data && data.error) || 'Could not change the password.'; return; }
+      ['pwOld', 'pwNew', 'pwNew2'].forEach(function (id) { document.getElementById(id).value = ''; });
+      ME.mustChange = false; show_('tempBanner', false); toast_('Password changed');
+    } catch (e) { /* handled */ }
+    finally { btn.disabled = false; btn.textContent = 'Change password'; }
+  }
+
+  // ---------------- start: a login that is still valid goes straight in (no login again and again) ----------------
+  async function boot_() {
+    const t = lsGet_(LS_.token);
+    if (!t) { showAuth_('login'); return; }
+    try {
+      const { data, error } = await sb.rpc('customer_me', { p_token: t });
+      if (error) throw error;
+      if (data && data.valid) { ME = data.profile; lsSet_(LS_.name, ME.name || ''); lsSet_(LS_.mobile, ME.mobile || ''); enterHome_(false); }
+      else sessionEnded_('Aapka login khatam ho gaya — phir se login karo.');
+    } catch (e) {
+      show_('acctLoading', false);
+      document.getElementById('acct').insertAdjacentHTML('beforeend', '<div class="card" id="acctOffline"><p class="hint" style="margin-bottom:12px;">Network nahi mila. Aapka login safe hai - internet chalu karke dobara koshish karo.</p><button class="btn btn-gold" type="button" onclick="document.getElementById(\'acctOffline\').remove(); show_(\'acctLoading\', true); boot_();">Try again</button></div>');
+    }
+  }
+  boot_();
+</script>
+<!-- MW-UX-START (keyboard + back button; the same in every page, built by tools/apply_ux_snippets.py) -->
+<style id="mwUxCss">
+  :root{--kb:0px; --vvh:100vh;}
+  .modal-overlay,.qty-modal-overlay,#notifPanel,#notifDetailPopup{bottom:var(--kb) !important;}
+  .modal-sheet,.qty-modal-sheet{max-height:calc(var(--vvh) * .92) !important;}
+  .summary-bar{bottom:var(--kb) !important;}
+  .toast{bottom:calc(100px + var(--kb)) !important;}
+  html.kb-open body{padding-bottom:calc(var(--kb) + 24px);}
+</style>
+<script>
+/* On-screen keyboard: --kb = how much of the bottom of the screen the keyboard covers, --vvh = the height that is really visible. */
+(function () {
+  var vv = window.visualViewport, root = document.documentElement;
+  function update() {
+    var kb = 0, h = window.innerHeight;
+    if (vv) { h = vv.height; if (!vv.scale || Math.abs(vv.scale - 1) < 0.02) kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)); }
+    if (kb < 60) kb = 0;                                   // the browser's own bars growing or shrinking are not a keyboard
+    root.style.setProperty('--kb', kb + 'px'); root.style.setProperty('--vvh', Math.round(h) + 'px'); root.classList.toggle('kb-open', kb > 0);
+  }
+  if (vv) { vv.addEventListener('resize', update); vv.addEventListener('scroll', update); }
+  window.addEventListener('resize', update);
+  window.addEventListener('orientationchange', function () { setTimeout(update, 350); });
+  update();
+  // keep the field being typed in on screen (also when the keyboard takes a moment to open)
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!t || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || /^(checkbox|radio|button|submit|file|range|color)$/i.test(t.type || '')) return;
+    [120, 450, 900].forEach(function (ms) {
+      setTimeout(function () { if (document.activeElement !== t) return; try { t.scrollIntoView({ block: 'center', behavior: ms === 120 ? 'auto' : 'smooth', inline: 'nearest' }); } catch (x) {} }, ms);
+    });
+  });
+})();
+</script>
+<script>
+/* Popup layers: the popup opened LAST is always the top one. Every popup that is shown takes the next layer number, above every popup shown before it
+   (whatever its place in the page), so a popup opened from another popup - Edit customer from the customer window, Transport charges from the bill,
+   a confirm window from a list - can never come up UNDER the window it was opened from. Messages (layer 200) and the sign-in screen (300) stay above. */
+(function () {
+  var SEL = '.modal-overlay, .qty-modal-overlay', BASE = 80, MAX = 190, next = BASE;
+  function anyShown() { return !!document.querySelector('.modal-overlay.show, .qty-modal-overlay.show'); }
+  function sync(el) {
+    var on = el.classList.contains('show');
+    if (on && el.getAttribute('data-mwz') === null) {
+      if (el.__mwz0 === undefined) el.__mwz0 = el.style.zIndex || '';
+      next = Math.min(next + 1, MAX); el.style.zIndex = String(next); el.setAttribute('data-mwz', String(next));
+    } else if (!on && el.getAttribute('data-mwz') !== null) {
+      el.removeAttribute('data-mwz'); el.style.zIndex = el.__mwz0 || '';
+      if (!anyShown()) next = BASE;
+    }
+  }
+  var attrObs = new MutationObserver(function (list) { list.forEach(function (m) { sync(m.target); }); });
+  function watch(el) { if (el.__mwWatched) return; el.__mwWatched = true; attrObs.observe(el, { attributes: true, attributeFilter: ['class'] }); sync(el); }
+  function scan(root) { if (root.matches && root.matches(SEL)) watch(root); if (root.querySelectorAll) Array.prototype.forEach.call(root.querySelectorAll(SEL), watch); }
+  function start() {
+    scan(document);
+    new MutationObserver(function (list) { list.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1) scan(n); }); }); }).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
+</script>
+<script>
+/* Phone back button. Until the visitor has touched the page nothing is done (and Chrome would skip the entry anyway). After that one
+   spare history entry sits on top: a back press lands on the entry below it, the page-specific MW_BACK() closes / goes back one step, and
+   the spare entry is put back. With nothing left to go back to: "press back once more", and the second press really leaves. */
+(function () {
+  var armed = !!(history.state && history.state.mwTrap), exitUntil = 0;
+  function note(msg) {
+    if (typeof showToast === 'function') { try { showToast(msg); return; } catch (e) {} }
+    var b = document.getElementById('mwBackNote');
+    if (!b) { b = document.createElement('div'); b.id = 'mwBackNote'; b.style.cssText = 'position:fixed;left:50%;bottom:calc(90px + var(--kb,0px));transform:translateX(-50%);background:#132E26;color:#fff;padding:10px 18px;border-radius:10px;font:600 13.5px sans-serif;z-index:9999;max-width:88%;text-align:center;'; document.body.appendChild(b); }
+    b.textContent = msg; b.style.display = 'block'; clearTimeout(b._t); b._t = setTimeout(function () { b.style.display = 'none'; }, 1800);
+  }
+  function trap() { try { history.pushState({ mwTrap: 1 }, '', location.href); return true; } catch (e) { return false; } }
+  function arm() { if (!armed && trap()) armed = true; }
+  ['pointerdown', 'touchstart', 'keydown', 'click'].forEach(function (n) { window.addEventListener(n, arm, { capture: true, passive: true }); });
+  window.addEventListener('popstate', function () {
+    if (!armed) return;
+    var did = false;
+    try { did = typeof window.MW_BACK === 'function' && window.MW_BACK() === true; } catch (e) {}
+    if (did) { trap(); return; }
+    if (Date.now() < exitUntil) { armed = false; history.back(); return; }          // second press in time: leave
+    exitUntil = Date.now() + 2000; note('Bahar jaane ke liye ek baar aur back dabao'); trap();
+  });
+})();
+</script>
+<script>
+(function () {
+  // the customer's account page: a popup closes first; then the page steps back (Forgot password -> Login, another tab -> the first tab); then the browser leaves the page
+  window.MW_BACK = function () {
+    var open = document.querySelector('.modal-overlay.show, .qty-modal-overlay.show');
+    if (open) { open.classList.remove('show'); return true; }
+    return typeof window.acctBackStep_ === 'function' ? window.acctBackStep_() === true : false;
+  };
+})();
+</script>
+<!-- MW-UX-END -->
+</body>
+</html>

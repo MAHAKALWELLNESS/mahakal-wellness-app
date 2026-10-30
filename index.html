@@ -45,6 +45,8 @@
   #mainChoices .bento-featured{grid-column:1 / -1; min-height:130px;}
   #mainChoices .bento-purchase, #mainChoices .choice-card.primary{background:linear-gradient(135deg,var(--green-800),var(--green-900)); border:none;}
   #mainChoices .bento-purchase .choice-title, #mainChoices .choice-card.primary .choice-title{color:#fff;}
+  #mainChoices .bento-account{background:linear-gradient(135deg,#3D2FB5,#241B6E); border:none;}
+  #mainChoices .bento-account .choice-title{color:#fff;}
   #mainChoices .bento-hall{background:var(--gold-500);}
   #mainChoices .bento-hall .choice-title{color:var(--green-900);}
   #mainChoices .bento-rate{background:#2A5C4C;}
@@ -115,6 +117,7 @@ html.nl #mainChoices .bento-featured .choice-title{font-size:20px;}
 html.nl #mainChoices #installAppBtn[style*="block"]{display:flex !important;}
 html.nl #mainChoices .choice-card.bento-purchase{--t1:#3DDC84; --t2:#0FA35A; --t3:#0A7A41;}
 html.nl #mainChoices #installAppBtn{--t1:#5B9CFF; --t2:#2F6FED; --t3:#1B49B0;}
+html.nl #mainChoices .choice-card.bento-account{--t1:#8B7BFF; --t2:#5B3FE0; --t3:#3A2BB0;}
 html.nl #mainChoices .choice-card.bento-hall{--t1:#FFB04D; --t2:#F57C00; --t3:#B35A00;}
 html.nl #mainChoices .choice-card.bento-rate{--t1:#FFE066; --t2:#FFB300; --t3:#B77E00;}
 html.nl #mainChoices .choice-card.bento-rate .choice-title{color:#4A2B00 !important; text-shadow:0 1px 0 rgba(255,255,255,.5);}
@@ -218,6 +221,10 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
       <div class="choice-icon">🛒</div>
       <div class="choice-title">Purchase Product</div>
     </a>
+    <a class="choice-card bento-account bento-featured" href="account.html" id="accountTile">
+      <div class="choice-icon">👤</div>
+      <div class="choice-title" id="accountTileTitle">Customer Login / Register</div>
+    </a>
     <a class="choice-card bento-hall" href="hall-booking.html">
       <div class="choice-icon">🏛️</div>
       <div class="choice-title">Book Hall</div>
@@ -255,6 +262,10 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
       document.getElementById(isStandalone ? 'installWelcome' : 'mainBrand').style.display = isStandalone ? 'flex' : 'block';
       if (!isStandalone) document.getElementById('mainChoices').style.display = 'grid';
     })();
+  </script>
+  <script>
+    // a customer who is logged in sees "My Account · NAME" on the tile instead of "Customer Login / Register"
+    (function () { try { var n = localStorage.getItem('mwCustName'), tok = localStorage.getItem('mwCustToken'); if (n && tok) { var t = document.getElementById('accountTileTitle'); if (t) t.textContent = 'My Account · ' + n.split(' ')[0]; } } catch (e) { /* the plain title stays */ } })();
   </script>
   <div class="code-gate" id="codeGate" style="display:none;">
     <a href="index.html" onclick="hideCodeGate();return false;" style="display:inline-block;margin-bottom:12px;color:var(--ink-soft);font-size:12px;font-weight:600;text-decoration:none;">← Back to Main Page</a>
