@@ -173,6 +173,9 @@ html.nl .success-icon{background:linear-gradient(180deg,#5BE3A5,#12A85A); color:
 .progress{height:11px; border-radius:6px; background:var(--green-100); overflow:hidden;} .progress i{display:block; height:100%; background:var(--green-800); border-radius:6px;}
 .progress-line{display:flex; justify-content:space-between; font-size:12.5px; margin-top:7px; color:var(--ink-soft);}
 .field-row .field{min-width:0;} .field input[type=date]{min-width:0; max-width:100%;}
+.inp-wrap{position:relative;} .inp-wrap input{padding-right:38px;}
+.clr-btn{position:absolute; right:6px; top:50%; transform:translateY(-50%); width:28px; height:28px; border:none; border-radius:50%; background:var(--green-100); color:var(--green-800); font-weight:800; font-size:12px; cursor:pointer; padding:0; line-height:28px;}
+.field input.is-auto{background:var(--green-100);}
 .pw-row{position:relative;} .pw-row input{padding-right:62px;} .pw-row .pw-eye{position:absolute; right:8px; top:6px; border:none; background:none; color:var(--green-800); font-weight:700; font-size:12px; cursor:pointer; padding:7px 6px; font-family:inherit;}
 .field input.pw-in{padding-right:62px;}
 #acctToast{position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(12px); max-width:88vw; background:var(--green-900); color:#fff; padding:10px 18px; border-radius:12px; font-size:13px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:90; text-align:center;}
@@ -188,6 +191,7 @@ html.nl .success-icon{background:linear-gradient(180deg,#5BE3A5,#12A85A); color:
   html.nl .avatar{box-shadow:0 0 0 3px #fff, 0 0 0 6px #C9C3FF, 0 6px 0 rgba(150,140,230,.3); background:linear-gradient(135deg,#E9E6FF,#FFE3EE); color:#3D2FB5;}
   html.nl .a-head h2{color:#2B1F8F; font-weight:800;}
   html.nl .a-link, html.nl .br-link{color:#4B3FD0;}
+  html.nl .field input.is-auto{background:#EEFBF5; border-color:#9BE3C7;} html.nl .clr-btn{background:#EEEAFF; color:#4B3FD0;}
   html.nl .q-chip{border:2px solid #DAD6FF; border-radius:14px; background:#fff; color:#4B5275; font-weight:800; box-shadow:0 3px 0 #E4E0FF;}
   html.nl .q-chip.on{border-color:#5B3FE0; background:linear-gradient(180deg,#8B7BFF,#5B3FE0); color:#fff; box-shadow:0 3px 0 #3A2BB0, 0 6px 12px rgba(91,63,224,.3);}
   html.nl .sum-box{color:#fff; box-shadow:0 4px 0 rgba(0,0,0,.18), 0 8px 14px rgba(0,0,0,.12);} html.nl .sum-box .t{opacity:.9;}
@@ -241,17 +245,19 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
 
       <div class="card" id="viewRegister" style="display:none;">
         <h2 style="font-size:16px;margin-bottom:4px;">Customer Registration</h2>
-        <p class="hint" style="margin-bottom:12px;">Ek baar register karo, phir apne bills, offers aur order ek jagah dekho.</p>
-        <div class="field"><label for="regMobile">Mobile number</label><input type="tel" id="regMobile" inputmode="numeric" autocomplete="tel" maxlength="15" placeholder="10-digit mobile"></div>
-        <div class="field"><label for="regName">Name</label><input type="text" id="regName" autocomplete="name" placeholder="Your name"></div>
-        <div class="field"><label for="regDs">DS ID No.</label><input type="text" id="regDs" autocapitalize="characters" placeholder="Your DS ID"></div>
+        <p class="hint" style="margin-bottom:12px;">Ek baar register karo, phir apne bills, offers aur order ek jagah dekho. <strong>Mobile number daalte hi aapki details hamare record se apne aap aa jayengi</strong> - galat ho to mita kar sahi likh do.</p>
+        <div class="field"><label for="regMobile">Mobile number</label><input type="tel" id="regMobile" inputmode="numeric" autocomplete="tel" maxlength="15" placeholder="10-digit mobile" oninput="onRegMobile_()" onblur="lookupReg_()"></div>
+        <p class="hint" id="regAutoHint" style="display:none;margin:-4px 0 12px;line-height:1.5;"></p>
+        <div class="field"><label for="regName">Name</label><div class="inp-wrap"><input type="text" id="regName" autocomplete="name" placeholder="Your name" oninput="onRegEdit_()"><button class="clr-btn" type="button" id="clr_regName" onclick="clearReg_('regName')" aria-label="Clear" style="display:none;">✕</button></div></div>
+        <div class="field"><label for="regDs">DS ID No.</label><div class="inp-wrap"><input type="text" id="regDs" autocapitalize="characters" placeholder="Your DS ID" oninput="onRegEdit_()"><button class="clr-btn" type="button" id="clr_regDs" onclick="clearReg_('regDs')" aria-label="Clear" style="display:none;">✕</button></div></div>
         <div class="field-row">
-          <div class="field"><label for="regUpName">Upline name</label><input type="text" id="regUpName" placeholder="Upline name"></div>
-          <div class="field"><label for="regUpMobile">Upline mobile</label><input type="tel" id="regUpMobile" inputmode="numeric" maxlength="15" placeholder="10-digit"></div>
+          <div class="field"><label for="regUpName">Upline name</label><div class="inp-wrap"><input type="text" id="regUpName" placeholder="Upline name" oninput="onRegEdit_()"><button class="clr-btn" type="button" id="clr_regUpName" onclick="clearReg_('regUpName')" aria-label="Clear" style="display:none;">✕</button></div></div>
+          <div class="field"><label for="regUpMobile">Upline mobile</label><div class="inp-wrap"><input type="tel" id="regUpMobile" inputmode="numeric" maxlength="15" placeholder="10-digit" oninput="onRegEdit_()"><button class="clr-btn" type="button" id="clr_regUpMobile" onclick="clearReg_('regUpMobile')" aria-label="Clear" style="display:none;">✕</button></div></div>
         </div>
-        <div class="field"><label for="regCity">City</label><input type="text" id="regCity" autocomplete="address-level2" placeholder="Your city"></div>
+        <div class="field"><label for="regCity">City</label><div class="inp-wrap"><input type="text" id="regCity" autocomplete="address-level2" placeholder="Your city" oninput="onRegEdit_()"><button class="clr-btn" type="button" id="clr_regCity" onclick="clearReg_('regCity')" aria-label="Clear" style="display:none;">✕</button></div></div>
         <div class="field pw-row"><label for="regPass">Set your password</label><input type="password" id="regPass" autocomplete="new-password" placeholder="At least 6 characters"><button class="pw-eye" type="button" onclick="togglePw_('regPass', this)">Show</button></div>
         <div class="field pw-row"><label for="regPass2">Confirm password</label><input type="password" id="regPass2" autocomplete="new-password" placeholder="Type it again" onkeydown="if(event.key==='Enter')doRegister_()"><button class="pw-eye" type="button" onclick="togglePw_('regPass2', this)">Show</button></div>
+        <div class="box" id="regChangeNote" style="display:none;margin:0 0 12px;"></div>
         <p class="error-msg" id="regError"></p>
         <button class="btn btn-gold" id="regBtn" type="button" onclick="doRegister_()">Register &amp; Login</button>
         <p class="hint" style="text-align:center;margin-top:12px;">Pehle se account hai? <button class="a-link" type="button" onclick="showAuth_('login')">Login karo</button></p>
@@ -448,6 +454,51 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
       }
     } catch (e) { err.textContent = 'No network. Please try again.'; }
     finally { btn.disabled = false; btn.textContent = 'Send request to our team'; }
+  }
+  // ---------------- register: the details come in by themselves from our record as soon as the mobile number is complete (like in a bill) ----------------
+  const REG_MAP_ = { regName: 'name', regDs: 'dsId', regUpName: 'refName', regUpMobile: 'refMobile', regCity: 'city' };
+  const REG_LABEL_ = { regName: 'Name', regDs: 'DS ID', regUpName: 'Upline name', regUpMobile: 'Upline mobile', regCity: 'City' };
+  let regAuto_ = {}, regLook_ = { timer: null, mobile: '', rec: null };
+  function regNorm_(id, v) { return id === 'regUpMobile' ? digits_(v).slice(-10) : String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+  function regMobile10_() { return digits_(val_('regMobile')).slice(-10); }
+  function onRegMobile_() {
+    clearTimeout(regLook_.timer);
+    if (digits_(val_('regMobile')).length < 10) {
+      // the number is not complete (any more): what came from a record is taken away again, what he typed himself stays
+      Object.keys(REG_MAP_).forEach(function (id) { const el = document.getElementById(id); if (regAuto_[id] && el.value === regAuto_[id]) el.value = ''; delete regAuto_[id]; });
+      regLook_.mobile = ''; regLook_.rec = null; show_('regAutoHint', false); onRegEdit_(); return;
+    }
+    regLook_.timer = setTimeout(lookupReg_, 350);
+  }
+  async function lookupReg_() {
+    clearTimeout(regLook_.timer);
+    const m = regMobile10_(); if (digits_(val_('regMobile')).length < 10 || m === regLook_.mobile) return;
+    regLook_.mobile = m; let rec = null;
+    try { const { data } = await sb.rpc('get_customer_for_order', { p_mobile: m }); if (data && data.found) rec = data; } catch (e) { /* no network: the form stays as it is and can be filled by hand */ }
+    if (regMobile10_() !== m) return;             // the number was changed while it was loading
+    regLook_.rec = rec;
+    Object.keys(REG_MAP_).forEach(function (id) {
+      const el = document.getElementById(id), nv = rec && rec[REG_MAP_[id]] ? String(rec[REG_MAP_[id]]) : '';
+      if (!el.value.trim() || el.value === regAuto_[id]) { el.value = nv; if (nv) regAuto_[id] = nv; else delete regAuto_[id]; }
+    });
+    const h = document.getElementById('regAutoHint');
+    h.innerHTML = rec ? '✓ Aapki details hamare record se aa gayi hain. Kuch galat ho to ✕ dabakar use mita do aur sahi likh do - badli hui details hamari team ke paas check ke liye jayengi.' : 'Ye mobile number hamare record me nahi mila - apni details khud bharo.';
+    h.style.display = 'block'; onRegEdit_();
+  }
+  function clearReg_(id) { const el = document.getElementById(id); el.value = ''; el.focus(); onRegEdit_(); }
+  function onRegEdit_() {
+    const rec = regLook_.rec, changed = [];
+    Object.keys(REG_MAP_).forEach(function (id) {
+      const el = document.getElementById(id), v = el.value.trim(), rv = rec ? rec[REG_MAP_[id]] : '';
+      el.classList.toggle('is-auto', !!v && !!regAuto_[id] && el.value === regAuto_[id]);
+      const x = document.getElementById('clr_' + id); if (x) x.style.display = v ? 'block' : 'none';
+      if (rec && v && rv && regNorm_(id, v) !== regNorm_(id, rv)) changed.push(REG_LABEL_[id]);
+    });
+    const n = document.getElementById('regChangeNote');
+    if (!rec) { n.style.display = 'none'; return; }
+    if (changed.length) { n.className = 'box warn'; n.innerHTML = '⚠ Aapne record ki details badli hain (' + escapeHtml(changed.join(', ')) + '). Register karne par ye hamari team ke paas <strong>check ke liye</strong> jayengi.'; }
+    else { n.className = 'box good'; n.innerHTML = '✓ Details hamare record se match karti hain.'; }
+    n.style.display = 'block';
   }
   function signedIn_(data, fresh) {
     lsSet_(LS_.token, data.token); ME = data.profile; lsSet_(LS_.name, ME.name || ''); lsSet_(LS_.mobile, ME.mobile || '');
