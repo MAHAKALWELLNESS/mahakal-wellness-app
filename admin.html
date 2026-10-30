@@ -46,6 +46,14 @@
   .btn-gold{background:var(--gold-500); color:var(--green-900);}
   .btn-red{background:var(--danger); color:#fff;}
   .btn-red:disabled{opacity:.5;}
+  .cc-card{padding:12px 0; border-bottom:1px solid var(--line);} .cc-card:last-child{border-bottom:none;}
+  .cc-field{border-left:4px solid transparent; padding:6px 0 6px 10px; margin:8px 0;} .cc-field.conflict{border-left-color:var(--danger); background:var(--danger-100); border-radius:0 10px 10px 0;}
+  .cc-label{font-size:12px; font-weight:800; color:var(--ink-soft); margin-bottom:5px;} .cc-flag{color:var(--danger);}
+  .cc-opts{display:flex; gap:8px; margin-bottom:6px;}
+  .cc-opt{flex:1; min-width:0; text-align:left; border:1.5px solid var(--line); background:#fff; border-radius:10px; padding:7px 9px; font-size:13px; font-weight:700; cursor:pointer; word-break:break-word; font-family:inherit; color:var(--green-900);}
+  .cc-opt small{display:block; font-size:10.5px; color:var(--ink-faint); font-weight:700; text-transform:uppercase; letter-spacing:.3px;}
+  .cc-opt.on{border-color:var(--green-800); background:var(--green-100);} .cc-opt:disabled{opacity:.5; cursor:default;}
+  .cc-final{width:100%; padding:9px 10px; border:1.5px solid var(--line); border-radius:10px; font-size:14px; font-family:inherit; background:#fff;} .cc-final:focus{outline:none; border-color:var(--gold-500);}
   .tab{position:relative;}
   .tab-badge{position:absolute; top:3px; right:2px; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:#E03A3A; color:#fff; font-size:11px; font-weight:800; line-height:18px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.3);}
   .cl-av{width:40px; height:40px; border-radius:50%; object-fit:cover; background:var(--green-100); color:var(--green-800); display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; flex:none; overflow:hidden;}
@@ -384,6 +392,8 @@ html.nl .tab[data-tab="profitreport"]{--c1:#FFA45C;--c2:#D9480F;--c3:#983309;--i
 html.nl .tab[data-tab="franchiseeinvestment"]{--c1:#58B4FF;--c2:#1C7ED6;--c3:#124F8C;--ic:"🤝";}
 html.nl .tab[data-tab="productsearch"]{--c1:#E083F7;--c2:#AE3EC9;--c3:#7A2B8E;--ic:"🔎";}
 html.nl .tab[data-tab="custlogins"]{--c1:#FFD84D;--c2:#E8A200;--c3:#9C6B00;--ic:"🔑";}
+html.nl .tab[data-tab="custcorrect"]{--c1:#9AE6FF;--c2:#2BA8D8;--c3:#14708F;--ic:"🛠️";}
+html.nl .cc-opt.on{background:linear-gradient(180deg,#8B7BFF,#5B3FE0); border-color:#5B3FE0; color:#fff;} html.nl .cc-opt.on small{color:#E4E0FF;}
 html.nl .tab-badge{background:linear-gradient(180deg,#FF6B6B,#E03131); box-shadow:0 2px 0 #A32020;}
 
 /* ---------- screens: a soft fade when the tab changes (opacity only, so fixed bars inside keep their place) ---------- */
@@ -585,6 +595,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <button class="tab" data-tab="spsets" onclick="switchTab('spsets')">SP Sets</button>
       <button class="tab" data-tab="customers" onclick="switchTab('customers')">Customers</button>
       <button class="tab" data-tab="custlogins" onclick="switchTab('custlogins')">Customer Logins<span class="tab-badge" id="custLoginsBadge" style="display:none;"></span></button>
+      <button class="tab" data-tab="custcorrect" onclick="switchTab('custcorrect')">Customer Correction<span class="tab-badge" id="custCorrectBadge" style="display:none;"></span></button>
       <button class="tab" data-tab="stockreport" onclick="switchTab('stockreport')">Stock</button>
       <button class="tab" data-tab="wallet" onclick="switchTab('wallet')">Wallet</button>
       <button class="tab" data-tab="topperformer" onclick="switchTab('topperformer')">Top Performer</button>
@@ -1128,6 +1139,13 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div class="card"><p class="section-label">Password requests</p><div id="clPending"><div class="empty-cart">Loading…</div></div></div>
       <div class="card" id="clVerifyCard" style="display:none;"><p class="section-label">Logins waiting for verification</p><p class="hint" style="margin-bottom:8px;">Inke mobile par pehle se bills hain par DS ID record me nahi tha. Pehchaan check karke Verify dabao, tab customer apne bills dekh payega.</p><div id="clVerify"></div></div>
       <div class="card"><p class="section-label">Recently handled</p><div id="clHandled"><div class="empty-cart">—</div></div></div>
+    </section>
+
+    <!-- ============ CUSTOMER CORRECTION TAB ============ -->
+    <section id="tab-custcorrect" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadCustCorrections_()">↻ Refresh</button>
+      <div class="card"><p class="section-label">Customer correction</p><p class="hint" style="margin-bottom:10px;line-height:1.5;">Customer ne register karte waqt jo details daali aur jo system me hain, dono yahan saath dikhti hain. Sahi wali chuno (ya type karo) aur Approve dabao: wo customer ki profile (jahan se New Bill aur order form details lete hain), uske login, uske abhi ke orders aur approval wale bills me save ho jati hai. Pehle se approved bills ka record badalta nahi.</p><div id="ccPending"><div class="empty-cart">Loading…</div></div></div>
+      <div class="card"><p class="section-label">Recently handled</p><div id="ccHandled"><div class="empty-cart">—</div></div></div>
     </section>
 
     <!-- ============ STOCK TAB ============ -->
@@ -4122,6 +4140,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     if (name === 'expense') searchExpenses();
     if (name === 'customers') searchCustomersTab();
     if (name === 'custlogins') loadCustLogins_();
+    if (name === 'custcorrect') loadCustCorrections_();
     if (name === 'stockreport' && !onlineStockLoadedOnce) switchStockSubtab('online');
     if (name === 'wallet') searchWalletCustomers();
     if (name === 'publicorder') loadPublicOrders();
@@ -11038,7 +11057,7 @@ async function loadCustAcctInfo_(mobile, name) {
   if (data.photo && av) av.innerHTML = clAvatar_(name, data.photo, true);
   box.style.display = 'block';
   box.innerHTML = data.registered ? '📱 <strong>Customer login:</strong> ' + (data.verified ? 'Verified ✓' : '<span style="color:var(--danger);font-weight:700;">Not verified</span>') + ' · last login ' + (data.lastLoginAt ? escapeHtml(clAgo_(data.lastLoginAt)) : 'never') + (data.mustChange ? ' · temporary password' : '') + (data.pendingRequest ? ' · <span style="color:var(--danger);font-weight:700;">password request waiting</span>' : '') +
-    '<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn btn-outline" id="custAcctReset" style="flex:1;padding:8px;font-size:12.5px;" onclick="openCustReset_(currentCustomerMobile)">🔑 Reset password</button>' + (data.verified ? '' : '<button class="btn btn-gold" id="custAcctVerify" style="flex:1;padding:8px;font-size:12.5px;" onclick="verifyCustAcct_(currentCustomerMobile)">✓ Verify login</button>') + '</div>' : '📱 Customer login: not registered yet';
+    '<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn btn-outline" id="custAcctReset" style="flex:1;padding:8px;font-size:12.5px;" onclick="openCustReset_(currentCustomerMobile)">🔑 Reset password</button>' + (data.pendingCorrection ? '<button class="btn btn-gold" id="custAcctCorrect" style="flex:1;padding:8px;font-size:12.5px;" onclick="openCorrectionFor_()">🛠 Open correction</button>' : (data.verified ? '' : '<button class="btn btn-gold" id="custAcctVerify" style="flex:1;padding:8px;font-size:12.5px;" onclick="verifyCustAcct_(currentCustomerMobile)">✓ Verify login</button>')) + '</div>' : '📱 Customer login: not registered yet';
 }
 async function custFillAvatars_(rows) {
   const mobiles = (rows || []).map(function (r) { return r.mobile; }).filter(Boolean); if (!mobiles.length || clMissing_) return;
@@ -11054,27 +11073,100 @@ function sysNotifyCl_(title, body) {
     if (navigator.serviceWorker && navigator.serviceWorker.ready) navigator.serviceWorker.ready.then(function (r) { r.showNotification(title, { body: body, icon: 'icon-192.png', tag: 'cust-login' }); }); else new Notification(title, { body: body });
   } catch (e) { /* not available on this phone */ }
 }
-function showCustAlert_(text, loud) { document.getElementById('custAlertText').textContent = text; document.getElementById('custAlertBar').classList.add('show'); if (loud) { beepCl_(); sysNotifyCl_('Customer password request', text); } }
+let clAlertTab_ = 'custlogins';
+function showCustAlert_(text, loud, tab) { clAlertTab_ = tab || 'custlogins'; document.getElementById('custAlertText').textContent = text; document.getElementById('custAlertBar').classList.add('show'); if (loud) { beepCl_(); sysNotifyCl_(clAlertTab_ === 'custcorrect' ? 'Customer correction' : 'Customer password request', text); } }
 function hideCustAlert_() { document.getElementById('custAlertBar').classList.remove('show'); }
-function openCustLoginsFromAlert_() { hideCustAlert_(); switchTab('custlogins'); }
+function openCustLoginsFromAlert_() { hideCustAlert_(); switchTab(clAlertTab_ || 'custlogins'); }
 async function enableClAlerts_() { try { await Notification.requestPermission(); } catch (e) { /* not supported */ } const ac = document.getElementById('clAlertsCard'); if (ac) ac.style.display = ('Notification' in window && Notification.permission === 'default') ? 'block' : 'none'; }
 async function custLoginPoll_() {
   let r; try { r = await sb.rpc('get_customer_login_alerts'); } catch (e) { return; }
   if (!r || r.error || !r.data) return; const d = r.data;
-  setClBadge_((d.pending || 0) + (d.toVerify || 0));
+  setClBadge_((d.pending || 0) + (d.toVerify || 0)); setCcBadge_(d.corrections || 0);
   let seen = clSeen_; if (!seen) { try { seen = localStorage.getItem('mwClSeen') || ''; } catch (e) { seen = ''; } }
   if (d.latestAt && d.latestAt > seen) {
     const first = clFirst_; clSeen_ = d.latestAt; try { localStorage.setItem('mwClSeen', d.latestAt); } catch (e) { /* no storage */ }
-    showCustAlert_(first ? d.pending + ' customer password request' + (d.pending === 1 ? '' : 's') + ' waiting' : '🔑 New password request: ' + (d.latestName || 'Customer') + ' (' + d.latestMobile + ')', !first);
+    showCustAlert_(first ? d.pending + ' customer password request' + (d.pending === 1 ? '' : 's') + ' waiting' : '🔑 New password request: ' + (d.latestName || 'Customer') + ' (' + d.latestMobile + ')', !first, 'custlogins');
   }
-  clFirst_ = false;
+  let seenC = ccSeen_; if (!seenC) { try { seenC = localStorage.getItem('mwCcSeen') || ''; } catch (e) { seenC = ''; } }
+  if (d.latestCorrAt && d.latestCorrAt > seenC) {
+    const firstC = ccFirst_; ccSeen_ = d.latestCorrAt; try { localStorage.setItem('mwCcSeen', d.latestCorrAt); } catch (e) { /* no storage */ }
+    showCustAlert_(firstC ? d.corrections + ' customer correction' + (d.corrections === 1 ? '' : 's') + ' waiting' : '🛠 New customer correction: ' + (d.latestCorrName || 'Customer') + ' (' + d.latestCorrMobile + ')', !firstC, 'custcorrect');
+  }
+  clFirst_ = false; ccFirst_ = false;
   const tab = document.getElementById('tab-custlogins'); if (tab && tab.classList.contains('active') && !(clReset_ && clReset_.password)) loadCustLogins_();
+  const tc = document.getElementById('tab-custcorrect'); if (tc && tc.classList.contains('active') && !document.activeElement.classList.contains('cc-final')) loadCustCorrections_();
 }
 function startCustLoginPolling_() {
   if (clPollTimer_) return; custLoginPoll_();
   clPollTimer_ = setInterval(function () { if (document.visibilityState === 'visible') custLoginPoll_(); }, window.__clPollMs || 45000);
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') custLoginPoll_(); });
 }
+
+// ---------------- CUSTOMER CORRECTION: what the system has and what the customer typed, side by side; the staff choose; Approve = saved everywhere ----------------
+const CC_FIELDS_ = [['name', 'Name'], ['dsId', 'DS ID'], ['uplineName', 'Upline name'], ['uplineMobile', 'Upline mobile'], ['city', 'City']];
+let ccState_ = { pending: [], handled: [] }, ccSeen_ = '', ccFirst_ = true;
+function setCcBadge_(n) { const b = document.getElementById('custCorrectBadge'); if (!b) return; b.textContent = n > 99 ? '99+' : String(n); b.style.display = n > 0 ? 'inline-block' : 'none'; }
+function ccDigits_(v) { return String(v == null ? '' : v).replace(/\D/g, '').slice(-10); }
+function ccDiffers_(f, a, b) { if (!a || !b) return false; return f === 'uplineMobile' ? ccDigits_(a) !== ccDigits_(b) : String(a).toLowerCase().replace(/[^a-z0-9]/g, '') !== String(b).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+function ccCase_(id) { return (ccState_.pending || []).filter(function (c) { return Number(c.id) === Number(id); })[0]; }
+async function loadCustCorrections_() {
+  const { data, error } = await sb.rpc('get_customer_corrections');
+  if (error) { document.getElementById('ccPending').innerHTML = '<div class="empty-cart">' + escapeHtml(clMissingMsg_(error)) + '</div>'; return; }
+  ccState_ = data || { pending: [], handled: [] }; renderCustCorrections_(); setCcBadge_((ccState_.pending || []).length);
+}
+function ccCardHtml_(c) {
+  const name = (c.form && c.form.name) || (c.sys && c.sys.name) || 'Customer';
+  const rows = CC_FIELDS_.map(function (f) {
+    const sv = c.sys ? c.sys[f[0]] : null, fv = c.form ? c.form[f[0]] : null, diff = ccDiffers_(f[0], sv, fv), init = diff ? '' : (sv || fv || '');
+    return '<div class="cc-field' + (diff ? ' conflict' : '') + '" data-f="' + f[0] + '"><div class="cc-label">' + f[1] + (diff ? ' <span class="cc-flag">· differs</span>' : '') + '</div><div class="cc-opts">' +
+      '<button type="button" class="cc-opt" data-which="sys"' + (sv ? '' : ' disabled') + ' onclick="ccPick_(' + c.id + ', \'' + f[0] + '\', \'sys\')"><small>In system</small>' + (sv ? escapeHtml(sv) : '—') + '</button>' +
+      '<button type="button" class="cc-opt" data-which="form" onclick="ccPick_(' + c.id + ', \'' + f[0] + '\', \'form\')"><small>In the form</small>' + (fv ? escapeHtml(fv) : '—') + '</button></div>' +
+      '<input class="cc-final" type="text" value="' + escapeHtml(init) + '" placeholder="' + (diff ? 'Tap System or Form (or type the right one)' : '') + '" oninput="ccUpdate_(' + c.id + ')"></div>';
+  }).join('');
+  return '<div class="cc-card" data-id="' + c.id + '" data-mobile="' + escapeHtml(c.mobile) + '"><div class="cl-top">' + clAvatar_(name, c.photoThumb) + '<div class="cl-info"><div class="result-name">' + escapeHtml(String(name).toUpperCase()) + '</div><div class="result-meta">' + escapeHtml(c.mobile) + ' · ' + escapeHtml(clAgo_(c.createdAt)) + ' · bills: ' + (c.bills || 0) + '</div></div></div>' +
+    '<div style="margin:8px 0 2px;">' + (c.dsConflict ? '<span class="badge badge-unpaid">⚠ DS ID differs · his login is on hold</span>' : '<span class="badge badge-partial">Details differ</span>') + '</div>' + rows +
+    '<div class="cl-actions"><button class="btn btn-gold" id="ccApprove' + c.id + '" disabled onclick="approveCustCorr_(' + c.id + ')">✓ Approve &amp; update everywhere</button><button class="btn btn-outline" id="ccReject' + c.id + '" onclick="rejectCustCorr_(' + c.id + ')">✖ Reject (remove login)</button></div></div>';
+}
+function renderCustCorrections_() {
+  const p = ccState_.pending || [], h = ccState_.handled || [];
+  document.getElementById('ccPending').innerHTML = p.length ? p.map(ccCardHtml_).join('') : '<div class="empty-cart">No customer correction waiting.</div>';
+  p.forEach(function (c) { ccUpdate_(c.id); });
+  document.getElementById('ccHandled').innerHTML = h.length ? h.map(function (r) {
+    return '<div class="cl-row"><div class="cl-top">' + clAvatar_(r.name, r.photoThumb) + '<div class="cl-info"><div class="result-name">' + escapeHtml(String(r.name || '(No name)').toUpperCase()) + '</div><div class="result-meta">' + escapeHtml(r.mobile) + ' · ' + (r.status === 'Approved' ? '✓ approved' : '✖ rejected') + ' · ' + escapeHtml(r.handledAt ? clAgo_(r.handledAt) : '') + '</div></div></div></div>';
+  }).join('') : '<div class="empty-cart">Nothing handled yet.</div>';
+}
+function ccValues_(id) {
+  const card = document.querySelector('.cc-card[data-id="' + id + '"]'), o = {};
+  CC_FIELDS_.forEach(function (f) { o[f[0]] = ((card.querySelector('.cc-field[data-f="' + f[0] + '"] .cc-final') || {}).value || '').trim(); });
+  return o;
+}
+function ccUpdate_(id) {
+  const c = ccCase_(id), card = document.querySelector('.cc-card[data-id="' + id + '"]'); if (!c || !card) return;
+  const v = ccValues_(id), ok = !!(v.name && v.dsId && v.uplineName && v.city && ccDigits_(v.uplineMobile).length === 10);
+  const btn = document.getElementById('ccApprove' + id); if (btn) btn.disabled = !ok;
+  Array.prototype.forEach.call(card.querySelectorAll('.cc-field'), function (fld) {
+    const f = fld.dataset.f, val = fld.querySelector('.cc-final').value.trim();
+    Array.prototype.forEach.call(fld.querySelectorAll('.cc-opt'), function (b) { const src = (b.dataset.which === 'sys' ? c.sys : c.form)[f]; b.classList.toggle('on', !!src && val === String(src)); });
+  });
+}
+function ccPick_(id, field, which) {
+  const c = ccCase_(id); if (!c) return; const v = (which === 'sys' ? c.sys : c.form)[field]; if (!v) return;
+  const inp = document.querySelector('.cc-card[data-id="' + id + '"] .cc-field[data-f="' + field + '"] .cc-final'); inp.value = v; ccUpdate_(id);
+}
+async function approveCustCorr_(id) {
+  const btn = document.getElementById('ccApprove' + id); if (!btn || btn.disabled) return;
+  const v = ccValues_(id); btn.disabled = true; btn.textContent = 'Saving…';
+  const { data, error } = await sb.rpc('approve_customer_correction', { p_id: id, p_name: v.name, p_ds_id: v.dsId, p_upline_name: v.uplineName, p_upline_mobile: v.uplineMobile, p_city: v.city });
+  if (error) { showToast(clMissingMsg_(error), true); btn.textContent = '✓ Approve & update everywhere'; ccUpdate_(id); return; }
+  showToast('Saved everywhere' + (data && (data.orders || data.bills) ? ' (' + (data.orders || 0) + ' order and ' + (data.bills || 0) + ' bill in approval updated)' : '') + '.');
+  loadCustCorrections_(); custLoginPoll_();
+}
+async function rejectCustCorr_(id) {
+  if (!confirm('Reject this registration? His login will be removed. The customer record stays exactly as it is.')) return;
+  const { error } = await sb.rpc('reject_customer_correction', { p_id: id }); if (error) { showToast(clMissingMsg_(error), true); return; }
+  showToast('Login removed.'); loadCustCorrections_(); custLoginPoll_();
+}
+function openCorrectionFor_() { document.getElementById('customerDetailModal').classList.remove('show'); switchTab('custcorrect'); }
 </script>
 <!-- MW-UX-START (keyboard + back button; the same in every page, built by tools/apply_ux_snippets.py) -->
 <style id="mwUxCss">

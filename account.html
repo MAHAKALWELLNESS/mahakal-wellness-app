@@ -273,6 +273,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
         <div class="a-head" id="homeHead"></div>
       </div>
       <div class="box warn" id="tempBanner" style="display:none;margin:0 0 14px;">Aapne temporary password se login kiya hai. <button class="a-link" type="button" onclick="setTab_('profile')">Apna password badal lo</button></div>
+      <div class="box warn" id="reviewBanner" style="display:none;margin:0 0 14px;"></div>
       <div class="a-tabs" id="homeTabs">
         <button class="a-tab on" data-tab="order" type="button" onclick="setTab_('order')">🛒 Order</button>
         <button class="a-tab" data-tab="bills" type="button" onclick="setTab_('bills')">🧾 My Bills</button>
@@ -465,13 +466,21 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   function avatarHtml_(big) { return ME.photo ? '<img class="avatar' + (big ? ' big' : '') + '" src="' + ME.photo + '" alt="Profile photo">' : '<div class="avatar' + (big ? ' big' : '') + '">' + escapeHtml(initials_(ME.name)) + '</div>'; }
   function enterHome_(fresh) {
     show_('acctLoading', false); show_('authView', false); show_('homeView', true);
-    renderHead_(); show_('tempBanner', !!ME.mustChange);
+    renderHead_(); show_('tempBanner', !!ME.mustChange); showReview_();
     const want = (location.hash || '').replace('#', ''); setTab_(['order', 'bills', 'offers', 'profile'].indexOf(want) >= 0 ? want : 'order');
-    if (fresh) toast_(ME.verified ? 'Welcome! Aapka account ban gaya.' : 'Account ban gaya. Hamari team aapko jaldi verify karegi.');
+    if (fresh) toast_(ME.pendingCorrection ? 'Account ban gaya. Hamari team aapki details check karegi.' : (ME.verified ? 'Welcome! Aapka account ban gaya.' : 'Account ban gaya. Hamari team aapko jaldi verify karegi.'));
   }
   function renderHead_() {
     document.getElementById('homeHead').innerHTML = avatarHtml_(false) + '<div style="min-width:0;"><h2>' + escapeHtml(ME.name || 'Customer') + '</h2><p class="a-sub">' + escapeHtml(ME.mobile) + (ME.dsId ? ' · DS ID ' + escapeHtml(ME.dsId) : '') + '</p>' +
       (ME.verified ? '' : '<span class="badge warn" style="margin-top:6px;">⏳ Verification pending</span>') + '</div>';
+  }
+  // the details he typed differ from our record: the team checks and approves (until then he sees and orders with what he typed)
+  function showReview_() {
+    const b = document.getElementById('reviewBanner');
+    if (!ME || !ME.pendingCorrection) { b.style.display = 'none'; return; }
+    b.innerHTML = ME.verified ? 'Aapki kuch details hamare record se alag hain. Hamari team check karke sahi details approve karegi. Aapke bills dikhte rahenge.'
+      : 'Aapki details hamare record se match nahi hui. Hamari team check karke approve karegi. Tab tak aap order de sakte ho; purane bills aur offer progress approve hone ke baad dikhenge.';
+    b.style.display = 'block';
   }
   function setTab_(name) {
     homeTab_ = name;
@@ -615,7 +624,8 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     document.getElementById('profileAvatar').innerHTML = avatarHtml_(true); show_('photoRemove', !!ME.photo); document.getElementById('photoError').textContent = '';
     const kv = function (k, v) { return '<div class="kv"><span class="k">' + k + '</span><span class="v">' + (v ? escapeHtml(v) : '—') + '</span></div>'; };
     document.getElementById('profileKv').innerHTML = kv('Name', ME.name) + kv('Mobile', ME.mobile) + kv('DS ID', ME.dsId) + kv('Upline', (ME.uplineName || '') + (ME.uplineMobile ? ' (' + ME.uplineMobile + ')' : '')) + kv('City', ME.city) +
-      '<div class="kv"><span class="k">Account</span><span class="v">' + (ME.verified ? '✓ Verified' : '⏳ Verification pending') + '</span></div>';
+      '<div class="kv"><span class="k">Account</span><span class="v">' + (ME.verified ? '✓ Verified' : '⏳ Verification pending') + '</span></div>' +
+      (ME.pendingCorrection ? '<div class="kv"><span class="k">Details</span><span class="v">⏳ Under review by our team</span></div>' : '');
   }
   function squareJpeg_(img, size, q) {
     const c = document.createElement('canvas'); c.width = c.height = size; const x = c.getContext('2d'), s = Math.min(img.naturalWidth, img.naturalHeight);

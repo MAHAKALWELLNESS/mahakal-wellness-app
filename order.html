@@ -1355,7 +1355,8 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     const m = document.getElementById('custMobile'); if (!m) return;
     m.value = ACCT_.mobile; m.readOnly = true; orderLookedUpMobile_ = '';
     lookupOrderCustomer_().then(function () {
-      const set = function (id, v) { const el = document.getElementById(id); if (el && v && !el.value.trim()) { el.value = String(v).toUpperCase(); orderAutoFilled_[id] = el.value; } };
+      const force = !!ACCT_.pendingCorrection;      // while the team has not approved his correction the form uses the details he typed himself, not the record's
+      const set = function (id, v) { const el = document.getElementById(id); if (el && v && (force || !el.value.trim())) { el.value = String(v).toUpperCase(); orderAutoFilled_[id] = el.value; } };
       set('custName', ACCT_.name); set('custCity', ACCT_.city); set('custIdName', ACCT_.idName || ACCT_.name); set('custDsId', ACCT_.dsId); set('custRefName', ACCT_.uplineName); set('custRefMobile', ACCT_.uplineMobile);
     });
   }
