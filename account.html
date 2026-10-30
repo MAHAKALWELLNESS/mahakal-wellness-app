@@ -173,6 +173,14 @@ html.nl .success-icon{background:linear-gradient(180deg,#5BE3A5,#12A85A); color:
 .progress{height:11px; border-radius:6px; background:var(--green-100); overflow:hidden;} .progress i{display:block; height:100%; background:var(--green-800); border-radius:6px;}
 .progress-line{display:flex; justify-content:space-between; font-size:12.5px; margin-top:7px; color:var(--ink-soft);}
 .field-row .field{min-width:0;} .field input[type=date]{min-width:0; max-width:100%;}
+#statusView{display:none; position:fixed; inset:0; z-index:70; background:var(--bg); flex-direction:column;} #statusView.show{display:flex;}
+.sv-bar{display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--green-900); color:#fff; flex:none;}
+.sv-back{border:none; border-radius:10px; background:rgba(255,255,255,.18); color:#fff; font-weight:800; font-size:13px; padding:9px 12px; cursor:pointer; font-family:inherit; flex:none;}
+.sv-title{font-weight:800; font-size:14px; word-break:break-all; min-width:0;}
+.sv-body{flex:1; position:relative; min-height:0;} #svFrame{position:absolute; inset:0; width:100%; height:100%; border:0; background:var(--bg);}
+.sv-loading{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--ink-faint); font-size:13px;}
+.bill-row.tap, #orderLast.tap{cursor:pointer;} .bill-row.tap:active, #orderLast.tap:active{background:var(--bg);} .bill-row.tap:focus-visible, #orderLast.tap:focus-visible{outline:2px solid var(--gold-500); outline-offset:2px;}
+.br-more{display:inline-block; margin-top:2px; font-size:12.5px; font-weight:700; color:var(--green-800);}
 .inp-wrap{position:relative;} .inp-wrap input{padding-right:38px;}
 .clr-btn{position:absolute; right:6px; top:50%; transform:translateY(-50%); width:28px; height:28px; border:none; border-radius:50%; background:var(--green-100); color:var(--green-800); font-weight:800; font-size:12px; cursor:pointer; padding:0; line-height:28px;}
 .field input.is-auto{background:var(--green-100);}
@@ -190,7 +198,8 @@ html.nl .success-icon{background:linear-gradient(180deg,#5BE3A5,#12A85A); color:
   html.nl .a-tab[data-tab="profile"].on{background:linear-gradient(180deg,#34D87F,#12A85A); box-shadow:0 4px 0 #0B7A40, 0 8px 14px rgba(18,168,90,.35);}
   html.nl .avatar{box-shadow:0 0 0 3px #fff, 0 0 0 6px #C9C3FF, 0 6px 0 rgba(150,140,230,.3); background:linear-gradient(135deg,#E9E6FF,#FFE3EE); color:#3D2FB5;}
   html.nl .a-head h2{color:#2B1F8F; font-weight:800;}
-  html.nl .a-link, html.nl .br-link{color:#4B3FD0;}
+  html.nl .a-link, html.nl .br-link, html.nl .br-more{color:#4B3FD0;}
+  html.nl .sv-bar{background:linear-gradient(135deg,#2B1F8F 0%,#5B3FE0 48%,#D6336C 100%); box-shadow:0 6px 16px rgba(61,47,181,.35);}
   html.nl .field input.is-auto{background:#EEFBF5; border-color:#9BE3C7;} html.nl .clr-btn{background:#EEEAFF; color:#4B3FD0;}
   html.nl .q-chip{border:2px solid #DAD6FF; border-radius:14px; background:#fff; color:#4B5275; font-weight:800; box-shadow:0 3px 0 #E4E0FF;}
   html.nl .q-chip.on{border-color:#5B3FE0; background:linear-gradient(180deg,#8B7BFF,#5B3FE0); color:#fff; box-shadow:0 3px 0 #3A2BB0, 0 6px 12px rgba(91,63,224,.3);}
@@ -342,6 +351,17 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
       </div>
     </section>
   </main>
+  <div id="statusView" role="dialog" aria-label="Live status">
+    <div class="sv-bar"><button class="sv-back" id="svClose" type="button" onclick="closeStatus_()">← Back to my bills</button><span class="sv-title" id="svTitle"></span></div>
+    <div class="sv-body"><div class="sv-loading" id="svLoading">Loading…</div><iframe id="svFrame" title="Live status" src="about:blank"></iframe></div>
+  </div>
+  <div class="qty-modal-overlay" id="newsModal"><div class="qty-modal-sheet" style="text-align:center;">
+    <div class="success-icon" id="newsIcon">✓</div>
+    <h2 id="newsTitle" style="margin-bottom:6px;"></h2>
+    <p class="hint" id="newsBody" style="line-height:1.5;margin-bottom:8px;"></p>
+    <div id="newsDetails" style="text-align:left;margin-top:8px;"></div>
+    <div class="qty-modal-actions" style="margin-top:14px;"><button class="btn btn-outline" id="newsOk" type="button" onclick="closeNews_()">OK</button><button class="btn btn-gold" id="newsBills" type="button" onclick="newsGoBills_()">🧾 My Bills</button></div>
+  </div></div>
   <div id="acctToast" role="status"></div>
 
 <script>
@@ -386,6 +406,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   // ---------------- signed out: login / register / forgot password ----------------
   let ME = null, authTab_ = 'login', homeTab_ = 'order';
   function showAuth_(tab, note) {
+    stopLive_(); closeStatus_();
     authTab_ = tab;
     show_('acctLoading', false); show_('homeView', false); show_('authView', true);
     show_('viewLogin', tab === 'login'); show_('viewRegister', tab === 'register'); show_('viewForgot', tab === 'forgot');
@@ -397,6 +418,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     if (tab === 'forgot' && !val_('forgotMobile') && val_('loginMobile')) document.getElementById('forgotMobile').value = val_('loginMobile');
   }
   function acctBackStep_() {
+    if (statusOpen_()) { closeStatus_(); return true; }
     if (document.getElementById('homeView').style.display !== 'none') { if (homeTab_ !== 'order') { setTab_('order'); return true; } return false; }
     if (authTab_ !== 'login') { showAuth_('login'); return true; }
     return false;
@@ -519,6 +541,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     show_('acctLoading', false); show_('authView', false); show_('homeView', true);
     renderHead_(); show_('tempBanner', !!ME.mustChange); showReview_();
     const want = (location.hash || '').replace('#', ''); setTab_(['order', 'bills', 'offers', 'profile'].indexOf(want) >= 0 ? want : 'order');
+    startLive_(); newsOnEnter_();
     if (fresh) toast_(ME.pendingCorrection ? 'Account ban gaya. Hamari team aapki details check karegi.' : (ME.verified ? 'Welcome! Aapka account ban gaya.' : 'Account ban gaya. Hamari team aapko jaldi verify karegi.'));
   }
   function renderHead_() {
@@ -631,16 +654,18 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   function billRowHtml_(b) {
     const st = billState_(b);
     const del = (b.kind === 'bill' && b.billStatus === 'Active') ? '<span class="badge ' + (b.delivery === 'Delivered' ? 'ok' : 'warn') + '">' + (b.delivery === 'Delivered' ? '✓ Delivered' : 'Delivery pending' + (Number(b.pendingQty) > 0 ? ' (' + trimNum(b.pendingQty) + ')' : '')) + '</span>' : '';
-    return '<div class="bill-row" data-bill="' + escapeHtml(b.billNo) + '"><div class="br-top"><div><div class="br-no">' + escapeHtml(b.billNo) + '</div><div class="br-date">' + escapeHtml(fmtDate_(b.date)) + (b.type ? ' · ' + escapeHtml(b.type) : '') + '</div></div>' +
+    return '<div class="bill-row tap" role="button" tabindex="0" data-bill="' + escapeHtml(b.billNo) + '" data-token="' + escapeHtml(b.token) + '" onclick="openStatusRow_(this)" onkeydown="if(event.key===\'Enter\')openStatusRow_(this)"><div class="br-top"><div><div class="br-no">' + escapeHtml(b.billNo) + '</div><div class="br-date">' + escapeHtml(fmtDate_(b.date)) + (b.type ? ' · ' + escapeHtml(b.type) : '') + '</div></div>' +
       '<div class="br-amt"><div class="amt">' + money(b.amount) + '</div><div class="sp">' + trimNum(b.sp) + ' SP</div></div></div>' +
       '<div class="br-badges"><span class="badge ' + st.cls + '">' + st.label + '</span>' + del + '</div>' +
-      '<a class="br-link" href="bill.html?token=' + encodeURIComponent(b.token) + '" target="_blank" rel="noopener">🔗 Live status</a></div>';
+      '<span class="br-more">Live status ›</span></div>';
   }
   function renderLast_() {
     const box = document.getElementById('orderLast'); if (!BILLS || !BILLS.length || !billsVerified_) { box.style.display = 'none'; return; }
     const b = BILLS.slice().sort(function (a, c) { return String(c.date).localeCompare(String(a.date)); })[0], st = billState_(b);
     box.style.display = 'block';
-    box.innerHTML = '<p class="section-label">Your latest order</p><div class="br-top"><div><div class="br-no">' + escapeHtml(b.billNo) + '</div><div class="br-date">' + escapeHtml(fmtDate_(b.date)) + '</div></div><div class="br-amt"><div class="amt">' + money(b.amount) + '</div><div class="sp">' + trimNum(b.sp) + ' SP</div></div></div><div class="br-badges"><span class="badge ' + st.cls + '">' + st.label + '</span></div><a class="br-link" href="bill.html?token=' + encodeURIComponent(b.token) + '" target="_blank" rel="noopener">🔗 Live status</a>';
+    box.innerHTML = '<p class="section-label">Your latest order</p><div class="br-top"><div><div class="br-no">' + escapeHtml(b.billNo) + '</div><div class="br-date">' + escapeHtml(fmtDate_(b.date)) + '</div></div><div class="br-amt"><div class="amt">' + money(b.amount) + '</div><div class="sp">' + trimNum(b.sp) + ' SP</div></div></div><div class="br-badges"><span class="badge ' + st.cls + '">' + st.label + '</span></div><span class="br-more">Live status ›</span>';
+    box.dataset.token = b.token; box.dataset.bill = b.billNo; box.classList.add('tap'); box.setAttribute('role', 'button'); box.setAttribute('tabindex', '0');
+    box.onclick = function () { openStatusRow_(box); }; box.onkeydown = function (e) { if (e.key === 'Enter') openStatusRow_(box); };
   }
 
   // ---------------- Offers and my status in each ----------------
@@ -719,6 +744,80 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     } catch (e) { /* handled */ }
     finally { btn.disabled = false; btn.textContent = 'Change password'; }
   }
+
+  // ---------------- the live status opens INSIDE this window: tap a bill, see its live status, go back, tap another ----------------
+  function statusOpen_() { return document.getElementById('statusView').classList.contains('show'); }
+  function openStatusRow_(el) { openStatus_(el.dataset.token, el.dataset.bill); }
+  function openStatus_(token, billNo) {
+    if (!token) return;
+    const f = document.getElementById('svFrame'), loading = document.getElementById('svLoading');
+    document.getElementById('svTitle').textContent = 'Live status · ' + billNo;
+    loading.style.display = 'flex';
+    f.onload = function () { if (f.getAttribute('src') !== 'about:blank') loading.style.display = 'none'; };
+    f.src = 'bill.html?token=' + encodeURIComponent(token) + '&embed=1';
+    document.getElementById('statusView').classList.add('show'); document.body.style.overflow = 'hidden';
+  }
+  function closeStatus_() {
+    const v = document.getElementById('statusView'); if (!v) return;
+    const f = document.getElementById('svFrame'); v.classList.remove('show'); f.onload = null; if (f.getAttribute('src') !== 'about:blank') f.src = 'about:blank';      // the page inside stops checking for news
+    document.body.style.overflow = '';
+  }
+
+  // ---------------- live: the team's approval reaches the OPEN page by itself - a popup and a message, no logout / login needed ----------------
+  // the page asks for the customer's state every 15 seconds while it is in front, at once when he comes back to it, and when it opens
+  // (it remembers what he last saw, so an approval that came while the app was closed is told the next time he opens it)
+  let liveTimer_ = null, liveBusy_ = false;
+  function seenKey_() { return 'mwCustSeen_' + (ME ? ME.mobile : ''); }
+  function readSeen_() { try { return JSON.parse(lsGet_(seenKey_()) || 'null'); } catch (e) { return null; } }
+  function rememberSeen_() { if (ME) lsSet_(seenKey_(), JSON.stringify({ v: !!ME.verified, p: !!ME.pendingCorrection })); }
+  function newsOnEnter_() { const prev = readSeen_(); if (prev) newsCompare_(prev, ME); rememberSeen_(); }
+  function newsCompare_(prev, now) {
+    const details = !!prev.p && !now.pendingCorrection, verified = !prev.v && !!now.verified;
+    if (details || verified) showNews_(details ? (verified ? 'both' : 'details') : 'verified');
+  }
+  function startLive_() {
+    if (liveTimer_) return;
+    liveTimer_ = setInterval(function () { if (document.visibilityState === 'visible') liveCheck_(); }, window.__acctPollMs || 15000);
+  }
+  function stopLive_() { if (liveTimer_) { clearInterval(liveTimer_); liveTimer_ = null; } }
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && ME) liveCheck_(); });
+  window.addEventListener('focus', function () { if (ME) liveCheck_(); });
+  async function liveCheck_() {
+    if (!ME || liveBusy_) return; const t = lsGet_(LS_.token); if (!t) return; liveBusy_ = true;
+    try {
+      const { data, error } = await sb.rpc('customer_me', { p_token: t });
+      if (error || !data || !ME) return;                    // no network just now: the next check tries again
+      if (!data.valid) { sessionEnded_('Aapka login band ho gaya hai - phir se login karo.'); showNews_('ended'); return; }
+      const prev = { v: !!ME.verified, p: !!ME.pendingCorrection }, now = data.profile;
+      if (JSON.stringify(now) === JSON.stringify(ME)) return;
+      ME = now; lsSet_(LS_.name, ME.name || ''); rememberSeen_();
+      renderHead_(); show_('tempBanner', !!ME.mustChange); showReview_();
+      if (prev.v !== !!ME.verified || prev.p !== !!ME.pendingCorrection) {
+        BILLS = null; OFFERS = null;
+        if (homeTab_ === 'bills' || homeTab_ === 'order') loadBills_(false, homeTab_ === 'order'); if (homeTab_ === 'offers') loadOffers_();
+      }
+      if (homeTab_ === 'profile') renderProfile_();
+      newsCompare_(prev, ME);
+    } catch (e) { /* no network just now */ }
+    finally { liveBusy_ = false; }
+  }
+  function showNews_(kind) {
+    const T = {
+      details: ['✓ Aapki details approve ho gayi', 'Hamari team ne aapki details check karke approve kar di hain. Ab ye aapki profile, bills aur order form me update ho gayi hain.'],
+      both: ['✓ Approve ho gaya!', 'Hamari team ne aapki details check karke approve kar di hain. Ab aap apne purane bills aur offer progress dekh sakte ho.'],
+      verified: ['✓ Aapka account verify ho gaya', 'Hamari team ne aapka account verify kar diya hai. Ab aap apne purane bills aur offer progress dekh sakte ho.'],
+      ended: ['Aapka login band ho gaya', 'Password reset hua ho ya registration approve na hua ho sakta hai. Naya password WhatsApp par mila ho to usse login karo, warna hamari team se baat karo.']
+    }[kind];
+    const ended = kind === 'ended', kv = function (k, v) { return '<div class="kv"><span class="k">' + k + '</span><span class="v">' + (v ? escapeHtml(v) : '—') + '</span></div>'; };
+    const icon = document.getElementById('newsIcon'); icon.textContent = ended ? '!' : '✓'; icon.style.background = ended ? 'var(--danger-100)' : ''; icon.style.color = ended ? 'var(--danger)' : ''; icon.style.backgroundImage = ended ? 'none' : '';
+    document.getElementById('newsTitle').textContent = T[0]; document.getElementById('newsBody').textContent = T[1];
+    document.getElementById('newsDetails').innerHTML = (ended || !ME) ? '' : kv('Name', ME.name) + kv('DS ID', ME.dsId) + kv('Upline', (ME.uplineName || '') + (ME.uplineMobile ? ' (' + ME.uplineMobile + ')' : '')) + kv('City', ME.city);
+    show_('newsBills', !ended && kind !== 'details');
+    document.getElementById('newsModal').classList.add('show');
+    try { if (navigator.vibrate) navigator.vibrate([180, 80, 180]); } catch (e) { /* not on every phone */ }
+  }
+  function closeNews_() { document.getElementById('newsModal').classList.remove('show'); }
+  function newsGoBills_() { closeNews_(); setTab_('bills'); }
 
   // ---------------- start: a login that is still valid goes straight in (no login again and again) ----------------
   async function boot_() {

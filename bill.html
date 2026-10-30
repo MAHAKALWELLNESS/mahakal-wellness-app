@@ -94,6 +94,8 @@ document.addEventListener('visibilitychange',function(){if(document.visibilitySt
 window.addEventListener('pageshow',function(e){if(e.persisted)ask();});
 setInterval(function(){if(document.visibilityState==='visible')ask();},window.__lookPollMs||60000);
 })();</script>
+<style id="embedCss">html.embed .topbar{display:none !important;} html.embed main{padding-top:10px !important;}</style>
+<script>if (/(^|[?&])embed=1(&|$)/.test(location.search)) document.documentElement.classList.add('embed');</script>
 </head>
 <body>
   <header class="topbar">
