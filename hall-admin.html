@@ -917,98 +917,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     loadHallBookings();
   }
 </script>
-<!-- MW-UX-START (keyboard + back button; the same in every page, built by tools/apply_ux_snippets.py) -->
-<style id="mwUxCss">
-  :root{--kb:0px; --vvh:100vh;}
-  .modal-overlay,.qty-modal-overlay,#notifPanel,#notifDetailPopup{bottom:var(--kb) !important;}
-  .modal-sheet,.qty-modal-sheet{max-height:calc(var(--vvh) * .92) !important;}
-  .summary-bar{bottom:var(--kb) !important;}
-  .toast{bottom:calc(100px + var(--kb)) !important;}
-  html.kb-open body{padding-bottom:calc(var(--kb) + 24px);}
-</style>
 <script>
-/* On-screen keyboard: --kb = how much of the bottom of the screen the keyboard covers, --vvh = the height that is really visible. */
-(function () {
-  var vv = window.visualViewport, root = document.documentElement;
-  function update() {
-    var kb = 0, h = window.innerHeight;
-    if (vv) { h = vv.height; if (!vv.scale || Math.abs(vv.scale - 1) < 0.02) kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)); }
-    if (kb < 60) kb = 0;                                   // the browser's own bars growing or shrinking are not a keyboard
-    root.style.setProperty('--kb', kb + 'px'); root.style.setProperty('--vvh', Math.round(h) + 'px'); root.classList.toggle('kb-open', kb > 0);
-  }
-  if (vv) { vv.addEventListener('resize', update); vv.addEventListener('scroll', update); }
-  window.addEventListener('resize', update);
-  window.addEventListener('orientationchange', function () { setTimeout(update, 350); });
-  update();
-  // keep the field being typed in on screen (also when the keyboard takes a moment to open)
-  document.addEventListener('focusin', function (e) {
-    var t = e.target;
-    if (!t || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || /^(checkbox|radio|button|submit|file|range|color)$/i.test(t.type || '')) return;
-    [120, 450, 900].forEach(function (ms) {
-      setTimeout(function () { if (document.activeElement !== t) return; try { t.scrollIntoView({ block: 'center', behavior: ms === 120 ? 'auto' : 'smooth', inline: 'nearest' }); } catch (x) {} }, ms);
-    });
-  });
-})();
-</script>
-<script>
-/* Phone back button. Until the visitor has touched the page nothing is done (and Chrome would skip the entry anyway). After that one
-   spare history entry sits on top: a back press lands on the entry below it, the page-specific MW_BACK() closes / goes back one step, and
-   the spare entry is put back. With nothing left to go back to: "press back once more", and the second press really leaves. */
-(function () {
-  var armed = !!(history.state && history.state.mwTrap), exitUntil = 0;
-  function note(msg) {
-    if (typeof showToast === 'function') { try { showToast(msg); return; } catch (e) {} }
-    var b = document.getElementById('mwBackNote');
-    if (!b) { b = document.createElement('div'); b.id = 'mwBackNote'; b.style.cssText = 'position:fixed;left:50%;bottom:calc(90px + var(--kb,0px));transform:translateX(-50%);background:#132E26;color:#fff;padding:10px 18px;border-radius:10px;font:600 13.5px sans-serif;z-index:9999;max-width:88%;text-align:center;'; document.body.appendChild(b); }
-    b.textContent = msg; b.style.display = 'block'; clearTimeout(b._t); b._t = setTimeout(function () { b.style.display = 'none'; }, 1800);
-  }
-  function trap() { try { history.pushState({ mwTrap: 1 }, '', location.href); return true; } catch (e) { return false; } }
-  function arm() { if (!armed && trap()) armed = true; }
-  ['pointerdown', 'touchstart', 'keydown', 'click'].forEach(function (n) { window.addEventListener(n, arm, { capture: true, passive: true }); });
-  window.addEventListener('popstate', function () {
-    if (!armed) return;
-    var did = false;
-    try { did = typeof window.MW_BACK === 'function' && window.MW_BACK() === true; } catch (e) {}
-    if (did) { trap(); return; }
-    if (Date.now() < exitUntil) { armed = false; history.back(); return; }          // second press in time: leave
-    exitUntil = Date.now() + 2000; note('Bahar jaane ke liye ek baar aur back dabao'); trap();
-  });
-})();
-</script>
-<script>
-(function () {
-  function mwLabel(b) { return (b.textContent || '').replace(/[^\w\s←]/g, '').replace(/\s+/g, ' ').trim().toLowerCase(); }
-  // closes a popup the way its own Back / Close / Cancel button does (so whatever that button cleans up still happens)
-  function mwCloseModal(m, special) {
-    var fn = special && special[m.id];
-    if (fn && typeof window[fn] === 'function') { window[fn](); return; }
-    var btns = Array.prototype.slice.call(m.querySelectorAll('button')).filter(function (b) { return !b.disabled && b.offsetParent !== null; });
-    var pick = function (re) { return btns.filter(function (b) { return re.test(mwLabel(b)); })[0]; };
-    var b = pick(/^(← ?)?back$/) || pick(/^(close|cancel|done|ok|no|not now)$/);
-    if (b) b.click(); else m.classList.remove('show');
-  }
-  function mwTopModal() {
-    var open = Array.prototype.slice.call(document.querySelectorAll('.modal-overlay.show'));
-    open.sort(function (a, b) { var za = Number(getComputedStyle(a).zIndex) || 0, zb = Number(getComputedStyle(b).zIndex) || 0; return za !== zb ? za - zb : (a.compareDocumentPosition(b) & 4 ? -1 : 1); });
-    return open[open.length - 1] || null;
-  }
-  var hist = [], orig = window.switchHallAdminTab_;
-  function cur() { var a = document.querySelector('.subtab.active'); return a ? a.dataset.subtab : null; }
-  if (typeof orig === 'function') {
-    window.switchHallAdminTab_ = function (name, fromBack) {
-      var prev = cur(), r = orig.apply(this, arguments);
-      if (!fromBack && prev && prev !== name) { hist.push(prev); if (hist.length > 25) hist.shift(); }
-      return r;
-    };
-  }
-  window.MW_BACK = function () {
-    var m = mwTopModal();
-    if (m) { mwCloseModal(m); return true; }
-    if (hist.length) { window.switchHallAdminTab_(hist.pop(), true); return true; }
-    return false;
-  };
-})();
-
   // =================== THE LOOK OF THE APP: chosen by the main admin (in the main admin page) for all staff; this page just follows it ===================
   function applyLook_(look) {
     const on = look !== 'old';
@@ -1090,6 +999,125 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     hallbookings: { from: 'hallFilterFrom', to: 'hallFilterTo', future: true, load: function () { loadHallBookings(); } },
     hallacct: { from: 'acctFrom', to: 'acctTo', load: function () { loadHallAccounting_(); } }
   });
+</script>
+<!-- MW-UX-START (keyboard + back button; the same in every page, built by tools/apply_ux_snippets.py) -->
+<style id="mwUxCss">
+  :root{--kb:0px; --vvh:100vh;}
+  .modal-overlay,.qty-modal-overlay,#notifPanel,#notifDetailPopup{bottom:var(--kb) !important;}
+  .modal-sheet,.qty-modal-sheet{max-height:calc(var(--vvh) * .92) !important;}
+  .summary-bar{bottom:var(--kb) !important;}
+  .toast{bottom:calc(100px + var(--kb)) !important;}
+  html.kb-open body{padding-bottom:calc(var(--kb) + 24px);}
+</style>
+<script>
+/* On-screen keyboard: --kb = how much of the bottom of the screen the keyboard covers, --vvh = the height that is really visible. */
+(function () {
+  var vv = window.visualViewport, root = document.documentElement;
+  function update() {
+    var kb = 0, h = window.innerHeight;
+    if (vv) { h = vv.height; if (!vv.scale || Math.abs(vv.scale - 1) < 0.02) kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)); }
+    if (kb < 60) kb = 0;                                   // the browser's own bars growing or shrinking are not a keyboard
+    root.style.setProperty('--kb', kb + 'px'); root.style.setProperty('--vvh', Math.round(h) + 'px'); root.classList.toggle('kb-open', kb > 0);
+  }
+  if (vv) { vv.addEventListener('resize', update); vv.addEventListener('scroll', update); }
+  window.addEventListener('resize', update);
+  window.addEventListener('orientationchange', function () { setTimeout(update, 350); });
+  update();
+  // keep the field being typed in on screen (also when the keyboard takes a moment to open)
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!t || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || /^(checkbox|radio|button|submit|file|range|color)$/i.test(t.type || '')) return;
+    [120, 450, 900].forEach(function (ms) {
+      setTimeout(function () { if (document.activeElement !== t) return; try { t.scrollIntoView({ block: 'center', behavior: ms === 120 ? 'auto' : 'smooth', inline: 'nearest' }); } catch (x) {} }, ms);
+    });
+  });
+})();
+</script>
+<script>
+/* Popup layers: the popup opened LAST is always the top one. Every popup that is shown takes the next layer number, above every popup shown before it
+   (whatever its place in the page), so a popup opened from another popup - Edit customer from the customer window, Transport charges from the bill,
+   a confirm window from a list - can never come up UNDER the window it was opened from. Messages (layer 200) and the sign-in screen (300) stay above. */
+(function () {
+  var SEL = '.modal-overlay, .qty-modal-overlay', BASE = 80, MAX = 190, next = BASE;
+  function anyShown() { return !!document.querySelector('.modal-overlay.show, .qty-modal-overlay.show'); }
+  function sync(el) {
+    var on = el.classList.contains('show');
+    if (on && el.getAttribute('data-mwz') === null) {
+      if (el.__mwz0 === undefined) el.__mwz0 = el.style.zIndex || '';
+      next = Math.min(next + 1, MAX); el.style.zIndex = String(next); el.setAttribute('data-mwz', String(next));
+    } else if (!on && el.getAttribute('data-mwz') !== null) {
+      el.removeAttribute('data-mwz'); el.style.zIndex = el.__mwz0 || '';
+      if (!anyShown()) next = BASE;
+    }
+  }
+  var attrObs = new MutationObserver(function (list) { list.forEach(function (m) { sync(m.target); }); });
+  function watch(el) { if (el.__mwWatched) return; el.__mwWatched = true; attrObs.observe(el, { attributes: true, attributeFilter: ['class'] }); sync(el); }
+  function scan(root) { if (root.matches && root.matches(SEL)) watch(root); if (root.querySelectorAll) Array.prototype.forEach.call(root.querySelectorAll(SEL), watch); }
+  function start() {
+    scan(document);
+    new MutationObserver(function (list) { list.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1) scan(n); }); }); }).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
+</script>
+<script>
+/* Phone back button. Until the visitor has touched the page nothing is done (and Chrome would skip the entry anyway). After that one
+   spare history entry sits on top: a back press lands on the entry below it, the page-specific MW_BACK() closes / goes back one step, and
+   the spare entry is put back. With nothing left to go back to: "press back once more", and the second press really leaves. */
+(function () {
+  var armed = !!(history.state && history.state.mwTrap), exitUntil = 0;
+  function note(msg) {
+    if (typeof showToast === 'function') { try { showToast(msg); return; } catch (e) {} }
+    var b = document.getElementById('mwBackNote');
+    if (!b) { b = document.createElement('div'); b.id = 'mwBackNote'; b.style.cssText = 'position:fixed;left:50%;bottom:calc(90px + var(--kb,0px));transform:translateX(-50%);background:#132E26;color:#fff;padding:10px 18px;border-radius:10px;font:600 13.5px sans-serif;z-index:9999;max-width:88%;text-align:center;'; document.body.appendChild(b); }
+    b.textContent = msg; b.style.display = 'block'; clearTimeout(b._t); b._t = setTimeout(function () { b.style.display = 'none'; }, 1800);
+  }
+  function trap() { try { history.pushState({ mwTrap: 1 }, '', location.href); return true; } catch (e) { return false; } }
+  function arm() { if (!armed && trap()) armed = true; }
+  ['pointerdown', 'touchstart', 'keydown', 'click'].forEach(function (n) { window.addEventListener(n, arm, { capture: true, passive: true }); });
+  window.addEventListener('popstate', function () {
+    if (!armed) return;
+    var did = false;
+    try { did = typeof window.MW_BACK === 'function' && window.MW_BACK() === true; } catch (e) {}
+    if (did) { trap(); return; }
+    if (Date.now() < exitUntil) { armed = false; history.back(); return; }          // second press in time: leave
+    exitUntil = Date.now() + 2000; note('Bahar jaane ke liye ek baar aur back dabao'); trap();
+  });
+})();
+</script>
+<script>
+(function () {
+  function mwLabel(b) { return (b.textContent || '').replace(/[^\w\s←]/g, '').replace(/\s+/g, ' ').trim().toLowerCase(); }
+  // closes a popup the way its own Back / Close / Cancel button does (so whatever that button cleans up still happens)
+  function mwCloseModal(m, special) {
+    var fn = special && special[m.id];
+    if (fn && typeof window[fn] === 'function') { window[fn](); return; }
+    var btns = Array.prototype.slice.call(m.querySelectorAll('button')).filter(function (b) { return !b.disabled && b.offsetParent !== null; });
+    var pick = function (re) { return btns.filter(function (b) { return re.test(mwLabel(b)); })[0]; };
+    var b = pick(/^(← ?)?back$/) || pick(/^(close|cancel|done|ok|no|not now)$/);
+    if (b) b.click(); else m.classList.remove('show');
+  }
+  function mwTopModal() {
+    var open = Array.prototype.slice.call(document.querySelectorAll('.modal-overlay.show'));
+    open.sort(function (a, b) { var za = Number(getComputedStyle(a).zIndex) || 0, zb = Number(getComputedStyle(b).zIndex) || 0; return za !== zb ? za - zb : (a.compareDocumentPosition(b) & 4 ? -1 : 1); });
+    return open[open.length - 1] || null;
+  }
+  var hist = [], orig = window.switchHallAdminTab_;
+  function cur() { var a = document.querySelector('.subtab.active'); return a ? a.dataset.subtab : null; }
+  if (typeof orig === 'function') {
+    window.switchHallAdminTab_ = function (name, fromBack) {
+      var prev = cur(), r = orig.apply(this, arguments);
+      if (!fromBack && prev && prev !== name) { hist.push(prev); if (hist.length > 25) hist.shift(); }
+      return r;
+    };
+  }
+  window.MW_BACK = function () {
+    var m = mwTopModal();
+    if (m) { mwCloseModal(m); return true; }
+    if (hist.length) { window.switchHallAdminTab_(hist.pop(), true); return true; }
+    return false;
+  };
+})();
 </script>
 <!-- MW-UX-END -->
 </body>

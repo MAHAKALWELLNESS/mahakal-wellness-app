@@ -174,7 +174,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
 .share-app{display:flex; align-items:center; gap:14px; width:100%; padding:14px 16px; border-radius:14px; border:none; font-size:16px; font-weight:800; font-family:inherit; cursor:pointer; margin-bottom:10px; color:#fff; text-align:left;}
 .share-app .ic{font-size:26px;} .share-app small{display:block; font-weight:600; font-size:11.5px; opacity:.92; margin-top:1px;}
 .share-app.wa{background:#1FA855;} .share-app.w4b{background:#0E7C6B;}
-#shareToast{position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(12px); max-width:88vw; background:var(--green-900); color:#fff; padding:10px 18px; border-radius:12px; font-size:13px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:90; text-align:center;}
+#shareToast{position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(12px); max-width:88vw; background:var(--green-900); color:#fff; padding:10px 18px; border-radius:12px; font-size:13px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:200; text-align:center;}
 #shareToast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 @media screen{
   html.nl .share-app{border-radius:18px; text-shadow:0 1px 2px rgba(0,0,0,.25);}
@@ -1446,6 +1446,33 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
       setTimeout(function () { if (document.activeElement !== t) return; try { t.scrollIntoView({ block: 'center', behavior: ms === 120 ? 'auto' : 'smooth', inline: 'nearest' }); } catch (x) {} }, ms);
     });
   });
+})();
+</script>
+<script>
+/* Popup layers: the popup opened LAST is always the top one. Every popup that is shown takes the next layer number, above every popup shown before it
+   (whatever its place in the page), so a popup opened from another popup - Edit customer from the customer window, Transport charges from the bill,
+   a confirm window from a list - can never come up UNDER the window it was opened from. Messages (layer 200) and the sign-in screen (300) stay above. */
+(function () {
+  var SEL = '.modal-overlay, .qty-modal-overlay', BASE = 80, MAX = 190, next = BASE;
+  function anyShown() { return !!document.querySelector('.modal-overlay.show, .qty-modal-overlay.show'); }
+  function sync(el) {
+    var on = el.classList.contains('show');
+    if (on && el.getAttribute('data-mwz') === null) {
+      if (el.__mwz0 === undefined) el.__mwz0 = el.style.zIndex || '';
+      next = Math.min(next + 1, MAX); el.style.zIndex = String(next); el.setAttribute('data-mwz', String(next));
+    } else if (!on && el.getAttribute('data-mwz') !== null) {
+      el.removeAttribute('data-mwz'); el.style.zIndex = el.__mwz0 || '';
+      if (!anyShown()) next = BASE;
+    }
+  }
+  var attrObs = new MutationObserver(function (list) { list.forEach(function (m) { sync(m.target); }); });
+  function watch(el) { if (el.__mwWatched) return; el.__mwWatched = true; attrObs.observe(el, { attributes: true, attributeFilter: ['class'] }); sync(el); }
+  function scan(root) { if (root.matches && root.matches(SEL)) watch(root); if (root.querySelectorAll) Array.prototype.forEach.call(root.querySelectorAll(SEL), watch); }
+  function start() {
+    scan(document);
+    new MutationObserver(function (list) { list.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1) scan(n); }); }); }).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
 </script>
 <script>

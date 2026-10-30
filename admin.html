@@ -44,6 +44,9 @@
   .btn-block{width:100%;}
   .btn-primary{background:var(--green-800); color:#fff;}
   .btn-gold{background:var(--gold-500); color:var(--green-900);}
+  .btn-red{background:var(--danger); color:#fff;}
+  .btn-red:disabled{opacity:.5;}
+  #editCustomerModal,#deleteCustomerModal{z-index:55;}
   .btn-outline{background:#fff; border:1.5px solid var(--line); color:var(--green-800);}
   .btn:disabled{opacity:.5; cursor:not-allowed;}
 
@@ -392,6 +395,8 @@ html.nl .btn:active{transform:translateY(4px);}
 html.nl .btn-primary{background:linear-gradient(180deg,#8B7BFF 0%,#5B3FE0 100%); color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.25); box-shadow:0 5px 0 #3A2BB0, 0 10px 18px rgba(91,63,224,.38), inset 0 2px 0 rgba(255,255,255,.38);}
 html.nl .btn-primary:active{box-shadow:0 1px 0 #3A2BB0, 0 3px 8px rgba(91,63,224,.3), inset 0 2px 0 rgba(255,255,255,.3);}
 html.nl .btn-gold{background:linear-gradient(180deg,#FFD66B 0%,#FFA62B 100%); color:#4A2B00; box-shadow:0 5px 0 #C97A00, 0 10px 18px rgba(255,166,43,.45), inset 0 2px 0 rgba(255,255,255,.55);}
+html.nl .btn-red{background:linear-gradient(180deg,#FF8A8A 0%,#E03A3A 100%); color:#fff; box-shadow:0 5px 0 #A32020, 0 10px 18px rgba(224,58,58,.4), inset 0 2px 0 rgba(255,255,255,.4);}
+html.nl .btn-red:active{box-shadow:0 1px 0 #A32020, 0 3px 8px rgba(224,58,58,.35);}
 html.nl .btn-gold:active{box-shadow:0 1px 0 #C97A00, 0 3px 8px rgba(255,166,43,.35), inset 0 2px 0 rgba(255,255,255,.45);}
 html.nl .btn-outline{background:#fff; border:2px solid #C9C3FF; color:#4B3FD0; box-shadow:0 4px 0 #D6D1FF, 0 8px 14px rgba(82,64,230,.12);}
 html.nl .btn-outline:active{box-shadow:0 1px 0 #D6D1FF;}
@@ -2344,7 +2349,10 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div><h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;" id="customerDetailName"></h2>
         <p class="hint" id="customerDetailMobile" style="margin-bottom:6px;"></p></div>
-        <button class="btn btn-outline" style="flex:none;padding:6px 12px;font-size:12.5px;" onclick="openEditCustomerProfile()">✎ Edit Profile</button>
+        <div style="display:flex;gap:6px;flex:none;">
+          <button class="btn btn-outline" id="deleteCustomerBtn" style="display:none;flex:none;padding:6px 12px;font-size:12.5px;color:var(--danger);border-color:var(--danger);" onclick="openDeleteCustomer()">🗑 Delete</button>
+          <button class="btn btn-outline" style="flex:none;padding:6px 12px;font-size:12.5px;" onclick="openEditCustomerProfile()">✎ Edit Profile</button>
+        </div>
       </div>
       <div id="customerDetailExtra" style="display:none;margin-bottom:14px;background:var(--gold-100);border:1.5px solid var(--gold-500);border-radius:8px;padding:8px 10px;font-size:12.5px;font-weight:700;color:var(--green-900);"></div>
       <p class="section-label">Quick range</p>
@@ -2380,6 +2388,21 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   </div>
 
   <!-- ============ OFFICIAL WORK: STEP 1 - Proceed/Close ============ -->
+  <div class="modal-overlay" id="deleteCustomerModal">
+    <div class="modal-sheet">
+      <h2 style="font-size:17px;color:var(--danger);margin-bottom:4px;">Delete customer profile?</h2>
+      <p style="font-size:14px;font-weight:800;color:var(--green-900);margin:0 0 10px;word-break:break-word;" id="delCustWho"></p>
+      <div id="delCustInfo" style="background:var(--gold-100);border:1.5px solid var(--gold-500);border-radius:8px;padding:9px 11px;font-size:12.5px;font-weight:700;color:var(--green-900);margin-bottom:10px;">Checking…</div>
+      <p class="hint" style="margin-bottom:6px;line-height:1.5;">Sirf iska <strong>profile</strong> (naam, DS ID, upline, city, GST, address, remark) delete hoga aur ye Customers list me nahi dikhega. Iske <strong>bills, payments aur wallet nahi hatenge</strong> - bills apne naam aur mobile ke saath waise hi rahenge.</p>
+      <p class="hint" style="margin-bottom:0;line-height:1.5;">Delete ki ek copy database me safe rehti hai. Is mobile se naya bill ya order aayega to profile dobara ban jayega.</p>
+      <p class="login-error" id="delCustError" style="min-height:0;margin:8px 0 0;"></p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeDeleteCustomer()">Cancel</button>
+        <button class="btn btn-red" id="delCustConfirm" onclick="confirmDeleteCustomer()" disabled>Delete profile</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="officialActionModal">
     <div class="modal-sheet">
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:4px;" id="officialActionTitle"></h2>
@@ -8060,6 +8083,48 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     searchCustomersTab();
   }
 
+  // ---------------- DELETE A CUSTOMER PROFILE (main admin only; the bills, payments and wallet are never touched) ----------------
+  let deleteCustomerMobile_ = '', deletingCustomer_ = false;
+  async function openDeleteCustomer() {
+    if (!isSuperAdminUser) return;
+    const mobile = String(currentCustomerMobile || '').trim();
+    if (!mobile) { showToast('No mobile number for this customer.', true); return; }
+    deleteCustomerMobile_ = mobile; deletingCustomer_ = false;
+    const modal = document.getElementById('deleteCustomerModal'), info = document.getElementById('delCustInfo'), btn = document.getElementById('delCustConfirm'), err = document.getElementById('delCustError');
+    document.getElementById('delCustWho').textContent = (currentCustomerName || 'Customer').toUpperCase() + ' · ' + mobile;
+    info.style.background = 'var(--gold-100)'; info.style.borderColor = 'var(--gold-500)'; info.style.color = 'var(--green-900)'; info.textContent = 'Checking…';
+    err.textContent = ''; btn.disabled = true; btn.textContent = 'Delete profile';
+    modal.classList.add('show');
+    const { data, error } = await sb.rpc('get_customer_delete_info', { p_mobile: mobile });
+    if (deleteCustomerMobile_ !== mobile || !modal.classList.contains('show')) return;
+    if (error) { info.textContent = ''; err.textContent = error.message || 'Could not check this customer.'; return; }
+    if (!data || !data.found) { info.textContent = 'This customer profile was not found (maybe it is already deleted).'; return; }
+    const bills = Number(data.bills) || 0, wal = Number(data.wallet) || 0;
+    if (!data.canDelete) {
+      info.style.background = 'var(--danger-100, #fdeaea)'; info.style.borderColor = 'var(--danger)'; info.style.color = 'var(--danger)';
+      info.innerHTML = 'Is customer ke wallet me <strong>' + money(wal) + '</strong> hain. Pehle wallet settle karo (Wallet tab), tab profile delete ho sakega.';
+      return;
+    }
+    info.innerHTML = 'Bills: <strong>' + bills + '</strong> (rahenge) &nbsp;·&nbsp; Wallet: <strong>' + money(wal) + '</strong>';
+    btn.disabled = false;
+  }
+  function closeDeleteCustomer() { document.getElementById('deleteCustomerModal').classList.remove('show'); deleteCustomerMobile_ = ''; }
+  async function confirmDeleteCustomer() {
+    if (deletingCustomer_ || !deleteCustomerMobile_) return;
+    deletingCustomer_ = true;
+    const btn = document.getElementById('delCustConfirm'), err = document.getElementById('delCustError');
+    err.textContent = ''; btn.disabled = true; btn.textContent = 'Deleting…';
+    const { data, error } = await sb.rpc('delete_customer_profile', { p_mobile: deleteCustomerMobile_ });
+    deletingCustomer_ = false;
+    if (error) { err.textContent = error.message || 'Could not delete this profile.'; btn.disabled = false; btn.textContent = 'Delete profile'; return; }
+    document.getElementById('deleteCustomerModal').classList.remove('show');
+    document.getElementById('customerDetailModal').classList.remove('show');
+    deleteCustomerMobile_ = ''; currentCustomerMobile = '';
+    const n = data && Number(data.bills) || 0;
+    showToast('Customer profile deleted' + (n ? ' (' + n + ' bill' + (n === 1 ? '' : 's') + ' stay)' : '') + '.');
+    searchCustomersTab(true);
+  }
+
   // ---------------- ADD NEW PRODUCT (manual, or from an unmatched bill-scan item) ----------------
   let pendingNewProductQty_ = null;
   function openAddProductModal(prefill) {
@@ -8146,6 +8211,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     document.getElementById('customerDetailName').textContent = (name || 'Customer').toUpperCase();
     document.getElementById('customerDetailMobile').textContent = mobile || '';
     document.getElementById('customerDetailModal').classList.add('show');
+    const delBtn = document.getElementById('deleteCustomerBtn'); if (delBtn) delBtn.style.display = isSuperAdminUser ? '' : 'none';      // deleting a profile: main admin only
     custStatus_ = 'all'; setCustomerRange('all');
 
     const extraBox = document.getElementById('customerDetailExtra');
@@ -10879,6 +10945,33 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       setTimeout(function () { if (document.activeElement !== t) return; try { t.scrollIntoView({ block: 'center', behavior: ms === 120 ? 'auto' : 'smooth', inline: 'nearest' }); } catch (x) {} }, ms);
     });
   });
+})();
+</script>
+<script>
+/* Popup layers: the popup opened LAST is always the top one. Every popup that is shown takes the next layer number, above every popup shown before it
+   (whatever its place in the page), so a popup opened from another popup - Edit customer from the customer window, Transport charges from the bill,
+   a confirm window from a list - can never come up UNDER the window it was opened from. Messages (layer 200) and the sign-in screen (300) stay above. */
+(function () {
+  var SEL = '.modal-overlay, .qty-modal-overlay', BASE = 80, MAX = 190, next = BASE;
+  function anyShown() { return !!document.querySelector('.modal-overlay.show, .qty-modal-overlay.show'); }
+  function sync(el) {
+    var on = el.classList.contains('show');
+    if (on && el.getAttribute('data-mwz') === null) {
+      if (el.__mwz0 === undefined) el.__mwz0 = el.style.zIndex || '';
+      next = Math.min(next + 1, MAX); el.style.zIndex = String(next); el.setAttribute('data-mwz', String(next));
+    } else if (!on && el.getAttribute('data-mwz') !== null) {
+      el.removeAttribute('data-mwz'); el.style.zIndex = el.__mwz0 || '';
+      if (!anyShown()) next = BASE;
+    }
+  }
+  var attrObs = new MutationObserver(function (list) { list.forEach(function (m) { sync(m.target); }); });
+  function watch(el) { if (el.__mwWatched) return; el.__mwWatched = true; attrObs.observe(el, { attributes: true, attributeFilter: ['class'] }); sync(el); }
+  function scan(root) { if (root.matches && root.matches(SEL)) watch(root); if (root.querySelectorAll) Array.prototype.forEach.call(root.querySelectorAll(SEL), watch); }
+  function start() {
+    scan(document);
+    new MutationObserver(function (list) { list.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1) scan(n); }); }); }).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 })();
 </script>
 <script>

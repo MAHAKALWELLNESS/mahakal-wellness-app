@@ -593,6 +593,33 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   });
 })();
 </script>
+<script>
+/* Popup layers: the popup opened LAST is always the top one. Every popup that is shown takes the next layer number, above every popup shown before it
+   (whatever its place in the page), so a popup opened from another popup - Edit customer from the customer window, Transport charges from the bill,
+   a confirm window from a list - can never come up UNDER the window it was opened from. Messages (layer 200) and the sign-in screen (300) stay above. */
+(function () {
+  var SEL = '.modal-overlay, .qty-modal-overlay', BASE = 80, MAX = 190, next = BASE;
+  function anyShown() { return !!document.querySelector('.modal-overlay.show, .qty-modal-overlay.show'); }
+  function sync(el) {
+    var on = el.classList.contains('show');
+    if (on && el.getAttribute('data-mwz') === null) {
+      if (el.__mwz0 === undefined) el.__mwz0 = el.style.zIndex || '';
+      next = Math.min(next + 1, MAX); el.style.zIndex = String(next); el.setAttribute('data-mwz', String(next));
+    } else if (!on && el.getAttribute('data-mwz') !== null) {
+      el.removeAttribute('data-mwz'); el.style.zIndex = el.__mwz0 || '';
+      if (!anyShown()) next = BASE;
+    }
+  }
+  var attrObs = new MutationObserver(function (list) { list.forEach(function (m) { sync(m.target); }); });
+  function watch(el) { if (el.__mwWatched) return; el.__mwWatched = true; attrObs.observe(el, { attributes: true, attributeFilter: ['class'] }); sync(el); }
+  function scan(root) { if (root.matches && root.matches(SEL)) watch(root); if (root.querySelectorAll) Array.prototype.forEach.call(root.querySelectorAll(SEL), watch); }
+  function start() {
+    scan(document);
+    new MutationObserver(function (list) { list.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1) scan(n); }); }); }).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
+</script>
 <!-- MW-UX-END -->
 </body>
 </html>
