@@ -180,6 +180,11 @@ html.nl .success-icon{background:linear-gradient(180deg,#5BE3A5,#12A85A); color:
 .sv-body{flex:1; position:relative; min-height:0;} #svFrame{position:absolute; inset:0; width:100%; height:100%; border:0; background:var(--bg);}
 .sv-loading{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--ink-faint); font-size:13px;}
 .bill-row.tap, #orderLast.tap{cursor:pointer;} .bill-row.tap:active, #orderLast.tap:active{background:var(--bg);} .bill-row.tap:focus-visible, #orderLast.tap:focus-visible{outline:2px solid var(--gold-500); outline-offset:2px;}
+.due-badge{display:inline-block; margin-top:6px; padding:6px 12px; border-radius:20px; border:none; background:var(--danger-100); color:var(--danger); font-weight:800; font-size:13px; font-family:inherit; cursor:pointer; text-align:left;}
+.due-big{font-size:28px; font-weight:800; color:var(--danger);}
+.due-all{display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--danger-100); border-radius:14px; padding:12px 14px; margin-bottom:12px;}
+.due-all .t{font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--danger);} .due-all .n{font-size:22px; font-weight:800; color:var(--danger); margin-top:2px;} .due-all .s{font-size:11.5px; color:var(--ink-soft); margin-top:1px;}
+.due-all .btn{width:auto; padding:9px 12px; font-size:12.5px; flex:none;}
 .br-more{display:inline-block; margin-top:2px; font-size:12.5px; font-weight:700; color:var(--green-800);}
 .inp-wrap{position:relative;} .inp-wrap input{padding-right:38px;}
 .clr-btn{position:absolute; right:6px; top:50%; transform:translateY(-50%); width:28px; height:28px; border:none; border-radius:50%; background:var(--green-100); color:var(--green-800); font-weight:800; font-size:12px; cursor:pointer; padding:0; line-height:28px;}
@@ -199,6 +204,8 @@ html.nl .success-icon{background:linear-gradient(180deg,#5BE3A5,#12A85A); color:
   html.nl .avatar{box-shadow:0 0 0 3px #fff, 0 0 0 6px #C9C3FF, 0 6px 0 rgba(150,140,230,.3); background:linear-gradient(135deg,#E9E6FF,#FFE3EE); color:#3D2FB5;}
   html.nl .a-head h2{color:#2B1F8F; font-weight:800;}
   html.nl .a-link, html.nl .br-link, html.nl .br-more{color:#4B3FD0;}
+  html.nl .due-badge{background:linear-gradient(180deg,#FF8A8A,#E03131); color:#fff; box-shadow:0 3px 0 #A32020, 0 6px 12px rgba(224,49,49,.3);} html.nl .due-big{color:#D6336C;}
+  html.nl .due-all{background:linear-gradient(135deg,#FFE0E3,#FFC9D0); box-shadow:0 4px 0 #F2A3AC;}
   html.nl .sv-bar{background:linear-gradient(135deg,#2B1F8F 0%,#5B3FE0 48%,#D6336C 100%); box-shadow:0 6px 16px rgba(61,47,181,.35);}
   html.nl .field input.is-auto{background:#EEFBF5; border-color:#9BE3C7;} html.nl .clr-btn{background:#EEEAFF; color:#4B3FD0;}
   html.nl .q-chip{border:2px solid #DAD6FF; border-radius:14px; background:#fff; color:#4B5275; font-weight:800; box-shadow:0 3px 0 #E4E0FF;}
@@ -370,6 +377,14 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     <p class="error-msg" id="waPopError"></p>
     <div class="qty-modal-actions"><button class="btn btn-outline" id="waLater" type="button" onclick="closeWaPopup_()">Baad me</button><button class="btn btn-gold" id="waPopSave" type="button" onclick="saveWa_('waPopInput','waPopError')">Save</button></div>
   </div></div>
+  <div class="qty-modal-overlay" id="dueModal"><div class="qty-modal-sheet" style="text-align:center;">
+    <div class="success-icon" id="dueIcon" style="background:var(--danger-100);color:var(--danger);background-image:none;">💰</div>
+    <h2 id="dueTitle" style="margin-bottom:6px;"></h2>
+    <p class="hint" id="dueBody" style="line-height:1.5;margin-bottom:6px;"></p>
+    <div class="due-big" id="dueBig"></div>
+    <p class="hint" id="dueMsg" style="margin:6px 0 0;line-height:1.5;"></p>
+    <div class="qty-modal-actions" style="margin-top:14px;"><button class="btn btn-outline" id="dueOk" type="button" onclick="closeDue_()">OK</button><button class="btn btn-gold" id="dueView" type="button" onclick="dueViewBills_()">🧾 Due bills dekho</button></div>
+  </div></div>
   <div class="qty-modal-overlay" id="newsModal"><div class="qty-modal-sheet" style="text-align:center;">
     <div class="success-icon" id="newsIcon">✓</div>
     <h2 id="newsTitle" style="margin-bottom:6px;"></h2>
@@ -421,7 +436,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   // ---------------- signed out: login / register / forgot password ----------------
   let ME = null, authTab_ = 'login', homeTab_ = 'order';
   function showAuth_(tab, note) {
-    stopLive_(); closeStatus_(); waAsked_ = false; closeWaPopup_();
+    stopLive_(); closeStatus_(); waAsked_ = false; dueAsked_ = false; document.getElementById('dueModal').classList.remove('show'); closeWaPopup_();
     authTab_ = tab;
     show_('acctLoading', false); show_('homeView', false); show_('authView', true);
     show_('viewLogin', tab === 'login'); show_('viewRegister', tab === 'register'); show_('viewForgot', tab === 'forgot');
@@ -558,12 +573,12 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     show_('acctLoading', false); show_('authView', false); show_('homeView', true);
     renderHead_(); show_('tempBanner', !!ME.mustChange); showReview_();
     const want = (location.hash || '').replace('#', ''); setTab_(['order', 'bills', 'offers', 'profile'].indexOf(want) >= 0 ? want : 'order');
-    startLive_(); newsOnEnter_(); waPrompt_();
+    startLive_(); newsOnEnter_(); waPrompt_(); nextPrompt_();
     if (fresh) toast_(ME.pendingCorrection ? 'Registration ho gaya. Hamari team approve karegi.' : (ME.verified ? 'Welcome! Aapka account ban gaya.' : 'Account ban gaya. Hamari team aapko jaldi verify karegi.'));
   }
   function renderHead_() {
     document.getElementById('homeHead').innerHTML = avatarHtml_(false) + '<div style="min-width:0;"><h2>' + escapeHtml(ME.name || 'Customer') + '</h2><p class="a-sub">' + escapeHtml(ME.mobile) + (ME.dsId ? ' · DS ID ' + escapeHtml(ME.dsId) : '') + '</p>' +
-      (ME.verified ? '' : '<span class="badge warn" style="margin-top:6px;">⏳ Verification pending</span>') + '</div>';
+      (ME.verified ? '' : '<span class="badge warn" style="margin-top:6px;">⏳ Verification pending</span>') + dueBadgeHtml_() + '</div>';
   }
   // the details he typed differ from our record: the team checks and approves (until then he sees and orders with what he typed)
   function showReview_() {
@@ -663,7 +678,8 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     const counted = list.filter(function (b) { return b.kind === 'bill' && (b.billStatus === 'Active' || b.billStatus === 'Pending'); });
     const tot = function (k) { return counted.reduce(function (s, b) { return s + (Number(b[k]) || 0); }, 0); };
     sum.style.display = 'block';
-    sum.innerHTML = '<p class="section-label">Summary of the bills shown</p><div class="sum-grid"><div class="sum-box"><div class="t">Bills</div><div class="n" id="sumBills">' + list.length + '</div></div><div class="sum-box"><div class="t">Amount</div><div class="n" id="sumAmount">' + money(tot('amount')) + '</div></div><div class="sum-box"><div class="t">Total SP</div><div class="n" id="sumSp">' + trimNum(tot('sp')) + '</div></div><div class="sum-box"><div class="t">Due</div><div class="n" id="sumDue">' + money(tot('due')) + '</div></div></div>';
+    const allDue = dueAmt_() > 0.005 ? '<div class="due-all" id="allDueBox"><div><div class="t">Total due (all time)</div><div class="n" id="sumAllDue">' + money(dueAmt_()) + '</div><div class="s">' + (Number(ME.dueBills) || 0) + ' bill' + ((Number(ME.dueBills) || 0) === 1 ? '' : 's') + ' · approved bills only</div></div><button class="btn btn-outline" id="showDueBtn" type="button" onclick="showDueBills_()">Due bills dekho</button></div>' : '';
+    sum.innerHTML = '<p class="section-label">Summary of the bills shown (follows your filters)</p>' + allDue + '<div class="sum-grid"><div class="sum-box"><div class="t">Bills</div><div class="n" id="sumBills">' + list.length + '</div></div><div class="sum-box"><div class="t">Amount</div><div class="n" id="sumAmount">' + money(tot('amount')) + '</div></div><div class="sum-box"><div class="t">Total SP</div><div class="n" id="sumSp">' + trimNum(tot('sp')) + '</div></div><div class="sum-box"><div class="t">Due</div><div class="n" id="sumDue">' + money(tot('due')) + '</div></div></div>';
     if (!list.length) { box.innerHTML = '<div class="empty" style="padding:24px;">' + (BILLS.length ? 'No bills match these filters.' : 'Abhi tak koi bill nahi. Pehla order dene ke liye <strong>Order</strong> tab kholo.') + '</div>'; return; }
     const part = list.slice(0, F.shown);
     box.innerHTML = part.map(billRowHtml_).join('') + (list.length > part.length ? '<button class="btn btn-outline" id="moreBills" type="button" style="margin-top:12px;" onclick="F.shown += 30; renderBills_();">Show more (' + (list.length - part.length) + ')</button>' : '');
@@ -763,15 +779,42 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     finally { btn.disabled = false; btn.textContent = 'Change password'; }
   }
 
+  // ---------------- what he owes: shown in his header (only when it is more than 0), reminded once per visit, and a reminder the staff send arrives as a popup ----------------
+  let dueAsked_ = false;
+  function dueAmt_() { return Number(ME && ME.totalDue) || 0; }
+  function dueBadgeHtml_() {
+    const d = dueAmt_(), n = Number(ME && ME.dueBills) || 0;
+    return d > 0.005 ? '<button class="due-badge" id="dueBadge" type="button" onclick="showDueBills_()">💰 Baaki (due): ' + money(d) + ' · ' + n + ' bill' + (n === 1 ? '' : 's') + ' ›</button>' : '';
+  }
+  function popupOpen_() { return ['newsModal', 'waModal', 'dueModal'].some(function (id) { return document.getElementById(id).classList.contains('show'); }); }
+  function nextPrompt_() {
+    if (!ME || popupOpen_()) return;
+    const due = dueAmt_();
+    if (ME.pendingReminder && due > 0.005) { showDuePopup_(true); return; }                     // a reminder the staff sent comes first
+    if (!ME.whatsapp && !waAsked_) { waAsked_ = true; showWaPopup_(); return; }
+    if (due > 0.005 && !dueAsked_) { dueAsked_ = true; showDuePopup_(false); }
+  }
+  function showDuePopup_(staffSent) {
+    const d = dueAmt_(), n = Number(ME.dueBills) || 0, r = ME.pendingReminder;
+    document.getElementById('dueIcon').textContent = staffSent ? '🔔' : '💰';
+    document.getElementById('dueTitle').textContent = staffSent ? 'Payment reminder' : 'Aapka payment baaki hai';
+    document.getElementById('dueBody').textContent = 'Mahakal Wellness me aapke ' + n + ' bill' + (n === 1 ? '' : 's') + ' ka payment baaki hai.';
+    document.getElementById('dueBig').textContent = money(d);
+    document.getElementById('dueMsg').textContent = (staffSent && r && r.message) ? r.message : 'Kripya jaldi clear kar do. Dhanyavaad!';
+    document.getElementById('dueModal').classList.add('show');
+    try { if (staffSent && navigator.vibrate) navigator.vibrate([180, 80, 180]); } catch (e) { /* not on every phone */ }
+  }
+  async function ackReminder_() { const r = ME && ME.pendingReminder; if (!r) return; ME.pendingReminder = null; try { await rpcA_('customer_ack_reminder', { p_id: r.id }); } catch (e) { /* tried again on the next visit */ } }
+  function closeDue_() { document.getElementById('dueModal').classList.remove('show'); ackReminder_(); nextPrompt_(); }
+  function dueViewBills_() { closeDue_(); showDueBills_(); }
+  function showDueBills_() { setTab_('bills'); qPick_('all'); sPick_('due'); }
+
   // ---------------- the WhatsApp number: asked once per visit from a login that has none (popup + banner), changed in Profile ----------------
   let waAsked_ = false;
   function onRegWaSame_() { const same = document.getElementById('regWaSame').checked; show_('regWaBox', !same); if (!same) document.getElementById('regWa').focus(); }
-  function waPrompt_() {
-    const need = !!ME && !ME.whatsapp; show_('waBanner', need);
-    if (need && !waAsked_ && !document.getElementById('newsModal').classList.contains('show')) { waAsked_ = true; showWaPopup_(); }
-  }
+  function waPrompt_() { show_('waBanner', !!ME && !ME.whatsapp); }
   function showWaPopup_() { document.getElementById('waPopInput').value = ''; document.getElementById('waPopError').textContent = ''; document.getElementById('waModal').classList.add('show'); }
-  function closeWaPopup_() { document.getElementById('waModal').classList.remove('show'); }
+  function closeWaPopup_() { document.getElementById('waModal').classList.remove('show'); nextPrompt_(); }
   function waSame_() { document.getElementById('waPopInput').value = ME ? ME.mobile : ''; }
   async function saveWa_(inputId, errId) {
     const err = document.getElementById(errId); err.textContent = ''; const v = val_(inputId);
@@ -826,16 +869,16 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
       const { data, error } = await sb.rpc('customer_me', { p_token: t });
       if (error || !data || !ME) return;                    // no network just now: the next check tries again
       if (!data.valid) { sessionEnded_('Aapka login band ho gaya hai - phir se login karo.'); showNews_('ended'); return; }
-      const prev = { v: !!ME.verified, p: !!ME.pendingCorrection }, now = data.profile;
+      const prev = { v: !!ME.verified, p: !!ME.pendingCorrection, due: dueAmt_() }, now = data.profile;
       if (JSON.stringify(now) === JSON.stringify(ME)) return;
       ME = now; lsSet_(LS_.name, ME.name || ''); rememberSeen_();
       renderHead_(); show_('tempBanner', !!ME.mustChange); showReview_(); waPrompt_();
-      if (prev.v !== !!ME.verified || prev.p !== !!ME.pendingCorrection) {
+      if (prev.v !== !!ME.verified || prev.p !== !!ME.pendingCorrection || prev.due !== dueAmt_()) {
         BILLS = null; OFFERS = null;
         if (homeTab_ === 'bills' || homeTab_ === 'order') loadBills_(false, homeTab_ === 'order'); if (homeTab_ === 'offers') loadOffers_();
       }
       if (homeTab_ === 'profile') renderProfile_();
-      newsCompare_(prev, ME);
+      newsCompare_(prev, ME); nextPrompt_();
     } catch (e) { /* no network just now */ }
     finally { liveBusy_ = false; }
   }
@@ -854,7 +897,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     document.getElementById('newsModal').classList.add('show');
     try { if (navigator.vibrate) navigator.vibrate([180, 80, 180]); } catch (e) { /* not on every phone */ }
   }
-  function closeNews_() { document.getElementById('newsModal').classList.remove('show'); waPrompt_(); }
+  function closeNews_() { document.getElementById('newsModal').classList.remove('show'); waPrompt_(); nextPrompt_(); }
   function newsGoBills_() { closeNews_(); setTab_('bills'); }
 
   // ---------------- start: a login that is still valid goes straight in (no login again and again) ----------------

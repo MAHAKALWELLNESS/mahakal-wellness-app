@@ -62,6 +62,9 @@
   .cl-av{width:40px; height:40px; border-radius:50%; object-fit:cover; background:var(--green-100); color:var(--green-800); display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; flex:none; overflow:hidden;}
   .cl-av.big{width:56px; height:56px; font-size:20px;}
   .cl-row{padding:12px 0; border-bottom:1px solid var(--line);} .cl-row:last-child{border-bottom:none;}
+  .due-stats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;} .due-stat{background:var(--surface-2,#f6f6fb); border-radius:12px; padding:10px 8px; text-align:center;} .due-stat .n{font-size:17px; font-weight:800; color:#c0392b;} .due-stat .t{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; color:var(--ink-soft); margin-top:2px;}
+  .due-amt{font-size:17px; font-weight:800; color:#c0392b; white-space:nowrap; text-align:right;}
+  .due-actions{display:flex; gap:8px; margin-top:8px;} .due-actions .btn{flex:1; width:auto; padding:9px 8px; font-size:13px;} .due-actions .btn.sm{flex:none; padding:9px 12px;}
   .cl-top{display:flex; align-items:center; gap:10px;} .cl-info{min-width:0; flex:1;}
   .cl-actions{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;} .cl-actions .btn{flex:1; min-width:120px; padding:10px; font-size:13px;}
   #custAlertBar{display:none; position:fixed; top:0; left:0; right:0; z-index:195; background:var(--danger); color:#fff; padding:10px 12px; font-size:13.5px; font-weight:700; align-items:center; gap:10px; box-shadow:0 3px 10px rgba(0,0,0,.3);}
@@ -396,6 +399,8 @@ html.nl .tab[data-tab="franchiseeinvestment"]{--c1:#58B4FF;--c2:#1C7ED6;--c3:#12
 html.nl .tab[data-tab="productsearch"]{--c1:#E083F7;--c2:#AE3EC9;--c3:#7A2B8E;--ic:"🔎";}
 html.nl .tab[data-tab="custlogins"]{--c1:#FFD84D;--c2:#E8A200;--c3:#9C6B00;--ic:"🔑";}
 html.nl .tab[data-tab="custcorrect"]{--c1:#9AE6FF;--c2:#2BA8D8;--c3:#14708F;--ic:"🛠️";}
+html.nl .tab[data-tab="duerem"]{--c1:#FF9F9F;--c2:#EF4B6C;--c3:#A82846;--ic:"💰";}
+html.nl .due-stat{background:linear-gradient(180deg,#FFF1F3,#FFE0E5); box-shadow:0 3px 0 #F2B6C0;} html.nl .due-amt, html.nl .due-stat .n{color:#D6336C;}
 html.nl .cc-opt.on{background:linear-gradient(180deg,#8B7BFF,#5B3FE0); border-color:#5B3FE0; color:#fff;} html.nl .cc-opt.on small{color:#E4E0FF;}
 html.nl .reg-chip.on{background:linear-gradient(180deg,#8B7BFF,#5B3FE0); border-color:#5B3FE0;}
 html.nl .tab-badge{background:linear-gradient(180deg,#FF6B6B,#E03131); box-shadow:0 2px 0 #A32020;}
@@ -600,6 +605,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <button class="tab" data-tab="customers" onclick="switchTab('customers')">Customers</button>
       <button class="tab" data-tab="custlogins" onclick="switchTab('custlogins')">Customer Logins<span class="tab-badge" id="custLoginsBadge" style="display:none;"></span></button>
       <button class="tab" data-tab="custcorrect" onclick="switchTab('custcorrect')">Customer Approval<span class="tab-badge" id="custCorrectBadge" style="display:none;"></span></button>
+      <button class="tab" data-tab="duerem" onclick="switchTab('duerem')">Due Reminders</button>
       <button class="tab" data-tab="stockreport" onclick="switchTab('stockreport')">Stock</button>
       <button class="tab" data-tab="wallet" onclick="switchTab('wallet')">Wallet</button>
       <button class="tab" data-tab="topperformer" onclick="switchTab('topperformer')">Top Performer</button>
@@ -1157,6 +1163,20 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         <div class="reg-chips"><button class="reg-chip on" data-f="all" onclick="regPick_('all')">All <span id="regCntAll"></span></button><button class="reg-chip" data-f="waiting" onclick="regPick_('waiting')">Waiting <span id="regCntWaiting"></span></button><button class="reg-chip" data-f="approved" onclick="regPick_('approved')">Approved <span id="regCntApproved"></span></button></div>
         <div id="ccRegistered"><div class="empty-cart">Loading…</div></div></div>
       <div class="card"><p class="section-label">Recently handled</p><div id="ccHandled"><div class="empty-cart">—</div></div></div>
+    </section>
+
+    <!-- ============ DUE REMINDERS TAB ============ -->
+    <section id="tab-duerem" class="tab-panel">
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadDueList_()">↻ Refresh</button>
+      <div class="card"><p class="section-label">Due reminders</p>
+        <p class="hint" style="margin-bottom:10px;line-height:1.5;">Jinki bhi udhari hai (sirf approved bills ka due) un sabki list, sabse zyada due upar. <b>🔔 App reminder</b>: customer ke app me reminder popup + notification aata hai (jiska approved login hai). <b>💬 WhatsApp</b>: uske WhatsApp number par message khulta hai. Staff aur main admin dono bhej sakte hain.</p>
+        <div class="due-stats"><div class="due-stat"><div class="n" id="dueStatCount">—</div><div class="t">Customers</div></div><div class="due-stat"><div class="n" id="dueStatTotal">—</div><div class="t">Total due</div></div><div class="due-stat"><div class="n" id="dueStatApp">—</div><div class="t">Can get app reminder</div></div></div>
+        <input type="text" id="dueSearch" class="search-input" placeholder="Name or mobile…" oninput="dueSearch_()" style="margin:10px 0 8px;">
+        <div class="reg-chips"><button class="reg-chip on" data-f="all" onclick="duePick_('all')">All <span id="dueCntAll"></span></button><button class="reg-chip" data-f="login" onclick="duePick_('login')">App login <span id="dueCntLogin"></span></button><button class="reg-chip" data-f="nologin" onclick="duePick_('nologin')">No login <span id="dueCntNo"></span></button></div>
+        <div class="field" style="margin:10px 0 0;"><label for="dueMsg">Message (optional)</label><textarea id="dueMsg" rows="3" maxlength="500" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;" placeholder="Khaali = standard reminder. Jo likhoge wo popup aur WhatsApp me jayega."></textarea></div>
+        <button class="btn btn-gold btn-block" id="dueSendAll" style="margin-top:10px;" onclick="dueRemindAll_()">🔔 Remind all shown in app</button>
+      </div>
+      <div class="card"><div id="dueList"><div class="empty-cart">Loading…</div></div></div>
     </section>
 
     <!-- ============ STOCK TAB ============ -->
@@ -4168,6 +4188,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     if (name === 'customers') searchCustomersTab();
     if (name === 'custlogins') loadCustLogins_();
     if (name === 'custcorrect') loadCustCorrections_();
+    if (name === 'duerem') loadDueList_();
     if (name === 'stockreport' && !onlineStockLoadedOnce) switchStockSubtab('online');
     if (name === 'wallet') searchWalletCustomers();
     if (name === 'publicorder') loadPublicOrders();
@@ -11236,6 +11257,75 @@ function regOpen_(mobile) {
 function showNewRegPopup_(name, mobile) { document.getElementById('newRegBody').textContent = String(name || 'Customer').toUpperCase() + ' · ' + (mobile || ''); document.getElementById('newRegModal').classList.add('show'); }
 function closeNewReg_() { document.getElementById('newRegModal').classList.remove('show'); }
 function openNewReg_() { closeNewReg_(); hideCustAlert_(); switchTab('custcorrect'); }
+
+// ---------------- Due Reminders: everybody who owes, a reminder popup in their app (or a WhatsApp message) ----------------
+let dueState_ = null, dueFilter_ = 'all', dueQ_ = '';
+async function loadDueList_() {
+  const box = document.getElementById('dueList'); if (box && !dueState_) box.innerHTML = '<div class="empty-cart">Loading…</div>';
+  const { data, error } = await sb.rpc('get_customers_with_due');
+  if (error) { dueState_ = null; if (box) box.innerHTML = '<div class="empty-cart">' + escapeHtml(clMissingMsg_(error)) + '</div>'; return; }
+  dueState_ = data || []; renderDueList_();
+}
+function duePick_(f) { dueFilter_ = f; Array.prototype.forEach.call(document.querySelectorAll('#tab-duerem .reg-chip'), function (b) { b.classList.toggle('on', b.dataset.f === f); }); renderDueList_(); }
+function dueSearch_() { dueQ_ = (document.getElementById('dueSearch').value || '').trim().toLowerCase(); renderDueList_(); }
+function dueCanApp_(r) { return !!r.hasLogin && !!r.approved && !r.waiting; }
+function dueShown_() {
+  return (dueState_ || []).filter(function (r) {
+    if (dueFilter_ === 'login' && !(r.hasLogin && r.approved)) return false; if (dueFilter_ === 'nologin' && r.hasLogin && r.approved) return false;
+    return !dueQ_ || String(r.name || '').toLowerCase().indexOf(dueQ_) >= 0 || String(r.mobile).indexOf(dueQ_) >= 0;
+  });
+}
+function dueStatus_(r) {
+  if (!r.hasLogin) return '📵 No app login - use WhatsApp';
+  if (!r.approved) return '⏳ Login is waiting for approval - use WhatsApp';
+  if (r.waiting) return '🔔 Reminder sent ' + clAgo_(r.lastReminderAt) + ' - he has not seen it yet';
+  return r.lastReminderAt ? '✓ Last app reminder ' + clAgo_(r.lastReminderAt) + (r.lastLoginAt ? ' · last login ' + clAgo_(r.lastLoginAt) : '') : 'No app reminder sent yet' + (r.lastLoginAt ? ' · last login ' + clAgo_(r.lastLoginAt) : '');
+}
+function renderDueList_() {
+  const box = document.getElementById('dueList'); if (!box || !dueState_) return;
+  const all = dueState_, withLogin = all.filter(function (r) { return r.hasLogin && r.approved; }).length, total = all.reduce(function (s, r) { return s + (Number(r.due) || 0); }, 0);
+  document.getElementById('dueStatCount').textContent = String(all.length); document.getElementById('dueStatTotal').textContent = money(total); document.getElementById('dueStatApp').textContent = String(all.filter(dueCanApp_).length);
+  document.getElementById('dueCntAll').textContent = '(' + all.length + ')'; document.getElementById('dueCntLogin').textContent = '(' + withLogin + ')'; document.getElementById('dueCntNo').textContent = '(' + (all.length - withLogin) + ')';
+  const rows = dueShown_(), canN = rows.filter(dueCanApp_).length, btn = document.getElementById('dueSendAll');
+  btn.textContent = '🔔 Remind all shown in app (' + canN + ')'; btn.disabled = !canN;
+  box.innerHTML = rows.length ? rows.map(function (r) {
+    const m = escapeHtml(r.mobile), days = r.oldest ? Math.max(0, Math.floor((Date.now() - new Date(r.oldest).getTime()) / 86400000)) : null, n = Number(r.dueBills) || 0;
+    return '<div class="cl-row due-row" data-mobile="' + m + '"><div class="cl-top">' + clAvatar_(r.name, r.photoThumb) + '<div class="cl-info"><div class="result-name">' + escapeHtml(String(r.name || '(No name)').toUpperCase()) + '</div>' +
+      '<div class="result-meta">' + m + (r.whatsapp && String(r.whatsapp) !== String(r.mobile) ? ' · WhatsApp ' + escapeHtml(r.whatsapp) : '') + '</div>' +
+      '<div class="result-meta">' + n + ' bill' + (n === 1 ? '' : 's') + ' due' + (days != null ? ' · oldest ' + days + ' day' + (days === 1 ? '' : 's') : '') + '</div></div><div class="due-amt">' + money(r.due) + '</div></div>' +
+      '<div class="result-meta" style="margin-top:6px;">' + escapeHtml(dueStatus_(r)) + '</div>' +
+      '<div class="due-actions"><button class="btn btn-gold due-app" ' + (dueCanApp_(r) ? '' : 'disabled') + ' onclick="dueRemindOne_(\'' + m + '\')">🔔 App reminder</button><button class="btn btn-outline due-wa" onclick="dueWhatsApp_(\'' + m + '\')">💬 WhatsApp</button><button class="btn btn-outline sm due-open" onclick="openCustomerDetail(\'' + m + '\', \'' + escapeHtml(String(r.name || '').replace(/'/g, '')) + '\')">👤</button></div></div>';
+  }).join('') : '<div class="empty-cart">' + (all.length ? 'No customer matches.' : '🎉 Nobody owes anything right now.') + '</div>';
+}
+function dueResultText_(d) {
+  d = d || {}; const p = [];
+  if (d.sent) p.push('Reminder sent to ' + d.sent + ' customer' + (d.sent === 1 ? '' : 's')); if (d.alreadyWaiting) p.push(d.alreadyWaiting + ' already waiting (not seen yet)');
+  if (d.noLogin) p.push(d.noLogin + ' without an approved app login'); if (d.noDue) p.push(d.noDue + ' owe nothing now');
+  return p.join(' · ') || 'Nothing was sent.';
+}
+async function dueSend_(mobiles) {
+  const msg = (document.getElementById('dueMsg').value || '').trim();
+  const { data, error } = await sb.rpc('send_due_reminders', { p_mobiles: mobiles, p_message: msg || null });
+  if (error) { showToast(clMissingMsg_(error), true); return; }
+  showToast(dueResultText_(data), !(data && data.sent)); loadDueList_();
+}
+function dueRemindOne_(mobile) { dueSend_([mobile]); }
+function dueRemindAll_() {
+  const list = dueShown_().filter(dueCanApp_).map(function (r) { return r.mobile; });
+  if (!list.length) { showToast('Nobody shown can get an app reminder.', true); return; }
+  if (!confirm('Send a payment reminder popup to ' + list.length + ' customer' + (list.length === 1 ? '' : 's') + ' in their app?')) return;
+  dueSend_(list);
+}
+function dueWhatsApp_(mobile) {
+  const r = (dueState_ || []).filter(function (x) { return x.mobile === mobile; })[0]; if (!r) return;
+  const own = String(r.whatsapp || '').replace(/\D/g, '').slice(-10);      // the number on the list comes straight from his record
+  let digits = own.length === 10 ? own : waRaw_(mobile); if (!digits) { showToast('No mobile number for this customer.', true); return; } if (digits.length === 10) digits = '91' + digits;
+  const n = Number(r.dueBills) || 0, custom = (document.getElementById('dueMsg').value || '').trim();
+  let link = ''; try { link = new URL('account.html', location.href).href; } catch (e) { /* no link */ }
+  const text = 'Namaste ' + (r.name || '') + ' ji, Mahakal Wellness ki taraf se payment reminder: aapke ' + n + ' bill' + (n === 1 ? '' : 's') + ' ka ' + money(r.due) + ' baaki hai.' + (custom ? '\n\n' + custom : '') +
+    '\n\nKripya jaldi clear kar dein. Dhanyavaad!' + (link ? '\n\nApne bills dekhne ke liye: ' + link : '');
+  window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(text), '_blank');
+}
 
 // ---------------- the WhatsApp number: every WhatsApp message to a customer goes to HIS WhatsApp number (his mobile number if he has none) ----------------
 let WA_MAP_ = {}, waTimer_ = null;
