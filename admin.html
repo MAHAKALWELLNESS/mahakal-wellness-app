@@ -70,6 +70,9 @@
   .bday-bar{display:flex; align-items:center; gap:10px; margin:8px 0;} .bday-all{display:flex; align-items:center; gap:6px; font-weight:700; font-size:13px; white-space:nowrap;} .bday-all input{width:auto; margin:0;} .bday-bar .btn{flex:1; width:auto; padding:9px 8px; font-size:13px;}
   .bday-day{font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:#a61e4d; margin:12px 0 2px;} .bday-chk{display:flex; align-items:center;} .bday-chk input{width:20px; height:20px; margin:0 8px 0 0;}
   .bday-chip{display:inline-block; font-size:11.5px; font-weight:700; border-radius:10px; padding:3px 8px; margin:3px 4px 0 0; background:#e6fcf5; color:#0b7285;} .bday-chip.wait{background:#fff3bf; color:#8f6b00;}
+  .cm-box{background:#f3f7ff; border:1.5px solid #cfe0ff; border-radius:12px; padding:10px; margin:8px 0 10px;} .cm-row{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;} .cm-tile{background:#fff; border-radius:10px; padding:8px 4px; text-align:center; min-width:0;}
+  .cm-l{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; color:var(--ink-soft);} .cm-v{font-size:16px; font-weight:800; margin-top:2px;} .cm-v.ok{color:var(--ok);} .cm-v.bad{color:var(--danger);} .cm-s{font-size:10.5px; color:var(--ink-soft);}
+  .cm-note{font-size:12.5px; font-weight:600; line-height:1.5; margin:8px 0 0; color:var(--green-800);} .cm-btn{margin-top:8px; padding:9px; font-size:13px;}
   .cl-top{display:flex; align-items:center; gap:10px;} .cl-info{min-width:0; flex:1;}
   .cl-actions{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;} .cl-actions .btn{flex:1; min-width:120px; padding:10px; font-size:13px;}
   #custAlertBar{display:none; position:fixed; top:0; left:0; right:0; z-index:195; background:var(--danger); color:#fff; padding:10px 12px; font-size:13.5px; font-weight:700; align-items:center; gap:10px; box-shadow:0 3px 10px rgba(0,0,0,.3);}
@@ -407,6 +410,7 @@ html.nl .tab[data-tab="custcorrect"]{--c1:#9AE6FF;--c2:#2BA8D8;--c3:#14708F;--ic
 html.nl .tab[data-tab="duerem"]{--c1:#FF9F9F;--c2:#EF4B6C;--c3:#A82846;--ic:"💰";}
 html.nl .tab[data-tab="birthdays"]{--c1:#FFB8D2;--c2:#F06595;--c3:#B02A5E;--ic:"🎂";}
 html.nl .bday-sum{background:linear-gradient(135deg,#FFE3EE,#FFD0E2); box-shadow:0 3px 0 #F2A6C4;}
+html.nl .cm-box{background:linear-gradient(135deg,#E8F0FF,#F3E8FF); border-color:#D3CCFF; box-shadow:0 3px 0 #C9C2F5;} html.nl .cm-tile{box-shadow:0 2px 0 #DDD8F7;}
 html.nl .due-stat{background:linear-gradient(180deg,#FFF1F3,#FFE0E5); box-shadow:0 3px 0 #F2B6C0;} html.nl .due-amt, html.nl .due-stat .n{color:#D6336C;}
 html.nl .cc-opt.on{background:linear-gradient(180deg,#8B7BFF,#5B3FE0); border-color:#5B3FE0; color:#fff;} html.nl .cc-opt.on small{color:#E4E0FF;}
 html.nl .reg-chip.on{background:linear-gradient(180deg,#8B7BFF,#5B3FE0); border-color:#5B3FE0;}
@@ -2134,6 +2138,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div id="billActionsArea"></div>
       <div id="billDateHistoryArea"></div>
       <div id="billEditHistoryArea"></div>
+      <div id="custMoneyArea"></div>
       <div id="paymentEditArea"></div>
     </div>
   </div>
@@ -2227,6 +2232,15 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;" id="walletDetailName"></h2>
       <p class="hint" id="walletDetailMobile" style="margin-bottom:10px;"></p>
       <div class="stat-card" style="margin-bottom:14px;"><div class="stat-label">Current Balance</div><div class="stat-value" id="walletDetailBalance">₹0</div></div>
+      <div id="walletMoneyBox"></div>
+      <div class="card" id="walletSettleCard" style="display:none;box-shadow:none;border:1px solid var(--line);margin-bottom:14px;">
+        <p class="section-label">Settle due from wallet</p>
+        <div id="walletSettleBills" class="hint" style="margin-bottom:8px;line-height:1.6;"></div>
+        <div class="field-row"><div class="field"><label for="walletSettleAmt">Amount ₹</label><input type="number" id="walletSettleAmt" min="0" step="0.01" placeholder="0" oninput="walletSettlePreview_()"></div>
+          <div class="field"><label>&nbsp;</label><button class="btn btn-outline btn-block" type="button" id="walletSettleMax" onclick="walletSettleMax_()">Max</button></div></div>
+        <p class="cm-note" id="walletSettleNote"></p>
+        <button class="btn btn-primary btn-block" id="walletSettleBtn" type="button" style="margin-top:10px;" onclick="submitWalletSettle_()">Settle from wallet</button>
+      </div>
       <div class="card" style="box-shadow:none;border:1px solid var(--line);margin-bottom:14px;">
         <p class="section-label">Add balance received</p>
         <p class="hint" style="margin-bottom:10px;">Customer sent extra money directly (not tied to a bill)? Record it here.</p>
@@ -2467,6 +2481,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       </div>
       <div id="customerDetailExtra" style="display:none;margin-bottom:14px;background:var(--gold-100);border:1.5px solid var(--gold-500);border-radius:8px;padding:8px 10px;font-size:12.5px;font-weight:700;color:var(--green-900);"></div>
       <div id="customerDetailAcct" class="hint" style="display:none;margin:0 0 12px;line-height:1.5;"></div>
+      <div id="customerMoneyBox"></div>
       <p class="section-label">Quick range</p>
       <div class="qr-host" data-qr-key="custdetail" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
       </div>
@@ -5694,6 +5709,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     // Payment recording is only offered when opened from Accounting - Past Bill is view/print/share only.
     document.getElementById('paymentEditArea').innerHTML = '';
     if (allowPaymentEdit) renderPaymentEdit(bill);
+    showBillMoney_(bill);               // his wallet and his due, next to the bill (not waited for)
     document.getElementById('detailModal').classList.add('show');
     setTimeout(function () { document.getElementById('detailModalSheet').focus(); }, 60);
   }
@@ -5730,10 +5746,10 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     if (bill.balance >= -0.005) { box.innerHTML = ''; return; }
     box.innerHTML = '<div class="card" style="margin-top:4px;box-shadow:none;"><p class="section-label">Amount pending: ' + money(-bill.balance) + '</p>' +
       '<div class="field-row"><div class="field"><label>Mode</label><select id="payEditMode" onchange="togglePayEditUtr()"><option>Cash</option><option>Online</option></select></div>' +
-      '<div class="field"><label>Amount received</label><input type="number" id="payEditAmount" min="0" step="0.01" placeholder="0"></div></div>' +
+      '<div class="field"><label>Amount received</label><input type="number" id="payEditAmount" min="0" step="0.01" placeholder="0" oninput="payWalletNote_()"></div></div>' + '<div class="cm-note" id="payEditWalletNote" style="display:none;margin:-4px 0 10px;"></div>' +
       '<div class="field" id="payEditUtrField" style="display:none;"><label>UTR Number</label><input type="text" id="payEditUtr" placeholder="Transaction reference number"></div>' +
       '<div class="field" id="payEditShotField" style="display:none;"><label for="payEditShot">📷 Payment screenshot <span style="font-weight:500;color:var(--ink-soft);">(optional - reads the amount, UTR and date)</span></label><input type="file" id="payEditShot" accept="image/*" onchange="payEditShotChosen_(this)"></div><div id="payEditShotStatus"></div>' +
-      '<div class="field"><label>Payment date (leave blank for today)</label><input type="date" id="payEditDate"></div>' +
+      '<div class="field" id="payEditDateField"><label>Payment date (leave blank for today)</label><input type="date" id="payEditDate"></div>' +
       '<button class="btn btn-primary btn-block" id="recordPaymentBtn" type="button">Record payment</button>' +
       '<button class="btn btn-outline btn-block" id="sendReminderBtn" type="button" style="margin-top:8px;">Send Payment Reminder on WhatsApp</button></div>';
     document.getElementById('recordPaymentBtn').addEventListener('click', function () { submitPaymentEdit(bill.invoiceNo); });
@@ -7700,8 +7716,13 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   }
 
   function togglePayEditUtr() {
-    document.getElementById('payEditUtrField').style.display = document.getElementById('payEditMode').value === 'Online' ? 'block' : 'none';
-    const shotField = document.getElementById('payEditShotField'); if (shotField) shotField.style.display = document.getElementById('payEditMode').value === 'Online' ? 'block' : 'none';
+    const mode = document.getElementById('payEditMode').value, online = mode === 'Online', wallet = mode === 'Wallet';
+    document.getElementById('payEditUtrField').style.display = online ? 'block' : 'none';
+    const shotField = document.getElementById('payEditShotField'); if (shotField) shotField.style.display = online ? 'block' : 'none';
+    const dateField = document.getElementById('payEditDateField'); if (dateField) dateField.style.display = wallet ? 'none' : 'block';
+    const btn = document.getElementById('recordPaymentBtn'); if (btn) btn.textContent = wallet ? 'Settle from wallet' : 'Record payment';
+    const amt = document.getElementById('payEditAmount'); if (wallet && amt && !Number(amt.value)) amt.value = trimNum(Math.min(currentPayWallet_, currentPayBillDue_));
+    payWalletNote_();
   }
 
   async function submitPaymentEdit(invoiceNo) {
@@ -7709,6 +7730,16 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     const mode = document.getElementById('payEditMode').value;
     const amount = Number(document.getElementById('payEditAmount').value);
     if (!(amount > 0)) { showToast('Enter a valid amount.', true); return; }
+    if (mode === 'Wallet') {          // not new money: the customer's wallet pays (part of) this bill's due
+      const wb = currentPayEditBill_ || {};
+      if (amount > currentPayWallet_ + 0.005) { showToast('Wallet me sirf ' + money(currentPayWallet_) + ' hai.', true); return; }
+      if (amount > currentPayBillDue_ + 0.005) { showToast('Is bill ka due sirf ' + money(currentPayBillDue_) + ' hai.', true); return; }
+      const wr = await sb.rpc('settle_due_from_wallet', { p_mobile: String(wb.mobile || '').trim(), p_amount: amount, p_invoice_no: invoiceNo });
+      if (wr.error) { showToast(wr.error.message, true); return; }
+      const dueLeft = Number(wr.data && wr.data.bills && wr.data.bills[0] ? wr.data.bills[0].dueAfter : 0);
+      showToast(dueLeft <= 0.005 ? 'Wallet se ' + money(amount) + ' settle - bill fully settled.' : 'Wallet se ' + money(amount) + ' settle - ' + money(dueLeft) + ' due bacha.');
+      await viewBill(invoiceNo, true); refreshActiveBillList_(); return;
+    }
     const utrNo = document.getElementById('payEditUtr') ? document.getElementById('payEditUtr').value.trim() : '';
     if (mode === 'Online' && !utrNo) { showToast('UTR number is required for online payments.', true); return; }
     const dateVal = document.getElementById('payEditDate') ? document.getElementById('payEditDate').value : '';
@@ -8384,6 +8415,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     const delBtn = document.getElementById('deleteCustomerBtn'); if (delBtn) delBtn.style.display = isSuperAdminUser ? '' : 'none';      // deleting a profile: main admin only
     custStatus_ = 'all'; setCustomerRange('all');
     loadCustAcctInfo_(mobile, name);
+    loadCustomerMoney_(mobile);
 
     const extraBox = document.getElementById('customerDetailExtra');
     extraBox.style.display = 'none';
@@ -8510,6 +8542,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         }
         rows = (wallets || []).map(function (w) { return { mobile: w.mobile, balance: Number(w.balance), name: customersByMobile[w.mobile] || '' }; });
       }
+      try { const mm = await sb.rpc('get_customers_money', { p_mobiles: rows.map(function (r) { return r.mobile; }) }); ((mm && mm.data) || []).forEach(function (x) { const r = rows.find(function (y) { return y.mobile === x.mobile; }); if (r) r.due = Number(x.totalDue) || 0; }); } catch (e) { /* the SQL is not installed yet: the list stays as it was */ }
       renderWalletList(rows);
     }, 250);
   }
@@ -8519,7 +8552,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     if (!rows.length) { box.innerHTML = '<div class="empty-cart">No customers found. Try a different search, or add them first in the Customers tab.</div>'; return; }
     box.innerHTML = rows.map(function (r) {
       return '<div class="list-row" data-mobile="' + escapeHtml(r.mobile) + '" data-name="' + escapeHtml(r.name) + '"><div><div class="result-name">' + escapeHtml(r.name || '(No name)') + '</div><div class="result-meta">' + escapeHtml(r.mobile) + '</div></div>' +
-        '<div class="amt" style="color:' + (r.balance > 0.005 ? 'var(--ok)' : 'var(--ink-faint)') + ';">' + money(r.balance) + '</div></div>';
+        '<div style="text-align:right;"><div class="amt" style="color:' + (r.balance > 0.005 ? 'var(--ok)' : 'var(--ink-faint)') + ';">' + money(r.balance) + '</div>' + (r.due > 0.005 ? '<div class="pts" style="color:var(--danger);">Due ' + money(r.due) + '</div>' : '') + '</div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { openWalletDetail(row.dataset.mobile, row.dataset.name); }); });
   }
@@ -8540,6 +8573,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     const mobile = currentWalletMobile;
     const { data: walletRow } = await sb.from('customer_wallets').select('balance').eq('mobile', mobile).maybeSingle();
     document.getElementById('walletDetailBalance').textContent = money(walletRow ? walletRow.balance : 0);
+    loadWalletMoney_();
 
     const { data: txns, error } = await sb.from('wallet_transactions').select('*').eq('mobile', mobile).order('txn_date', { ascending: false });
     if (error) { document.getElementById('walletTxnList').innerHTML = '<div class="empty-cart">Could not load transactions.</div>'; return; }
@@ -11428,6 +11462,81 @@ async function bdayMorning_(user) {
   if (shown && !((s.left || 0) > 0 || (s.missed || 0) > 0)) return;
   try { localStorage.setItem(key, '1'); } catch (e) { /* private mode */ }
   document.getElementById('bdayModal').classList.add('show');
+}
+
+// ---------------- wallet AND due together: next to every bill, in the customer window and in the Wallet tab; a due can be settled from the wallet ----------------
+let currentPayWallet_ = 0, currentPayBillDue_ = 0, walletMoney_ = null;
+async function loadCustMoney_(mobile) {
+  const m = String(mobile || '').trim(); if (!m) return null;
+  try { const r = await sb.rpc('get_customer_money', { p_mobile: m }); return r.error ? null : r.data; } catch (e) { return null; }
+}
+function custMoneyHtml_(d, btnHtml) {
+  const w = Number(d.wallet) || 0, due = Number(d.totalDue) || 0, n = Number(d.dueBills) || 0, net = Number(d.netDue) || 0, left = Number(d.walletLeft) || 0;
+  return '<div class="cm-box"><div class="cm-row"><div class="cm-tile"><div class="cm-l">👛 Wallet</div><div class="cm-v ok">' + money(w) + '</div></div>' +
+    '<div class="cm-tile"><div class="cm-l">Total due</div><div class="cm-v' + (due > 0.005 ? ' bad' : '') + '">' + money(due) + '</div><div class="cm-s">' + n + ' bill' + (n === 1 ? '' : 's') + '</div></div>' +
+    '<div class="cm-tile"><div class="cm-l">Net due</div><div class="cm-v' + (net > 0.005 ? ' bad' : '') + '">' + money(net) + '</div><div class="cm-s">due - wallet</div></div></div>' +
+    (w > 0.005 && due > 0.005 ? '<p class="cm-note">Wallet se poora settle karne par: due ' + money(net) + ' · wallet ' + money(left) + '</p>' : '') +
+    (btnHtml || '') + '</div>';
+}
+async function showBillMoney_(bill) {
+  const box = document.getElementById('custMoneyArea'); if (!box) return; box.innerHTML = '';
+  currentPayWallet_ = 0; currentPayBillDue_ = Math.max(0, -(Number(bill.balance) || 0));
+  const m = String(bill.mobile || '').trim(); if (!m) return;
+  const d = await loadCustMoney_(m);
+  if (!d || currentDetailInvoice !== bill.invoiceNo) return;                    // not installed yet, or another bill was opened meanwhile
+  box.innerHTML = '<p class="section-label" style="margin:12px 0 0;">This customer: wallet and due</p>' + custMoneyHtml_(d, '<button class="btn btn-outline btn-block cm-btn" type="button" id="billMoneyWalletBtn">👛 Wallet / settle</button>');
+  document.getElementById('billMoneyWalletBtn').addEventListener('click', function () { openWalletDetail(m, bill.customerName || ''); });
+  const sel = document.getElementById('payEditMode');
+  if (sel && (Number(d.wallet) || 0) > 0.005 && currentPayBillDue_ > 0.005) {         // a due bill of a customer with wallet money: the panel can settle it from the wallet
+    currentPayWallet_ = Number(d.wallet) || 0;
+    if (!Array.from(sel.options).some(function (o) { return o.value === 'Wallet'; })) { const o = document.createElement('option'); o.value = 'Wallet'; o.textContent = 'Wallet (' + money(currentPayWallet_) + ')'; sel.appendChild(o); }
+  }
+}
+function payWalletNote_() {
+  const note = document.getElementById('payEditWalletNote'); if (!note) return;
+  if (document.getElementById('payEditMode').value !== 'Wallet') { note.style.display = 'none'; return; }
+  const a = Number(document.getElementById('payEditAmount').value) || 0, w = currentPayWallet_, due = currentPayBillDue_, ok = a > 0.005 && a <= w + 0.005 && a <= due + 0.005;
+  note.style.display = 'block';
+  note.innerHTML = ok ? 'Is bill ka due ' + money(due) + ' → <b>' + money(Math.max(0, due - a)) + '</b> · wallet ' + money(w) + ' → <b>' + money(Math.max(0, w - a)) + '</b>'
+    : 'Wallet ' + money(w) + ' · is bill ka due ' + money(due) + (a > w + 0.005 ? ' - amount wallet se zyada hai' : (a > due + 0.005 ? ' - amount due se zyada hai' : ''));
+}
+async function loadCustomerMoney_(mobile) {
+  const box = document.getElementById('customerMoneyBox'); if (!box) return; box.innerHTML = '';
+  const d = await loadCustMoney_(mobile); if (!d || mobile !== currentCustomerMobile) return;
+  box.innerHTML = custMoneyHtml_(d, '<button class="btn btn-outline btn-block cm-btn" type="button" id="custMoneyWalletBtn">👛 Wallet / settle</button>');
+  document.getElementById('custMoneyWalletBtn').addEventListener('click', function () { openWalletDetail(mobile, currentCustomerName); });
+}
+async function loadWalletMoney_() {
+  const d = await loadCustMoney_(currentWalletMobile); walletMoney_ = d;
+  const box = document.getElementById('walletMoneyBox'), card = document.getElementById('walletSettleCard');
+  if (!d) { box.innerHTML = ''; card.style.display = 'none'; return; }
+  box.innerHTML = custMoneyHtml_(d, null);
+  const w = Number(d.wallet) || 0, due = Number(d.totalDue) || 0;
+  card.style.display = (w > 0.005 && due > 0.005) ? 'block' : 'none';
+  if (card.style.display === 'block') {
+    const bills = d.bills || [];
+    document.getElementById('walletSettleBills').innerHTML = '<b>Due bills (oldest first, it is settled in this order):</b><br>' + bills.slice(0, 8).map(function (b) { return escapeHtml(b.invoiceNo) + ' · ' + new Date(b.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) + ' · Due ' + money(b.due); }).join('<br>') + (bills.length > 8 ? '<br>…' : '');
+    document.getElementById('walletSettleAmt').value = trimNum(Math.min(w, due)); walletSettlePreview_();
+  }
+}
+function walletSettleMax_() { if (!walletMoney_) return; document.getElementById('walletSettleAmt').value = trimNum(Math.min(Number(walletMoney_.wallet) || 0, Number(walletMoney_.totalDue) || 0)); walletSettlePreview_(); }
+function walletSettlePreview_() {
+  const d = walletMoney_, note = document.getElementById('walletSettleNote'); if (!d) { note.textContent = ''; return; }
+  const a = Number(document.getElementById('walletSettleAmt').value) || 0, w = Number(d.wallet) || 0, due = Number(d.totalDue) || 0, ok = a > 0.005 && a <= w + 0.005 && a <= due + 0.005;
+  note.innerHTML = ok ? 'Settle karne par: due ' + money(due) + ' → <b>' + money(Math.max(0, due - a)) + '</b> · wallet ' + money(w) + ' → <b>' + money(Math.max(0, w - a)) + '</b>'
+    : (a > w + 0.005 ? 'Amount wallet (' + money(w) + ') se zyada hai.' : (a > due + 0.005 ? 'Amount total due (' + money(due) + ') se zyada hai.' : 'Amount likho.'));
+  document.getElementById('walletSettleBtn').disabled = !ok;
+}
+async function submitWalletSettle_() {
+  return runLocked_('wallet-settle:' + currentWalletMobile, async function () {
+    const a = Number(document.getElementById('walletSettleAmt').value) || 0;
+    if (!(a > 0)) { showToast('Enter a valid amount.', true); return; }
+    const { data, error } = await sb.rpc('settle_due_from_wallet', { p_mobile: currentWalletMobile, p_amount: a, p_invoice_no: null });
+    if (error) { showToast(error.message, true); return; }
+    showToast('Wallet se ' + money(data.applied) + ' settle · due ' + money(data.dueAfter) + ' bacha · wallet ' + money(data.walletAfter));
+    await refreshWalletDetail(); refreshActiveBillList_();
+    if (document.getElementById('customerDetailModal').classList.contains('show')) loadCustomerMoney_(currentCustomerMobile);
+  });
 }
 
 // ---------------- Due Reminders: everybody who owes, a reminder popup in their app (or a WhatsApp message) ----------------
