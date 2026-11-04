@@ -73,6 +73,9 @@
   .cm-box{background:#f3f7ff; border:1.5px solid #cfe0ff; border-radius:12px; padding:10px; margin:8px 0 10px;} .cm-row{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;} .cm-tile{background:#fff; border-radius:10px; padding:8px 4px; text-align:center; min-width:0;}
   .cm-l{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; color:var(--ink-soft);} .cm-v{font-size:16px; font-weight:800; margin-top:2px;} .cm-v.ok{color:var(--ok);} .cm-v.bad{color:var(--danger);} .cm-s{font-size:10.5px; color:var(--ink-soft);}
   .cm-note{font-size:12.5px; font-weight:600; line-height:1.5; margin:8px 0 0; color:var(--green-800);} .cm-btn{margin-top:8px; padding:9px; font-size:13px;}
+  .bank-file{background:#f6f8fb; border:1.5px solid #dfe5ee; border-radius:10px; padding:8px 10px; margin:8px 0;} .bank-file.ok{border-color:#9bd8b0; background:#f0fbf4;} .bank-file.warn{border-color:#f3c77a; background:#fff8e8;} .bank-file.bad{border-color:#f0a3a3; background:#fff1f1;}
+  .bank-act{display:flex; gap:8px; margin-top:6px;} .bank-act .btn{width:auto; padding:7px 12px; font-size:12.5px; flex:none;} .bank-exp{display:flex; gap:8px; margin:10px 0;} .bank-exp .btn{flex:1; width:auto; padding:9px 6px; font-size:13px;}
+  #tab-bankcheck .field-row .field{min-width:0;} #tab-bankcheck input[type=date]{min-width:0; width:100%; box-sizing:border-box;}
   .cl-top{display:flex; align-items:center; gap:10px;} .cl-info{min-width:0; flex:1;}
   .cl-actions{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;} .cl-actions .btn{flex:1; min-width:120px; padding:10px; font-size:13px;}
   #custAlertBar{display:none; position:fixed; top:0; left:0; right:0; z-index:195; background:var(--danger); color:#fff; padding:10px 12px; font-size:13.5px; font-weight:700; align-items:center; gap:10px; box-shadow:0 3px 10px rgba(0,0,0,.3);}
@@ -409,6 +412,7 @@ html.nl .tab[data-tab="custlogins"]{--c1:#FFD84D;--c2:#E8A200;--c3:#9C6B00;--ic:
 html.nl .tab[data-tab="custcorrect"]{--c1:#9AE6FF;--c2:#2BA8D8;--c3:#14708F;--ic:"🛠️";}
 html.nl .tab[data-tab="duerem"]{--c1:#FF9F9F;--c2:#EF4B6C;--c3:#A82846;--ic:"💰";}
 html.nl .tab[data-tab="birthdays"]{--c1:#FFB8D2;--c2:#F06595;--c3:#B02A5E;--ic:"🎂";}
+html.nl .tab[data-tab="bankcheck"]{--c1:#99E9F2;--c2:#3BC9DB;--c3:#0C8599;--ic:"🏦";}
 html.nl .bday-sum{background:linear-gradient(135deg,#FFE3EE,#FFD0E2); box-shadow:0 3px 0 #F2A6C4;}
 html.nl .cm-box{background:linear-gradient(135deg,#E8F0FF,#F3E8FF); border-color:#D3CCFF; box-shadow:0 3px 0 #C9C2F5;} html.nl .cm-tile{box-shadow:0 2px 0 #DDD8F7;}
 html.nl .due-stat{background:linear-gradient(180deg,#FFF1F3,#FFE0E5); box-shadow:0 3px 0 #F2B6C0;} html.nl .due-amt, html.nl .due-stat .n{color:#D6336C;}
@@ -638,6 +642,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <button class="tab" data-tab="companypayout" id="tabBtnCompanyPayout" onclick="switchTab('companypayout')" style="display:none;">Company Payout</button>
       <button class="tab" data-tab="marketpurchase" id="tabBtnMarketPurchase" onclick="switchTab('marketpurchase')" style="display:none;">Market Purchase</button>
       <button class="tab" data-tab="profitreport" id="tabBtnProfitReport" onclick="switchTab('profitreport')" style="display:none;">Profit Report</button>
+      <button class="tab" data-tab="bankcheck" id="tabBtnBankCheck" onclick="switchTab('bankcheck')" style="display:none;">Bank Check</button>
       <button class="tab" data-tab="franchiseeinvestment" id="tabBtnFranchisee" onclick="switchTab('franchiseeinvestment')" style="display:none;">Franchisee Investment</button>
       <button class="tab" data-tab="productsearch" id="tabBtnProductSearch" onclick="switchTab('productsearch')" style="display:none;">Product Search</button>
     </nav>
@@ -1208,6 +1213,32 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         <div class="bday-bar"><label class="bday-all"><input type="checkbox" id="bdayAll2" onchange="bdayAll_(this.checked, 'tab')"> Select all</label><button class="btn btn-gold" id="bdayAppBtn2" onclick="bdaySend_('tab')">🎉 Send Happy Birthday popup</button></div>
         <div id="bdayTabList"><div class="empty-cart">Loading…</div></div>
       </div>
+    </section>
+
+    <!-- ============ BANK CHECK TAB (main admin only) ============ -->
+    <section id="tab-bankcheck" class="tab-panel">
+      <div class="card"><p class="section-label">🏦 Bank statement</p>
+        <p class="hint" style="margin-bottom:10px;line-height:1.5;">Bank ki PDF yahan daalo (July se, phir har din / hafte ki). App usse online payments, online expenses aur cash deposit se milata hai; jo na mile wo <b>Suspicious</b> me aate hain. Dobara wahi paise wali PDF daalne se kuch double nahi hota. Sirf main admin ke liye.</p>
+        <input type="file" id="bankFiles" accept="application/pdf,.pdf" multiple style="display:none;" onchange="bankPick_(this)">
+        <button class="btn btn-gold btn-block" type="button" id="bankChooseBtn" onclick="document.getElementById('bankFiles').click()">📄 Choose bank statement PDF(s)</button>
+        <div id="bankPreview"></div>
+      </div>
+      <div class="card"><p class="section-label">Check</p>
+        <div class="field-row"><div class="field"><label for="bankFrom">From</label><input type="date" id="bankFrom"></div><div class="field"><label for="bankTo">To</label><input type="date" id="bankTo"></div></div>
+        <button class="btn btn-primary btn-block" type="button" id="bankApplyBtn" onclick="bankInitTab_()">Apply</button>
+        <div id="bankOverview" style="margin-top:10px;"></div>
+        <button class="btn btn-outline btn-block" type="button" id="bankRematchBtn" style="margin-top:8px;" onclick="bankRematch_()">↻ Check again (after the staff enter a missing payment)</button>
+      </div>
+      <div class="card"><p class="section-label">Transactions</p>
+        <div class="reg-chips" id="bankChips" style="flex-wrap:wrap;">
+          <button class="reg-chip on" data-f="suspicious" onclick="bankPickFilter_('suspicious')">Suspicious</button><button class="reg-chip" data-f="apponly" onclick="bankPickFilter_('apponly')">In app, not bank</button><button class="reg-chip" data-f="cash" onclick="bankPickFilter_('cash')">Cash deposits</button>
+          <button class="reg-chip" data-f="matched" onclick="bankPickFilter_('matched')">Matched</button><button class="reg-chip" data-f="ok" onclick="bankPickFilter_('ok')">Explained</button><button class="reg-chip" data-f="info" onclick="bankPickFilter_('info')">Charges</button><button class="reg-chip" data-f="all" onclick="bankPickFilter_('all')">All</button>
+        </div>
+        <div class="bank-exp"><button class="btn btn-outline" type="button" id="bankXlsxBtn" onclick="bankExportXlsx_()">⬇ Excel (to check)</button><button class="btn btn-outline" type="button" id="bankPdfBtn" onclick="bankExportPdf_()">⬇ PDF (to check)</button></div>
+        <p class="hint" style="margin:0 0 8px;">Excel / PDF me saari suspicious entries aati hain (kab aaya, kitna, kis se, UTR, kyun suspicious) aur staff ke likhne ke liye "Staff remark" ka khaana.</p>
+        <div id="bankList"><div class="empty-cart">Loading…</div></div>
+      </div>
+      <div class="card"><div id="bankCashBox"></div><p class="section-label" style="margin-top:14px;">Uploaded statements</p><div id="bankStatements"></div></div>
     </section>
 
     <!-- ============ STOCK TAB ============ -->
@@ -2388,6 +2419,13 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     <div class="modal-actions"><button class="btn btn-outline" id="bdayClose" onclick="closeBdayModal_()">Close</button><button class="btn btn-primary" id="bdayOpenTab" onclick="bdayOpenTab_()">Open Birthdays tab</button></div>
   </div></div>
 
+  <div class="modal-overlay" id="bankNoteModal"><div class="modal-sheet">
+    <h2 style="font-size:17px;margin-bottom:6px;">Mark as explained</h2>
+    <p class="hint" id="bankNoteInfo" style="margin-bottom:8px;line-height:1.5;"></p>
+    <div class="field"><label for="bankNoteText">What is this money? (note)</label><textarea id="bankNoteText" rows="3" maxlength="300" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;" placeholder="e.g. Owner put in his own money / loan returned / old customer paid directly"></textarea></div>
+    <div class="modal-actions"><button class="btn btn-outline" type="button" id="bankNoteCancel" onclick="document.getElementById('bankNoteModal').classList.remove('show')">Cancel</button><button class="btn btn-primary" type="button" id="bankNoteSave" onclick="bankSaveMark_()">Save</button></div>
+  </div></div>
+
   <!-- ============ ADD NEW CUSTOMER MODAL ============ -->
   <div class="modal-overlay" id="addCustomerModal">
     <div class="modal-sheet">
@@ -2967,6 +3005,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     document.getElementById('tabBtnMarketPurchase').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnProfitReport').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnFranchisee').style.display = isSuperAdmin ? 'block' : 'none';
+    document.getElementById('tabBtnBankCheck').style.display = isSuperAdmin ? 'block' : 'none';        // the bank check: the main admin only
     document.getElementById('tabBtnHall').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnProductSearch').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('dashboardHallStats').style.display = isSuperAdmin ? 'block' : 'none';
@@ -4245,6 +4284,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     if (name === 'custcorrect') loadCustCorrections_();
     if (name === 'duerem') loadDueList_();
     if (name === 'birthdays') loadBirthdays_();
+    if (name === 'bankcheck') bankInitTab_();
     if (name === 'stockreport' && !onlineStockLoadedOnce) switchStockSubtab('online');
     if (name === 'wallet') searchWalletCustomers();
     if (name === 'publicorder') loadPublicOrders();
@@ -11537,6 +11577,297 @@ async function submitWalletSettle_() {
     await refreshWalletDetail(); refreshActiveBillList_();
     if (document.getElementById('customerDetailModal').classList.contains('show')) loadCustomerMoney_(currentCustomerMobile);
   });
+}
+
+/* BANK-PARSER-START */
+// ---------------- BANK CHECK: a bank statement PDF is read here, in the browser (pdf.js), and turned into rows: date, narration, reference, debit, credit, balance ----------------
+const BANK_MON_ = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+function bankNum_(t) {            // '1,25,000.00' / '1,500.00(Dr)' / '2,000.00 Cr' -> { v, dir } or null
+  const s = String(t == null ? '' : t).trim().replace(/\((Dr|Cr)\)/gi, ' $1').replace(/₹|INR|Rs\.?/gi, '').trim();
+  const m = s.match(/^\(?-?\s*([0-9][0-9,]*(?:\.[0-9]+)?|\.[0-9]+)\s*\)?\s*(Cr|Dr)?\.?$/i);
+  return m ? { v: parseFloat(m[1].replace(/,/g, '')), dir: m[2] ? m[2].toUpperCase() : null } : null;
+}
+function bankDate_(t) {           // 01/07/26, 01-07-2026, 01 Jul 2026, 01-Jul-26 -> 2026-07-01
+  t = String(t == null ? '' : t).trim(); let m = t.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4}|\d{2})$/), d, mo, y;
+  if (m) { d = +m[1]; mo = +m[2]; y = +m[3]; }
+  else { m = t.match(/^(\d{1,2})[\s\-\/]([A-Za-z]{3,9})[\s\-\/,.]*(\d{4}|\d{2})$/); if (!m) return null; d = +m[1]; mo = BANK_MON_[m[2].slice(0, 3).toLowerCase()]; y = +m[3]; if (!mo) return null; }
+  if (y < 100) y += 2000; if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+}
+function bankLines_(items) {      // the text pieces of one page -> lines (top to bottom) of cells (left to right)
+  const its = items.filter(function (i) { return String(i.s).trim() !== ''; }).sort(function (a, b) { return (b.y - a.y) || (a.x - b.x); }), lines = [];
+  its.forEach(function (i) { let L = lines[lines.length - 1]; if (!L || Math.abs(L.y - i.y) > 3) { L = { y: i.y, items: [] }; lines.push(L); } L.items.push(i); });
+  lines.forEach(function (L) {
+    L.items.sort(function (a, b) { return a.x - b.x; }); const cells = [];
+    L.items.forEach(function (i) { const c = cells[cells.length - 1]; if (c && i.x - (c.x + c.w) < 6) { c.s += (i.x - (c.x + c.w) > 1.2 ? ' ' : '') + String(i.s).trim(); c.w = i.x + i.w - c.x; } else cells.push({ s: String(i.s).trim(), x: i.x, w: i.w }); });
+    L.cells = cells; L.text = cells.map(function (c) { return c.s; }).join(' ');
+  });
+  return lines;
+}
+function bankHeaderAt_(lines, i) {  // the header of the transaction table (its labels may sit on two lines)
+  const L = lines[i], N = lines[i + 1];
+  const need = function (t) { return /date/.test(t) && /balance|\bbal\b/.test(t) && /withdraw|debit|\bdr\b|deposit|credit|\bcr\b|amount/.test(t); };
+  let cells = L.cells.slice(), text = L.text.toLowerCase(), span = 1;
+  if (!need(text) && N && (L.y - N.y) < 18 && !/\d{2}[\/\-.]\d{2}|\d{4}/.test(N.text)) { const t2 = text + ' ' + N.text.toLowerCase(); if (need(t2) && /date/.test(text)) { cells = cells.concat(N.cells); text = t2; span = 2; } }
+  if (!need(text) || cells.length < 4 || /\d{3,}/.test(text.replace(/\(inr\)/g, ''))) return null;
+  return { cells: cells, span: span };
+}
+function bankColumns_(cells) {
+  const sorted = cells.slice().sort(function (a, b) { return (a.x + a.w / 2) - (b.x + b.w / 2); }), cols = [];
+  sorted.forEach(function (c) {
+    const cx = c.x + c.w / 2, last = cols[cols.length - 1];
+    if (last && Math.abs(cx - last.cx) < 22) { last.label += ' ' + c.s; last.x0 = Math.min(last.x0, c.x); last.x1 = Math.max(last.x1, c.x + c.w); last.cx = (last.x0 + last.x1) / 2; }
+    else cols.push({ label: c.s, x0: c.x, x1: c.x + c.w, cx: cx });
+  });
+  let dateSeen = false;
+  cols.forEach(function (col) {
+    const t = col.label.toLowerCase(), wd = /withdraw|debit|\bdr\b/.test(t), dp = /deposit|credit|\bcr\b/.test(t);
+    col.key = /value/.test(t) ? 'value' : (wd && dp) ? 'amount' : wd ? 'debit' : dp ? 'credit' : /balance|\bbal\b/.test(t) ? 'balance' : /amount/.test(t) ? 'amount'
+      : /narration|description|particulars|details|remarks/.test(t) ? 'desc' : /chq|cheque|ref|instr/.test(t) ? 'ref' : /date|\bdt\b/.test(t) ? 'date' : /s\.?\s*no|sr\.?/.test(t) ? 'sno' : 'other';
+    if (col.key === 'date') { if (dateSeen) col.key = 'value'; dateSeen = true; }
+  });
+  return cols;
+}
+function bankColOf_(cols, c) {    // which column a cell belongs to (numbers by where they end, text by where it starts)
+  const right = c.x + c.w, cx = c.x + c.w / 2, isNum = bankNum_(c.s) !== null || /^[-–—]$/.test(c.s), money = function (k) { return k === 'debit' || k === 'credit' || k === 'amount' || k === 'balance'; };
+  let best = null, bd = 1e9;
+  if (isNum) {
+    cols.forEach(function (col) { const d = money(col.key) ? Math.min(Math.abs(right - col.x1), Math.abs(cx - col.cx), Math.abs(c.x - col.x0)) : Math.abs(c.x - col.x0); if (d < bd) { bd = d; best = col; } });
+    return bd <= 60 && best ? best.key : null;
+  }
+  cols.forEach(function (col) { if (money(col.key)) return; if (col.x0 <= c.x + 4 && (!best || col.x0 > best.x0)) best = col; });
+  return best ? best.key : (cols[0] ? cols[0].key : null);
+}
+function bankScanPage_(lines, st) {
+  const numOf = function (cells) { return cells && cells.length ? bankNum_(cells.map(function (c) { return c.s; }).join(' ')) : null; };
+  let i = 0; st.cur = null;
+  while (i < lines.length) {
+    const L = lines[i], h = bankHeaderAt_(lines, i);
+    if (h) { st.cols = bankColumns_(h.cells); st.cur = null; i += h.span; continue; }
+    i++;
+    if (!st.cols) { const m = /opening\s*balance[^0-9\-]*(-?[0-9][0-9,]*(?:\.[0-9]+)?)/i.exec(L.text); if (m && st.opening == null) st.opening = parseFloat(m[1].replace(/,/g, '')); continue; }
+    if (/closing\s*balance|statement\s*summary|total\s*(debit|credit|withdrawal|deposit)|end of statement|computer generated|page\s*\d+\s*(of|\/)\s*\d+|registered\s*office|generated\s*on|^\s*legend/i.test(L.text)) { st.cur = null; continue; }
+    const by = {};
+    L.cells.forEach(function (c) { const k = bankColOf_(st.cols, c); if (k) (by[k] = by[k] || []).push(c); });
+    const txt = function (k) { return (by[k] || []).map(function (c) { return c.s; }).join(' ').trim(); };
+    const date = bankDate_(txt('date'));
+    if (date) {
+      st.cur = { date: date, valueDate: bankDate_(txt('value')), desc: [txt('desc')], ref: [txt('ref')], debit: numOf(by.debit), credit: numOf(by.credit), amount: numOf(by.amount), balance: numOf(by.balance), y: L.y };
+      st.rows.push(st.cur);
+    } else if (st.cur && (st.cur.y - L.y) <= 24 && (by.desc || by.ref)) {
+      st.cur.desc.push(txt('desc')); st.cur.ref.push(txt('ref')); st.cur.y = L.y;
+      ['debit', 'credit', 'amount', 'balance'].forEach(function (k) { if (!st.cur[k] && by[k]) st.cur[k] = numOf(by[k]); });
+    } else st.cur = null;
+  }
+}
+function bankFinish_(st) {
+  let rows = st.rows.filter(function (r) { return r.debit || r.credit || r.amount || r.balance; });
+  if (!rows.length) return { rows: [], opening: null, closing: null, check: { total: 0, checked: 0, bad: 0, fixed: 0 } };
+  if (rows.length > 1 && rows[0].date > rows[rows.length - 1].date) rows = rows.slice().reverse();      // newest first -> oldest first
+  let prev = st.opening != null ? st.opening : null, bad = 0, checked = 0, fixed = 0, firstBal = null;
+  const out = rows.map(function (r) {
+    let deb = r.debit ? r.debit.v : 0, cred = r.credit ? r.credit.v : 0, bal = r.balance ? (r.balance.dir === 'DR' ? -r.balance.v : r.balance.v) : null;
+    if (r.amount) { if (r.amount.dir === 'DR') deb = r.amount.v; else if (r.amount.dir === 'CR') cred = r.amount.v; else if (prev != null && bal != null) { if (bal - prev >= 0) cred = r.amount.v; else deb = r.amount.v; } else cred = r.amount.v; }
+    if (prev != null && bal != null) {
+      checked++; const d = Math.round((bal - prev) * 100) / 100, e = Math.round((cred - deb) * 100) / 100;
+      if (Math.abs(d - e) > 0.011) {
+        if (Math.abs(d + e) <= 0.011 && (cred > 0 || deb > 0)) { const t = cred; cred = deb; deb = t; fixed++; }
+        else if (cred === 0 && deb === 0) { if (d > 0) cred = d; else deb = -d; fixed++; }
+        else bad++;
+      }
+    } else if (bal != null && firstBal == null) firstBal = bal - cred + deb;
+    if (bal != null) prev = bal;
+    return { date: r.date, valueDate: r.valueDate, desc: r.desc.join(' ').replace(/\s+/g, ' ').trim(), ref: r.ref.join(' ').replace(/\s+/g, ' ').trim() || null, debit: Math.round(deb * 100) / 100, credit: Math.round(cred * 100) / 100, balance: bal };
+  });
+  const last = out.filter(function (r) { return r.balance != null; }).pop();
+  return { rows: out, opening: st.opening != null ? st.opening : firstBal, closing: last ? last.balance : null, check: { total: out.length, checked: checked, bad: bad, fixed: fixed } };
+}
+function bankCheckText_(c) { return !c.checked ? 'Balances could not be checked' : (c.bad === 0 ? 'OK - ' + c.checked + ' balances add up' + (c.fixed ? ' (' + c.fixed + ' amounts set from the balance)' : '') : c.bad + ' of ' + c.checked + ' rows do not add up with the balance'); }
+async function bankReadPdf_(buf, pdfjs, password) {
+  const pdf = await pdfjs.getDocument({ data: new Uint8Array(buf.slice(0)), password: password || undefined }).promise;
+  const st = { cols: null, rows: [], cur: null, opening: null };
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p), tc = await page.getTextContent();
+    bankScanPage_(bankLines_(tc.items.map(function (i) { return { s: i.str, x: i.transform[4], y: i.transform[5], w: i.width }; })), st);
+  }
+  const res = bankFinish_(st); res.pages = pdf.numPages; return res;
+}
+/* BANK-PARSER-END */
+
+// ---------------- BANK CHECK (main admin): upload the statement PDFs, see what does not match, mark it explained, send the list to the staff ----------------
+const BANK_PDFJS_URL = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js', BANK_WORKER_URL = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js', BANK_XLSX_URL = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+const BANK_KIND_ = { UPI: 'UPI', IMPS: 'IMPS', NEFT: 'NEFT', RTGS: 'RTGS', CHEQUE: 'Cheque', CASH_DEPOSIT: 'Cash deposit', CASH_WITHDRAWAL: 'Cash withdrawal', CHARGES: 'Bank charges', INTEREST: 'Interest', OTHER: 'Other' };
+let bankFiles_ = [], bankFilter_ = 'suspicious', bankMarkId_ = null;
+function bankErr_(e) { const m = (e && e.message) || String(e); return /could not find the function|schema cache/i.test(m) ? 'Please run bank_reconcile.sql in Supabase first.' : m; }
+function bankDay_(iso) { return iso ? new Date(String(iso).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : ''; }
+function bankLoadLib_(url) {
+  return new Promise(function (resolve, reject) {
+    const old = document.querySelector('script[data-lib="' + url + '"]'); if (old && old.dataset.ok) { resolve(); return; }
+    const s = document.createElement('script'); s.src = url; s.dataset.lib = url; s.onload = function () { s.dataset.ok = '1'; resolve(); }; s.onerror = function () { reject(new Error('Could not load a helper file (check the internet) and try again.')); }; document.head.appendChild(s);
+  });
+}
+async function bankPdfJs_() { await bankLoadLib_(BANK_PDFJS_URL); window.pdfjsLib.GlobalWorkerOptions.workerSrc = BANK_WORKER_URL; return window.pdfjsLib; }
+async function bankSha_(buf) { const d = await crypto.subtle.digest('SHA-256', buf); return Array.from(new Uint8Array(d)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join(''); }
+async function bankPick_(inp) {
+  const files = Array.from(inp.files || []); inp.value = ''; if (!files.length) return;
+  const box = document.getElementById('bankPreview'); box.innerHTML = '<div class="empty-cart">Reading ' + files.length + ' file' + (files.length === 1 ? '' : 's') + '…</div>';
+  let lib; try { lib = await bankPdfJs_(); } catch (e) { box.innerHTML = '<div class="empty-cart">' + escapeHtml(e.message) + '</div>'; return; }
+  bankFiles_ = [];
+  for (const f of files) {
+    const item = { name: f.name };
+    try {
+      const buf = await f.arrayBuffer(); item.hash = await bankSha_(buf); let res;
+      try { res = await bankReadPdf_(buf, lib, null); }
+      catch (e) { if (e && e.name === 'PasswordException') { const pw = prompt('This PDF has a password. Password for ' + f.name + ':'); if (!pw) throw new Error('The PDF needs its password.'); res = await bankReadPdf_(buf, lib, pw); } else throw e; }
+      item.res = res; if (!res.rows.length) item.error = 'No transactions found. If this PDF is a scanned picture, download the statement as PDF from net banking.';
+    } catch (e) { item.error = e && e.message ? e.message : String(e); }
+    bankFiles_.push(item);
+  }
+  renderBankPreview_();
+}
+function renderBankPreview_() {
+  const box = document.getElementById('bankPreview'); if (!bankFiles_.length) { box.innerHTML = ''; return; }
+  const okN = bankFiles_.filter(function (f) { return !f.error; }).length;
+  box.innerHTML = bankFiles_.map(function (f) {
+    if (f.error) return '<div class="bank-file bad"><b>' + escapeHtml(f.name) + '</b><div class="result-meta">⚠ ' + escapeHtml(f.error) + '</div></div>';
+    const r = f.res, cr = r.rows.reduce(function (s, x) { return s + x.credit; }, 0), dr = r.rows.reduce(function (s, x) { return s + x.debit; }, 0), good = r.check.checked > 0 && r.check.bad === 0;
+    return '<div class="bank-file ' + (good ? 'ok' : 'warn') + '"><b>' + escapeHtml(f.name) + '</b><div class="result-meta">' + r.rows.length + ' transactions · ' + bankDay_(r.rows[0].date) + ' → ' + bankDay_(r.rows[r.rows.length - 1].date) + ' · money in ' + money(cr) + ' · money out ' + money(dr) + '</div>' +
+      '<div class="result-meta">Balance ' + (r.opening != null ? money(r.opening) : '?') + ' → ' + (r.closing != null ? money(r.closing) : '?') + ' · ' + (good ? '✓ ' : '⚠ ') + escapeHtml(bankCheckText_(r.check)) + '</div>' +
+      (good ? '' : '<div class="result-meta" style="color:var(--danger);">The numbers may not have been read correctly - look at the rows below before you import.</div>') +
+      '<details style="margin-top:6px;"><summary class="result-meta">First rows</summary>' + r.rows.slice(0, 6).map(function (x) { return '<div class="result-meta">' + bankDay_(x.date) + ' · ' + escapeHtml(String(x.desc).slice(0, 60)) + ' · ' + (x.credit ? '+' + money(x.credit) : '−' + money(x.debit)) + '</div>'; }).join('') + '</details></div>';
+  }).join('') + '<button class="btn btn-gold btn-block" id="bankImportBtn" type="button" onclick="bankImportAll_()"' + (okN ? '' : ' disabled') + '>✅ Import ' + okN + ' file' + (okN === 1 ? '' : 's') + '</button><button class="btn btn-outline btn-block" id="bankCancelBtn" type="button" style="margin-top:8px;" onclick="bankCancelPreview_()">Cancel</button>';
+}
+function bankCancelPreview_() { bankFiles_ = []; document.getElementById('bankPreview').innerHTML = ''; }
+async function bankImportAll_() {
+  return runLocked_('bank-import', async function () {
+    const ok = bankFiles_.filter(function (f) { return !f.error; }); let ins = 0, dup = 0; const errs = [];
+    for (const f of ok) {
+      const rows = f.res.rows.map(function (r) { return { date: r.date, valueDate: r.valueDate, desc: r.desc, ref: r.ref, debit: r.debit, credit: r.credit, balance: r.balance }; });
+      const { data, error } = await sb.rpc('bank_import_statement', { p_filename: f.name, p_rows: rows, p_opening: f.res.opening, p_closing: f.res.closing, p_file_hash: f.hash, p_balance_check: bankCheckText_(f.res.check), p_note: null });
+      if (error) { errs.push(f.name + ': ' + bankErr_(error)); continue; }
+      ins += Number(data.inserted) || 0; dup += Number(data.duplicates) || 0;
+    }
+    bankCancelPreview_();
+    showToast((errs.length ? errs.join(' | ') + ' · ' : '') + 'Imported ' + ins + ' row' + (ins === 1 ? '' : 's') + (dup ? ' (' + dup + ' were already there)' : ''), errs.length > 0 && !ins);
+    await bankInitTab_();
+  });
+}
+function bankRange_() { return { from: document.getElementById('bankFrom').value || null, to: document.getElementById('bankTo').value || null }; }
+async function bankInitTab_() { await loadBankOverview_(); await loadBankList_(); loadBankStatements_(); }
+async function loadBankOverview_() {
+  const box = document.getElementById('bankOverview'), cash = document.getElementById('bankCashBox'), rg = bankRange_();
+  const { data, error } = await sb.rpc('get_bank_overview', { p_from: rg.from, p_to: rg.to });
+  if (error) { box.innerHTML = '<div class="empty-cart">' + escapeHtml(bankErr_(error)) + '</div>'; cash.innerHTML = ''; return; }
+  if (!data || !data.coverage) { box.innerHTML = '<div class="empty-cart">No bank statement uploaded yet. Choose the PDF above.</div>'; cash.innerHTML = ''; return; }
+  const c = data.credits, d = data.debits, k = data.cash, a = data.appOnly;
+  const tile = function (label, n, amt) { return '<div class="cm-tile"><div class="cm-l">' + label + '</div><div class="cm-v' + (n > 0 ? ' bad' : ' ok') + '">' + n + '</div><div class="cm-s">' + money(amt) + '</div></div>'; };
+  box.innerHTML = '<p class="hint" style="margin:0 0 8px;">Statements cover <b>' + bankDay_(data.coverage.from) + ' – ' + bankDay_(data.coverage.to) + '</b> (' + data.coverage.statements + ' file' + (data.coverage.statements === 1 ? '' : 's') + ')</p>' +
+    '<div class="cm-row" style="grid-template-columns:repeat(2,1fr);">' + tile('Money came, not in app', c.suspicious, c.suspiciousAmount) + tile('Money went, not in app', d.suspicious, d.suspiciousAmount) + tile('Cash deposits to check', k.suspicious, k.suspiciousAmount) + tile('In app, not in bank', a.count, a.amount) + '</div>' +
+    '<p class="cm-note">Matched: ' + c.matched + ' credits (' + money(c.matchedAmount) + ') and ' + d.matched + ' debits (' + money(d.matchedAmount) + ')' + (c.ok + d.ok ? ' · explained by you: ' + (c.ok + d.ok) : '') + '</p>';
+  cash.innerHTML = '<p class="section-label">Cash book (from the app)</p><div class="hint" style="line-height:1.7;margin-bottom:8px;">Cash in hand at the start ' + money(k.openingCash) + ' + cash received per app ' + money(k.appCashNet) + ' + cash taken out of the bank ' + money(k.bankCashOut) + ' − cash deposited ' + money(k.depositedTotal) + ' = <b>' + money(k.inHandPerApp) + '</b> cash in hand per the app' +
+    (k.inHandPerApp < -0.5 ? ' <span style="color:var(--danger);">(below zero: more cash was deposited than the app shows)</span>' : '') + '</div>' +
+    '<div class="field-row"><div class="field"><label for="bankOpening">Cash in hand on the first day of the statements (₹)</label><input type="number" id="bankOpening" min="0" step="0.01" value="' + (Number(k.openingCash) || 0) + '"></div><div class="field"><label>&nbsp;</label><button class="btn btn-outline btn-block" type="button" id="bankOpeningSave" onclick="bankSaveOpening_()">Save</button></div></div>';
+}
+async function bankSaveOpening_() {
+  const v = Number(document.getElementById('bankOpening').value);
+  if (!(v >= 0)) { showToast('Enter the cash in hand (0 or more).', true); return; }
+  const { error } = await sb.rpc('bank_set_opening_cash', { p_amount: v });
+  if (error) { showToast(bankErr_(error), true); return; }
+  showToast('Saved - the cash deposits are checked again.'); bankInitTab_();
+}
+async function bankRematch_() {
+  const { data, error } = await sb.rpc('bank_rematch');
+  if (error) { showToast(bankErr_(error), true); return; }
+  showToast('Checked again: ' + ((data && data.unmatched) || 0) + ' not matched, ' + ((data && data.review) || 0) + ' to review.'); bankInitTab_();
+}
+function bankPickFilter_(f) { bankFilter_ = f; loadBankList_(); }
+function bankRowHtml_(r) {
+  const cr = Number(r.credit) > 0, amt = cr ? Number(r.credit) : Number(r.debit), st = r.status;
+  const badge = st === 'Matched' ? '<span class="badge badge-paid">✓ Matched</span>' : st === 'Ok' ? '<span class="badge badge-paid">✓ Explained</span>' : st === 'Info' ? '<span class="badge">Info</span>' : st === 'Review' ? '<span class="badge badge-partial">⚠ Review</span>' : '<span class="badge badge-unpaid">❗ Suspicious</span>';
+  const act = (st === 'Unmatched' || st === 'Review') ? '<div class="bank-act"><button class="btn btn-outline bank-mark" type="button" onclick="bankOpenMark_(' + Number(r.id) + ')">✓ Mark as explained</button></div>' : (st === 'Ok' ? '<div class="bank-act"><button class="btn btn-outline bank-undo" type="button" onclick="bankUndo_(' + Number(r.id) + ')">Undo</button></div>' : '');
+  return '<div class="list-row bank-row" data-id="' + Number(r.id) + '" style="align-items:flex-start;cursor:default;"><div style="min-width:0;flex:1;"><div class="result-name">' + escapeHtml(r.who || String(r.desc).slice(0, 40)) + '</div>' +
+    '<div class="result-meta">' + bankDay_(r.date) + ' · ' + escapeHtml(BANK_KIND_[r.kind] || r.kind) + (r.utr ? ' · UTR ' + escapeHtml(r.utr) : '') + '</div><div class="result-meta" style="word-break:break-word;">' + escapeHtml(r.desc) + '</div><div style="margin-top:4px;">' + badge + '</div>' +
+    (r.note ? '<div class="result-meta" style="margin-top:3px;">' + escapeHtml(r.note) + '</div>' : '') + act + '</div><div class="amt" style="color:' + (cr ? 'var(--ok)' : 'var(--danger)') + ';white-space:nowrap;margin-left:8px;">' + (cr ? '+' : '−') + money(amt) + '</div></div>';
+}
+function bankAppRowHtml_(r) {
+  const cr = r.dir === 'CR';
+  return '<div class="list-row bank-row" style="align-items:flex-start;cursor:default;"><div style="min-width:0;flex:1;"><div class="result-name">' + escapeHtml(r.label || r.ref || '') + '</div><div class="result-meta">' + bankDay_(r.item_date) + ' · ' + (cr ? 'Received' : 'Paid') + ' per app · ' + escapeHtml(r.ref || '') + (r.utr ? ' · UTR ' + escapeHtml(r.utr) : '') + ' · ' + escapeHtml(r.src) + '</div>' +
+    '<div style="margin-top:4px;"><span class="badge badge-unpaid">❗ Not in the bank</span></div><div class="result-meta" style="margin-top:3px;">' + escapeHtml(r.reason) + '</div></div><div class="amt" style="color:' + (cr ? 'var(--ok)' : 'var(--danger)') + ';white-space:nowrap;margin-left:8px;">' + (cr ? '+' : '−') + money(r.amount) + '</div></div>';
+}
+async function loadBankList_() {
+  const box = document.getElementById('bankList'), rg = bankRange_();
+  Array.prototype.forEach.call(document.querySelectorAll('#bankChips .reg-chip'), function (b) { b.classList.toggle('on', b.dataset.f === bankFilter_); });
+  if (bankFilter_ === 'apponly') {
+    const { data, error } = await sb.rpc('get_bank_app_only', { p_from: rg.from, p_to: rg.to });
+    if (error) { box.innerHTML = '<div class="empty-cart">' + escapeHtml(bankErr_(error)) + '</div>'; return; }
+    box.innerHTML = (data || []).length ? data.map(bankAppRowHtml_).join('') : '<div class="empty-cart">✓ Everything the app shows as paid / received online is in the bank statement.</div>'; return;
+  }
+  const { data, error } = await sb.rpc('get_bank_transactions', { p_from: rg.from, p_to: rg.to, p_filter: bankFilter_, p_limit: 400, p_offset: 0 });
+  if (error) { box.innerHTML = '<div class="empty-cart">' + escapeHtml(bankErr_(error)) + '</div>'; return; }
+  const rows = (data && data.rows) || [];
+  box.innerHTML = rows.length ? rows.map(bankRowHtml_).join('') + ((data.total || 0) > rows.length ? '<div class="hint" style="text-align:center;">Showing the latest ' + rows.length + ' of ' + data.total + ' - narrow the dates.</div>' : '') : '<div class="empty-cart">' + (bankFilter_ === 'suspicious' ? '✓ Nothing suspicious in this period.' : 'Nothing here.') + '</div>';
+}
+function bankOpenMark_(id) {
+  bankMarkId_ = id; document.getElementById('bankNoteText').value = '';
+  const row = document.querySelector('.bank-row[data-id="' + id + '"]'); document.getElementById('bankNoteInfo').textContent = row ? row.querySelector('.result-name').textContent + ' · ' + row.querySelector('.amt').textContent : '';
+  document.getElementById('bankNoteModal').classList.add('show');
+}
+async function bankSaveMark_() {
+  const note = document.getElementById('bankNoteText').value.trim();
+  if (!note) { showToast('Write a short note (what is this money?).', true); return; }
+  const { error } = await sb.rpc('bank_mark_txn', { p_id: bankMarkId_, p_ok: true, p_note: note });
+  if (error) { showToast(bankErr_(error), true); return; }
+  document.getElementById('bankNoteModal').classList.remove('show'); showToast('Marked as explained.'); bankInitTab_();
+}
+async function bankUndo_(id) {
+  const { error } = await sb.rpc('bank_mark_txn', { p_id: id, p_ok: false, p_note: null });
+  if (error) { showToast(bankErr_(error), true); return; }
+  bankInitTab_();
+}
+async function loadBankStatements_() {
+  const box = document.getElementById('bankStatements'), { data, error } = await sb.rpc('get_bank_statements');
+  if (error || !data || !data.length) { box.innerHTML = '<div class="empty-cart">' + (error ? escapeHtml(bankErr_(error)) : 'Nothing uploaded yet.') + '</div>'; return; }
+  box.innerHTML = data.map(function (s) {
+    return '<div class="list-row" style="cursor:default;align-items:flex-start;"><div style="min-width:0;flex:1;"><div class="result-name" style="word-break:break-word;">' + escapeHtml(s.filename || 'Statement') + '</div><div class="result-meta">' + bankDay_(s.from) + ' – ' + bankDay_(s.to) + ' · ' + s.rows + ' rows' + (s.duplicates ? ' (' + s.duplicates + ' repeated, skipped)' : '') + '</div><div class="result-meta">' + escapeHtml(s.balanceCheck || '') + '</div></div>' +
+      '<button class="btn btn-outline bank-del" type="button" style="flex:none;width:auto;padding:6px 12px;font-size:12.5px;color:var(--danger);border-color:var(--danger);" onclick="bankDeleteStmt_(' + Number(s.id) + ')">Delete</button></div>';
+  }).join('');
+}
+async function bankDeleteStmt_(id) {
+  if (!confirm('Delete this uploaded statement from the bank check? (Only the uploaded bank rows go; your bills, payments and expenses are not touched. You can upload it again.)')) return;
+  const { error } = await sb.rpc('bank_delete_statement', { p_id: id });
+  if (error) { showToast(bankErr_(error), true); return; }
+  showToast('Statement removed.'); bankInitTab_();
+}
+async function bankGather_() {
+  const rg = bankRange_(), a = await sb.rpc('get_bank_transactions', { p_from: rg.from, p_to: rg.to, p_filter: 'suspicious', p_limit: 2000, p_offset: 0 }), b = await sb.rpc('get_bank_app_only', { p_from: rg.from, p_to: rg.to });
+  if (a.error) throw new Error(bankErr_(a.error)); if (b.error) throw new Error(bankErr_(b.error));
+  return { bank: (a.data && a.data.rows) || [], app: b.data || [], from: rg.from, to: rg.to };
+}
+function bankExportRows_(g) {
+  return {
+    bank: g.bank.map(function (r) { return { 'Date': r.date, 'Type': BANK_KIND_[r.kind] || r.kind, 'Money came (₹)': Number(r.credit) || '', 'Money went (₹)': Number(r.debit) || '', 'From / to': r.who || '', 'UTR': r.utr || '', 'Bank narration': r.desc, 'Why it is flagged': r.note || '', 'Staff remark': '' }; }),
+    app: g.app.map(function (r) { return { 'Date': String(r.item_date).slice(0, 10), 'In the app': r.dir === 'CR' ? 'Received' : 'Paid', 'Amount (₹)': Number(r.amount), 'Who': r.label || '', 'Bill / entry': r.ref || '', 'UTR': r.utr || '', 'Where': r.src, 'Why it is flagged': r.reason, 'Staff remark': '' }; })
+  };
+}
+async function bankExportXlsx_() {
+  try {
+    const g = await bankGather_(); if (!g.bank.length && !g.app.length) { showToast('Nothing suspicious to download.', true); return; }
+    await bankLoadLib_(BANK_XLSX_URL); const x = bankExportRows_(g), wb = window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(x.bank.length ? x.bank : [{ 'Date': '' }]), 'Bank rows to check');
+    window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(x.app.length ? x.app : [{ 'Date': '' }]), 'In app, not in bank');
+    window.XLSX.writeFile(wb, 'Bank-check-' + (g.from || 'start') + '-to-' + (g.to || 'latest') + '.xlsx');
+  } catch (e) { showToast(bankErr_(e), true); }
+}
+async function bankExportPdf_() {
+  try {
+    const g = await bankGather_(); if (!g.bank.length && !g.app.length) { showToast('Nothing suspicious to download.', true); return; }
+    const x = bankExportRows_(g), tbl = function (rows) { return rows.length ? '<table style="border-collapse:collapse;width:100%;font-size:9px;"><thead><tr>' + Object.keys(rows[0]).map(function (h) { return '<th style="border:1px solid #777;padding:3px;background:#eee;text-align:left;">' + escapeHtml(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      rows.map(function (r) { return '<tr>' + Object.keys(r).map(function (k) { return '<td style="border:1px solid #999;padding:3px;vertical-align:top;">' + escapeHtml(String(r[k])) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>' : '<p>None.</p>'; };
+    const el = document.createElement('div'); el.style.cssText = 'position:fixed;left:-10000px;top:0;padding:12px;font-family:Arial,sans-serif;font-size:10px;color:#000;background:#fff;width:1050px;';
+    el.innerHTML = '<h2 style="margin:0 0 4px;">Bank check - please verify these</h2><p style="margin:0 0 10px;">Mahakal Wellness · period ' + escapeHtml(g.from || 'start of the statements') + ' to ' + escapeHtml(g.to || 'latest') + '</p><h3>A. Bank entries to check (' + x.bank.length + ')</h3>' + tbl(x.bank) + '<h3>B. In the app, but not in the bank (' + x.app.length + ')</h3>' + tbl(x.app);
+    document.body.appendChild(el);
+    try { await window.html2pdf().set({ margin: 8, filename: 'Bank-check-' + (g.from || 'start') + '-to-' + (g.to || 'latest') + '.pdf', html2canvas: { scale: 1.5 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } }).from(el).save(); } finally { el.remove(); }
+  } catch (e) { showToast(bankErr_(e), true); }
 }
 
 // ---------------- Due Reminders: everybody who owes, a reminder popup in their app (or a WhatsApp message) ----------------
