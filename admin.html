@@ -1215,10 +1215,10 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       </div>
     </section>
 
-    <!-- ============ BANK CHECK TAB (main admin only) ============ -->
+    <!-- ============ BANK CHECK TAB (main admin + staff; explain / rules / cash in hand / delete: main admin only) ============ -->
     <section id="tab-bankcheck" class="tab-panel">
       <div class="card"><p class="section-label">🏦 Bank statement</p>
-        <p class="hint" style="margin-bottom:10px;line-height:1.5;">Bank ka statement yahan daalo: <b>Excel / CSV</b> (sabse pakka, net banking se "Download as Excel") ya PDF - July se, phir har din / hafte ka. App usse online payments, online expenses aur cash deposit se milata hai; jo na mile wo <b>Suspicious</b> me aate hain. Wahi paise wali file dobara daalne se kuch double nahi hota (PDF aur Excel dono se aaye to bhi). Sirf main admin ke liye.</p>
+        <p class="hint" style="margin-bottom:10px;line-height:1.5;">Bank ka statement yahan daalo: <b>Excel / CSV</b> (sabse pakka, net banking se "Download as Excel") ya PDF - July se, phir har din / hafte ka. App usse online payments, online expenses aur cash deposit se milata hai; jo na mile wo <b>Suspicious</b> me aate hain. Wahi paise wali file dobara daalne se kuch double nahi hota (PDF aur Excel dono se aaye to bhi). Main admin aur staff dono daal sakte hain; entries ko "explain" karna, rules, cash in hand aur statement delete sirf main admin kar sakta hai.</p>
         <input type="file" id="bankFiles" accept=".xlsx,.xls,.csv,.pdf,application/pdf,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple style="display:none;" onchange="bankPick_(this)">
         <button class="btn btn-gold btn-block" type="button" id="bankChooseBtn" onclick="document.getElementById('bankFiles').click()">📄 Choose bank statement (Excel / CSV / PDF)</button>
         <div id="bankPreview"></div>
@@ -1238,7 +1238,8 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         <p class="hint" style="margin:0 0 8px;">Excel / PDF me saari suspicious entries aati hain (kab aaya, kitna, kis se, UTR, kyun suspicious) aur staff ke likhne ke liye "Staff remark" ka khaana.</p>
         <div id="bankList"><div class="empty-cart">Loading…</div></div>
       </div>
-      <div class="card"><div id="bankCashBox"></div><p class="section-label" style="margin-top:14px;">Rules (explained automatically)</p><div id="bankRules"></div><p class="section-label" style="margin-top:14px;">Uploaded statements</p><div id="bankStatements"></div></div>
+      <div class="card"><div id="bankCashBox"></div><p class="section-label" id="bankRulesLabel" style="margin-top:14px;">Rules (explained automatically)</p><div id="bankRules"></div><p class="section-label" style="margin-top:14px;">Uploaded statements</p><div id="bankStatements"></div></div>
+      <div class="card" id="bankStaffCard" style="display:none;"><p class="section-label">Staff access</p><div id="bankStaffBox"></div></div>
     </section>
 
     <!-- ============ STOCK TAB ============ -->
@@ -3007,7 +3008,8 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     document.getElementById('tabBtnMarketPurchase').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnProfitReport').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnFranchisee').style.display = isSuperAdmin ? 'block' : 'none';
-    document.getElementById('tabBtnBankCheck').style.display = isSuperAdmin ? 'block' : 'none';        // the bank check: the main admin only
+    document.getElementById('tabBtnBankCheck').style.display = isSuperAdmin ? 'block' : 'none';        // the bank check: the main admin at once; staff only when the main admin has opened it for them
+    if (!isSuperAdmin) bankAccessInit_();
     document.getElementById('tabBtnHall').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnProductSearch').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('dashboardHallStats').style.display = isSuperAdmin ? 'block' : 'none';
@@ -11932,7 +11934,30 @@ async function bankImportAll_() {
   });
 }
 function bankRange_() { return { from: document.getElementById('bankFrom').value || null, to: document.getElementById('bankTo').value || null }; }
-async function bankInitTab_() { await loadBankOverview_(); await loadBankList_(); loadBankStatements_(); loadBankRules_(); }
+function bankMain_() { return !!isSuperAdminUser; }          // explain / rules / cash in hand / delete / rematch / the staff switch: the main admin only (the database refuses the others too)
+function bankApplyRole_() {
+  const main = bankMain_();
+  ['bankRematchBtn', 'bankRulesLabel', 'bankRules', 'bankStaffCard'].forEach(function (id) { const el = document.getElementById(id); if (el) el.style.display = main ? '' : 'none'; });
+}
+async function bankAccessInit_() {
+  const btn = document.getElementById('tabBtnBankCheck'); if (!btn) return;
+  try { const { data, error } = await sb.rpc('get_bank_access'); btn.style.display = !error && data && data.canUse ? 'block' : 'none'; } catch (e) { btn.style.display = 'none'; }
+}
+async function loadBankStaffAccess_() {
+  const box = document.getElementById('bankStaffBox'); if (!box) return;
+  const { data, error } = await sb.rpc('get_bank_access');
+  if (error || !data) { box.innerHTML = '<div class="empty-cart">' + escapeHtml(error ? bankErr_(error) : 'Could not load.') + '</div>'; return; }
+  const on = !!data.staffAllowed;
+  box.innerHTML = '<div class="hint" style="line-height:1.6;margin-bottom:8px;">Staff can see this tab and upload statements: <b>' + (on ? 'ON' : 'OFF') + '</b>. Staff can NOT mark entries as explained, make rules, set the cash in hand or delete a statement. Every statement shows who uploaded it.</div>' +
+    '<button class="btn btn-outline btn-block" type="button" id="bankStaffBtn" onclick="bankToggleStaff_(' + (on ? 'false' : 'true') + ')">' + (on ? 'Turn OFF for staff' : 'Turn ON for staff') + '</button>';
+}
+async function bankToggleStaff_(on) {
+  if (!on && !confirm('Staff will no longer see the Bank Check tab or be able to upload statements. Continue?')) return;
+  const { error } = await sb.rpc('bank_set_staff_access', { p_on: on });
+  if (error) { showToast(bankErr_(error), true); return; }
+  showToast(on ? 'Staff can use the bank check now.' : 'The bank check is closed for staff.'); loadBankStaffAccess_();
+}
+async function bankInitTab_() { bankApplyRole_(); await loadBankOverview_(); await loadBankList_(); loadBankStatements_(); if (bankMain_()) { loadBankRules_(); loadBankStaffAccess_(); } }
 async function loadBankOverview_() {
   const box = document.getElementById('bankOverview'), cash = document.getElementById('bankCashBox'), rg = bankRange_();
   const { data, error } = await sb.rpc('get_bank_overview', { p_from: rg.from, p_to: rg.to });
@@ -11947,7 +11972,7 @@ async function loadBankOverview_() {
     (String(data.coverage.to).slice(0, 10) === istDay_(new Date().toISOString()) ? '<p class="cm-note" style="color:var(--ink-soft);font-weight:600;">The last day in the statements (' + bankDay_(data.coverage.to) + ') is TODAY: entries made after you downloaded it show under "In app, not in bank" until you upload a newer statement. Entries that are already uploaded are skipped automatically.</p>' : '');
   cash.innerHTML = '<p class="section-label">Cash book (from the app)</p><div class="hint" style="line-height:1.7;margin-bottom:8px;">Cash in hand at the start ' + money(k.openingCash) + ' + cash received per app ' + money(k.appCashNet) + ' + cash taken out of the bank ' + money(k.bankCashOut) + ' − cash deposited ' + money(k.depositedTotal) + ' = <b>' + money(k.inHandPerApp) + '</b> cash in hand per the app' +
     (k.inHandPerApp < -0.5 ? ' <span style="color:var(--danger);">(below zero: more cash was deposited than the app shows)</span>' : '') + '</div>' +
-    '<div class="field-row"><div class="field"><label for="bankOpening">Cash in hand on the first day of the statements (₹)</label><input type="number" id="bankOpening" min="0" step="0.01" value="' + (Number(k.openingCash) || 0) + '"></div><div class="field"><label>&nbsp;</label><button class="btn btn-outline btn-block" type="button" id="bankOpeningSave" onclick="bankSaveOpening_()">Save</button></div></div>';
+    (bankMain_() ? '<div class="field-row"><div class="field"><label for="bankOpening">Cash in hand on the first day of the statements (₹)</label><input type="number" id="bankOpening" min="0" step="0.01" value="' + (Number(k.openingCash) || 0) + '"></div><div class="field"><label>&nbsp;</label><button class="btn btn-outline btn-block" type="button" id="bankOpeningSave" onclick="bankSaveOpening_()">Save</button></div></div>' : '');
 }
 async function bankSaveOpening_() {
   const v = Number(document.getElementById('bankOpening').value);
@@ -11965,7 +11990,7 @@ function bankPickFilter_(f) { bankFilter_ = f; loadBankList_(); }
 function bankRowHtml_(r) {
   const cr = Number(r.credit) > 0, amt = cr ? Number(r.credit) : Number(r.debit), st = r.status;
   const badge = st === 'Matched' ? '<span class="badge badge-paid">✓ Matched</span>' : st === 'Ok' ? '<span class="badge badge-paid">' + (r.src === 'rule' ? '✓ By rule' : '✓ Explained') + '</span>' : st === 'Info' ? '<span class="badge">Info</span>' : st === 'Review' ? '<span class="badge badge-partial">⚠ Review</span>' : '<span class="badge badge-unpaid">❗ Suspicious</span>';
-  const act = (st === 'Unmatched' || st === 'Review') ? '<div class="bank-act"><button class="btn btn-outline bank-mark" type="button" onclick="bankOpenMark_(' + Number(r.id) + ')">✓ Mark as explained</button></div>' : (st === 'Ok' && r.src !== 'rule' ? '<div class="bank-act"><button class="btn btn-outline bank-undo" type="button" onclick="bankUndo_(' + Number(r.id) + ')">Undo</button></div>' : '');
+  const act = !bankMain_() ? '' : (st === 'Unmatched' || st === 'Review') ? '<div class="bank-act"><button class="btn btn-outline bank-mark" type="button" onclick="bankOpenMark_(' + Number(r.id) + ')">✓ Mark as explained</button></div>' : (st === 'Ok' && r.src !== 'rule' ? '<div class="bank-act"><button class="btn btn-outline bank-undo" type="button" onclick="bankUndo_(' + Number(r.id) + ')">Undo</button></div>' : '');
   return '<div class="list-row bank-row" data-id="' + Number(r.id) + '" style="align-items:flex-start;cursor:default;"><div style="min-width:0;flex:1;"><div class="result-name">' + escapeHtml(r.who || String(r.desc).slice(0, 40)) + '</div>' +
     '<div class="result-meta">' + bankDay_(r.date) + ' · ' + escapeHtml(BANK_KIND_[r.kind] || r.kind) + (r.utr ? ' · UTR ' + escapeHtml(r.utr) : '') + '</div><div class="result-meta" style="word-break:break-word;">' + escapeHtml(r.desc) + '</div><div style="margin-top:4px;">' + badge + '</div>' +
     (r.note ? '<div class="result-meta" style="margin-top:3px;">' + escapeHtml(r.note) + '</div>' : '') + act + '</div><div class="amt" style="color:' + (cr ? 'var(--ok)' : 'var(--danger)') + ';white-space:nowrap;margin-left:8px;">' + (cr ? '+' : '−') + money(amt) + '</div></div>';
@@ -12028,8 +12053,8 @@ async function loadBankStatements_() {
   const box = document.getElementById('bankStatements'), { data, error } = await sb.rpc('get_bank_statements');
   if (error || !data || !data.length) { box.innerHTML = '<div class="empty-cart">' + (error ? escapeHtml(bankErr_(error)) : 'Nothing uploaded yet.') + '</div>'; return; }
   box.innerHTML = data.map(function (s) {
-    return '<div class="list-row" style="cursor:default;align-items:flex-start;"><div style="min-width:0;flex:1;"><div class="result-name" style="word-break:break-word;">' + escapeHtml(s.filename || 'Statement') + '</div><div class="result-meta">' + bankDay_(s.from) + ' – ' + bankDay_(s.to) + ' · ' + s.rows + ' rows' + (s.duplicates ? ' (' + s.duplicates + ' repeated, skipped)' : '') + '</div><div class="result-meta">' + escapeHtml(s.balanceCheck || '') + '</div></div>' +
-      '<button class="btn btn-outline bank-del" type="button" style="flex:none;width:auto;padding:6px 12px;font-size:12.5px;color:var(--danger);border-color:var(--danger);" onclick="bankDeleteStmt_(' + Number(s.id) + ')">Delete</button></div>';
+    return '<div class="list-row" style="cursor:default;align-items:flex-start;"><div style="min-width:0;flex:1;"><div class="result-name" style="word-break:break-word;">' + escapeHtml(s.filename || 'Statement') + '</div><div class="result-meta">' + bankDay_(s.from) + ' – ' + bankDay_(s.to) + ' · ' + s.rows + ' rows' + (s.duplicates ? ' (' + s.duplicates + ' repeated, skipped)' : '') + '</div><div class="result-meta">' + escapeHtml(s.balanceCheck || '') + '</div><div class="result-meta">Uploaded by ' + escapeHtml(s.uploadedBy || '-') + (s.uploadedAt ? ' · ' + bankDay_(s.uploadedAt) : '') + '</div></div>' +
+      (bankMain_() ? '<button class="btn btn-outline bank-del" type="button" style="flex:none;width:auto;padding:6px 12px;font-size:12.5px;color:var(--danger);border-color:var(--danger);" onclick="bankDeleteStmt_(' + Number(s.id) + ')">Delete</button>' : '') + '</div>';
   }).join('');
 }
 async function loadBankRules_() {
