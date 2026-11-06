@@ -11869,39 +11869,65 @@ async function bankPick_(inp) {
       }
       item.res = res;
       if (!res.rows.length) item.error = sheet ? 'No transactions found in this file. It needs a heading row with Date, Balance and Withdrawal / Deposit (or Debit / Credit) columns.' : 'No transactions found. If this PDF is a scanned picture, download the statement from net banking - best as Excel / CSV.';
+      else {                                   // what of this file is already in the software, and what is new
+        try { const pv = await sb.rpc('bank_preview_import', { p_rows: bankPayload_(res.rows), p_file_hash: item.hash }); if (pv.error) item.diffError = bankErr_(pv.error); else item.diff = pv.data; }
+        catch (e2) { item.diffError = e2 && e2.message ? e2.message : String(e2); }
+      }
     } catch (e) { item.error = e && e.message ? e.message : String(e); }
     bankFiles_.push(item);
   }
   renderBankPreview_();
 }
+function bankPayload_(rows) { return rows.map(function (r) { return { date: r.date, valueDate: r.valueDate, desc: r.desc, ref: r.ref, debit: r.debit, credit: r.credit, balance: r.balance }; }); }
+// "up to here it was already in the software, after that these are new" - for a statement downloaded again (overlapping) or uploaded twice by mistake
+function bankDiffHtml_(f) {
+  const r = f.res, d = f.diff, st = 'class="result-meta" style="font-weight:700;';
+  if (f.diffError) return '<div class="result-meta" style="color:var(--ink-soft);">Could not compare with what is already in the software (' + escapeHtml(f.diffError) + '). The import still skips repeated entries.</div>';
+  if (!d) return '';
+  if (d.sameFile) return '<div ' + st + 'color:var(--danger);">This exact file was already imported (statement no. ' + Number(d.sameFile) + '). Nothing to import.</div>';
+  if (!d.new && d.known) return '<div ' + st + '">✓ Nothing new - all ' + d.known + ' entries are already in the software. Nothing to import.</div>';
+  if (!d.known) return '<div ' + st + '">✓ All ' + d.new + ' entries are new.' + (d.repeatedInFile ? ' (' + d.repeatedInFile + ' appear twice inside the file; only one of each is taken.)' : '') + '</div>';
+  const last = r.rows[d.lastKnownIdx] || r.rows[0], ni = d.newIdx || [], nr = ni.map(function (i) { return r.rows[i]; }).filter(Boolean), gaps = ni.filter(function (i) { return i < d.lastKnownIdx; }).length;
+  return '<div ' + st + '">↺ ' + d.known + ' entries are already in the software - up to ' + bankDay_(last.date) + ' · ' + escapeHtml(String(last.desc).slice(0, 50)) + (last.balance != null ? ' · balance ' + money(last.balance) : '') + '. They are skipped.</div>' +
+    '<div ' + st + 'color:var(--green-800);">➕ ' + d.new + ' new ' + (d.new === 1 ? 'entry' : 'entries') + ' (' + bankDay_(nr[0].date) + (bankDay_(nr[nr.length - 1].date) !== bankDay_(nr[0].date) ? ' → ' + bankDay_(nr[nr.length - 1].date) : '') + ') will be added:</div>' +
+    nr.slice(0, 10).map(function (x) { return '<div class="result-meta">' + bankDay_(x.date) + ' · ' + escapeHtml(String(x.desc).slice(0, 50)) + ' · ' + (x.credit ? '+' + money(x.credit) : '−' + money(x.debit)) + '</div>'; }).join('') + (nr.length > 10 ? '<div class="result-meta">… and ' + (nr.length - 10) + ' more</div>' : '') +
+    (d.repeatedInFile ? '<div class="result-meta">' + d.repeatedInFile + ' appear twice inside the file; only one of each is taken.</div>' : '') +
+    (gaps ? '<div class="result-meta" style="color:var(--danger);">⚠ ' + gaps + ' of the new entries are OLDER than the last known one (a gap in what was uploaded before) - they are added too.</div>' : '');
+}
 function renderBankPreview_() {
   const box = document.getElementById('bankPreview'); if (!bankFiles_.length) { box.innerHTML = ''; return; }
   const okN = bankFiles_.filter(function (f) { return !f.error; }).length;
+  const oks = bankFiles_.filter(function (f) { return !f.error; }), newTotal = oks.reduce(function (s, f) { return s + (f.diff ? (f.diff.sameFile ? 0 : f.diff.new) : f.res.rows.length); }, 0), allNew = oks.every(function (f) { return !f.diff || (f.diff.known === 0 && !f.diff.sameFile); });
   box.innerHTML = bankFiles_.map(function (f) {
     if (f.error) return '<div class="bank-file bad"><b>' + escapeHtml(f.name) + '</b><div class="result-meta">⚠ ' + escapeHtml(f.error) + '</div></div>';
     const r = f.res, cr = r.rows.reduce(function (s, x) { return s + x.credit; }, 0), dr = r.rows.reduce(function (s, x) { return s + x.debit; }, 0), good = r.check.checked > 0 && r.check.bad === 0;
     return '<div class="bank-file ' + (good ? 'ok' : 'warn') + '"><b>' + escapeHtml(f.name) + '</b><div class="result-meta">' + r.rows.length + ' transactions · ' + bankDay_(r.rows[0].date) + ' → ' + bankDay_(r.rows[r.rows.length - 1].date) + ' · money in ' + money(cr) + ' · money out ' + money(dr) + '</div>' +
       '<div class="result-meta">Balance ' + (r.opening != null ? money(r.opening) : '?') + ' → ' + (r.closing != null ? money(r.closing) : '?') + ' · ' + (good ? '✓ ' : '⚠ ') + escapeHtml(bankCheckText_(r.check)) + '</div>' +
-      (good ? '' : '<div class="result-meta" style="color:var(--danger);">The numbers may not have been read correctly - look at the rows below before you import.</div>') +
+      bankDiffHtml_(f) + (good ? '' : '<div class="result-meta" style="color:var(--danger);">The numbers may not have been read correctly - look at the rows below before you import.</div>') +
       '<details style="margin-top:6px;"><summary class="result-meta">First rows</summary>' + r.rows.slice(0, 6).map(function (x) { return '<div class="result-meta">' + bankDay_(x.date) + ' · ' + escapeHtml(String(x.desc).slice(0, 60)) + ' · ' + (x.credit ? '+' + money(x.credit) : '−' + money(x.debit)) + '</div>'; }).join('') + '</details></div>';
-  }).join('') + '<button class="btn btn-gold btn-block" id="bankImportBtn" type="button" onclick="bankImportAll_()"' + (okN ? '' : ' disabled') + '>✅ Import ' + okN + ' file' + (okN === 1 ? '' : 's') + '</button><button class="btn btn-outline btn-block" id="bankCancelBtn" type="button" style="margin-top:8px;" onclick="bankCancelPreview_()">Cancel</button>';
+  }).join('') + '<button class="btn btn-gold btn-block" id="bankImportBtn" type="button" onclick="bankImportAll_()"' + (okN && newTotal ? '' : ' disabled') + '>' + (allNew ? '✅ Import ' + okN + ' file' + (okN === 1 ? '' : 's') : (newTotal ? '✅ Import ' + newTotal + ' new ' + (newTotal === 1 ? 'entry' : 'entries') : 'Nothing new to import')) + '</button><button class="btn btn-outline btn-block" id="bankCancelBtn" type="button" style="margin-top:8px;" onclick="bankCancelPreview_()">Cancel</button>';
 }
 function bankCancelPreview_() { bankFiles_ = []; document.getElementById('bankPreview').innerHTML = ''; }
 let BANK_CHUNK_ = 1000;        // a long statement goes to the database in pieces of this many rows (each piece is its own statement "part 2 of 5")
 async function bankImportAll_() {
   return runLocked_('bank-import', async function () {
-    const ok = bankFiles_.filter(function (f) { return !f.error; }); let ins = 0, dup = 0; const errs = [];
+    const ok = bankFiles_.filter(function (f) { return !f.error; }); let ins = 0, dup = 0, skipped = 0; const errs = [];
     for (const f of ok) {
-      const rows = f.res.rows.map(function (r) { return { date: r.date, valueDate: r.valueDate, desc: r.desc, ref: r.ref, debit: r.debit, credit: r.credit, balance: r.balance }; }), parts = Math.max(1, Math.ceil(rows.length / BANK_CHUNK_));
+      const all = f.res.rows, d = f.diff && !f.diffError ? f.diff : null;
+      if (d && (d.sameFile || !d.new)) { skipped += all.length; continue; }            // nothing new in this file
+      const keep = d ? (d.newIdx || []) : null, sel = keep ? keep.map(function (i) { return all[i]; }).filter(Boolean) : all;           // only the entries the software does not have yet
+      const opening = keep && keep.length && keep[0] > 0 ? all[keep[0] - 1].balance : f.res.opening;                                  // the balance just before the first new entry
+      skipped += all.length - sel.length;
+      const rows = bankPayload_(sel), parts = Math.max(1, Math.ceil(rows.length / BANK_CHUNK_));
       for (let k = 0; k < parts; k++) {
         const chunk = rows.slice(k * BANK_CHUNK_, (k + 1) * BANK_CHUNK_), last = k === parts - 1;
-        const { data, error } = await sb.rpc('bank_import_statement', { p_filename: parts > 1 ? f.name + ' (part ' + (k + 1) + ' of ' + parts + ')' : f.name, p_rows: chunk, p_opening: k === 0 ? f.res.opening : null, p_closing: last ? f.res.closing : null, p_file_hash: k === 0 ? f.hash : f.hash + ':' + k, p_balance_check: bankCheckText_(f.res.check), p_note: null });
+        const { data, error } = await sb.rpc('bank_import_statement', { p_filename: parts > 1 ? f.name + ' (part ' + (k + 1) + ' of ' + parts + ')' : f.name, p_rows: chunk, p_opening: k === 0 ? opening : null, p_closing: last ? f.res.closing : null, p_file_hash: k === 0 ? f.hash : f.hash + ':' + k, p_balance_check: bankCheckText_(f.res.check), p_note: null });
         if (error) { if (/already imported/i.test(error.message || '')) { dup += chunk.length; continue; } errs.push(f.name + ': ' + bankErr_(error)); break; }
         ins += Number(data.inserted) || 0; dup += Number(data.duplicates) || 0;
       }
     }
     bankCancelPreview_();
-    showToast((errs.length ? errs.join(' | ') + ' · ' : '') + 'Imported ' + ins + ' row' + (ins === 1 ? '' : 's') + (dup ? ' (' + dup + ' were already there)' : ''), errs.length > 0 && !ins);
+    showToast((errs.length ? errs.join(' | ') + ' · ' : '') + 'Imported ' + ins + ' row' + (ins === 1 ? '' : 's') + (dup + skipped ? ' (' + (dup + skipped) + ' were already there)' : ''), errs.length > 0 && !ins);
     await bankInitTab_();
   });
 }
@@ -11917,7 +11943,8 @@ async function loadBankOverview_() {
   box.innerHTML = '<p class="hint" style="margin:0 0 8px;">Statements cover <b>' + bankDay_(data.coverage.from) + ' – ' + bankDay_(data.coverage.to) + '</b> (' + data.coverage.statements + ' file' + (data.coverage.statements === 1 ? '' : 's') + ')</p>' +
     '<div class="cm-row" style="grid-template-columns:repeat(2,1fr);">' + tile('Money came, not in app', c.suspicious, c.suspiciousAmount) + tile('Money went, not in app', d.suspicious, d.suspiciousAmount) + tile('Cash deposits to check', k.suspicious, k.suspiciousAmount) + tile('In app, not in bank', a.count, a.amount) + '</div>' +
     '<p class="cm-note">Matched: ' + c.matched + ' credits (' + money(c.matchedAmount) + ') and ' + d.matched + ' debits (' + money(d.matchedAmount) + ')' + (c.ok + d.ok ? ' · explained (by you or by a rule): ' + (c.ok + d.ok) : '') + '</p>' +
-    (data.settlements && data.settlements.count > 0 ? '<p class="cm-note" style="color:var(--ink-soft);font-weight:600;">Payment-app / POS settlements: ' + data.settlements.count + ' credits (' + money(data.settlements.amount) + ') - each is a lump sum of many customers\' payments, so it is not matched one by one. Some of the "In app, not in bank" entries may be inside these lumps.</p>' : '');
+    (data.settlements && data.settlements.count > 0 ? '<p class="cm-note" style="color:var(--ink-soft);font-weight:600;">Payment-app / POS settlements: ' + data.settlements.count + ' credits (' + money(data.settlements.amount) + ') - each is a lump sum of many customers\' payments, so it is not matched one by one. Some of the "In app, not in bank" entries may be inside these lumps.</p>' : '') +
+    (String(data.coverage.to).slice(0, 10) === istDay_(new Date().toISOString()) ? '<p class="cm-note" style="color:var(--ink-soft);font-weight:600;">The last day in the statements (' + bankDay_(data.coverage.to) + ') is TODAY: entries made after you downloaded it show under "In app, not in bank" until you upload a newer statement. Entries that are already uploaded are skipped automatically.</p>' : '');
   cash.innerHTML = '<p class="section-label">Cash book (from the app)</p><div class="hint" style="line-height:1.7;margin-bottom:8px;">Cash in hand at the start ' + money(k.openingCash) + ' + cash received per app ' + money(k.appCashNet) + ' + cash taken out of the bank ' + money(k.bankCashOut) + ' − cash deposited ' + money(k.depositedTotal) + ' = <b>' + money(k.inHandPerApp) + '</b> cash in hand per the app' +
     (k.inHandPerApp < -0.5 ? ' <span style="color:var(--danger);">(below zero: more cash was deposited than the app shows)</span>' : '') + '</div>' +
     '<div class="field-row"><div class="field"><label for="bankOpening">Cash in hand on the first day of the statements (₹)</label><input type="number" id="bankOpening" min="0" step="0.01" value="' + (Number(k.openingCash) || 0) + '"></div><div class="field"><label>&nbsp;</label><button class="btn btn-outline btn-block" type="button" id="bankOpeningSave" onclick="bankSaveOpening_()">Save</button></div></div>';
