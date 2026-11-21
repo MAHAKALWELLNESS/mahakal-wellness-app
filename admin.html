@@ -37,6 +37,7 @@
   .field input:focus, .field select:focus{outline:none; border-color:var(--green-700);}
   .field-row{display:flex; gap:10px;}
   .field-row .field{flex:1;}
+  .field-row:has(input[type=date]), .field-row:has(input[type=time]){flex-wrap:wrap;} /* small phone: if two date/time boxes do not fit side by side, the second drops below instead of pushing the page sideways */
   .login-error{color:var(--danger); font-size:12.5px; min-height:16px; margin:8px 0 4px;}
   .login-link{background:none; border:none; color:var(--green-700); font-size:12.5px; font-weight:600; cursor:pointer; margin-top:14px; text-decoration:underline;}
   .btn{border:none; border-radius:12px; padding:13px 18px; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; transition:transform .1s ease;}
@@ -243,6 +244,13 @@
   .ps-chip{display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; background:var(--green-100); color:var(--green-800); margin:3px 4px 0 0;}
   .ps-chip.warn{background:var(--gold-100); color:var(--gold-600);} .ps-chip.bad{background:#fde8e6; color:var(--danger);} .ps-chip.dim{background:#eee; color:var(--ink-soft);}
   .ps-actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;}
+  .pdiff-card{background:var(--gold-100); border:1.5px solid var(--gold-500); border-radius:12px; padding:10px 12px; margin-top:8px;}
+  .pdiff-row{padding:8px 0; border-top:1px solid rgba(0,0,0,.1);} .pdiff-row:first-of-type{border-top:none;} .pdiff-row.done{opacity:.8;}
+  .pdiff-name{font-size:13.5px; font-weight:700; color:var(--green-900); overflow-wrap:anywhere;}
+  .pdiff-nums{display:flex; flex-wrap:wrap; gap:2px 14px; font-size:13px; margin-top:3px; color:var(--ink);}
+  .pdiff-up{color:var(--danger); font-weight:800;} .pdiff-down{color:var(--green-700); font-weight:800;}
+  .pdiff-chip{font-size:11.5px; font-weight:700; color:var(--gold-600); margin-top:3px; overflow-wrap:anywhere;}
+  .pdiff-btns{display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;} .pdiff-btns .quickbtn{margin-left:0;}
   .ps-opt{display:flex; gap:8px; align-items:flex-start; font-size:13px; font-weight:700; color:var(--green-900); margin:8px 0;}
   .ps-opt input[type=checkbox]{width:20px; height:20px; flex:none; margin-top:1px;}
   .ps-bill{display:flex; gap:10px; padding:10px; border:1.5px solid var(--gold-500); background:var(--gold-100); border-radius:10px; margin-bottom:8px; align-items:flex-start;}
@@ -894,7 +902,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     <section id="tab-productsearch" class="tab-panel">
       <div class="subtabs">
         <button class="subtab active" data-subtab="dups" onclick="switchPsTab_('dups')">Duplicates</button>
-        <button class="subtab" data-subtab="find" onclick="switchPsTab_('find')">Find &amp; hide</button>
+        <button class="subtab" data-subtab="find" onclick="switchPsTab_('find')">Find &amp; edit</button>
         <button class="subtab" data-subtab="hidden" onclick="switchPsTab_('hidden')">Hidden<span class="n" id="psHiddenCount"></span></button>
       </div>
       <div id="pssub-dups" class="subtab-panel active">
@@ -917,7 +925,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         </div>
       </div>
       <div id="pssub-find" class="subtab-panel">
-        <div class="card"><p class="section-label">Find a product</p><input type="text" id="psFindInput" class="search-input" placeholder="Product name or code…" autocomplete="off" oninput="psFind_()"></div>
+        <div class="card"><p class="section-label">Find a product - ✏️ edit it, or hide it from search</p><input type="text" id="psFindInput" class="search-input" placeholder="Product name or code…" autocomplete="off" oninput="psFindTyped_()"><div class="ps-actions"><button class="quickbtn" type="button" id="psFindZeroBtn" style="margin-left:0;" onclick="psFindZero_()">⚠ Products with DP 0</button></div></div>
         <div id="psFindList"></div>
       </div>
       <div id="pssub-hidden" class="subtab-panel">
@@ -2144,6 +2152,31 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     </div>
   </div>
 
+  <!-- ============ PRODUCT SEARCH (main admin): edit one product ============ -->
+  <div class="modal-overlay" id="psEditModal">
+    <div class="modal-sheet">
+      <h2 id="psEditTitle" style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Edit product</h2>
+      <p class="hint" id="psEditSub" style="margin-bottom:10px;">The product code cannot be changed. Bills and purchases that are already saved keep the name and rates they were saved with - only the product list changes.</p>
+      <div class="field"><label for="psEditName">Product name</label><input type="text" id="psEditName" autocomplete="off" style="text-transform:uppercase;" oninput="psEditChanged_()"></div>
+      <div class="field-row">
+        <div class="field"><label for="psEditDp">DP / Purchase Rate ₹</label><input type="number" id="psEditDp" inputmode="decimal" min="0" step="0.01" oninput="psEditChanged_()"></div>
+        <div class="field"><label for="psEditSp">SP (Sales Points)</label><input type="number" id="psEditSp" inputmode="decimal" min="0" step="0.01" oninput="psEditChanged_()"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="psEditMrp">MRP ₹</label><input type="number" id="psEditMrp" inputmode="decimal" min="0" step="0.01" placeholder="Optional" oninput="psEditChanged_()"></div>
+        <div class="field"><label for="psEditCategory">Category</label><input type="text" id="psEditCategory" autocomplete="off" placeholder="Optional" oninput="psEditChanged_()"></div>
+      </div>
+      <div id="psEditWarn"></div>
+      <div id="psEditUse"></div>
+      <p class="login-error" id="psEditError" style="min-height:0;margin:4px 0 0;"></p>
+      <div id="psEditLog"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closePsEdit_()">Close</button>
+        <button class="btn btn-primary" type="button" id="psEditGo" onclick="psEditSave_()" disabled>Save changes</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="psBulkModal">
     <div class="modal-sheet">
       <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;">Move stock to the current code</h2>
@@ -2495,7 +2528,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         <div class="field"><label for="newProdName">Product Name</label><input type="text" id="newProdName" placeholder="Product name" oninput="this.value = this.value.toUpperCase();"></div>
       </div>
       <div class="field-row">
-        <div class="field"><label for="newProdDp">DP / Purchase Rate ₹</label><input type="number" id="newProdDp" min="0" step="0.01" placeholder="0"></div>
+        <div class="field"><label for="newProdDp">DP / Purchase Rate ₹ (required)</label><input type="number" id="newProdDp" inputmode="decimal" min="0.01" step="0.01" placeholder="Rate on the company bill"></div>
         <div class="field"><label for="newProdMrp">MRP ₹</label><input type="number" id="newProdMrp" min="0" step="0.01" placeholder="Optional"></div>
       </div>
       <div class="field-row" style="margin-bottom:0;">
@@ -4319,6 +4352,8 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   function fmtDateInput_(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 
   // ---------------- PURCHASE TAB ----------------
+  const BILL_DIFF_PER_PC_ = 0.5;       // the company bill is a price change only when it is at least 50 paise PER PIECE above the software DP ...
+  const BILL_DIFF_MIN_TOTAL_ = 1;      // ... and at least ₹1 above in the line total (anything smaller is round-off)
   let PURCHASE_CART = [];
   function resetPurchaseForm() {
     PURCHASE_CART = [];
@@ -4328,6 +4363,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     document.getElementById('stockSearchInput').value = '';
     document.getElementById('billScanStatus').style.display = 'none';
     document.getElementById('billScanStatus').innerHTML = '';
+    window._billDiffs = []; window._billNoAmount = 0; window._billOldFn = false;
     renderPurchaseCart();
     showToast('Form reset.');
   }
@@ -4387,6 +4423,112 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     });
   }
 
+  // ---- the company bill against the software, product by product: the LINE TOTAL on the bill against quantity x the software DP.
+  // The line total is the bill's Gross Amount column (GST included, after CGST / SGST) - the software DP is the price WITH GST too; the pre-tax Amount column would never match.
+  // The company bills in boxes of 6 / 12 / 18 / 24 pieces, so the Price / Rate column of its bill is no per-piece price - only the line total can be trusted.
+  // Only ONE direction is shown: the bill is MORE than the software says (the software DP is too low - the company may have raised its price).
+  // A software figure that is a little HIGHER than the bill is just the software's rounded-off DP and is not shown.
+  function billLineSeen_(map, p, amount, qty) {
+    amount = Number(amount);
+    if (!(isFinite(amount) && amount > 0)) { window._billNoAmount = (window._billNoAmount || 0) + 1; return; }       // total not readable, or a free line: nothing to compare
+    const code = String(p.code), unit = Math.round(amount / qty * 100) / 100; let d = map[code];
+    if (!d) { d = map[code] = { code: code, name: p.name, dp: Number(p.dp) || 0, qty: 0, total: 0, lines: 0, units: [], mixed: false, state: '' }; window._billDiffs.push(d); }
+    if (!d.units.some(function (x) { return Math.abs(x - unit) < BILL_DIFF_PER_PC_; })) { if (d.units.length) d.mixed = true; d.units.push(unit); }   // the same product on two bill lines at two different prices
+    d.lines++; d.qty += qty; d.total = Math.round((d.total + amount) * 100) / 100;
+  }
+  function billMore_(total, qty, dp) {          // how much MORE the bill is than qty x DP, and whether that is a real difference (not round-off)
+    const diff = Math.round((total - qty * dp) * 100) / 100;
+    return { diff: diff, real: diff >= Math.max(BILL_DIFF_MIN_TOTAL_, qty * BILL_DIFF_PER_PC_) };
+  }
+  function billDiffsFinish_() {
+    window._billDiffs = (window._billDiffs || []).filter(function (d) { return billMore_(d.total, d.qty, d.dp).real; });
+    window._billDiffs.forEach(function (d) {
+      d.unit = Math.round(d.total / d.qty * 100) / 100;          // what one piece costs on the bill
+      d.suggest = Math.round(d.total / d.qty);                    // the DP the owner would enter: that price in whole rupees (every DP of the price list is a whole rupee)
+      const c = PURCHASE_CART.find(function (x) { return String(x.code) === d.code; }); if (c) { c.billTotal = d.total; c.billQty = d.qty; c.billMixed = d.mixed; }
+    });
+  }
+  function billDiffRowHtml_(d) {
+    const sw = Math.round(d.qty * d.dp * 100) / 100, diff = Math.round((d.total - sw) * 100) / 100, pct = sw > 0 ? Math.round(diff / sw * 1000) / 10 : null;
+    const open = !d.state || d.state === 'error', main = !!isSuperAdminUser;
+    const pr = PRODUCTS.find(function (x) { return String(x.code) === d.code; }) || {}, mrp = Number(pr.mrp) || 0;      // the MRP and SP the software has for this product NOW, shown next to the bill so they can be cross-checked too
+    const top = d.mixed ? Math.max.apply(null, d.units) : d.suggest;                                                    // the highest price per piece the bill asks for
+    let h = '<div class="pdiff-row' + (d.state === 'done' || d.state === 'kept' ? ' done' : '') + '" data-code="' + escapeHtml(d.code) + '"><div class="pdiff-name">#' + escapeHtml(d.code) + ' · ' + escapeHtml(d.name) + ' <span class="hint">· ' + trimNum(d.qty) + ' pcs</span></div>';
+    if (d.state !== 'done') h += '<div class="pdiff-nums"><span>Bill total <b>' + money(d.total) + '</b></span><span>Software total <b>' + money(sw) + '</b> <span class="hint">(' + trimNum(d.qty) + ' × ' + money(d.dp) + ')</span></span>' +
+      '<span class="pdiff-up">▲ ' + money(diff) + ' MORE on the bill' + (pct == null ? '' : ' (+' + pct + '%)') + '</span></div>' +
+      '<div class="hint" style="margin:2px 0 0;">' + (d.mixed ? 'Price per piece on the bill: ' + d.units.slice().sort(function (a, b) { return a - b; }).map(money).join(' / ') : 'That is ' + money(d.unit) + ' per piece on the bill - the software DP is ' + money(d.dp) + '.') + '</div>' +
+      '<div class="hint" style="margin:2px 0 0;">In the software: <b>MRP ' + (mrp > 0 ? money(mrp) : 'not set') + '</b> · SP ' + trimNum(Number(pr.sp) || 0) + '</div>';
+    if (d.mixed && d.state !== 'done') h += '<div class="pdiff-chip">⚠ This product is on ' + d.lines + ' lines of the bill at different prices - please check the bill.</div>';
+    if (d.state !== 'done' && d.dp <= 0) h += '<div class="pdiff-chip">⚠ The software DP is ₹0 - this product was probably saved without its DP.</div>';
+    if (d.state !== 'done' && mrp > 0 && top > mrp) h += '<div class="pdiff-chip">⚠ The bill price (' + money(top) + ' per piece) is more than the MRP ' + money(mrp) + ' - the MRP may need a change too.' + (main ? ' Tap ✏️ Edit product to check the DP and the MRP.' : '') + '</div>';
+    if (d.state === 'done') h += '<div class="pdiff-chip" style="color:var(--green-700);">✓ DP is now ' + money(d.newDp) + ' - saved in the database (the purchase cart uses it too).' + (mrp > 0 && d.newDp > mrp ? ' <span style="color:var(--gold-600);">⚠ That is more than the MRP ' + money(mrp) + ' - please check the MRP too (Product Search → Find &amp; edit).</span>' : '') + '</div>';
+    else if (d.state === 'kept') h += '<div class="pdiff-chip" style="color:var(--ink-soft);">Kept the software DP ' + money(d.dp) + ' for this purchase.</div>';
+    else if (d.state === 'busy') h += '<div class="pdiff-chip" style="color:var(--ink-soft);">Saving…</div>';
+    if (d.err) h += '<div class="pdiff-chip" style="color:var(--danger);">' + escapeHtml(d.err) + '</div>';
+    if (open && main) h += '<div class="pdiff-btns">' + (d.mixed ? '' : '<button class="quickbtn" type="button" data-bd-apply="' + escapeHtml(d.code) + '">Update DP to ' + money(d.suggest) + '</button>') +
+      '<button class="quickbtn" type="button" data-bd-edit="' + escapeHtml(d.code) + '">✏️ Edit product</button><button class="quickbtn" type="button" data-bd-keep="' + escapeHtml(d.code) + '">Keep ' + money(d.dp) + '</button></div>';
+    return h + '</div>';
+  }
+  function billDiffHtml_() {
+    const L = window._billDiffs || [], noAmt = window._billNoAmount || 0, main = !!isSuperAdminUser;
+    let h = '';
+    if (window._billOldFn) h += '<div class="hint" style="margin-top:6px;">ℹ️ Price differences could not be checked: the bill-reading function in Supabase (<b>extract-purchase-bill</b>) is still the old version, which does not read the line totals. The new version has to be deployed once.</div>';
+    if (L.length) {
+      const todo = L.filter(function (d) { return (!d.state || d.state === 'error') && !d.mixed; });
+      h += '<div class="pdiff-card" id="billDiffCard"><strong style="color:var(--gold-600);">⚠️ ' + L.length + ' product' + (L.length === 1 ? '' : 's') + ': the company bill is MORE than the software says</strong>' +
+        '<p class="hint" style="margin:2px 0 6px;">The bill total of these lines is higher than the quantity × the software DP - has the company changed its price? If the bill is right, update the DP: it is saved in the database for every later purchase and bill (bills already saved are not changed). A software total that is a little higher than the bill (round-off) is not listed.' + (main ? '' : ' Only the main admin can change a DP - show this list to the main admin.') + '</p>' +
+        L.map(billDiffRowHtml_).join('') +
+        (main && todo.length > 1 ? '<div class="pdiff-btns"><button class="btn btn-primary btn-block" type="button" id="billDiffAll" data-bd-all="1">Update all ' + todo.length + ' DPs to the bill price</button></div>' : '') + '</div>';
+    }
+    if (noAmt && !window._billOldFn) h += '<div class="hint" style="margin-top:6px;">ℹ️ ' + noAmt + ' matched line' + (noAmt === 1 ? '' : 's') + ': the line total could not be read from the bill (or it is 0), so ' + (noAmt === 1 ? 'it was' : 'they were') + ' not compared.</div>';
+    return h;
+  }
+  function billDiffRender_() {
+    const box = document.getElementById('billDiffBox'); if (!box) return;
+    box.innerHTML = billDiffHtml_();
+    box.querySelectorAll('[data-bd-apply]').forEach(function (b) { b.addEventListener('click', function () { billDiffApply_(b.dataset.bdApply); }); });
+    box.querySelectorAll('[data-bd-keep]').forEach(function (b) { b.addEventListener('click', function () { billDiffKeep_(b.dataset.bdKeep); }); });
+    box.querySelectorAll('[data-bd-edit]').forEach(function (b) { b.addEventListener('click', function () { billDiffEdit_(b.dataset.bdEdit); }); });
+    box.querySelectorAll('[data-bd-all]').forEach(function (b) { b.addEventListener('click', function () { billDiffApplyAll_(); }); });
+  }
+  function billDiffFind_(code) { return (window._billDiffs || []).find(function (x) { return x.code === String(code); }); }
+  async function billDiffApply_(code, quiet) {
+    const d = billDiffFind_(code); if (!d || d.state === 'busy' || d.state === 'done' || d.mixed) return false;
+    d.state = 'busy'; d.err = ''; billDiffRender_();
+    const inv = (document.getElementById('purchaseRemark').value || '').trim();
+    const { data, error } = await sb.rpc('set_product_dp', { p_code: d.code, p_dp: d.suggest, p_bill_rate: d.unit, p_note: (inv ? 'Purchase bill ' + inv : 'Purchase bill scan') + ' - ' + money(d.total) + ' for ' + trimNum(d.qty) + ' pcs' });
+    if (error) { d.state = 'error'; d.err = psServerMissing_(error) ? 'Run product_edit.sql in Supabase first.' : error.message; billDiffRender_(); return false; }
+    const p = PRODUCTS.find(function (x) { return String(x.code) === d.code; }); if (p) p.dp = Number(data.dp);
+    PURCHASE_CART.forEach(function (c) { if (String(c.code) === d.code) { c.dp = Number(data.dp); c.billTotal = null; } });
+    d.newDp = Number(data.dp); d.state = 'done'; renderPurchaseCart(); billDiffRender_();
+    if (!quiet) showToast('DP of #' + d.code + ' is now ' + money(d.newDp) + '.');
+    return true;
+  }
+  function billDiffKeep_(code) {
+    const d = billDiffFind_(code); if (!d || d.state === 'busy' || d.state === 'done') return;
+    d.state = 'kept'; d.err = '';
+    PURCHASE_CART.forEach(function (c) { if (String(c.code) === d.code) c.billTotal = null; });
+    renderPurchaseCart(); billDiffRender_();
+  }
+  function billDiffEdit_(code) { psOpenEdit_(code); }          // the full Edit product window (name, SP, MRP too); it is the main admin's, like everything that changes a product
+  async function billDiffApplyAll_() {
+    const todo = (window._billDiffs || []).filter(function (d) { return (!d.state || d.state === 'error') && !d.mixed; });
+    if (!todo.length) return;
+    if (!confirm('Update the DP of ' + todo.length + ' product' + (todo.length === 1 ? '' : 's') + ' to the price on the company bill?\n\n' + todo.slice(0, 12).map(function (d) { return '#' + d.code + ' ' + d.name + ': ' + money(d.dp) + ' → ' + money(d.suggest); }).join('\n') + (todo.length > 12 ? '\n…' : '') + '\n\nIt is saved in the database. Bills that are already saved are not changed.')) return;
+    let ok = 0;
+    for (let i = 0; i < todo.length; i++) { if (await billDiffApply_(todo[i].code, true)) ok++; }
+    showToast(ok + ' of ' + todo.length + ' DPs updated.' + (ok < todo.length ? ' See the list for the ones that failed.' : ''), ok < todo.length);
+  }
+  function billDiffSync_() {                     // after a DP was changed in the Edit product window: the list follows (a row that is no longer a real difference is settled)
+    (window._billDiffs || []).forEach(function (d) {
+      const p = PRODUCTS.find(function (x) { return String(x.code) === d.code; }); if (!p) return;
+      if (d.state && d.state !== 'error') return;
+      d.dp = Number(p.dp) || 0;
+      if (!billMore_(d.total, d.qty, d.dp).real) { d.state = 'done'; d.newDp = d.dp; d.err = ''; }
+    });
+    billDiffRender_();
+  }
+
   async function handleBillPhotoUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -4418,8 +4560,11 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       if (data && data.error) { statusBox.innerHTML = '<div class="empty-cart">' + escapeHtml(data.error) + '</div>'; btn.disabled = false; e.target.value = ''; return; }
 
       let matchedCount = 0;
-      const unmatched = [];
+      const unmatched = [], diffByCode = {};
       window._unmatchedBillItems = [];
+      const carried = (window._billDiffs || []).filter(function (d) { return !d.state || d.state === 'error'; });     // a bill of many lines is read in two photos: the open rows of the first photo stay in the list
+      window._billDiffs = [];          // matched products whose bill TOTAL is more than quantity x software DP (the count of lines whose total could not be read is kept until the form is reset)
+      window._billOldFn = !(Number(data._fn_version) >= 3);       // the old bill reader had no line totals: then nothing can be compared
       (data.items || []).forEach(function (item) {
         const qty = Math.round(Number(item.qty)) || 0;
         if (qty <= 0) return;
@@ -4431,10 +4576,12 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         if (p) {
           const existing = PURCHASE_CART.find(function (c) { return c.code === p.code; });
           if (existing) existing.qty += qty; else PURCHASE_CART.push({ code: p.code, name: p.name, dp: Number(p.dp), sp: Number(p.sp), qty: qty });
+          if (!window._billOldFn) billLineSeen_(diffByCode, p, item.amount, qty);
           matchedCount++;
         } else {
           const idx = window._unmatchedBillItems.length;
-          window._unmatchedBillItems.push({ code: item.bracket_code || '', name: item.extracted_name || '', dp: Number(item.rate) || '', qty: qty });
+          const amt = Number(item.amount) > 0 ? Number(item.amount) : 0;     // a new product: the DP box is filled with the bill's price per piece (the bill's Rate column is not used: it can be a box price)
+          window._unmatchedBillItems.push({ code: item.bracket_code || '', name: item.extracted_name || '', dp: amt ? Math.round(amt / qty) : '', qty: qty, billTotal: amt || null });
           unmatched.push(
             '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;">' +
             '<span>' + escapeHtml(item.extracted_name || 'Unknown item') + ' (qty ' + qty + ')' + (item.bracket_code ? ' - bill code [' + escapeHtml(String(item.bracket_code)) + '] not in system' : '') + '</span>' +
@@ -4444,6 +4591,8 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         }
       });
 
+      billDiffsFinish_();
+      window._billDiffs = carried.filter(function (c) { return !window._billDiffs.some(function (n) { return n.code === c.code; }); }).concat(window._billDiffs);
       if (data.invoice_number && !document.getElementById('purchaseRemark').value.trim()) {
         document.getElementById('purchaseRemark').value = String(data.invoice_number).toUpperCase();
         checkInvoiceNoLive();
@@ -4454,11 +4603,15 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       renderPurchaseCart();
 
       let msg = '<div class="card" style="box-shadow:none;background:var(--green-100);"><strong>✓ ' + matchedCount + ' item(s) added to the cart below.</strong> Please review quantities before saving.</div>';
+      msg += '<div id="billDiffBox">' + billDiffHtml_() + '</div>';
       if (unmatched.length) {
         msg += '<div class="card" style="box-shadow:none;background:var(--gold-100);margin-top:8px;"><strong style="color:var(--gold-600);">⚠️ ' + unmatched.length + ' item(s) need manual add</strong> (no confident match found - probably a new product not yet in the system):' + unmatched.join('') + '</div>';
       }
       msg += '<div class="card" style="box-shadow:none;background:#EEE;margin-top:8px;font-size:11px;color:#666;">Debug: catalog sent had ' + (data._debug_catalog_size || 0) + ' products. Sample: ' + escapeHtml((data._debug_catalog_sample || []).join(' | ')) + '</div>';
       statusBox.innerHTML = msg;
+      billDiffRender_();
+      const nDiff = (window._billDiffs || []).length;
+      if (nDiff) showToast('⚠ ' + nDiff + ' product' + (nDiff === 1 ? '' : 's') + ': the company bill is MORE than the software says - please check the list.', true);
     } catch (err) {
       statusBox.innerHTML = '<div class="empty-cart">Something went wrong: ' + escapeHtml(String(err)) + '</div>';
     }
@@ -4530,7 +4683,8 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     if (!PURCHASE_CART.length) { list.innerHTML = '<div class="empty-cart">Search above and tap a product to add it to this purchase.</div>'; }
     else {
       list.innerHTML = PURCHASE_CART.map(function (c) {
-        return '<div class="cart-item"><div class="cart-row-top"><div><div class="cart-name">' + escapeHtml(c.name) + '</div><div class="cart-code">#' + c.code + ' · ' + money(c.dp) + ' each</div></div>' +
+        return '<div class="cart-item"><div class="cart-row-top"><div><div class="cart-name">' + escapeHtml(c.name) + '</div><div class="cart-code">#' + c.code + ' · ' + money(c.dp) + ' each</div>' +
+          (c.billTotal != null && billMore_(c.billTotal, c.billQty, c.dp).real ? '<div class="pdiff-chip">⚠ Company bill ' + money(c.billTotal) + ' for ' + trimNum(c.billQty) + ' pcs' + (c.billMixed ? '' : ' (' + money(c.billTotal / c.billQty) + ' each)') + ' · software DP ' + money(c.dp) + '</div>' : '') + '</div>' +
           '<button class="remove-btn" data-premove="' + c.code + '">&times;</button></div>' +
           '<div class="cart-row-bottom"><div class="qty-stepper"><button data-pdelta="-1" data-code="' + c.code + '">&minus;</button>' +
           '<input type="number" class="pqtyInput" data-code="' + c.code + '" min="1" step="1" value="' + c.qty + '">' +
@@ -4776,6 +4930,8 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     showToast('Order placed as ' + purchaseNo + ' — update it under Remaining once stock arrives.');
     PURCHASE_CART.forEach(function (c) { const p = PRODUCTS.find(function (x) { return x.code === c.code; }); if (p) p.online_stock += c.qty; });
     PURCHASE_CART = [];
+    window._billDiffs = []; window._billNoAmount = 0; window._billOldFn = false;          // the scanned bill is done: its price-difference list must not follow into the next bill
+    document.getElementById('billScanStatus').style.display = 'none'; document.getElementById('billScanStatus').innerHTML = '';
     document.getElementById('purchaseRemark').value = '';
     document.getElementById('purchaseRemarkError').textContent = '';
     document.getElementById('purchaseDateInput').value = '';
@@ -4817,6 +4973,8 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     const dCls = header.status === 'Complete' ? 'badge-paid' : (header.status === 'Partial' ? 'badge-partial' : 'badge-unpaid');
     const anyReceived = (items || []).some(function (it) { return Number(it.received_qty) > 0.0001; });
     const rows = (items || []).map(function (it) {
+      const cur = anyReceived ? null : PRODUCTS.find(function (x) { return String(x.code) === String(it.product_code); });
+      const stale = cur && (Math.abs((Number(cur.dp) || 0) - (Number(it.dp) || 0)) >= BILL_DIFF_PER_PC_ || Math.abs((Number(cur.sp) || 0) - (Number(it.sp) || 0)) >= 0.005 || psNormName_(cur.name) !== psNormName_(it.product_name));
       return '<div class="cart-item" data-code="' + it.product_code + '" data-dp="' + it.dp + '" data-sp="' + it.sp + '" data-name="' + escapeHtml(it.product_name) + '" data-qty="' + it.qty + '">' +
         '<div class="cart-row-top"><div class="cart-name">' + escapeHtml(it.product_name) + '</div><div class="cart-code">' + money(it.dp) + ' each</div>' +
         '<button class="purchaseRemoveItemBtn" type="button" onclick="removePurchaseEditItem(this)" style="display:none;background:none;border:none;color:var(--danger);font-size:18px;line-height:1;cursor:pointer;padding:2px 8px;">✕</button></div>' +
@@ -4824,7 +4982,9 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         (anyReceived ? '' : '<div class="field" style="margin-bottom:0;flex:1;"><label>Ordered qty</label><input type="number" class="pdOrderedInput" min="0" step="1" value="' + it.qty + '" disabled style="background:var(--bg);color:var(--ink-faint);" onfocus="this.select()"></div>') +
         '<div class="field" style="margin-bottom:0;flex:1;"><label>Received so far (of ' + trimNum(it.qty) + ')</label>' +
         '<input type="number" class="pdReceivedInput" min="0" max="' + it.qty + '" step="1" value="' + it.received_qty + '" oninput="capDeliveredInput_(this)" onfocus="this.select()"></div>' +
-        '<button class="quickbtn" type="button" onclick="const c=this.closest(\'.cart-item\'); c.querySelector(\'.pdReceivedInput\').value=c.dataset.qty;">Receive All</button></div></div>';
+        '<button class="quickbtn" type="button" onclick="const c=this.closest(\'.cart-item\'); c.querySelector(\'.pdReceivedInput\').value=c.dataset.qty;">Receive All</button></div>' +
+        (stale ? '<div class="pdiff-chip pdiff-stale">⚠ The product list now says: ' + escapeHtml(cur.name) + ' · DP ' + money(cur.dp) + ' · SP ' + trimNum(cur.sp) + ' (this purchase was saved with the older values). ' +
+          '<button class="quickbtn purchaseUseListBtn" type="button" style="display:none;margin-left:0;" onclick="usePurchaseLineFromList_(this)">Use the product list values</button></div>' : '') + '</div>';
     }).join('');
     const dateStr = new Date(header.purchase_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
     document.getElementById('purchaseDetailArea').innerHTML =
@@ -4855,6 +5015,28 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     document.getElementById('purchaseAddProductArea').style.display = 'block';
     document.getElementById('purchaseEditOrderedBtn').style.display = 'none';
     document.getElementById('purchaseEditSaveBtn').style.display = 'block';
+    Array.from(document.querySelectorAll('#purchaseDetailItems .purchaseUseListBtn')).forEach(function (b) { b.style.display = 'inline-block'; });
+  }
+  // one line of a saved purchase takes the name / DP / SP the product list has now (it is saved with "Save changes"; the totals follow)
+  function purchaseEditRecalc_() {
+    let amount = 0, sp = 0;
+    Array.from(document.querySelectorAll('#purchaseDetailItems .cart-item')).forEach(function (row) {
+      const inp = row.querySelector('.pdOrderedInput'), q = inp ? Number(inp.value) : Number(row.dataset.qty);
+      amount += (q || 0) * (Number(row.dataset.dp) || 0); sp += (q || 0) * (Number(row.dataset.sp) || 0);
+    });
+    document.getElementById('purchaseEditTotalDisplay').textContent = money(amount);
+    document.getElementById('purchaseEditSpDisplay').textContent = trimNum(sp);
+  }
+  function usePurchaseLineFromList_(btn) {
+    const row = btn.closest('.cart-item'), p = PRODUCTS.find(function (x) { return String(x.code) === String(row.dataset.code); });
+    if (!p) return;
+    row.dataset.dp = p.dp; row.dataset.sp = p.sp; row.dataset.name = p.name;
+    row.querySelector('.cart-name').textContent = p.name;
+    row.querySelector('.cart-code').textContent = money(p.dp) + ' each';
+    const chip = row.querySelector('.pdiff-stale'); if (chip) chip.remove();
+    purchaseEditRecalc_();
+    document.getElementById('purchaseEditSaveBtn').style.display = 'block';
+    showToast('Updated in this window - tap Save changes to keep it.');
   }
 
   function removePurchaseEditItem(btn) {
@@ -6300,10 +6482,12 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   function psFind_() {
     clearTimeout(PSD_.findTimer);
     PSD_.findTimer = setTimeout(async function () {
-      const q = (document.getElementById('psFindInput').value || '').trim().toLowerCase(), box = document.getElementById('psFindList'), mine = ++PSD_.findSeq;
-      if (!q) { box.innerHTML = '<div class="card"><div class="empty-cart">Type a product name or code.</div></div>'; return; }
-      const list = PRODUCTS.filter(function (p) { return String(p.name).toLowerCase().indexOf(q) > -1 || String(p.code).toLowerCase() === q || String(p.code).toLowerCase().indexOf(q) === 0; }).slice(0, 25);
-      if (!list.length) { box.innerHTML = '<div class="card"><div class="empty-cart">No product matches that.</div></div>'; return; }
+      const q = (document.getElementById('psFindInput').value || '').trim().toLowerCase(), zero = !!PSD_.zero && !q, box = document.getElementById('psFindList'), mine = ++PSD_.findSeq;
+      document.getElementById('psFindZeroBtn').style.outline = zero ? '2px solid var(--green-800)' : 'none';
+      if (!q && !zero) { box.innerHTML = '<div class="card"><div class="empty-cart">Type a product name or code.</div></div>'; return; }
+      const list = zero ? PRODUCTS.filter(function (p) { return !(Number(p.dp) > 0); }).sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); }).slice(0, 60)
+        : PRODUCTS.filter(function (p) { return String(p.name).toLowerCase().indexOf(q) > -1 || String(p.code).toLowerCase() === q || String(p.code).toLowerCase().indexOf(q) === 0; }).slice(0, 25);
+      if (!list.length) { box.innerHTML = '<div class="card"><div class="empty-cart">' + (zero ? 'Good - no product has DP 0.' : 'No product matches that.') + '</div></div>'; return; }
       const { data } = await sb.rpc('get_product_usage', { p_codes: list.map(function (p) { return String(p.code); }) });
       if (mine !== PSD_.findSeq) return;
       const use = {}; (data || []).forEach(function (u) { use[u.code] = u; });
@@ -6311,7 +6495,8 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         const u = use[String(p.code)] || { bills: 0, billQty: 0, pendingQty: 0, purchases: 0, purchaseQty: 0, inCompanyList: false, mustKeep: false, onlineStock: p.online_stock, physicalStock: p.physical_stock };
         const hidden = p.search_active === false;
         return '<div class="ps-row" data-code="' + escapeHtml(p.code) + '"><div class="ps-main"><div class="ps-title"><strong>#' + escapeHtml(p.code) + '</strong> · ' + escapeHtml(p.name) + '</div>' +
-          '<div>' + (hidden ? '<span class="ps-chip bad">Hidden from search</span>' : '') + (u.mustKeep ? '<span class="ps-chip warn">Used in company purchase - stays active</span>' : '') + psStockChips_(u) + psUseChips_(u) + '</div>' + psActionsHtml_(p.code, u.bills) + '</div>' +
+          '<div class="hint" style="margin:1px 0 0;">MRP ' + PS_MONEY_(p.mrp) + ' · DP ' + PS_MONEY_(p.dp) + ' · SP ' + trimNum(Number(p.sp) || 0) + '</div>' +
+          '<div>' + (Number(p.dp) > 0 ? '' : '<span class="ps-chip bad">DP is 0 - please edit</span>') + (hidden ? '<span class="ps-chip bad">Hidden from search</span>' : '') + (u.mustKeep ? '<span class="ps-chip warn">Used in company purchase - stays active</span>' : '') + psStockChips_(u) + psUseChips_(u) + '</div>' + psActionsHtml_(p.code, u.bills) + '</div>' +
           '<button class="quickbtn" type="button" data-act="' + (hidden ? 'show' : 'hide') + '" data-code="' + escapeHtml(p.code) + '"' + (!hidden && u.mustKeep ? ' disabled' : '') + '>' + (hidden ? 'Show in search' : 'Hide from search') + '</button></div>';
       }).join('') + '</div>';
       psWireActions_(box);
@@ -6331,7 +6516,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     const draw = function (use) {
       box.innerHTML = hid.length ? '<div class="card">' + hid.map(function (p) {
         const u = use[String(p.code)];
-        return '<div class="ps-row" data-code="' + escapeHtml(p.code) + '"><div class="ps-main"><div class="ps-title"><strong>#' + escapeHtml(p.code) + '</strong> · ' + escapeHtml(p.name) + '</div><div>' + psStockChips_({ onlineStock: p.online_stock, physicalStock: p.physical_stock }) + (u ? psUseChips_(u) : '') +
+        return '<div class="ps-row" data-code="' + escapeHtml(p.code) + '"><div class="ps-main"><div class="ps-title"><strong>#' + escapeHtml(p.code) + '</strong> · ' + escapeHtml(p.name) + '</div><div class="hint" style="margin:1px 0 0;">MRP ' + PS_MONEY_(p.mrp) + ' · DP ' + PS_MONEY_(p.dp) + ' · SP ' + trimNum(Number(p.sp) || 0) + '</div><div>' + psStockChips_({ onlineStock: p.online_stock, physicalStock: p.physical_stock }) + (u ? psUseChips_(u) : '') +
           (p.search_hidden_at ? '<span class="ps-chip dim">Hidden since ' + escapeHtml(dayIst_(p.search_hidden_at)) + '</span>' : '') + '</div>' + psActionsHtml_(p.code, u ? u.bills : null) + '</div><button class="quickbtn" type="button" data-show="' + escapeHtml(p.code) + '">Show in search</button></div>';
       }).join('') + '</div>' : '<div class="card"><div class="empty-cart">Nothing is hidden.</div></div>';
       psWireActions_(box);
@@ -6363,11 +6548,108 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       '<option value="__other">Another product code…</option>';
   }
   function psActionsHtml_(code, bills) {
-    return '<div class="ps-actions"><button class="quickbtn" type="button" data-ps-bills="' + escapeHtml(code) + '">🧾 Bills' + (bills != null ? ' (' + trimNum(Number(bills) || 0) + ')' : '') + '</button><button class="quickbtn" type="button" data-ps-move="' + escapeHtml(code) + '">📦 Move stock</button></div>';
+    return '<div class="ps-actions"><button class="quickbtn" type="button" data-ps-edit="' + escapeHtml(code) + '">✏️ Edit</button><button class="quickbtn" type="button" data-ps-bills="' + escapeHtml(code) + '">🧾 Bills' + (bills != null ? ' (' + trimNum(Number(bills) || 0) + ')' : '') + '</button><button class="quickbtn" type="button" data-ps-move="' + escapeHtml(code) + '">📦 Move stock</button></div>';
   }
   function psWireActions_(box) {
+    box.querySelectorAll('[data-ps-edit]').forEach(function (b) { b.addEventListener('click', function () { psOpenEdit_(b.dataset.psEdit); }); });
     box.querySelectorAll('[data-ps-bills]').forEach(function (b) { b.addEventListener('click', function () { psOpenBills_(b.dataset.psBills); }); });
     box.querySelectorAll('[data-ps-move]').forEach(function (b) { b.addEventListener('click', function () { psOpenMove_(b.dataset.psMove); }); });
+  }
+
+  // ---- the Find box: typing leaves the "DP 0" list, and the button lists every product whose DP is 0 (the likely mistakes)
+  function psFindTyped_() { PSD_.zero = false; psFind_(); }
+  function psFindZero_() { PSD_.zero = true; document.getElementById('psFindInput').value = ''; psFind_(); }
+
+  // ---- EDIT ONE PRODUCT (main admin; the database checks it too): name, DP, SP, MRP, category. The CODE never changes.
+  // Only the product list changes: bills and purchases that were already saved keep the name and rates they were saved with.
+  let PSE_ = null;
+  function psNormName_(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toUpperCase(); }
+  function psNumVal_(id) { const v = String(document.getElementById(id).value).trim(); return v === '' ? null : Number(v); }
+  function psR2_(n) { return n == null || n === '' || !isFinite(Number(n)) ? null : Math.round(Number(n) * 100) / 100; }
+  function psEditValues_() {
+    return { name: psNormName_(document.getElementById('psEditName').value), dp: psNumVal_('psEditDp'), sp: psNumVal_('psEditSp'), mrp: psNumVal_('psEditMrp'), category: document.getElementById('psEditCategory').value.trim() };
+  }
+  function psEditDiffText_(r) {
+    const parts = [], num = function (label, a, b) { if ((a == null) !== (b == null) || (a != null && Number(a) !== Number(b))) parts.push(label + ' ' + (a == null ? '-' : trimNum(a)) + ' → ' + (b == null ? '-' : trimNum(b))); };
+    if ((r.oldName || '') !== (r.newName || '')) parts.push('Name: ' + (r.oldName || '-') + ' → ' + (r.newName || '-'));
+    num('DP ₹', r.oldDp, r.newDp); num('SP', r.oldSp, r.newSp); num('MRP ₹', r.oldMrp, r.newMrp);
+    if ((r.oldCategory || '') !== (r.newCategory || '')) parts.push('Category: ' + (r.oldCategory || '-') + ' → ' + (r.newCategory || '-'));
+    return (parts.join(' · ') || 'No change') + (r.source === 'purchase_bill' && r.billRate != null ? ' (company bill: ₹' + trimNum(r.billRate) + ' per piece)' : '');
+  }
+  function psOpenEdit_(code) {
+    const p = psAllByCode_(code); if (!p) return;
+    PSE_ = { code: String(p.code), orig: { name: psNormName_(p.name), dp: psR2_(p.dp), sp: psR2_(p.sp), mrp: psR2_(p.mrp), category: String(p.category || '').trim() }, busy: false, missing: false };
+    document.getElementById('psEditTitle').textContent = 'Edit #' + p.code;
+    document.getElementById('psEditName').value = p.name || '';
+    document.getElementById('psEditDp').value = p.dp == null ? '' : String(Number(p.dp));
+    document.getElementById('psEditSp').value = p.sp == null ? '' : String(Number(p.sp));
+    document.getElementById('psEditMrp').value = p.mrp == null || p.mrp === '' ? '' : String(Number(p.mrp));
+    document.getElementById('psEditCategory').value = p.category || '';
+    document.getElementById('psEditError').textContent = ''; document.getElementById('psEditUse').innerHTML = ''; document.getElementById('psEditLog').innerHTML = '';
+    document.getElementById('psEditGo').textContent = 'Save changes';
+    document.getElementById('psEditModal').classList.add('show');
+    psEditChanged_();
+    psEditLoadInfo_(PSE_);
+  }
+  function closePsEdit_() { document.getElementById('psEditModal').classList.remove('show'); }
+  async function psEditLoadInfo_(st) {           // where the product was used + the earlier changes (a missing database update is told here, before anyone types)
+    const [use, log] = await Promise.all([sb.rpc('get_product_usage', { p_codes: [st.code] }), sb.rpc('get_product_edit_log', { p_code: st.code, p_limit: 6 })]);
+    if (PSE_ !== st) return;
+    if (log.error && psServerMissing_(log.error)) { st.missing = true; document.getElementById('psEditError').innerHTML = 'This needs the database update <strong>product_edit.sql</strong>. Please run it in Supabase first.'; psEditChanged_(); }
+    const u = use.data && use.data[0];
+    if (u) document.getElementById('psEditUse').innerHTML = '<p class="hint" style="margin:6px 0 0;">' + (Number(u.bills) || Number(u.purchases) ? 'Used in <strong>' + trimNum(u.bills) + '</strong> bill' + (Number(u.bills) === 1 ? '' : 's') + ' and <strong>' + trimNum(u.purchases) + '</strong> company purchase' + (Number(u.purchases) === 1 ? '' : 's') + ' - they keep the name and rates they were saved with.' : 'Not used in any bill or company purchase yet.') + '</p>';
+    const rows = Array.isArray(log.data) ? log.data : [];
+    if (rows.length) document.getElementById('psEditLog').innerHTML = '<div style="margin-top:10px;"><p class="section-label" style="margin:0 0 4px;">Earlier changes</p>' +
+      rows.map(function (r) { return '<p class="hint" style="margin:0 0 3px;overflow-wrap:anywhere;">' + escapeHtml(dayIst_(r.at)) + ' · ' + escapeHtml(psEditDiffText_(r)) + '</p>'; }).join('') + '</div>';
+  }
+  function psEditProblem_(v) {                  // what is wrong with the typed values (blocks Save), or ''
+    const o = PSE_.orig;
+    if (!v.name) return 'Product name is required.';
+    if (v.dp == null || !isFinite(v.dp) || v.dp < 0) return 'DP is required.';
+    if (psR2_(v.dp) === 0 && o.dp !== 0) return 'DP must be more than 0 - type the rate from the company bill / price list.';
+    if (v.sp == null || !isFinite(v.sp) || v.sp < 0) return 'SP is required (type 0 if the product has no SP).';
+    if (v.mrp != null && (!isFinite(v.mrp) || v.mrp < 0)) return 'MRP cannot be negative.';
+    return '';
+  }
+  function psEditChanged_() {
+    if (!PSE_) return;
+    const v = psEditValues_(), o = PSE_.orig, bad = psEditProblem_(v);
+    const changed = v.name !== o.name || psR2_(v.dp) !== o.dp || psR2_(v.sp) !== o.sp || psR2_(v.mrp) !== o.mrp || v.category !== o.category;
+    const warns = [];
+    if (!bad && psR2_(v.dp) === 0) warns.push('DP is 0 - purchases and profit will be wrong for this product. Type the rate from the company bill / price list.');
+    if (!bad && v.mrp != null && v.mrp > 0 && v.dp > v.mrp) warns.push('DP is more than the MRP - please check both.');
+    const twin = v.name ? PRODUCTS.find(function (p) { return String(p.code) !== PSE_.code && psNormName_(p.name) === v.name; }) : null;
+    if (twin) warns.push('Another product (#' + twin.code + ') already has this name.');
+    document.getElementById('psEditWarn').innerHTML = (bad && changed ? '<p class="login-error" style="min-height:0;margin:6px 0 0;">' + escapeHtml(bad) + '</p>' : '') + warns.map(function (w) { return '<div class="es-box es-due" style="margin:6px 0;">⚠ ' + escapeHtml(w) + '</div>'; }).join('');
+    document.getElementById('psEditGo').disabled = !changed || !!bad || PSE_.busy || PSE_.missing;
+  }
+  async function psEditSave_() {
+    if (!PSE_ || PSE_.busy || PSE_.missing) return;
+    const st = PSE_, v = psEditValues_(), bad = psEditProblem_(v), errBox = document.getElementById('psEditError'), btn = document.getElementById('psEditGo');
+    if (bad) { errBox.textContent = bad; return; }
+    errBox.textContent = ''; st.busy = true; btn.disabled = true; btn.textContent = 'Saving…';
+    const { data, error } = await sb.rpc('edit_product', { p_code: st.code, p_name: v.name, p_dp: v.dp, p_sp: v.sp, p_mrp: v.mrp, p_category: v.category || null });
+    st.busy = false; btn.textContent = 'Save changes';
+    if (error) {
+      if (PSE_ !== st) { showToast(error.message, true); return; }
+      if (psServerMissing_(error)) { st.missing = true; errBox.innerHTML = 'This needs the database update <strong>product_edit.sql</strong>. Please run it in Supabase first.'; } else errBox.textContent = error.message;
+      psEditChanged_(); return;
+    }
+    if (PSE_ === st) document.getElementById('psEditModal').classList.remove('show');         // (a saved edit is always applied, even if another product was opened meanwhile)
+    if (!data || !data.changed) { showToast('Nothing was changed.'); return; }
+    psAfterEdit_(data);
+    const twins = (data.sameNameCodes || []).filter(function (c) { return String(c) !== st.code; });
+    showToast('Product #' + data.code + ' saved.' + (twins.length ? ' ⚠ #' + twins.join(', #') + ' has the same name.' : ''), twins.length > 0);
+  }
+  // what the saved edit changes in the open screens: the product list used by every search, the purchase being made, the lists of this tab
+  function psAfterEdit_(d) {
+    const p = psAllByCode_(d.code);
+    if (p) { p.name = d.name; p.dp = Number(d.dp); p.sp = Number(d.sp); p.mrp = d.mrp == null ? null : Number(d.mrp); p.category = d.category; }
+    let cartTouched = false;
+    PURCHASE_CART.forEach(function (c) { if (String(c.code) === String(d.code)) { c.name = d.name; c.dp = Number(d.dp); c.sp = Number(d.sp); cartTouched = true; } });
+    if (typeof billDiffSync_ === 'function') billDiffSync_();
+    if (cartTouched || (window._billDiffs && window._billDiffs.length)) renderPurchaseCart();
+    psFind_(); psRenderHidden_(); if (PSD_.loaded) psLoadDups_();
   }
   function psResolveOther_(inputId, nameId) {
     const v = (document.getElementById(inputId).value || '').trim(), p = v ? psAllByCode_(v) : null;
@@ -8380,7 +8662,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     document.getElementById('newProdCategory').value = '';
     document.getElementById('addProductError').textContent = '';
     document.getElementById('addProductHint').textContent = (prefill && prefill.qty)
-      ? 'From the scanned bill - once saved, this will be added to the purchase cart with qty ' + prefill.qty + '.'
+      ? 'From the scanned bill - once saved, this will be added to the purchase cart with qty ' + prefill.qty + '.' + (prefill.billTotal ? ' The bill says ' + money(prefill.billTotal) + ' for ' + prefill.qty + ' pcs, so the DP is filled in as that price per piece in whole rupees - please check it.' : ' The bill total of this line could not be read - type the DP (rate per piece).')
       : '';
     pendingNewProductQty_ = (prefill && prefill.qty) || null;
     document.getElementById('addProductModal').classList.add('show');
@@ -8389,7 +8671,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   async function submitAddProduct() {
     const code = document.getElementById('newProdCode').value.trim();
     const name = document.getElementById('newProdName').value.trim();
-    const dp = Number(document.getElementById('newProdDp').value) || 0;
+    const dp = Number(document.getElementById('newProdDp').value) || 0;      // a DP of 0 is refused below (a product used to be saved with DP 0 when this box was left empty)
     const mrp = document.getElementById('newProdMrp').value ? Number(document.getElementById('newProdMrp').value) : null;
     const sp = Number(document.getElementById('newProdSp').value) || 0;
     const category = document.getElementById('newProdCategory').value.trim();
@@ -8397,6 +8679,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     errBox.textContent = '';
     if (!code) { errBox.textContent = 'Product code is required.'; return; }
     if (!name) { errBox.textContent = 'Product name is required.'; return; }
+    if (!(dp > 0)) { errBox.textContent = 'DP / Purchase Rate is required - type the rate that is printed on the company bill (it must be more than 0).'; document.getElementById('newProdDp').focus(); return; }
 
     const { error } = await sb.rpc('add_new_product', { p_code: code, p_name: name, p_dp: dp, p_sp: sp, p_mrp: mrp, p_category: category || null });
     if (error) { errBox.textContent = error.message; return; }
