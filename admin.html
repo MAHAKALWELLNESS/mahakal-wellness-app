@@ -3660,7 +3660,12 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, window.__readTimeoutMs || 45000); })
       ]);
       if (resp.error || !resp.data) why = 'the reading service is not available right now';
-      else if (!resp.data.ok) why = String(resp.data.error || '').replace(/\.$/, '');
+      else if (!resp.data.ok) {
+        why = String(resp.data.error || '').replace(/\.$/, '');
+        // the function says WHY Claude could not be used (credit / limit / key / busy ...) - staff see it here; the public Order Form does not
+        const detail = String(resp.data.detail || '').replace(/\.$/, '').slice(0, 220);
+        if (detail) why += ': ' + detail;
+      }
       else result = resp.data;
     } catch (e) { why = e && e.message === 'timeout' ? 'it took too long' : 'the reading service is not available right now'; }
     if (!result) return { ok: false, dataUrl: img.dataUrl, why: why };
