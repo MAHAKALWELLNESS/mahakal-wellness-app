@@ -333,6 +333,16 @@
   .badge-paid{background:var(--ok-100); color:var(--ok);}
   .badge-partial{background:var(--gold-100); color:var(--gold-600);}
   .badge-unpaid{background:var(--danger-100); color:var(--danger);}
+  /* the main admin: a bill whose company invoice no. is also used in another bill */
+  .badge-shared{background:#FFF1CC; color:#8A5A00; border:1px solid #E8A200; cursor:pointer;}
+  .list-row.shared-inv{box-shadow:inset 4px 0 0 #E8A200; background:#FFF8E3;}
+  html.nl .list-row.shared-inv{background:linear-gradient(90deg,#FFE9B0 0%,#FFFBF0 72%); box-shadow:inset 5px 0 0 #E8A200, 0 2px 0 rgba(232,162,0,.25), 0 5px 10px rgba(232,162,0,.12);}
+  .si-card{border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px; background:var(--surface);}
+  .si-card.cancelled{opacity:.65;}
+  .si-head{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:0 0 8px; cursor:pointer;}
+  .si-prod{font-size:12px; color:var(--ink-soft); margin:6px 0 2px;}
+  .si-prod summary{cursor:pointer; font-weight:600;}
+  .si-prod div{margin:2px 0 0 4px;}
 
   @media print{
     @page { size: landscape; margin: 8mm; }
@@ -1108,6 +1118,12 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     <!-- ============ OFFICIAL TAB ============ -->
     <section id="tab-official" class="tab-panel">
       <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="loadOfficialPending()">↻ Refresh</button>
+      <div class="card" id="sharedInvCard" style="display:none;border-left:4px solid #E8A200;">
+        <div id="sharedInvCardRow" style="display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;" onclick="openSharedInv_()">
+          <div><div class="result-name">🔗 Company invoices in more than one bill</div><div class="result-meta" id="sharedInvCardMeta">Checking…</div></div>
+          <span class="badge badge-shared" id="sharedInvCardCount">…</span>
+        </div>
+      </div>
       <div class="card">
         <p class="section-label">Filter by date</p>
         <div class="qr-host" data-qr-key="official" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
@@ -2193,12 +2209,32 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     </div>
   </div>
 
+  <!-- ============ SHARED COMPANY INVOICES (main admin): which company invoices are in more than one bill, and in which bills ============ -->
+  <div class="modal-overlay" id="sharedInvModal">
+    <div class="modal-sheet">
+      <div id="sharedInvListView">
+        <h2 style="font-size:17px;color:var(--green-800);margin-bottom:2px;">🔗 Company invoices in more than one bill</h2>
+        <p class="hint" id="sharedInvListSub" style="margin-bottom:10px;"></p>
+        <input type="text" id="sharedInvSearch" class="search-input" placeholder="Search company invoice or bill no…" autocomplete="off" oninput="sharedInvRenderList_()" style="margin-bottom:10px;">
+        <div id="sharedInvList"></div>
+        <div class="modal-actions"><button class="btn btn-outline" type="button" onclick="closeSharedInv_()">Close</button></div>
+      </div>
+      <div id="sharedInvDetailView" style="display:none;">
+        <h2 id="sharedInvDetailTitle" style="font-size:17px;color:var(--green-800);margin-bottom:2px;word-break:break-word;"></h2>
+        <p class="hint" id="sharedInvDetailSub" style="margin-bottom:10px;"></p>
+        <div id="sharedInvBills"></div>
+        <div class="modal-actions"><button class="btn btn-outline" type="button" onclick="sharedInvBack_()">← Back</button><button class="btn btn-outline" type="button" onclick="closeSharedInv_()">Close</button></div>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="detailModal">
     <div class="modal-sheet" id="detailModalSheet" tabindex="-1">
       <div id="detailArea"></div>
       <div class="modal-actions"><button class="btn btn-outline" onclick="hideDetail()">Close</button><button class="btn btn-primary" onclick="printFromDetail()">Print</button></div>
       <div class="modal-actions"><button class="btn btn-outline" onclick="downloadPdfFromDetail()">Download PDF</button><button class="btn btn-gold" onclick="shareWhatsappFromDetail()">Share on WhatsApp</button></div>
       <div id="walletUsedNoteArea"></div>
+      <div id="billSharedInvArea"></div>
       <div id="billCashMemoArea"></div>
       <div id="billActionsArea"></div>
       <div id="billDateHistoryArea"></div>
@@ -2684,6 +2720,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         <label for="officialCompanyInvoiceNo">Company invoice no. (optional)</label>
         <input type="text" id="officialCompanyInvoiceNo" placeholder="As shown on the company panel" oninput="this.value = this.value.replace(/^\s+/, '');" onkeydown="officialCompanyInvoiceKeyNav(event)" onblur="this.value = this.value.trim(); officialCompanyInvoiceBlurCheck()">
         <p class="login-error" id="officialCompanyInvoiceWarning" style="min-height:0;margin:4px 0 0;"></p>
+        <p class="hint" id="officialCompanyInvoiceNote" style="margin:4px 0 0;display:none;"></p>
       </div>
       <div class="field"><label for="officialWorkDateInput">Work date (leave blank for today)</label><input type="date" id="officialWorkDateInput"></div>
       <div id="officialManualSearchWrap" class="search-wrap" style="display:none;margin-bottom:12px;">
@@ -5401,6 +5438,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   async function renderHistory(rows) {
     const box = document.getElementById('historyList');
     if (!rows.length) { box.innerHTML = '<div class="empty-cart">No bills found.</div>'; return; }
+    if (isSuperAdminUser) await sharedInvEnsureQuick_(false);      // the main admin: bills that share a company invoice are marked below
     const invNos = rows.map(function (r) { return r.invoice_no; });
     const { data: officialRows } = await sb.from('official_sessions').select('invoice_no, total_sp_used').in('invoice_no', invNos);
     const spUsedByInvoice = {};
@@ -5416,15 +5454,16 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       const spCls = spRemaining > 0.0001 ? 'badge-partial' : 'badge-paid';
       const spLabel = spRemaining > 0.0001 ? trimNum(spRemaining) + ' SP left' : 'SP complete';
       const dateStr = new Date(r.invoice_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-      const badges = isCancelled ? '<span class="badge badge-unpaid">Cancelled</span>' :
-        '<span class="badge ' + cls + '">' + payLabel + '</span><span class="badge ' + dCls + '">' + (r.delivery_status === 'Partial' ? 'Pending' : 'Delivered') + '</span><span class="badge ' + spCls + '">' + spLabel + '</span>';
+      const badges = (isCancelled ? '<span class="badge badge-unpaid">Cancelled</span>' :
+        '<span class="badge ' + cls + '">' + payLabel + '</span><span class="badge ' + dCls + '">' + (r.delivery_status === 'Partial' ? 'Pending' : 'Delivered') + '</span><span class="badge ' + spCls + '">' + spLabel + '</span>') + sharedInvBadge_(r.invoice_no);
       const sourceTag = r.source === 'Public' ? ' <span style="font-size:10px;font-weight:700;color:var(--gold-600);">(Public)</span>' : ' <span style="font-size:10px;font-weight:700;color:var(--ink-faint);">(Staff)</span>';
       const cashMemoTag = cmTagHtml_(r);
-      return '<div class="list-row" data-inv="' + r.invoice_no + '" style="' + (isCancelled ? 'opacity:.6;' : '') + '"><div><div class="result-name">' + r.invoice_no + sourceTag + cashMemoTag + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div>' +
+      return '<div class="list-row' + sharedInvRowClass_(r.invoice_no) + '" data-inv="' + r.invoice_no + '" style="' + (isCancelled ? 'opacity:.6;' : '') + '"><div><div class="result-name">' + r.invoice_no + sourceTag + cashMemoTag + '</div><div class="result-meta">' + escapeHtml(r.customer_name || 'Walk-in') + ' · ' + dateStr + '</div>' +
         '<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;">' + badges + '</div></div>' +
         '<div class="cart-amount"><div class="amt">' + money(billGrand_(r)) + '</div><div class="pts">' + trimNum(r.total_sp) + ' SP</div></div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { viewBill(row.dataset.inv, false); }); });
+    sharedInvWire_(box);
   }
 
   let approvalSearchDebounce = null;
@@ -5933,6 +5972,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       ? '<div class="card" style="margin-top:4px;box-shadow:none;background:var(--gold-100);"><p style="font-size:12.5px;color:var(--gold-600);font-weight:700;margin:0;">Staff note: ' + money(bill.walletUsed) + ' of this bill was paid from the customer\'s wallet (not shown on the printed bill).</p></div>'
       : '';
     renderBillActions(bill);
+    renderBillSharedInv_(bill);          // the main admin: "this bill's company invoice is also in these bills" (kept outside detailArea, never printed)
     renderBillDateHistory_(bill.invoiceNo);
     renderBillEditHistory_(bill.invoiceNo);
     renderBillPayCorrections_(bill.invoiceNo);
@@ -9506,6 +9546,193 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   }
 
 
+  // ---------------- SHARED COMPANY INVOICES (main admin only) ----------------
+  // Sometimes the SP of several bills is used under ONE company invoice, so one company invoice no. can sit in more than one bill (inside one
+  // bill only once - the database enforces that). The main admin sees here which company invoices are shared and in which bills, with the bill
+  // details; the bills are marked in the Past Bill and Official lists and inside the bill. Staff are shown none of this (and the database
+  // answers only the main admin: anybody else gets an empty list).
+  let sharedInv_ = { at: 0, list: [], byBill: {}, missing: false, error: '' };
+  const SHARED_INV_TTL_MS_ = 45000;
+  let sharedInvGen_ = 0, sharedInvDataGen_ = -1, sharedInvPending_ = null, sharedInvPendingGen_ = -1;   // a save bumps the generation: an answer asked before it is never kept as "fresh"
+  let sharedInvSeq_ = 0;                     // a slow answer must not replace a newer one on screen
+  let sharedInvDetailNo_ = '';               // the company invoice whose bills are on screen
+
+  function sharedInvReset_() { sharedInvGen_++; sharedInv_.at = 0; }
+  function sharedInvMissing_(msg) { return /could not find the function|schema cache|does not exist/i.test(String(msg || '')); }
+  async function sharedInvEnsure_(force) {
+    if (!isSuperAdminUser) return sharedInv_;
+    if (!force && sharedInv_.at && Date.now() - sharedInv_.at < SHARED_INV_TTL_MS_) return sharedInv_;
+    if (sharedInvPending_ && sharedInvPendingGen_ === sharedInvGen_) return sharedInvPending_;    // already on its way
+    const gen = sharedInvGen_;
+    let job;
+    job = (async function () {
+      let next;
+      try {
+        const { data, error } = await sb.rpc('get_shared_company_invoices');
+        const list = (!error && Array.isArray(data)) ? data : [];
+        const byBill = {};
+        list.forEach(function (x) { (x.bills || []).forEach(function (b) { (byBill[b] = byBill[b] || []).push(x); }); });
+        next = { at: 0, list: list, byBill: byBill, missing: !!error, error: error ? String(error.message || '') : '' };
+      } catch (e) { next = { at: 0, list: [], byBill: {}, missing: true, error: String((e && e.message) || e) }; }
+      if (gen >= sharedInvDataGen_) {                  // an older answer never replaces a newer one
+        next.at = (gen === sharedInvGen_) ? Date.now() : 0;      // asked before a save: usable now, but read again next time
+        sharedInvDataGen_ = gen; sharedInv_ = next;
+      }
+      if (sharedInvPending_ === job) sharedInvPending_ = null;
+      return sharedInv_;
+    })();
+    sharedInvPending_ = job; sharedInvPendingGen_ = gen;
+    return job;
+  }
+  // A list must never wait long for the marks (they are a bonus, the bills are the point): after 2.5 s the list is drawn without them.
+  function sharedInvEnsureQuick_(force) {
+    return Promise.race([sharedInvEnsure_(force), new Promise(function (resolve) { setTimeout(function () { resolve(sharedInv_); }, 2500); })]);
+  }
+  function sharedInvRowClass_(billNo) { return (isSuperAdminUser && sharedInv_.byBill[billNo] && sharedInv_.byBill[billNo].length) ? ' shared-inv' : ''; }
+  function sharedInvBadge_(billNo) {
+    const hit = isSuperAdminUser ? sharedInv_.byBill[billNo] : null;
+    if (!hit || !hit.length) return '';
+    return '<span class="badge badge-shared" data-shared-bill="' + escapeHtml(billNo) + '" title="This bill shares a company invoice no. with another bill - tap to see">🔗 Shared invoice' + (hit.length > 1 ? ' ×' + hit.length : '') + '</span>';
+  }
+  function sharedInvWire_(box) {        // the badge opens the shared company invoice (not the bill that the row itself opens)
+    Array.prototype.forEach.call(box.querySelectorAll('[data-shared-bill]'), function (el) {
+      el.addEventListener('click', function (e) { e.stopPropagation(); openSharedInvForBill_(el.dataset.sharedBill); });
+    });
+  }
+  function openSharedInvForBill_(billNo) {
+    const hit = sharedInv_.byBill[billNo] || [];
+    if (hit.length === 1) openSharedInv_(hit[0].companyInvoiceNo); else openSharedInv_(null, billNo);
+  }
+
+  // the card at the top of the Official tab
+  async function sharedInvCardRefresh_() {
+    const card = document.getElementById('sharedInvCard'); if (!card) return;
+    if (!isSuperAdminUser) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    const s0 = await sharedInvEnsure_(false);
+    const meta = document.getElementById('sharedInvCardMeta'), cnt = document.getElementById('sharedInvCardCount');
+    if (s0.missing) {
+      meta.textContent = sharedInvMissing_(s0.error) ? 'Database update needed: run shared_company_invoices.sql in Supabase' : 'Could not load - tap to try again';
+      cnt.textContent = '!'; return;
+    }
+    const n = s0.list.length;
+    cnt.textContent = String(n);
+    meta.textContent = n ? 'Tap to see which bills use the same company invoice' : 'None yet - each company invoice is in one bill only';
+  }
+
+  async function openSharedInv_(invoiceNo, billFilter) {
+    if (!isSuperAdminUser) return;
+    document.getElementById('sharedInvModal').classList.add('show');
+    if (invoiceNo) { sharedInvShowDetail_(invoiceNo); return; }
+    await sharedInvShowList_(billFilter || '');
+  }
+  function closeSharedInv_() { sharedInvSeq_++; document.getElementById('sharedInvModal').classList.remove('show'); }
+  function sharedInvBack_() { sharedInvShowList_(''); }
+  async function sharedInvShowList_(filter) {
+    sharedInvSeq_++; sharedInvDetailNo_ = '';
+    document.getElementById('sharedInvDetailView').style.display = 'none';
+    document.getElementById('sharedInvListView').style.display = 'block';
+    document.getElementById('sharedInvSearch').value = filter || '';
+    document.getElementById('sharedInvList').innerHTML = '<div class="empty-cart">Loading…</div>';
+    await sharedInvEnsure_(true);
+    sharedInvRenderList_();
+    sharedInvCardRefresh_();
+  }
+  function sharedInvRenderList_() {
+    const box = document.getElementById('sharedInvList'), sub = document.getElementById('sharedInvListSub');
+    if (sharedInv_.missing) {
+      sub.textContent = '';
+      box.innerHTML = '<div class="empty-cart">' + (sharedInvMissing_(sharedInv_.error) ? 'This needs the database update <strong>shared_company_invoices.sql</strong>. Please run it in Supabase first.' : 'Could not load the list: ' + escapeHtml(sharedInv_.error)) + '</div>';
+      return;
+    }
+    const all = sharedInv_.list || [], q = document.getElementById('sharedInvSearch').value.trim().toLowerCase();
+    const rows = !q ? all : all.filter(function (x) {
+      return String(x.companyInvoiceNo).toLowerCase().indexOf(q) >= 0 || (x.bills || []).some(function (b) { return String(b).toLowerCase().indexOf(q) >= 0; });
+    });
+    sub.textContent = all.length ? all.length + ' company invoice' + (all.length === 1 ? ' is' : 's are') + ' used in more than one bill. Tap one to see its bills.' : '';
+    if (!rows.length) { box.innerHTML = '<div class="empty-cart">' + (all.length ? 'Nothing matches.' : 'No company invoice is used in more than one bill yet.') + '</div>'; return; }
+    box.innerHTML = rows.map(function (x) {
+      const bills = x.bills || [], shown = bills.slice(0, 4).join(', ') + (bills.length > 4 ? ' +' + (bills.length - 4) + ' more' : '');
+      return '<div class="list-row shared-inv" data-no="' + escapeHtml(x.companyInvoiceNo) + '"><div><div class="result-name" style="word-break:break-word;">' + escapeHtml(x.companyInvoiceNo) + '</div>' +
+        '<div class="result-meta">' + escapeHtml(shown) + '</div></div>' +
+        '<div style="text-align:right;"><div class="cart-amount"><div class="amt">' + trimNum(x.totalSp) + ' SP</div><div class="pts">last ' + escapeHtml(fmtDayIst_(x.lastDate)) + '</div></div>' +
+        '<span class="badge badge-shared">' + trimNum(x.billCount) + ' bills</span></div></div>';
+    }).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('.list-row'), function (row) { row.addEventListener('click', function () { sharedInvShowDetail_(row.dataset.no); }); });
+  }
+
+  async function sharedInvShowDetail_(invoiceNo) {
+    const mine = ++sharedInvSeq_;
+    sharedInvDetailNo_ = invoiceNo;
+    document.getElementById('sharedInvListView').style.display = 'none';
+    document.getElementById('sharedInvDetailView').style.display = 'block';
+    document.getElementById('sharedInvDetailTitle').textContent = invoiceNo;
+    document.getElementById('sharedInvDetailSub').textContent = 'Loading…';
+    const box = document.getElementById('sharedInvBills');
+    box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const { data, error } = await sb.rpc('get_company_invoice_bills', { p_company_invoice_no: invoiceNo });
+    if (mine !== sharedInvSeq_) return;
+    if (error) {
+      document.getElementById('sharedInvDetailSub').textContent = '';
+      box.innerHTML = '<div class="empty-cart">' + (sharedInvMissing_(error.message) ? 'This needs the database update <strong>shared_company_invoices.sql</strong>. Please run it in Supabase first.' : 'Could not load: ' + escapeHtml(error.message)) + '</div>';
+      return;
+    }
+    sharedInvRenderDetail_(data || {});
+  }
+  function sharedInvRow_(label, valueHtml) { return '<div class="receipt-total-row"><span>' + label + '</span><span style="text-align:right;">' + valueHtml + '</span></div>'; }
+  function sharedInvCardHtml_(b) {
+    const cancelled = b.billStatus === 'Cancelled';
+    const grand = billGrand_({ customer_type: b.customerType, net_amount: b.billNetAmount, total_dp: b.billTotalDp, transport_charges: b.billTransport });
+    const left = Math.max(0, (Number(b.billTotalSp) || 0) - (Number(b.billSpUsed) || 0));
+    const items = b.items || [];
+    return '<div class="si-card' + (cancelled ? ' cancelled' : '') + '" data-bill="' + escapeHtml(b.billNo) + '">' +
+      '<div class="si-head" data-open="' + escapeHtml(b.billNo) + '"><div><div class="result-name">' + escapeHtml(b.billNo) + (cancelled ? ' <span class="badge badge-unpaid">Cancelled</span>' : '') + '</div>' +
+        '<div class="result-meta">' + escapeHtml(b.customerName || 'Walk-in') + ' · ' + escapeHtml(fmtDayIst_(b.billDate)) + '</div></div>' +
+        '<div class="cart-amount"><div class="amt">' + money(grand) + '</div><div class="pts">' + trimNum(b.billTotalSp) + ' SP</div></div></div>' +
+      sharedInvRow_('Under this company invoice', trimNum(b.spUsed) + ' SP · ' + money(b.amount)) +
+      sharedInvRow_('Entry', escapeHtml(b.officialNo) + ' · ' + escapeHtml(fmtDayIst_(b.sessionDate))) +
+      sharedInvRow_('DS', escapeHtml(b.dsId) + (b.dsName ? ' (' + escapeHtml(b.dsName) + ')' : '') + ' · ' + escapeHtml(b.orderType) + (b.saoSgo ? ' ' + escapeHtml(b.saoSgo) : '')) +
+      sharedInvRow_('This whole bill', 'SP used ' + trimNum(b.billSpUsed) + ' · left ' + trimNum(left)) +
+      (items.length ? '<details class="si-prod"><summary>Products under this company invoice (' + items.length + ')</summary>' + items.map(function (it) {
+        return '<div>' + escapeHtml(it.name) + ' × ' + trimNum(it.qty) + ' · ' + trimNum(it.spUsed) + ' SP · ' + money(it.amount) + '</div>';
+      }).join('') + '</details>' : '') +
+      '<button type="button" class="btn btn-outline btn-block" data-open="' + escapeHtml(b.billNo) + '" style="margin-top:8px;">View full bill details</button></div>';
+  }
+  function sharedInvRenderDetail_(d) {
+    const bills = d.bills || [], box = document.getElementById('sharedInvBills');
+    if (d.companyInvoiceNo) document.getElementById('sharedInvDetailTitle').textContent = d.companyInvoiceNo;
+    document.getElementById('sharedInvDetailSub').textContent = bills.length ?
+      'Used in ' + bills.length + ' bill' + (bills.length === 1 ? '' : 's') + ' · ' + trimNum(d.totalSp) + ' SP · ' + money(d.totalAmount) + ' under this company invoice. Tap a bill to see it.' : '';
+    if (!bills.length) { box.innerHTML = '<div class="empty-cart">No bill uses this company invoice no. any more.</div>'; return; }
+    box.innerHTML = bills.map(sharedInvCardHtml_).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('[data-open]'), function (el) {
+      el.addEventListener('click', function () { viewBill(el.dataset.open, false); });      // the full bill opens on top: check it, then come back here
+    });
+  }
+
+  // inside a bill (main admin): "this bill's company invoice is also in these bills". Kept outside detailArea, so it is never printed or shared.
+  async function renderBillSharedInv_(bill) {
+    const box = document.getElementById('billSharedInvArea'); if (!box) return;
+    box.innerHTML = '';
+    if (!isSuperAdminUser) return;
+    const s0 = await sharedInvEnsure_(false);
+    if (!currentDetailBill || currentDetailBill.invoiceNo !== bill.invoiceNo) return;     // another bill was opened meanwhile
+    const hits = s0.byBill[bill.invoiceNo] || [];
+    if (!hits.length) return;
+    box.innerHTML = hits.map(function (x, i) {
+      const others = (x.bills || []).filter(function (b) { return b !== bill.invoiceNo; });
+      return '<div class="card" style="margin-top:8px;box-shadow:none;background:#FFF8E3;border:1px solid #E8A200;">' +
+        '<p style="color:#8A5A00;font-weight:700;font-size:13px;margin:0 0 4px;word-break:break-word;">🔗 Shared company invoice: ' + escapeHtml(x.companyInvoiceNo) + '</p>' +
+        '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 6px;">The same company invoice is also used in ' + others.length + ' other bill' + (others.length === 1 ? '' : 's') + ':</p>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;">' + others.map(function (b) { return '<button type="button" class="quickbtn" data-open-bill="' + escapeHtml(b) + '">' + escapeHtml(b) + '</button>'; }).join('') + '</div>' +
+        '<div class="modal-actions" style="margin-top:8px;"><button type="button" class="btn btn-outline btn-block" data-shared-idx="' + i + '">See all bills of this company invoice</button></div></div>';
+    }).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('[data-open-bill]'), function (el) { el.addEventListener('click', function () { viewBill(el.dataset.openBill, false); }); });
+    Array.prototype.forEach.call(box.querySelectorAll('[data-shared-idx]'), function (el) {
+      el.addEventListener('click', function () { const x = hits[Number(el.dataset.sharedIdx)]; hideDetail(); openSharedInv_(x.companyInvoiceNo); });
+    });
+  }
+
   // ---------------- OFFICIAL WORK TAB ----------------
   let officialCurrentBill = null, officialSessionItems = [], officialSource = 'Manual', officialPendingProduct = null;
   let officialAvailableItems = []; // this bill's remaining products, searched against when officialSource === 'Same'
@@ -9528,6 +9755,8 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     if (to) q = q.lte('invoice_date', to + 'T23:59:59');
     const { data: invoices, error } = await q;
     if (error) { box.innerHTML = '<div class="empty-cart">Could not load bills.</div>'; return; }
+    if (isSuperAdminUser) await sharedInvEnsureQuick_(true);          // the main admin: the card at the top + the marked bills below
+    sharedInvCardRefresh_();
     const spUsedByInvoice = await fetchSpUsedByInvoice_((invoices || []).map(function (h) { return h.invoice_no; }));
     const rows = [];
     (invoices || []).forEach(function (h) {
@@ -9557,6 +9786,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     officialSearchDebounce = setTimeout(async function () {
       const { data: invoices, error } = await sb.from('invoices').select('*').gt('total_sp', 0).eq('bill_status', 'Active').ilike('invoice_no', '%' + q + '%');
       if (error) { showToast(error.message, true); return; }
+      if (isSuperAdminUser) await sharedInvEnsureQuick_(false);       // the main admin: the shared-invoice marks also show in the search results
       const spUsedByInvoice = await fetchSpUsedByInvoice_((invoices || []).map(function (h) { return h.invoice_no; }));
       const rows = (invoices || []).map(function (h) {
         const used = spUsedByInvoice[h.invoice_no] || 0;
@@ -9572,11 +9802,12 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     box.innerHTML = rows.map(function (r) {
       const dateStr = new Date(r.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
       const complete = r.remainingSP <= 0.0001;
-      return '<div class="list-row" data-inv="' + r.invoiceNo + '"><div><div class="result-name">' + r.invoiceNo + '</div><div class="result-meta">' + escapeHtml(r.customer || 'Walk-in') + ' · ' + dateStr + '</div></div>' +
+      return '<div class="list-row' + sharedInvRowClass_(r.invoiceNo) + '" data-inv="' + r.invoiceNo + '"><div><div class="result-name">' + r.invoiceNo + '</div><div class="result-meta">' + escapeHtml(r.customer || 'Walk-in') + ' · ' + dateStr + '</div></div>' +
         '<div style="text-align:right;"><div class="cart-amount"><div class="amt">' + trimNum(r.remainingSP) + ' SP left</div><div class="pts">of ' + trimNum(r.totalSP) + ' total</div></div>' +
-        '<span class="badge ' + (complete ? 'badge-paid' : 'badge-partial') + '">' + (complete ? 'Complete' : 'Pending') + '</span></div></div>';
+        '<span class="badge ' + (complete ? 'badge-paid' : 'badge-partial') + '">' + (complete ? 'Complete' : 'Pending') + '</span>' + sharedInvBadge_(r.invoiceNo) + '</div></div>';
     }).join('');
     Array.from(box.querySelectorAll('.list-row')).forEach(function (row) { row.addEventListener('click', function () { openOfficialBill(row.dataset.inv); }); });
+    sharedInvWire_(box);
   }
 
   async function openOfficialBill(invoiceNo) {
@@ -9682,7 +9913,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       document.getElementById('officialDsId').value = ''; document.getElementById('officialDsName').value = '';
       document.getElementById('officialOrderType').value = 'Greening'; document.getElementById('officialSaoSgoField').style.display = 'none';
     }
-    document.getElementById('officialCompanyInvoiceNo').value = ''; document.getElementById('officialCompanyInvoiceWarning').textContent = '';
+    document.getElementById('officialCompanyInvoiceNo').value = ''; document.getElementById('officialCompanyInvoiceWarning').textContent = ''; officialCompanyInvoiceNote_(null);
     document.getElementById('officialManualSearchWrap').style.display = 'block';
     document.getElementById('officialSearchInput').placeholder = officialSource === 'Same' ? 'Search this bill\'s products for SP…' : 'Search product for SP…';
     document.getElementById('officialSearchInput').value = '';
@@ -9704,18 +9935,35 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     box.style.display = 'block';
   }
 
+  // One company invoice no. may be used in several bills (the SP of several bills is sometimes used under one company invoice) - but only
+  // ONCE inside one bill. So: already in THIS bill = blocked; also in other bills = only a note. The database enforces the same rule on save.
+  async function officialCompanyInvoiceLookup_(val) {
+    const { data, error } = await sb.rpc('check_company_invoice_no', { p_company_invoice_no: val, p_bill_no: officialCurrentBill.header.invoiceNo });
+    return error ? null : (data || null);         // if the check cannot be asked, never block here - the save itself checks again
+  }
+  function officialCompanyInvoiceNote_(res) {
+    const el = document.getElementById('officialCompanyInvoiceNote'); if (!el) return;
+    const others = (res && res.otherBills) || [];
+    if (!others.length) { el.style.display = 'none'; el.textContent = ''; return; }
+    const names = others.map(function (o) { return o.billNo; });
+    el.textContent = '🔗 Also used in ' + (names.length === 1 ? 'bill ' : 'bills ') + names.slice(0, 4).join(', ') + (names.length > 4 ? ' and ' + (names.length - 4) + ' more' : '') + ' - that is fine: one company invoice no. can be used in several bills (only once in this bill).';
+    el.style.display = 'block';
+  }
+  function officialCompanyInvoiceInThisBill_(val, res, input) {
+    document.getElementById('officialCompanyInvoiceWarning').textContent = 'Already entered in this bill (' + res.inThisBill + ') - only once per bill.';
+    showOfficialValidationPopup('Company invoice no. already in this bill', 'Company invoice no. "' + val + '" is already entered in this bill (' + res.inThisBill + '). In one bill a company invoice no. can be entered only once - please enter a different number. (The same number can be used in other bills.)', input);
+  }
   async function officialCompanyInvoiceCheck_(onValid) {
     if (officialQtyExceedPopupOpen) return;
     const input = document.getElementById('officialCompanyInvoiceNo');
     const warnEl = document.getElementById('officialCompanyInvoiceWarning');
     const val = input.value.trim();
-    warnEl.textContent = '';
+    warnEl.textContent = ''; officialCompanyInvoiceNote_(null);
     if (!val) { if (onValid) onValid(); return; }
-    const { data: dupe } = await sb.rpc('check_company_invoice_no', { p_company_invoice_no: val });
-    if (dupe) {
-      warnEl.textContent = 'Already used in ' + dupe.officialNo + ' (bill ' + dupe.billNo + ') — this must be unique.';
-      showOfficialValidationPopup('Duplicate company invoice no.', 'Company invoice no. "' + val + '" was already used in ' + dupe.officialNo + ' (bill ' + dupe.billNo + '). Each one can only be entered once — please enter a different number.', input);
-    } else if (onValid) onValid();
+    const res = await officialCompanyInvoiceLookup_(val);
+    if (res && res.inThisBill) { officialCompanyInvoiceInThisBill_(val, res, input); return; }
+    officialCompanyInvoiceNote_(res);
+    if (onValid) onValid();
   }
   function officialCompanyInvoiceKeyNav(e) {
     const isTabForward = (e.key === 'Tab' && !e.shiftKey);
@@ -9937,11 +10185,10 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     }
 
     if (!invoiceVal) { renderPreviewNow(); return; }
-    const { data: dupe } = await sb.rpc('check_company_invoice_no', { p_company_invoice_no: invoiceVal });
-    if (dupe) {
-      document.getElementById('officialCompanyInvoiceWarning').textContent = 'Already used in ' + dupe.officialNo + ' (bill ' + dupe.billNo + ') — this must be unique.';
-      showOfficialValidationPopup('Duplicate company invoice no.', 'Company invoice no. "' + invoiceVal + '" was already used in ' + dupe.officialNo + ' (bill ' + dupe.billNo + '). Each one can only be entered once — please enter a different number.', invoiceInput);
-    } else renderPreviewNow();
+    const res = await officialCompanyInvoiceLookup_(invoiceVal);
+    if (res && res.inThisBill) { officialCompanyInvoiceInThisBill_(invoiceVal, res, invoiceInput); return; }
+    officialCompanyInvoiceNote_(res);
+    renderPreviewNow();
   }
 
   function officialGoBackEdit() {
@@ -9962,6 +10209,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     });
     btn.disabled = false; btn.textContent = 'Confirm & Save';
     if (error) { showToast(error.message, true); return; }
+    sharedInvReset_();            // a company invoice may now be in one more bill: the main admin's list is read again
     showToast('Saved ' + data.officialNo + ' — ' + trimNum(data.spUsedThisRound) + ' SP used.');
     document.getElementById('officialPreviewModal').classList.remove('show');
     document.getElementById('officialWorkDateInput').value = '';
