@@ -339,6 +339,13 @@
   html.nl .list-row.shared-inv{background:linear-gradient(90deg,#FFE9B0 0%,#FFFBF0 72%); box-shadow:inset 5px 0 0 #E8A200, 0 2px 0 rgba(232,162,0,.25), 0 5px 10px rgba(232,162,0,.12);}
   .si-card{border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px; background:var(--surface);}
   .si-card.cancelled{opacity:.65;}
+  .ci-gap{border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin:0 0 8px; background:var(--surface); cursor:pointer;}
+  .ci-gap.open{border-color:#E8A200; background:#FFF8E3;}
+  .ci-gap-head{display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .ci-nums{display:flex; flex-wrap:wrap; gap:4px; margin:8px 0;}
+  .ci-nums .ps-chip{margin:0; font-weight:600;}
+  .ci-series{margin-bottom:12px;}
+  .ci-warn{display:block; margin-top:3px; font-size:11.5px; color:var(--danger); font-weight:600; word-break:break-word;}
   .si-head{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:0 0 8px; cursor:pointer;}
   .si-prod{font-size:12px; color:var(--ink-soft); margin:6px 0 2px;}
   .si-prod summary{cursor:pointer; font-weight:600;}
@@ -642,6 +649,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <button class="tab" data-tab="pending" onclick="switchTab('pending')">Delivery Update</button>
       <button class="tab" data-tab="expense" onclick="switchTab('expense')">Expense</button>
       <button class="tab" data-tab="official" onclick="switchTab('official')">Official</button>
+      <button class="tab" data-tab="companyinv" id="tabBtnCompanyInv" onclick="switchTab('companyinv')" style="display:none;">Company Invoices</button>
       <button class="tab" data-tab="spsets" onclick="switchTab('spsets')">SP Sets</button>
       <button class="tab" data-tab="customers" onclick="switchTab('customers')">Customers</button>
       <button class="tab" data-tab="custlogins" onclick="switchTab('custlogins')">Customer Logins<span class="tab-badge" id="custLoginsBadge" style="display:none;"></span></button>
@@ -1135,6 +1143,58 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       </div>
       <div class="card"><p class="section-label">Search by bill no</p><input type="text" id="officialSearch" class="search-input" placeholder="Bill no…" oninput="searchOfficialBills()"></div>
       <div class="card"><h2 id="officialListHeading">Pending SP allocation</h2><div id="officialList"><div class="empty-cart">Loading…</div></div></div>
+    </section>
+
+    <!-- ============ COMPANY INVOICES TAB (main admin): All / Missing / Repeat ============ -->
+    <section id="tab-companyinv" class="tab-panel">
+      <div class="subtabs" id="ciSubtabs">
+        <button class="subtab active" data-subtab="all" onclick="ciSub_('all')">All<span id="ciCountAll"></span></button>
+        <button class="subtab" data-subtab="missing" onclick="ciSub_('missing')">Missing<span id="ciCountMissing"></span></button>
+        <button class="subtab" data-subtab="repeat" onclick="ciSub_('repeat')">Repeat<span id="ciCountRepeat"></span></button>
+      </div>
+      <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="ciRefresh_()">↻ Refresh</button>
+
+      <div id="ciListWrap">
+        <div class="card">
+          <p class="section-label">Filter by date</p>
+          <div class="qr-host" data-qr-key="compinv" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div>
+          <div class="field-row">
+            <div class="field"><label for="ciFrom">From</label><input type="date" id="ciFrom" onchange="ciLoad_()"></div>
+            <div class="field" style="margin-bottom:0;"><label for="ciTo">To</label><input type="date" id="ciTo" onchange="ciLoad_()"></div>
+          </div>
+        </div>
+        <div class="card">
+          <input type="text" id="ciSearch" class="search-input" placeholder="Company invoice no, DS ID, DS name or bill no…" autocomplete="off" oninput="ciSearchSoon_()">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;" id="ciTypeChips">
+            <button class="quickbtn on" type="button" data-type="" style="margin-left:0;" onclick="ciSetType_('')">All types</button>
+            <button class="quickbtn" type="button" data-type="Greening" style="margin-left:0;" onclick="ciSetType_('Greening')">Green</button>
+            <button class="quickbtn" type="button" data-type="Repurchase" style="margin-left:0;" onclick="ciSetType_('Repurchase')">Repurchase</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2 id="ciListHeading">All company invoices</h2>
+          <p class="hint" id="ciSummary"></p>
+          <div id="ciList"><div class="empty-cart">Loading…</div></div>
+          <button class="btn btn-outline btn-block" type="button" id="ciMoreBtn" style="display:none;margin-top:10px;" onclick="ciMore_()">Show more</button>
+        </div>
+      </div>
+
+      <div id="ciMissingWrap" style="display:none;">
+        <div class="card">
+          <h2>Missing company invoice numbers</h2>
+          <p class="hint" id="ciMissingHint">Loading…</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;" id="ciGapChips">
+            <button class="quickbtn on" type="button" data-gap="all" style="margin-left:0;" onclick="ciGapFilter_('all')">All gaps</button>
+            <button class="quickbtn" type="button" data-gap="10" style="margin-left:0;" onclick="ciGapFilter_('10')">Up to 10 numbers</button>
+          </div>
+        </div>
+        <div id="ciMissingList"></div>
+        <div class="card" id="ciCheckCard" style="display:none;border-left:4px solid #E03A3A;">
+          <h2 id="ciCheckHeading" style="font-size:15px;"></h2>
+          <p class="hint">These were saved with extra text around the company invoice no., or do not follow the pattern. They are still counted by their pattern. Tap one to see its bill.</p>
+          <div id="ciCheckList"></div>
+        </div>
+      </div>
     </section>
 
     <!-- ============ SP SETS TAB ============ -->
@@ -3082,6 +3142,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     if (!isSuperAdmin) bankAccessInit_();
     document.getElementById('tabBtnHall').style.display = isSuperAdmin ? 'block' : 'none';
     document.getElementById('tabBtnProductSearch').style.display = isSuperAdmin ? 'block' : 'none';
+    document.getElementById('tabBtnCompanyInv').style.display = isSuperAdmin ? 'block' : 'none';        // the company invoices (All / Missing / Repeat): the main admin only
     document.getElementById('dashboardHallStats').style.display = isSuperAdmin ? 'block' : 'none';
     if (isSuperAdmin) loadDashboardProfitStats_();
     if (typeof bdayMorning_ === 'function') bdayMorning_(user);          // first thing every morning: whose birthday is today
@@ -4355,6 +4416,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       } else { refreshDashboard_(); }    // every later visit: sales stats + company payout & profit + hall, all fresh
     }
     if (name === 'official') loadOfficialPending();
+    if (name === 'companyinv') ciOpen_();
     if (name === 'productsearch') psOpen_();
     if (name === 'spsets') initSpSetsTab_();
     if (name === 'expense') searchExpenses();
@@ -7191,6 +7253,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     exprep: { from: 'expReportFrom', to: 'expReportTo', load: function () { loadExpenseReport(); }, extras: [['all', 'All time', "setExpenseReportRange_('all')"]] },
     expledger: { from: 'expLedgerFrom', to: 'expLedgerTo', load: function () { loadExpenseLedger(); }, extras: [['all', 'All time', "setExpenseLedgerRange_('all')"]] },
     official: { from: 'officialFrom', to: 'officialTo', load: function () { loadOfficialPending(); } },
+    compinv: { from: 'ciFrom', to: 'ciTo', load: function () { ciLoad_(); }, extras: [['all', 'All time', "ciAllTime_()"]] },
     onlinestock: { from: 'onlineStockFrom', to: 'onlineStockTo', label: 'onlineStockRangeLabel', load: function () { loadOnlineStockReport(); }, extras: [['net', 'Net', "setOnlineStockRange('net')"]] },
     physicalstock: { from: 'physicalStockFrom', to: 'physicalStockTo', label: 'physicalStockRangeLabel', load: function () { loadPhysicalStockReport(); }, extras: [['net', 'Net', "setPhysicalStockRange('net')"]] },
     ordercalc: { from: 'orderCalcFrom', to: 'orderCalcTo', label: 'orderCalcRangeLabel', load: function () { loadOrderCalcReport(); }, extras: [['net', 'Net', "setOrderCalcRange('net')"]] },
@@ -9557,6 +9620,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   let sharedInvSeq_ = 0;                     // a slow answer must not replace a newer one on screen
   let sharedInvDetailNo_ = '';               // the company invoice whose bills are on screen
 
+  let sharedInvDirect_ = false;              // true when the window was opened for ONE company invoice from the Company Invoices tab: Back then simply closes it
   function sharedInvReset_() { sharedInvGen_++; sharedInv_.at = 0; }
   function sharedInvMissing_(msg) { return /could not find the function|schema cache|does not exist/i.test(String(msg || '')); }
   async function sharedInvEnsure_(force) {
@@ -9622,12 +9686,13 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
 
   async function openSharedInv_(invoiceNo, billFilter) {
     if (!isSuperAdminUser) return;
+    sharedInvDirect_ = false;
     document.getElementById('sharedInvModal').classList.add('show');
     if (invoiceNo) { sharedInvShowDetail_(invoiceNo); return; }
     await sharedInvShowList_(billFilter || '');
   }
-  function closeSharedInv_() { sharedInvSeq_++; document.getElementById('sharedInvModal').classList.remove('show'); }
-  function sharedInvBack_() { sharedInvShowList_(''); }
+  function closeSharedInv_() { sharedInvSeq_++; sharedInvDirect_ = false; document.getElementById('sharedInvModal').classList.remove('show'); }
+  function sharedInvBack_() { if (sharedInvDirect_) { closeSharedInv_(); return; } sharedInvShowList_(''); }
   async function sharedInvShowList_(filter) {
     sharedInvSeq_++; sharedInvDetailNo_ = '';
     document.getElementById('sharedInvDetailView').style.display = 'none';
@@ -9731,6 +9796,223 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     Array.prototype.forEach.call(box.querySelectorAll('[data-shared-idx]'), function (el) {
       el.addEventListener('click', function () { const x = hits[Number(el.dataset.sharedIdx)]; hideDetail(); openSharedInv_(x.companyInvoiceNo); });
     });
+  }
+
+  // ---------------- COMPANY INVOICES TAB (main admin only) ----------------
+  // One place for the company invoice numbers of the Official work. All = every company invoice no. with the DS ID that was used, Green or Repurchase,
+  // and the SP and amount used under it. Missing = the numbers that are missing in between, found with the company's own numbering pattern
+  // (PREFIX / NUMBER / YEAR, e.g. MAHA/003312/26-27 - read from the numbers themselves in the database). Repeat = used in more than one bill.
+  // A tap on a company invoice opens its bills with the bill details (the same window as the shared-invoice list). The database answers only the main admin.
+  let ci_ = { sub: 'all', type: '', rows: [], total: 0, allTotal: null, repeatedTotal: null, spTotal: 0, amountTotal: 0, error: '', missing: null, missingError: '', gap: 'all', openGap: '' };
+  let ciSeq_ = 0, ciMissingSeq_ = 0, ciSearchTimer_ = null;
+  const CI_PAGE_ = 100, CI_SHOW_NUMS_ = 120, CI_COPY_MAX_ = 3000;
+
+  function ciMissingFn_(msg) { return /could not find the function|schema cache|does not exist/i.test(String(msg || '')); }
+  function ciDbNote_() { return 'This needs the database update <strong>company_invoice_register.sql</strong>. Please run it in Supabase first.'; }
+  function ciRaw_(s) { return escapeHtml(String(s == null ? '' : s).replace(/\t/g, ' ⇥ ').replace(/[\u0000-\u001f]/g, '·')); }     // a tab / hidden character inside a saved number is made visible
+  function ciNo_(ser, n) { return ser.prefix + (Number(ser.width) > 0 ? String(n).padStart(Number(ser.width), '0') : String(n)) + (ser.suffix || ''); }
+
+  function ciOpen_() {
+    if (!isSuperAdminUser) return;
+    ciSub_(ci_.sub);                    // the sub tab that was open last, with fresh data
+  }
+  function ciRefresh_() { ciSub_(ci_.sub); }
+  function ciSub_(name) {
+    if (!isSuperAdminUser) return;
+    ci_.sub = name;
+    Array.prototype.forEach.call(document.querySelectorAll('#ciSubtabs .subtab'), function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
+    document.getElementById('ciListWrap').style.display = name === 'missing' ? 'none' : 'block';
+    document.getElementById('ciMissingWrap').style.display = name === 'missing' ? 'block' : 'none';
+    document.getElementById('ciListHeading').textContent = name === 'repeat' ? 'Company invoices used in more than one bill' : 'All company invoices';
+    if (name === 'missing') { ciLoadMissing_(false); ciLoadList_(false, true); }      // the other two sub tabs' counts are kept up to date from here too
+    else { ciLoadList_(false, false); ciLoadMissing_(true); }
+  }
+  function ciSetCounts_() {
+    const set = function (id, n) { const el = document.getElementById(id); if (el) el.textContent = (n === null || n === undefined) ? '' : ' (' + (n > 999 ? '999+' : n) + ')'; };
+    set('ciCountAll', ci_.allTotal);
+    set('ciCountRepeat', ci_.repeatedTotal);
+    set('ciCountMissing', ci_.missing ? Number(ci_.missing.gapTotal) || 0 : null);       // the number of gaps
+  }
+
+  // ----- All / Repeat: the list
+  function ciSetType_(t) {
+    ci_.type = t || '';
+    Array.prototype.forEach.call(document.querySelectorAll('#ciTypeChips .quickbtn'), function (b) { b.classList.toggle('on', (b.dataset.type || '') === ci_.type); });
+    ciLoadList_(false, false);
+  }
+  function ciSearchSoon_() { clearTimeout(ciSearchTimer_); ciSearchTimer_ = setTimeout(function () { ciLoadList_(false, false); }, 300); }
+  function ciAllTime_() { document.getElementById('ciFrom').value = ''; document.getElementById('ciTo').value = ''; ciLoadList_(false, false); }
+  function ciLoad_() { ciLoadList_(false, false); }
+  function ciMore_() { ciLoadList_(true, false); }
+  async function ciLoadList_(append, quiet) {
+    if (!isSuperAdminUser) return;
+    const mine = ++ciSeq_, box = document.getElementById('ciList');
+    if (!append && !quiet) box.innerHTML = '<div class="empty-cart">Loading…</div>';
+    const args = {
+      p_search: document.getElementById('ciSearch').value.trim() || null, p_type: ci_.type || null,
+      p_from: document.getElementById('ciFrom').value || null, p_to: document.getElementById('ciTo').value || null,
+      p_only_repeated: ci_.sub === 'repeat', p_limit: CI_PAGE_, p_offset: append ? ci_.rows.length : 0
+    };
+    let res;
+    try { res = await sb.rpc('get_company_invoice_register', args); } catch (e) { res = { data: null, error: { message: String((e && e.message) || e) } }; }
+    if (mine !== ciSeq_) return;                         // a newer answer is on its way (or already on screen)
+    if (res.error || !res.data) {
+      ci_.error = res.error ? String(res.error.message || '') : 'No answer';
+      if (ci_.sub !== 'missing') box.innerHTML = '<div class="empty-cart">' + (ciMissingFn_(ci_.error) ? ciDbNote_() : 'Could not load: ' + escapeHtml(ci_.error)) + '</div>';
+      document.getElementById('ciSummary').textContent = ''; document.getElementById('ciMoreBtn').style.display = 'none';
+      return;
+    }
+    const d = res.data; ci_.error = '';
+    ci_.rows = append ? ci_.rows.concat(d.rows || []) : (d.rows || []);
+    ci_.total = Number(d.total) || 0; ci_.allTotal = Number(d.allTotal) || 0; ci_.repeatedTotal = Number(d.repeatedTotal) || 0;
+    ci_.spTotal = Number(d.spTotal) || 0; ci_.amountTotal = Number(d.amountTotal) || 0;
+    ciSetCounts_();
+    if (ci_.sub !== 'missing') ciRenderList_();
+  }
+  function ciDsText_(x) { return (x.dsList || []).map(function (d) { return escapeHtml(d.dsId) + (d.dsName ? ' (' + escapeHtml(d.dsName) + ')' : ''); }).join(', '); }
+  function ciTypeBadges_(x) {
+    return (x.orderTypes || []).map(function (t) {
+      return t === 'Greening' ? '<span class="badge badge-paid">Green</span>' : '<span class="badge badge-partial">Repurchase' + ((x.saoSgo || []).length ? ' ' + escapeHtml(x.saoSgo.join('/')) : '') + '</span>';
+    }).join(' ');
+  }
+  function ciRowHtml_(x, i) {
+    const bills = x.bills || [], shown = bills.slice(0, 3).join(', ') + (bills.length > 3 ? ' +' + (bills.length - 3) + ' more' : '');
+    const several = (x.billCount || 0) > 1, manyDs = (x.dsList || []).length > 1;
+    return '<div class="list-row' + (several ? ' shared-inv' : '') + '" data-ci="' + i + '"><div style="min-width:0;">' +
+      '<div class="result-name" style="word-break:break-word;">' + (x.extraText ? escapeHtml(x.patternNo) : ciRaw_(x.companyInvoiceNo)) + '</div>' +
+      '<div style="margin:3px 0;">' + ciTypeBadges_(x) + (several ? ' <span class="badge badge-shared">🔗 ' + trimNum(x.billCount) + ' bills</span>' : '') + '</div>' +
+      '<div class="result-meta">DS ' + ciDsText_(x) + ' · ' + escapeHtml(fmtDayIst_(x.firstDate)) + '</div>' +
+      '<div class="result-meta" style="word-break:break-word;">' + escapeHtml(shown) + '</div>' +
+      (manyDs ? '<span class="ci-warn">⚠ ' + x.dsList.length + ' different DS IDs under this company invoice - please check</span>' : '') +
+      (x.extraText ? '<span class="ci-warn">⚠ saved with extra text: ' + ciRaw_(x.companyInvoiceNo) + '</span>' : '') + '</div>' +
+      '<div style="text-align:right;flex:none;"><div class="cart-amount"><div class="amt">' + trimNum(x.sp) + ' SP</div><div class="pts">' + money(x.amount) + '</div></div></div></div>';
+  }
+  function ciRenderList_() {
+    const box = document.getElementById('ciList'), sum = document.getElementById('ciSummary'), more = document.getElementById('ciMoreBtn');
+    const rows = ci_.rows || [], filtered = !!(document.getElementById('ciSearch').value.trim() || ci_.type || document.getElementById('ciFrom').value || document.getElementById('ciTo').value);
+    if (!rows.length) {
+      sum.textContent = ''; more.style.display = 'none';
+      box.innerHTML = '<div class="empty-cart">' + (ci_.sub === 'repeat' && !filtered ? 'No company invoice is used in more than one bill.' : (ci_.allTotal === 0 ? 'No company invoice no. has been entered in Official work yet.' : 'Nothing matches.')) + '</div>';
+      return;
+    }
+    sum.textContent = ci_.total + ' company invoice' + (ci_.total === 1 ? '' : 's') + ' · ' + trimNum(ci_.spTotal) + ' SP · ' + money(ci_.amountTotal) + ' (amount = DP value of the products used). Tap one to see its bills.';
+    box.innerHTML = rows.map(ciRowHtml_).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('.list-row'), function (row) { row.addEventListener('click', function () { const x = ci_.rows[Number(row.dataset.ci)]; if (x) ciOpenInvoice_(x.companyInvoiceNo); }); });
+    more.style.display = rows.length < ci_.total ? 'block' : 'none';
+    more.textContent = 'Show more (' + (ci_.total - rows.length) + ' more)';
+  }
+
+  // a tap on a company invoice: its bills + bill details (and Back simply returns to this tab)
+  function ciOpenInvoice_(raw) {
+    if (!isSuperAdminUser || !raw) return;
+    sharedInvDirect_ = true;
+    document.getElementById('sharedInvModal').classList.add('show');
+    sharedInvShowDetail_(raw);
+  }
+
+  // ----- Missing
+  function ciGapFilter_(g) {
+    ci_.gap = g;
+    Array.prototype.forEach.call(document.querySelectorAll('#ciGapChips .quickbtn'), function (b) { b.classList.toggle('on', b.dataset.gap === g); });
+    ci_.openGap = '';
+    ciRenderMissing_();
+  }
+  async function ciLoadMissing_(quiet) {
+    if (!isSuperAdminUser) return;
+    const mine = ++ciMissingSeq_;
+    if (!quiet) { document.getElementById('ciMissingHint').textContent = 'Loading…'; document.getElementById('ciMissingList').innerHTML = ''; document.getElementById('ciCheckCard').style.display = 'none'; }
+    let res;
+    try { res = await sb.rpc('get_company_invoice_missing'); } catch (e) { res = { data: null, error: { message: String((e && e.message) || e) } }; }
+    if (mine !== ciMissingSeq_) return;
+    if (res.error || !res.data) {
+      ci_.missing = null; ci_.missingError = res.error ? String(res.error.message || '') : 'No answer'; ciSetCounts_();
+      document.getElementById('ciMissingHint').innerHTML = ciMissingFn_(ci_.missingError) ? ciDbNote_() : 'Could not load: ' + escapeHtml(ci_.missingError);
+      document.getElementById('ciMissingList').innerHTML = ''; document.getElementById('ciCheckCard').style.display = 'none';
+      return;
+    }
+    ci_.missing = res.data; ci_.missingError = ''; ci_.openGap = '';
+    ciSetCounts_();
+    ciRenderMissing_();
+  }
+  function ciGapNumbers_(ser, g) {          // the missing numbers of one gap, written the company's way (long gaps: the first and the last ones)
+    const from = Number(g.from), to = Number(g.to), count = Number(g.count), out = [];
+    if (count <= CI_SHOW_NUMS_) { for (let n = from; n <= to; n++) out.push(ciNo_(ser, n)); return { list: out, cut: false }; }
+    const half = CI_SHOW_NUMS_ / 2;
+    for (let n = from; n < from + half; n++) out.push(ciNo_(ser, n));
+    out.push('…');
+    for (let n = to - half + 1; n <= to; n++) out.push(ciNo_(ser, n));
+    return { list: out, cut: true };
+  }
+  function ciRenderMissing_() {
+    const m = ci_.missing, box = document.getElementById('ciMissingList'), hint = document.getElementById('ciMissingHint');
+    if (!m) return;
+    const series = m.series || [], limit = ci_.gap === 'all' ? Infinity : Number(ci_.gap);
+    if (!series.length) {
+      hint.textContent = 'No company invoice no. with the usual pattern has been entered yet.'; box.innerHTML = '';
+    } else {
+      hint.textContent = (Number(m.gapTotal) ? trimNum(m.missingTotal) + ' number' + (Number(m.missingTotal) === 1 ? ' is' : 's are') + ' missing in ' + trimNum(m.gapTotal) + ' gap' + (Number(m.gapTotal) === 1 ? '' : 's') +
+        ' between the first and the last number of each series. Tap a gap to see the numbers and the company invoices before and after it.' : 'No number is missing in between.');
+      box.innerHTML = series.map(function (ser, si) {
+        const gaps = (ser.gaps || []).map(function (g, gi) { return { g: g, gi: gi }; }).filter(function (x) { return Number(x.g.count) <= limit; });
+        const head = '<h2 style="font-size:15px;margin-bottom:2px;word-break:break-word;">' + escapeHtml(ser.label) + '</h2>' +
+          '<p class="hint" style="margin-bottom:8px;">' + trimNum(ser.count) + ' number' + (Number(ser.count) === 1 ? '' : 's') + ' entered, from ' + escapeHtml(ser.minNo) + ' to ' + escapeHtml(ser.maxNo) + '. ' +
+          (Number(ser.gapCount) ? trimNum(ser.missingCount) + ' missing in ' + trimNum(ser.gapCount) + ' gap' + (Number(ser.gapCount) === 1 ? '' : 's') + (limit === Infinity ? '' : ' (' + gaps.length + ' shown)') + '.' : 'Nothing missing in between.') + '</p>';
+        const body = gaps.map(function (x) { return ciGapHtml_(ser, si, x.g, x.gi); }).join('') +
+          (ser.gapsCut ? '<p class="hint">Only the latest ' + (ser.gaps || []).length + ' gaps are shown.</p>' : '') +
+          ((Number(ser.gapCount) && !gaps.length) ? '<div class="empty-cart">No gap of up to ' + limit + ' numbers in this series.</div>' : '');
+        return '<div class="card ci-series">' + head + body + '</div>';
+      }).join('');
+      Array.prototype.forEach.call(box.querySelectorAll('.ci-gap'), function (el) {
+        el.addEventListener('click', function (e) {
+          if (e.target.closest('[data-ci-act]')) return;         // the buttons inside an open gap do their own thing
+          const key = el.dataset.si + ':' + el.dataset.gi; ci_.openGap = ci_.openGap === key ? '' : key; ciRenderMissing_();
+        });
+      });
+      Array.prototype.forEach.call(box.querySelectorAll('[data-ci-act]'), function (el) {
+        el.addEventListener('click', function (e) {
+          e.stopPropagation();
+          const ser = (ci_.missing.series || [])[Number(el.dataset.si)]; const g = ser && ser.gaps[Number(el.dataset.gi)]; if (!g) return;
+          if (el.dataset.ciAct === 'prev') ciOpenInvoice_(g.prevRaw); else if (el.dataset.ciAct === 'next') ciOpenInvoice_(g.nextRaw); else if (el.dataset.ciAct === 'copy') ciCopyGap_(ser, g);
+        });
+      });
+    }
+    // entries to check
+    const chk = m.check || [], card = document.getElementById('ciCheckCard');
+    if (!chk.length) { card.style.display = 'none'; }
+    else {
+      card.style.display = 'block';
+      document.getElementById('ciCheckHeading').textContent = 'Please check these entries (' + chk.length + ')';
+      document.getElementById('ciCheckList').innerHTML = chk.map(function (c, i) {
+        return '<div class="list-row" data-chk="' + i + '"><div style="min-width:0;"><div class="result-name" style="word-break:break-word;">' + ciRaw_(c.companyInvoiceNo) + '</div>' +
+          '<div class="result-meta">' + (c.problem === 'extraText' ? 'Extra text around the number. The company invoice no. in it is ' + escapeHtml(c.patternNo) : 'Does not follow the pattern PREFIX/NUMBER/YEAR (for example MAHA/003312/26-27)') + ' · ' + escapeHtml(fmtDayIst_(c.firstDate)) + '</div></div></div>';
+      }).join('');
+      Array.prototype.forEach.call(document.querySelectorAll('#ciCheckList .list-row'), function (row) {
+        row.addEventListener('click', function () { const c = (ci_.missing.check || [])[Number(row.dataset.chk)]; if (c) ciOpenInvoice_(c.companyInvoiceNo); });
+      });
+    }
+  }
+  function ciGapHtml_(ser, si, g, gi) {
+    const open = ci_.openGap === si + ':' + gi, count = Number(g.count);
+    const title = count === 1 ? escapeHtml(g.fromNo) : escapeHtml(g.fromNo) + ' → ' + escapeHtml(g.toNo);
+    let h = '<div class="ci-gap' + (open ? ' open' : '') + '" data-si="' + si + '" data-gi="' + gi + '"><div class="ci-gap-head"><div style="min-width:0;"><div class="result-name" style="word-break:break-word;">' + title + '</div>' +
+      '<div class="result-meta" style="word-break:break-word;">after ' + escapeHtml(g.prevNo) + ' (' + escapeHtml(fmtDayIst_(g.prevDate)) + ') · before ' + escapeHtml(g.nextNo) + ' (' + escapeHtml(fmtDayIst_(g.nextDate)) + ')</div></div>' +
+      '<span class="badge badge-unpaid">' + trimNum(count) + ' missing</span></div>';
+    if (open) {
+      const nums = ciGapNumbers_(ser, g);
+      h += '<div class="ci-nums">' + nums.list.map(function (t) { return '<span class="ps-chip' + (t === '…' ? ' dim' : '') + '">' + escapeHtml(t) + '</span>'; }).join('') + '</div>' +
+        (nums.cut ? '<p class="hint" style="margin:0 0 6px;">' + CI_SHOW_NUMS_ + ' of ' + trimNum(count) + ' numbers shown. Copy gives the whole list.</p>' : '') +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+        '<button type="button" class="quickbtn" style="margin-left:0;" data-ci-act="copy" data-si="' + si + '" data-gi="' + gi + '">Copy numbers</button>' +
+        '<button type="button" class="quickbtn" style="margin-left:0;" data-ci-act="prev" data-si="' + si + '" data-gi="' + gi + '">Open ' + escapeHtml(g.prevNo) + '</button>' +
+        '<button type="button" class="quickbtn" style="margin-left:0;" data-ci-act="next" data-si="' + si + '" data-gi="' + gi + '">Open ' + escapeHtml(g.nextNo) + '</button></div>';
+    }
+    return h + '</div>';
+  }
+  async function ciCopyGap_(ser, g) {
+    const from = Number(g.from), to = Number(g.to), lines = [];
+    for (let n = from; n <= to && lines.length < CI_COPY_MAX_; n++) lines.push(ciNo_(ser, n));
+    try { await navigator.clipboard.writeText(lines.join('\n')); showToast(lines.length + ' number' + (lines.length === 1 ? '' : 's') + ' copied.' + (Number(g.count) > lines.length ? ' (the first ' + lines.length + ')' : '')); }
+    catch (e) { showToast('Could not copy here - select the numbers instead.', true); }
   }
 
   // ---------------- OFFICIAL WORK TAB ----------------
