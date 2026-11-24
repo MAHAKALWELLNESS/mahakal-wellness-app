@@ -196,7 +196,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   .sb-inner{max-width:520px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:12px;}
   .sb-lbl{font-size:12px; color:var(--ink-faint); font-weight:600;}
   .sb-sp{font-size:13px; font-weight:700; color:var(--gold-600);}
-  .sb-amt{font-size:22px; font-weight:800; color:var(--green-800);}
+  .sb-amt{font-size:22px; font-weight:800; color:var(--green-800); min-width:0; text-align:right; overflow-wrap:anywhere;}
   #legalFoot{text-align:center; margin:6px 16px 30px; font-size:12.5px; color:var(--ink-soft);}
   #legalFoot a{color:inherit; text-decoration:underline;}
   #printSheet{display:none;}
@@ -226,6 +226,88 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     #printSheet .ps-tot td{border:0; padding:3px 6px;}
     #printSheet .ps-tot .ps-pay td{font-weight:800; font-size:14px; border-top:2px solid #000; padding-top:6px;}
     #printSheet .ps-note{margin-top:14px; color:#555; font-size:11px;}
+    #printSheet .bd-meta{display:flex; justify-content:space-between; margin:0 0 8px; color:#222;}
+    #printSheet .bd-cust{margin:0 0 10px; line-height:1.55;}
+    #printSheet .bd-cust span{display:inline-block; min-width:70px; color:#555;}
+    #printSheet .bd-code{display:block; font-size:10.5px; color:#555;}
+    #printSheet .bd-rem{margin-top:10px;}
+  }
+</style>
+<style id="mwCalcViewsCss">
+  /* ---- the three tabs: Calculator / Product List / Bill ---- */
+  [hidden]{display:none !important;}
+  .seg-wrap{position:sticky; top:0; z-index:30; margin:-16px -16px 12px; padding:10px 16px 8px; background:rgba(246,245,241,.94); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);}
+  .seg{display:flex; gap:4px; padding:4px; background:#fff; border:1.5px solid var(--line); border-radius:14px;}
+  .seg-btn{flex:1; min-width:0; padding:10px 4px; border:none; border-radius:10px; background:transparent; font-family:inherit; font-size:13px; font-weight:700; color:var(--ink-soft); cursor:pointer; white-space:nowrap;}
+  .seg-btn.on{background:var(--green-800); color:#fff;}
+  html.embed .seg-wrap{margin-top:-12px;}
+  /* product list */
+  .pl-card{padding:4px 14px;}
+  .pl-row{display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--line);}
+  .pl-row:last-child{border-bottom:none;}
+  .pl-main{flex:1; min-width:0;}
+  .pl-name{font-size:13.5px; font-weight:600; overflow-wrap:anywhere;}
+  .pl-meta{font-size:11.5px; color:var(--ink-faint);}
+  .pl-prices{display:flex; flex-wrap:wrap; gap:2px 12px; margin-top:3px; font-size:12px; color:var(--ink-faint);}
+  .pl-prices b{font-weight:700; color:var(--ink-soft);}
+  .pl-prices .sp b{color:var(--gold-600);}
+  #plList.m-ret .pl-p.mrp b, #plList.m-dist .pl-p.dp b{color:var(--green-800); font-size:13px;}
+  .pl-ctl{flex:none; display:flex; align-items:center;}
+  .pl-add{padding:8px 14px; border:1.5px solid var(--green-800); border-radius:10px; background:#fff; color:var(--green-800); font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; white-space:nowrap;}
+  .pl-add:active{background:var(--green-100);}
+  .pl-row .qty-input{width:50px;}
+  .pl-empty{padding:22px 0; text-align:center; color:var(--ink-faint); font-size:13px;}
+  /* bill */
+  .chip-row.flex{display:flex; gap:8px;}
+  .chip-row.flex .chip{flex:0 0 calc((100% - 16px) / 3); padding:10px 6px;}
+  details.fold{margin-top:14px; border:1.5px solid var(--line); border-radius:12px; padding:0 12px; background:#fff;}
+  details.fold > summary{cursor:pointer; padding:11px 0; font-size:13px; font-weight:700; color:var(--green-800); list-style:none;}
+  details.fold > summary::-webkit-details-marker{display:none;}
+  details.fold[open] > summary{border-bottom:1px solid var(--line); margin-bottom:12px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .bill-note{margin:10px 0 0;}
+  #cardBillPrev, #cardTotals{scroll-margin-top:76px;}                                       /* when the bottom bar scrolls to it, it must not hide under the tabs */
+  .bill-prev .bd{background:#fff; border:1.5px solid var(--line); border-radius:12px; padding:14px 12px;}
+  .bill-prev h1{font-size:18px; margin:0 0 2px; color:var(--green-900); overflow-wrap:anywhere;}
+  .bill-prev .ps-sub{margin:0 0 8px; font-size:12px; color:var(--ink-soft);}
+  .bill-prev .bd-meta{display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; font-size:12.5px; color:var(--ink-soft); margin:0 0 8px;}
+  .bill-prev .bd-meta b{color:#222;}
+  .bill-prev .bd-cust{background:var(--bg); border-radius:10px; padding:8px 10px; font-size:12.5px; margin:0 0 10px; line-height:1.6;}
+  .bill-prev .bd-cust span{display:inline-block; min-width:68px; color:var(--ink-faint);}
+  .bill-prev .bd-cust b{overflow-wrap:anywhere;}
+  .bill-prev .bd-tw{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .bill-prev table{width:100%; border-collapse:collapse; font-size:12px;}
+  .bill-prev th, .bill-prev td{border-bottom:1px solid var(--line); padding:6px 5px; text-align:left; vertical-align:top;}
+  .bill-prev th{background:var(--bg); font-weight:700; white-space:nowrap;}
+  .bill-prev td.pc{min-width:140px;}
+  .bill-prev .r{text-align:right; white-space:nowrap;}
+  .bill-prev .bd-code{display:block; font-size:10.5px; color:var(--ink-faint);}
+  .bill-prev .ps-tot{margin-top:10px;}
+  .bill-prev .ps-tot td{border:0; padding:3px 5px; font-size:12.5px;}
+  .bill-prev .ps-tot td.r{font-weight:700;}
+  .bill-prev .ps-tot .ps-pay td{font-weight:800; font-size:15px; border-top:2px solid var(--green-800); padding-top:7px; color:var(--green-800);}
+  .bill-prev .bd-rem{font-size:12.5px; margin:10px 0 0; overflow-wrap:anywhere;}
+  .bill-prev .ps-note{font-size:11px; color:var(--ink-faint); margin:10px 0 0;}
+  @media screen{
+    html.nl .seg-wrap{background:rgba(238,241,255,.9);}
+    html.nl .seg{background:#fff; border:2px solid #DAD6FF; border-radius:18px; box-shadow:0 4px 0 #E4E0FF;}
+    html.nl .seg-btn{border-radius:14px; font-weight:800; color:#4B5275;}
+    html.nl .seg-btn.on{background:linear-gradient(180deg,#8B7BFF,#5B3FE0); color:#fff; box-shadow:0 3px 0 #3A2BB0, 0 6px 12px rgba(91,63,224,.3);}
+    html.nl .pl-card{padding:4px 14px;}
+    html.nl .pl-row{border-bottom:1px dashed #D8D3FF;}
+    html.nl .pl-name{color:#2B1F8F;}
+    html.nl .pl-prices .sp b{color:#B85F00;}
+    html.nl #plList.m-ret .pl-p.mrp b, html.nl #plList.m-dist .pl-p.dp b{color:#D9480F;}
+    html.nl .pl-add{border:2px solid #C9C3FF; border-radius:12px; color:#4B3FD0; background:linear-gradient(180deg,#FFFFFF,#F1EFFF); box-shadow:0 3px 0 #D6D1FF; font-weight:800;}
+    html.nl .pl-add:active{transform:translateY(2px); box-shadow:0 1px 0 #D6D1FF;}
+    html.nl details.fold{border:2px solid #DAD6FF; border-radius:16px; background:#FBFAFF;}
+    html.nl details.fold > summary{color:#4B3FD0; font-weight:800;}
+    html.nl details.fold[open] > summary{border-bottom-color:#DAD6FF;}
+    html.nl .bill-prev .bd{border:2px solid #DAD6FF; border-radius:16px; background:#fff;}
+    html.nl .bill-prev h1{color:#2B1F8F;}
+    html.nl .bill-prev th{background:#EEEAFF; color:#2B1F8F;}
+    html.nl .bill-prev .bd-cust{background:#F4F1FF;}
+    html.nl .bill-prev .ps-tot .ps-pay td{color:#D9480F; border-top-color:#D9480F;}
   }
 </style>
 </head>
@@ -265,51 +347,155 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   </div>
 
   <main id="mainArea">
-    <div class="card" id="cardMode">
-      <p class="section-label">Price type</p>
-      <div class="chip-row" role="group" aria-label="Price type">
-        <button type="button" class="chip on" id="chipRetail" aria-pressed="true" onclick="setMode_('Retail')">Retail <small>(MRP)</small></button>
-        <button type="button" class="chip" id="chipDist" aria-pressed="false" onclick="setMode_('Distributor')">Distributor <small>(DP)</small></button>
-      </div>
-      <div class="field" id="discField" style="margin:12px 0 0;">
-        <label for="discInput">Discount % (max 5%)</label>
-        <input type="number" id="discInput" min="0" max="5" step="0.5" inputmode="decimal" placeholder="0" oninput="onDiscInput_()">
+    <div class="seg-wrap">
+      <div class="seg" id="viewTabs" role="tablist" aria-label="Calculator, product list and bill">
+        <button type="button" class="seg-btn on" id="tabCalc" role="tab" aria-selected="true" aria-controls="viewCalc" onclick="showView_('calc')">Calculator</button>
+        <button type="button" class="seg-btn" id="tabList" role="tab" aria-selected="false" aria-controls="viewList" onclick="showView_('list')">Product List</button>
+        <button type="button" class="seg-btn" id="tabBill" role="tab" aria-selected="false" aria-controls="viewBill" onclick="showView_('bill')">Bill</button>
       </div>
     </div>
 
-    <div class="card" id="cardSearch">
-      <div class="card-head">
-        <p class="section-label">Search products</p>
-        <button type="button" class="copy-btn" id="refreshBtn" onclick="refreshProducts_(true)">↻ Refresh</button>
+    <!-- 1. Calculator: pick products, see the totals -->
+    <section id="viewCalc" role="tabpanel" aria-labelledby="tabCalc">
+      <div class="card" id="cardMode">
+        <p class="section-label">Price type</p>
+        <div class="chip-row" role="group" aria-label="Price type">
+          <button type="button" class="chip on" id="chipRetail" aria-pressed="true" onclick="setMode_('Retail')">Retail <small>(MRP)</small></button>
+          <button type="button" class="chip" id="chipDist" aria-pressed="false" onclick="setMode_('Distributor')">Distributor <small>(DP)</small></button>
+        </div>
+        <div class="field" id="discField" style="margin:12px 0 0;">
+          <label for="discInput">Discount % (max 5%)</label>
+          <input type="number" id="discInput" min="0" max="5" step="0.5" inputmode="decimal" placeholder="0" oninput="onDiscInput_(this)">
+        </div>
       </div>
-      <div class="field" style="margin:0;">
-        <input type="text" id="searchInput" placeholder="e.g. product code or name…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search products by code or name" oninput="renderSearch_(this.value)" onkeydown="searchKeydown_(event)">
+
+      <div class="card" id="cardSearch">
+        <div class="card-head">
+          <p class="section-label">Search products</p>
+          <button type="button" class="copy-btn" id="refreshBtn" onclick="refreshProducts_(true)">↻ Refresh</button>
+        </div>
+        <div class="field" style="margin:0;">
+          <input type="text" id="searchInput" placeholder="e.g. product code or name…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search products by code or name" oninput="renderSearch_(this.value)" onkeydown="searchKeydown_(event)">
+        </div>
+        <div id="searchResults" class="search-results"></div>
+        <p class="hint" id="listStatus" role="status" style="margin-top:10px;">Loading the product list…</p>
+        <div class="box warn" id="staleBox" style="display:none;"></div>
       </div>
-      <div id="searchResults" class="search-results"></div>
-      <p class="hint" id="listStatus" role="status" style="margin-top:10px;">Loading the product list…</p>
-      <div class="box warn" id="staleBox" style="display:none;"></div>
-    </div>
 
-    <div class="card" id="cardCart">
-      <p class="section-label" id="cartHeading">Your list (0 items)</p>
-      <div id="cartList"><div class="empty-cart">Search above and tap a product to add it.</div></div>
-    </div>
-
-    <div class="card" id="cardTotals" style="display:none;">
-      <p class="section-label">Totals</p>
-      <div id="totalsBody"></div>
-      <div class="total-row"><span class="lbl" id="payLbl">You pay</span><span class="val" id="payVal">₹0</span></div>
-    </div>
-
-    <div class="card" id="cardShare" style="display:none;">
-      <p class="section-label">Share or save</p>
-      <div class="act-grid">
-        <button type="button" class="btn btn-gold" id="btnWa" onclick="openShareChooser_()">💬 WhatsApp</button>
-        <button type="button" class="btn btn-outline" id="btnCopy" onclick="copyText_()">📋 Copy</button>
-        <button type="button" class="btn btn-outline" id="btnPrint" onclick="printSheet_()">🖨️ PDF / Print</button>
-        <button type="button" class="btn btn-outline" id="btnClear" onclick="clearAll_()">🗑️ Clear all</button>
+      <div class="card" id="cardCart">
+        <p class="section-label" id="cartHeading">Your list (0 items)</p>
+        <div id="cartList"><div class="empty-cart">Search above and tap a product to add it.</div></div>
       </div>
-    </div>
+
+      <div class="card" id="cardTotals" style="display:none;">
+        <p class="section-label">Totals</p>
+        <div id="totalsBody"></div>
+        <div class="total-row"><span class="lbl" id="payLbl">You pay</span><span class="val" id="payVal">₹0</span></div>
+        <button type="button" class="btn btn-gold" id="btnMakeBill" style="margin-top:14px;" onclick="showView_('bill')">🧾 Make bill</button>
+      </div>
+
+      <div class="card" id="cardShare" style="display:none;">
+        <p class="section-label">Share or save</p>
+        <div class="act-grid">
+          <button type="button" class="btn btn-gold" id="btnWa" onclick="openShareChooser_('calc')">💬 WhatsApp</button>
+          <button type="button" class="btn btn-outline" id="btnCopy" onclick="copyText_()">📋 Copy</button>
+          <button type="button" class="btn btn-outline" id="btnPrint" onclick="printSheet_()">🖨️ PDF / Print</button>
+          <button type="button" class="btn btn-outline" id="btnClear" onclick="clearAll_()">🗑️ Clear all</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Product List: every product with MRP, DP and SP (the same public list), add straight from here -->
+    <section id="viewList" role="tabpanel" aria-labelledby="tabList" hidden>
+      <div class="card" id="cardPlHead">
+        <div class="card-head">
+          <p class="section-label" id="plHeading">Product list</p>
+          <button type="button" class="copy-btn" id="plRefreshBtn" onclick="refreshProducts_(true)">↻ Refresh</button>
+        </div>
+        <div class="field" style="margin:0;">
+          <input type="text" id="plSearch" placeholder="Search by name or code…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search the product list" oninput="renderPl_()">
+        </div>
+        <p class="hint" id="plStatus" role="status" style="margin-top:10px;">Loading the product list…</p>
+        <div class="box warn" id="plStale" style="display:none;"></div>
+      </div>
+      <div class="card pl-card" id="cardPl"><div id="plList" class="m-ret"></div></div>
+    </section>
+
+    <!-- 3. Bill: customer name / mobile / ID, a bill to send by WhatsApp, email, image or PDF -->
+    <section id="viewBill" role="tabpanel" aria-labelledby="tabBill" hidden>
+      <div class="card" id="cardBillCust">
+        <p class="section-label">Customer details</p>
+        <div class="field">
+          <label for="bCustName">Customer name</label>
+          <input type="text" id="bCustName" maxlength="80" autocomplete="off" placeholder="e.g. Ramesh Kumar" enterkeyhint="next" oninput="onBillField_(this)">
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="bCustMobile">Mobile number</label>
+            <input type="tel" id="bCustMobile" inputmode="numeric" maxlength="15" autocomplete="off" placeholder="10-digit mobile" enterkeyhint="next" oninput="onBillField_(this)">
+          </div>
+          <div class="field">
+            <label for="bCustId">ID number</label>
+            <input type="text" id="bCustId" maxlength="30" autocomplete="off" autocapitalize="characters" placeholder="DS / customer ID" enterkeyhint="next" oninput="onBillField_(this)">
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label for="bRemark">Remark <span class="opt">(optional)</span></label>
+          <input type="text" id="bRemark" maxlength="160" autocomplete="off" placeholder="e.g. delivery on Friday" enterkeyhint="done" oninput="onBillField_(this)">
+        </div>
+      </div>
+
+      <div class="card" id="cardBillOpts">
+        <p class="section-label">Bill type</p>
+        <div class="chip-row" role="group" aria-label="Price type of the bill">
+          <button type="button" class="chip on" id="bChipRetail" aria-pressed="true" onclick="setMode_('Retail')">Retail <small>(MRP)</small></button>
+          <button type="button" class="chip" id="bChipDist" aria-pressed="false" onclick="setMode_('Distributor')">Distributor <small>(DP)</small></button>
+        </div>
+        <div class="field" id="bDiscField" style="margin:12px 0 0;">
+          <label for="bDiscInput">Discount % (max 5%)</label>
+          <input type="number" id="bDiscInput" min="0" max="5" step="0.5" inputmode="decimal" placeholder="0" oninput="onDiscInput_(this)">
+        </div>
+        <p class="section-label" style="margin:16px 0 8px;">Show on the bill</p>
+        <div class="chip-row flex" role="group" aria-label="Columns on the bill">
+          <button type="button" class="chip on" id="bColSp" aria-pressed="true" onclick="toggleBillCol_('sp')">SP</button>
+          <button type="button" class="chip" id="bColMrp" aria-pressed="false" onclick="toggleBillCol_('mrp')">MRP</button>
+          <button type="button" class="chip" id="bColProfit" aria-pressed="false" onclick="toggleBillCol_('profit')">Profit</button>
+        </div>
+        <p class="hint bill-note" id="bColHint"></p>
+        <div class="field" style="margin:14px 0 0;">
+          <label for="bNo">Bill no.</label>
+          <input type="text" id="bNo" maxlength="20" autocomplete="off" placeholder="0001" oninput="onBillField_(this)">
+        </div>
+        <details class="fold" id="sellerFold">
+          <summary>Your shop details (shown at the top of the bill)</summary>
+          <div class="field">
+            <label for="bShopName">Shop / business name</label>
+            <input type="text" id="bShopName" maxlength="60" autocomplete="off" placeholder="Mahakal Wellness" enterkeyhint="next" oninput="onBillField_(this)">
+          </div>
+          <div class="field">
+            <label for="bShopMobile">Your mobile number</label>
+            <input type="tel" id="bShopMobile" inputmode="numeric" maxlength="15" autocomplete="off" placeholder="10-digit mobile" enterkeyhint="done" oninput="onBillField_(this)">
+          </div>
+        </details>
+      </div>
+
+      <div class="card" id="cardBillPrev">
+        <p class="section-label">Bill preview</p>
+        <div id="billPreview" class="bill-prev"></div>
+      </div>
+
+      <div class="card" id="cardBillShare">
+        <p class="section-label">Send or save the bill</p>
+        <div class="act-grid">
+          <button type="button" class="btn btn-gold" id="bBtnWa" onclick="openShareChooser_('bill')">💬 WhatsApp</button>
+          <button type="button" class="btn btn-outline" id="bBtnMail" onclick="emailBill_()">✉️ Email</button>
+          <button type="button" class="btn btn-outline" id="bBtnImg" onclick="imageBill_()">🖼️ Image</button>
+          <button type="button" class="btn btn-outline" id="bBtnPdf" onclick="printBill_()">🖨️ PDF / Print</button>
+          <button type="button" class="btn btn-outline" id="bBtnCopy" onclick="copyBill_()">📋 Copy</button>
+          <button type="button" class="btn btn-outline" id="bBtnNew" onclick="newBill_()">➕ New bill</button>
+        </div>
+      </div>
+    </section>
   </main>
 
   <p id="legalFoot"><a href="privacy.html">Privacy Policy</a></p>
@@ -329,9 +515,11 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   const SUPABASE_KEY = 'sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP';
   const LS_PRODUCTS = 'mwCalcProducts';      // the saved price list (so the calculator also works with no internet)
   const LS_STATE = 'mwCalcState';            // price type, discount and the list being calculated
+  const LS_BILL = 'mwCalcBill';              // the bill: your shop name + mobile, the customer, the bill number, the columns shown (kept on this phone only)
   const CALC_CACHE = 'mw-calc-v1';           // the page itself, kept for offline use (sw.js reads the same cache)
   const MAX_QTY = 99999, MAX_DISC = 5;
   const FETCH_TIMEOUT_MS = 15000, REFRESH_AFTER_MS = 6 * 3600 * 1000, STALE_AFTER_MS = 2 * 86400000;
+  const MAIL_MAX = 7000;                     // the longest mailto: address (letters) a phone's mail app takes without trouble
   const EMBED = document.documentElement.classList.contains('embed');
 
   let PRODUCTS = [];                         // [{code, name, mrp, dp, sp}] in the order the server sent them
@@ -340,6 +528,11 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   let MODE = 'Retail', DISC = 0;
   let CART = [];                             // [{code, qty}] in the order the products were added
   let SEARCH_MATCHES = [], SEARCH_ACTIVE = -1, PENDING = null, CLEAR_ARMED = false, CLEAR_TIMER = null;
+  let VIEW = 'calc';                         // which tab is open: calc / list / bill
+  let PL_SIG = '', PL_DIRTY = true, LIST_EL = Object.create(null), LIST_Q = Object.create(null);   // Product List tab: what the list was built from, the row of each code, the quantity each row shows
+  let SHARE_KIND = 'calc', NEWBILL_ARMED = false, NEWBILL_TIMER = null;
+  const BILL_MAX = { sname: 60, smobile: 10, name: 80, mobile: 10, id: 30, remark: 160, no: 20 };
+  let BILL = { seller: { name: '', mobile: '' }, cust: { name: '', mobile: '', id: '', remark: '' }, no: '0001', sp: true, mrp: false, profit: false };
 
   // ---- same helpers as the order form (so a total here is written exactly like the order form's total)
   function escapeHtml(s) {
@@ -371,6 +564,29 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   }
   function saveState_() {
     lsSet_(LS_STATE, JSON.stringify({ v: 1, mode: MODE, disc: DISC, cart: CART.map(function (l) { return [l.code, l.qty]; }) }));
+  }
+
+  // the bill details (customer, your shop, bill number, the columns shown) - typed text is kept as typed, it is trimmed only when the bill is made
+  function str_(v, max) { return v == null ? '' : String(v).replace(/[\u0000-\u001f\u007f]/g, ' ').slice(0, max); }
+  // a mobile number is digits only, 10 at most, a +91 or 0 in front dropped - the rule of every mobile box of the app. The shared script at the end of the page (id="mwPhone") applies the same rule while typing;
+  // this copy does not wait for it, because the saved bill is read before that script has run (a test keeps the two in step)
+  function phone_(v) {
+    let d = String(v == null ? '' : v).replace(/\D/g, '');
+    if (d.length === 12 && d.slice(0, 2) === '91') d = d.slice(2); else if (d.length === 11 && d.charAt(0) === '0') d = d.slice(1);
+    return d.slice(0, 10);
+  }
+  function loadBill_() {
+    const s = lsJson_(LS_BILL);
+    if (!s || typeof s !== 'object') return;
+    const sl = (s.seller && typeof s.seller === 'object') ? s.seller : {}, cu = (s.cust && typeof s.cust === 'object') ? s.cust : {};
+    BILL.seller.name = str_(sl.name, BILL_MAX.sname); BILL.seller.mobile = phone_(sl.mobile);
+    BILL.cust.name = str_(cu.name, BILL_MAX.name); BILL.cust.mobile = phone_(cu.mobile);
+    BILL.cust.id = str_(cu.id, BILL_MAX.id); BILL.cust.remark = str_(cu.remark, BILL_MAX.remark);
+    BILL.no = typeof s.no === 'string' ? str_(s.no, BILL_MAX.no) : '0001';
+    BILL.sp = s.sp !== false; BILL.mrp = s.mrp === true; BILL.profit = s.profit === true;
+  }
+  function saveBill_() {
+    lsSet_(LS_BILL, JSON.stringify({ v: 1, seller: BILL.seller, cust: BILL.cust, no: BILL.no, sp: BILL.sp, mrp: BILL.mrp, profit: BILL.profit }));
   }
 
   // a price list from the server or from the phone: only well-formed rows are used
@@ -423,15 +639,19 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     });
   }
 
+  function listSig_(list) { return list.length + '|' + list.map(function (p) { return p.code + '~' + p.name + '~' + p.mrp + '~' + p.dp + '~' + p.sp; }).join('|'); }
   function applyProducts_(list, at, src) {
+    const sig = listSig_(list);
     PRODUCTS = list; BYCODE = Object.create(null);
     list.forEach(function (p) { BYCODE[p.code] = p; });
     LIST_AT = at; LIST_SRC = src; FETCHING = false;
+    if (sig !== PL_SIG) { PL_SIG = sig; PL_DIRTY = true; }               // the Product List tab is built again only when the list itself changed (a fresh copy of the same list changes nothing on the screen)
     const before = CART.length;
     CART = CART.filter(function (l) { return BYCODE[l.code]; });         // a product that is no longer on the list cannot be priced
     const dropped = before - CART.length;
     if (dropped) saveState_();
     renderListStatus_(); renderSearch_(document.getElementById('searchInput').value); renderCart_();
+    if (VIEW === 'list' && PL_DIRTY) renderPl_();
     if (dropped) toast_(dropped + (dropped === 1 ? ' item' : ' items') + ' hata diye (ab price list me nahi hain)');
     return dropped;
   }
@@ -464,8 +684,12 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     el.textContent = txt;
     btn.disabled = FETCHING;
     const age = Date.now() - LIST_AT, old = PRODUCTS.length > 0 && LIST_SRC !== 'fresh' && age > STALE_AFTER_MS;
+    const staleTxt = old ? 'These prices were saved ' + Math.floor(age / 86400000) + ' days ago and may have changed. Connect to the internet once to get the latest prices.' : '';
     stale.style.display = old ? 'block' : 'none';
-    stale.textContent = old ? 'These prices were saved ' + Math.floor(age / 86400000) + ' days ago and may have changed. Connect to the internet once to get the latest prices.' : '';
+    stale.textContent = staleTxt;
+    document.getElementById('plStatus').textContent = txt;                       // the same line on the Product List tab
+    document.getElementById('plRefreshBtn').disabled = FETCHING;
+    const pst = document.getElementById('plStale'); pst.style.display = old ? 'block' : 'none'; pst.textContent = staleTxt;
   }
 
   // ---- price type + discount
@@ -476,19 +700,27 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     renderSearch_(document.getElementById('searchInput').value); renderCart_();
   }
   function syncModeUi_() {
-    const r = document.getElementById('chipRetail'), d = document.getElementById('chipDist');
-    r.classList.toggle('on', MODE === 'Retail'); r.setAttribute('aria-pressed', MODE === 'Retail' ? 'true' : 'false');
-    d.classList.toggle('on', MODE === 'Distributor'); d.setAttribute('aria-pressed', MODE === 'Distributor' ? 'true' : 'false');
-    document.getElementById('discField').style.display = MODE === 'Retail' ? 'block' : 'none';
-    document.getElementById('discInput').value = DISC > 0 ? trimNum(DISC) : '';
+    [['chipRetail', 'chipDist', 'discField', 'discInput'], ['bChipRetail', 'bChipDist', 'bDiscField', 'bDiscInput']].forEach(function (ids) {   // Calculator tab, Bill tab
+      const r = document.getElementById(ids[0]), d = document.getElementById(ids[1]);
+      r.classList.toggle('on', MODE === 'Retail'); r.setAttribute('aria-pressed', MODE === 'Retail' ? 'true' : 'false');
+      d.classList.toggle('on', MODE === 'Distributor'); d.setAttribute('aria-pressed', MODE === 'Distributor' ? 'true' : 'false');
+      document.getElementById(ids[2]).style.display = MODE === 'Retail' ? 'block' : 'none';
+      document.getElementById(ids[3]).value = DISC > 0 ? trimNum(DISC) : '';
+    });
+    const pl = document.getElementById('plList');                                                    // the Product List tab stresses the price of the chosen type
+    pl.classList.toggle('m-ret', MODE !== 'Distributor'); pl.classList.toggle('m-dist', MODE === 'Distributor');
+    syncBillCols_();
   }
-  function onDiscInput_() {
-    const el = document.getElementById('discInput');
+  function onDiscInput_(el) {
+    el = (el && el.id) ? el : document.getElementById('discInput');
     let v = Number(el.value);
     if (!isFinite(v) || v < 0) v = 0;
     if (v > MAX_DISC) { v = MAX_DISC; el.value = String(MAX_DISC); }
     if (el.value !== '' && Number(el.value) < 0) el.value = '0';
-    DISC = v; saveState_(); recalc_();
+    DISC = v;
+    const other = document.getElementById(el.id === 'bDiscInput' ? 'discInput' : 'bDiscInput');      // the other tab's box shows the same discount
+    if (other && other.value !== el.value) other.value = el.value;
+    saveState_(); recalc_();
   }
 
   // ---- the same sums as the order form: Retail = MRP (less the discount, rounded to a whole rupee), Distributor = DP, SP = quantity x SP
@@ -529,12 +761,8 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     else if (e.key === 'ArrowUp') { e.preventDefault(); setSearchActive_(Math.max(SEARCH_ACTIVE - 1, 0)); }
     else if (e.key === 'Enter') { e.preventDefault(); promptQty_(SEARCH_MATCHES[SEARCH_ACTIVE > -1 ? SEARCH_ACTIVE : 0].code); }
   }
-  function renderSearch_(q) {
-    const box = document.getElementById('searchResults');
+  function findProducts_(q) {                                                      // the products that match what was typed, the best match first
     q = String(q || '').trim().toLowerCase();
-    SEARCH_MATCHES = []; SEARCH_ACTIVE = -1;
-    if (!q) { box.innerHTML = ''; return; }
-    if (!PRODUCTS.length) { box.innerHTML = '<p class="hint" style="padding:10px 0;">The product list is not loaded yet.</p>'; return; }
     const toks = q.split(/\s+/).filter(Boolean), hits = [];
     PRODUCTS.forEach(function (p) {
       const code = p.code.toLowerCase(), name = p.name.toLowerCase(), hay = code + ' ' + name;
@@ -542,8 +770,17 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
       hits.push({ p: p, rank: code === q ? 0 : code.indexOf(q) === 0 ? 1 : name.indexOf(q) === 0 ? 2 : 3, i: hits.length });
     });
     hits.sort(function (a, b) { return a.rank - b.rank || a.i - b.i; });         // exact code first, then code / name starting with it, then the rest
+    return hits.map(function (h) { return h.p; });
+  }
+  function renderSearch_(q) {
+    const box = document.getElementById('searchResults');
+    q = String(q || '').trim().toLowerCase();
+    SEARCH_MATCHES = []; SEARCH_ACTIVE = -1;
+    if (!q) { box.innerHTML = ''; return; }
+    if (!PRODUCTS.length) { box.innerHTML = '<p class="hint" style="padding:10px 0;">The product list is not loaded yet.</p>'; return; }
+    const hits = findProducts_(q);
     if (!hits.length) { box.innerHTML = '<p class="hint" style="padding:10px 0;">No products found for "' + escapeHtml(q) + '".</p>'; return; }
-    const shown = hits.slice(0, 20).map(function (h) { return h.p; });
+    const shown = hits.slice(0, 20);
     box.innerHTML = shown.map(function (p) {
       return '<div class="search-row" role="option" data-code="' + escapeHtml(p.code) + '">' +
         '<div><div class="search-name">' + escapeHtml(p.name) + '</div><div class="search-meta">#' + escapeHtml(p.code) + ' · ' + trimNum(p.sp) + ' SP</div></div>' +
@@ -659,14 +896,379 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('qty-input')) { e.preventDefault(); e.target.blur(); }
   }
 
+  // ---- Product List tab: every product with MRP, DP and SP; a product is added (and its quantity changed) right here
+  function cartMap_() { const m = Object.create(null); CART.forEach(function (l) { m[l.code] = l.qty; }); return m; }
+  function plCtlHtml_(p, qty) {
+    if (!(qty > 0)) return '<button type="button" class="pl-add" data-act="add" aria-label="Add ' + escapeHtml(p.name) + '">+ Add</button>';
+    return '<div class="qty-ctrl">' +
+      '<button type="button" class="qty-btn" data-act="dec" aria-label="Decrease quantity">−</button>' +
+      '<input type="number" class="qty-input" inputmode="numeric" min="0" step="1" value="' + qty + '" aria-label="Quantity of ' + escapeHtml(p.name) + '">' +
+      '<button type="button" class="qty-btn" data-act="inc" aria-label="Increase quantity">+</button></div>';
+  }
+  function plRowHtml_(p, qty) {
+    return '<div class="pl-row" data-code="' + escapeHtml(p.code) + '">' +
+      '<div class="pl-main"><div class="pl-name">' + escapeHtml(p.name) + '</div><div class="pl-meta">#' + escapeHtml(p.code) + '</div>' +
+      '<div class="pl-prices"><span class="pl-p mrp">MRP <b>' + money(p.mrp) + '</b></span><span class="pl-p dp">DP <b>' + money(p.dp) + '</b></span><span class="pl-p sp">SP <b>' + trimNum(p.sp) + '</b></span></div></div>' +
+      '<div class="pl-ctl">' + plCtlHtml_(p, qty) + '</div></div>';
+  }
+  function renderPl_() {
+    const box = document.getElementById('plList'), head = document.getElementById('plHeading');
+    const q = String(document.getElementById('plSearch').value || '').trim();
+    LIST_EL = Object.create(null); LIST_Q = Object.create(null); PL_DIRTY = false;
+    if (!PRODUCTS.length) { head.textContent = 'Product list'; box.innerHTML = '<div class="pl-empty">The product list is not loaded yet.</div>'; return; }
+    const hits = q ? findProducts_(q) : PRODUCTS;
+    head.textContent = q ? 'Product list (' + hits.length + ' of ' + PRODUCTS.length + ')' : 'Product list (' + PRODUCTS.length + ')';
+    if (!hits.length) { box.innerHTML = '<div class="pl-empty">No products found for "' + escapeHtml(q) + '".</div>'; return; }
+    const qm = cartMap_();
+    box.innerHTML = hits.map(function (p) { return plRowHtml_(p, qm[p.code] || 0); }).join('');
+    Array.prototype.forEach.call(box.children, function (row) {
+      const c = row.getAttribute('data-code'); LIST_EL[c] = row; if (qm[c]) LIST_Q[c] = qm[c];
+    });
+  }
+  function setPlCtl_(code, qty) {                                      // a row turns from "+ Add" into the quantity box (and back)
+    const row = LIST_EL[code], p = BYCODE[code]; if (!row || !p) return;
+    const ctl = row.querySelector('.pl-ctl'); if (!ctl) return;
+    ctl.innerHTML = plCtlHtml_(p, qty);
+    if (qty > 0) LIST_Q[code] = qty; else delete LIST_Q[code];
+  }
+  function syncListRows_() {                                           // the quantities in the Product List follow every change made anywhere else
+    if (PL_DIRTY) return;
+    const qm = cartMap_(), seen = Object.create(null);
+    Object.keys(LIST_Q).concat(Object.keys(qm)).forEach(function (c) {
+      if (seen[c] || !LIST_EL[c]) return; seen[c] = 1;
+      const want = qm[c] || 0, have = LIST_Q[c] || 0;
+      if (want === have) return;
+      if (want > 0 && have > 0) {
+        const inp = LIST_EL[c].querySelector('.qty-input');
+        if (inp && inp !== document.activeElement) inp.value = want;
+        LIST_Q[c] = want;
+      } else setPlCtl_(c, want);
+    });
+  }
+  function plCode_(el) { const row = el && el.closest ? el.closest('.pl-row') : null; return row ? row.getAttribute('data-code') : null; }
+  function plSetQty_(code, qty) {                                      // the one place where a quantity is changed from the Product List (0 takes the product out)
+    const p = BYCODE[code]; if (!p) return;
+    qty = Math.round(qty) || 0;
+    const l = lineOf_(code), had = LIST_Q[code] || 0;
+    if (qty <= 0) CART = CART.filter(function (x) { return x.code !== code; });
+    else { qty = Math.min(MAX_QTY, qty); if (l) l.qty = qty; else CART.push({ code: code, qty: qty }); }
+    saveState_();
+    const now = qty > 0 ? qty : 0;
+    if (had > 0 && now > 0) { const row = LIST_EL[code], inp = row && row.querySelector('.qty-input'); if (inp) inp.value = now; LIST_Q[code] = now; }
+    else setPlCtl_(code, now);
+    renderCart_();                                                     // the Calculator tab's list, the totals, the bottom bar and the bill follow
+  }
+  function onPlClick_(e) {
+    const b = e.target.closest ? e.target.closest('[data-act]') : null; if (!b) return;
+    const code = plCode_(b); if (!code || !BYCODE[code]) return;
+    const act = b.getAttribute('data-act'), l = lineOf_(code);
+    if (act === 'add') plSetQty_(code, l ? l.qty + 1 : 1);
+    else if (l && act === 'inc') plSetQty_(code, l.qty + 1);
+    else if (l && act === 'dec') plSetQty_(code, l.qty - 1);
+  }
+  function onPlInput_(e) {                                             // typing a quantity: everything follows each keystroke
+    const t = e.target; if (!t || !t.classList || !t.classList.contains('qty-input')) return;
+    const code = plCode_(t), l = code && lineOf_(code); if (!l) return;
+    const v = Math.round(Number(t.value));
+    if (t.value === '' || !(v >= 1)) return;                           // empty or 0 while typing: nothing changes until the box is left
+    l.qty = Math.min(MAX_QTY, v); if (v > MAX_QTY) t.value = l.qty;
+    LIST_Q[code] = l.qty; saveState_(); renderCart_();
+  }
+  function onPlChange_(e) {                                            // the box was left (or Enter): 0 removes the product, an empty box puts the old quantity back
+    const t = e.target; if (!t || !t.classList || !t.classList.contains('qty-input')) return;
+    const code = plCode_(t), l = code && lineOf_(code); if (!l) return;
+    if (t.value === '' || !isFinite(Number(t.value))) { t.value = l.qty; return; }
+    const v = Math.round(Number(t.value));
+    plSetQty_(code, v <= 0 ? 0 : v);
+  }
+  function onPlKey_(e) {
+    if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('qty-input')) { e.preventDefault(); e.target.blur(); }
+  }
+
+  // ---- the three tabs (one shared list: what is added in one tab is there in the others)
+  function showView_(v) {
+    if (v !== 'calc' && v !== 'list' && v !== 'bill') return;
+    VIEW = v;
+    [['calc', 'viewCalc', 'tabCalc'], ['list', 'viewList', 'tabList'], ['bill', 'viewBill', 'tabBill']].forEach(function (x) {
+      const on = x[0] === v, sec = document.getElementById(x[1]), tab = document.getElementById(x[2]);
+      sec.hidden = !on; tab.classList.toggle('on', on); tab.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    hideToast_();
+    if (v === 'list') { if (PL_DIRTY) renderPl_(); else syncListRows_(); }
+    if (v === 'bill') { syncBillUi_(); renderBillPreview_(); }
+    buildPrintForView_();
+    try { const top = document.getElementById('mainArea').offsetTop; if (window.scrollY > top) window.scrollTo(0, top); } catch (e) {}   // scrolled far down: back up to where the tabs are (the page header stays where it was)
+  }
+
+  // ---- Bill tab: customer details + the bill made from the list, to send by WhatsApp / email / picture / PDF
+  const BILL_FIELD = {
+    bCustName: ['cust', 'name', BILL_MAX.name], bCustMobile: ['cust', 'mobile', BILL_MAX.mobile, 'tel'], bCustId: ['cust', 'id', BILL_MAX.id], bRemark: ['cust', 'remark', BILL_MAX.remark],
+    bShopName: ['seller', 'name', BILL_MAX.sname], bShopMobile: ['seller', 'mobile', BILL_MAX.smobile, 'tel'], bNo: ['', 'no', BILL_MAX.no]
+  };
+  function syncBillCols_() {
+    const dist = MODE === 'Distributor';
+    [['bColSp', BILL.sp], ['bColMrp', BILL.mrp], ['bColProfit', BILL.profit]].forEach(function (x) {
+      const el = document.getElementById(x[0]); el.classList.toggle('on', x[1]); el.setAttribute('aria-pressed', x[1] ? 'true' : 'false');
+    });
+    document.getElementById('bColMrp').style.display = dist ? '' : 'none';
+    document.getElementById('bColProfit').style.display = dist ? '' : 'none';
+    document.getElementById('bColHint').textContent = dist ? 'Sirf DP wali bill chahiye to MRP aur Profit band rakho.' : 'Retail bill me rate MRP hi hota hai — MRP aur Profit sirf Distributor bill me dikhte hain.';
+  }
+  function syncBillUi_() {
+    const set = function (id, v) { const el = document.getElementById(id); if (el && el.value !== v) el.value = v; };
+    set('bCustName', BILL.cust.name); set('bCustMobile', BILL.cust.mobile); set('bCustId', BILL.cust.id); set('bRemark', BILL.cust.remark);
+    set('bShopName', BILL.seller.name); set('bShopMobile', BILL.seller.mobile); set('bNo', BILL.no);
+    syncBillCols_();
+  }
+  function onBillField_(el) {
+    const f = (el && el.id && Object.prototype.hasOwnProperty.call(BILL_FIELD, el.id)) ? BILL_FIELD[el.id] : null; if (!f) return;
+    const mob = f[3] === 'tel';
+    const v = mob ? phone_(el.value) : str_(el.value, f[2]);
+    if (mob && el.value !== v) el.value = v;                                     // a mobile box shows only what is kept: digits, 10 at most
+    if (f[0]) BILL[f[0]][f[1]] = v; else BILL[f[1]] = v;
+    saveBill_(); renderBillPreview_(); buildPrintForView_();
+  }
+  function toggleBillCol_(k) {
+    if (k !== 'sp' && k !== 'mrp' && k !== 'profit') return;
+    BILL[k] = !BILL[k]; saveBill_(); syncBillCols_(); renderBillPreview_(); buildPrintForView_();
+  }
+  function anyCust_() { const c = BILL.cust; return !!(c.name.trim() || c.mobile.trim() || c.id.trim() || c.remark.trim()); }
+
+  // everything the bill shows, worked out once: the preview, the print sheet, the WhatsApp text, the email and the picture all use it
+  function billModel_() {
+    const t = calc_(), ls = lines_(), dist = MODE === 'Distributor';
+    const showMrp = dist && BILL.mrp, showProfit = dist && BILL.profit, showSp = !!BILL.sp;
+    const cols = [{ k: 'n', h: '#' }, { k: 'p', h: 'Product' }, { k: 'q', h: 'Qty', r: 1 }, { k: 'rate', h: dist ? 'DP' : 'MRP', r: 1 }, { k: 'amt', h: 'Amount', r: 1 }];
+    if (showMrp) cols.push({ k: 'mrp', h: 'MRP', r: 1 });
+    if (showProfit) cols.push({ k: 'profit', h: 'Profit', r: 1 });
+    if (showSp) cols.push({ k: 'sp', h: 'SP', r: 1 });
+    const rows = ls.map(function (l, i) {
+      return { n: String(i + 1), name: l.p.name, code: l.p.code, q: trimNum(l.qty), rate: money(l.rate), amt: money(l.amt), mrp: money(l.p.mrp), profit: money(l.qty * (l.p.mrp - l.p.dp)), sp: trimNum(l.sp) };
+    });
+    const tot = [];                                                    // [label, value, 1 = the amount to pay]
+    if (dist) {
+      if (showMrp) tot.push(['Total MRP', money(t.mrp)]);
+      if (showProfit) tot.push(['Profit (MRP − DP)', money(t.margin)]);
+      tot.push(['Amount payable (DP)', money(t.pay), 1]);
+    } else {
+      if (t.disc > 0) { tot.push(['Total MRP', money(t.mrp)]); tot.push(['Discount (' + trimNum(t.pct) + '%)', '−' + money(t.disc)]); }
+      tot.push(['Amount payable', money(t.pay), 1]);
+    }
+    if (showSp) tot.push(['Total SP', trimNum(t.sp)]);
+    const cu = BILL.cust, cust = [];
+    if (cu.name.trim()) cust.push(['Customer', cu.name.trim()]);
+    if (cu.mobile.trim()) cust.push(['Mobile', cu.mobile.trim()]);
+    if (cu.id.trim()) cust.push(['ID no', cu.id.trim()]);
+    return { title: BILL.seller.name.trim() || 'Mahakal Wellness', shopMobile: BILL.seller.mobile.trim(), no: BILL.no.trim(), date: todayStr_(),
+             cust: cust, remark: cu.remark.trim(), dist: dist, showMrp: showMrp, showProfit: showProfit, showSp: showSp, cols: cols, rows: rows, tot: tot, listDate: LIST_AT ? fmtDay_(LIST_AT) : '' };
+  }
+  function billDocHtml_(m) {
+    const th = m.cols.map(function (c) { return '<th' + (c.r ? ' class="r"' : '') + '>' + escapeHtml(c.h) + '</th>'; }).join('');
+    const trs = m.rows.map(function (r) {
+      return '<tr>' + m.cols.map(function (c) {
+        if (c.k === 'p') return '<td class="pc">' + escapeHtml(r.name) + '<span class="bd-code">#' + escapeHtml(r.code) + '</span></td>';
+        return '<td' + (c.r ? ' class="r"' : '') + '>' + escapeHtml(r[c.k]) + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    const tt = m.tot.map(function (t) { return '<tr' + (t[2] ? ' class="ps-pay"' : '') + '><td>' + escapeHtml(t[0]) + '</td><td class="r">' + escapeHtml(t[1]) + '</td></tr>'; }).join('');
+    let h = '<div class="bd"><h1>' + escapeHtml(m.title) + '</h1>';
+    if (m.shopMobile) h += '<p class="ps-sub">Contact: ' + escapeHtml(m.shopMobile) + '</p>';
+    h += '<div class="bd-meta">' + (m.no ? '<span>Bill no: <b>' + escapeHtml(m.no) + '</b></span>' : '<span></span>') + '<span>Date: <b>' + escapeHtml(m.date) + '</b></span></div>';
+    if (m.cust.length) h += '<div class="bd-cust">' + m.cust.map(function (c) { return '<div><span>' + escapeHtml(c[0]) + '</span><b>' + escapeHtml(c[1]) + '</b></div>'; }).join('') + '</div>';
+    h += '<div class="bd-tw"><table><thead><tr>' + th + '</tr></thead><tbody>' + trs + '</tbody></table></div>';
+    h += '<table class="ps-tot"><tbody>' + tt + '</tbody></table>';
+    if (m.remark) h += '<p class="bd-rem"><b>Remark:</b> ' + escapeHtml(m.remark) + '</p>';
+    h += '<p class="ps-note">' + (m.listDate ? 'Price list of ' + escapeHtml(m.listDate) + '. ' : '') + 'Prices and SP are as per the company price list.</p></div>';
+    return h;
+  }
+  function renderBillPreview_() {
+    const box = document.getElementById('billPreview'); if (!box) return;
+    const has = lines_().length > 0;
+    ['bBtnWa', 'bBtnMail', 'bBtnImg', 'bBtnPdf', 'bBtnCopy'].forEach(function (id) { document.getElementById(id).disabled = !has; });
+    document.getElementById('bBtnNew').disabled = !(has || anyCust_());
+    if (!has) disarmNewBill_();
+    box.innerHTML = has ? billDocHtml_(billModel_()) : '<div class="empty-cart">Bill me abhi koi product nahi hai.<br>Calculator ya Product List tab se products add karo.</div>';
+  }
+  function buildBillSheet_() {
+    const el = document.getElementById('printSheet'); if (!el) return;
+    el.innerHTML = lines_().length ? billDocHtml_(billModel_()) : '';
+  }
+  function buildPrintForView_() { if (VIEW === 'bill') buildBillSheet_(); else buildPrintSheet_(); }
+
+  function billText_() {
+    const m = billModel_(), o = ['*' + m.title + '*'];
+    if (m.shopMobile) o.push('Contact: ' + m.shopMobile);
+    o.push((m.no ? 'Bill no: ' + m.no + ' · ' : '') + m.date);
+    if (m.cust.length) { o.push(''); m.cust.forEach(function (c) { o.push(c[0] + ': ' + c[1]); }); }
+    o.push('');
+    m.rows.forEach(function (r, i) {
+      o.push((i + 1) + '. ' + r.name + ' (#' + r.code + ')');
+      let s = '   ' + r.q + ' × ' + r.rate + ' = ' + r.amt;
+      if (m.showMrp) s += ' · MRP ' + r.mrp;
+      if (m.showProfit) s += ' · Profit ' + r.profit;
+      if (m.showSp) s += ' · ' + r.sp + ' SP';
+      o.push(s);
+    });
+    o.push('');
+    m.tot.forEach(function (t) { o.push(t[2] ? '*' + t[0] + ': ' + t[1] + '*' : t[0] + ': ' + t[1]); });
+    if (m.remark) { o.push(''); o.push('Remark: ' + m.remark); }
+    if (m.listDate) { o.push(''); o.push('Price list of ' + m.listDate); }
+    return o.join('\n');
+  }
+  function emailBill_() {
+    if (!lines_().length) return;
+    const m = billModel_(), subject = m.title + ' - Bill' + (m.no ? ' ' + m.no : '') + ' (' + m.date + ')';
+    let body = billText_().replace(/\*/g, '');                         // the *stars* are WhatsApp's bold - an email gets plain text
+    const NOTE = '\n...\n(Bill lambi thi - poori bill Image ya PDF se bhejo)';
+    const mail = function (b) { return 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(b); };
+    let cut = false;
+    while (mail(cut ? body + NOTE : body).length > MAIL_MAX && body.length > 100) {   // a very long bill is cut at a line end, so the mail app still opens
+      cut = true; const at = Math.floor(body.length * 0.85), i = body.lastIndexOf('\n', at); body = body.slice(0, i > 0 ? i : at);
+    }
+    if (cut) { body += NOTE; toast_('Bill lambi hai — email me aadhi gayi. Poori bill ke liye Image / PDF use karo'); }
+    openUrl_(mail(body));
+  }
+  function printBill_() { if (!lines_().length) return; buildBillSheet_(); try { window.print(); } catch (e) { toast_('Print nahi ho paya'); } }
+  async function copyBill_() {
+    if (!lines_().length) return;
+    toast_((await clip_(billText_())) ? 'Bill copy ho gayi — kahin bhi paste karo' : 'Copy nahi ho paya');
+  }
+  function nextNo_(no) {                                               // 0007 -> 0008, MW-009 -> MW-010, nothing -> 0001
+    no = String(no || '').trim();
+    if (!no) return '0001';
+    const m = /^(.*?)(\d{1,12})$/.exec(no);
+    if (!m) return (no + '1').slice(0, BILL_MAX.no);
+    const n = String(Number(m[2]) + 1);
+    return (m[1] + (n.length < m[2].length ? new Array(m[2].length - n.length + 1).join('0') : '') + n).slice(0, BILL_MAX.no);
+  }
+  function disarmNewBill_() {
+    NEWBILL_ARMED = false; clearTimeout(NEWBILL_TIMER);
+    const b = document.getElementById('bBtnNew'); if (b) b.textContent = '➕ New bill';
+  }
+  function newBill_() {                                                // two taps, no pop-up: the first one asks, the second one starts the next bill
+    if (!NEWBILL_ARMED) {
+      NEWBILL_ARMED = true; document.getElementById('bBtnNew').textContent = 'Tap again: nayi bill';
+      clearTimeout(NEWBILL_TIMER); NEWBILL_TIMER = setTimeout(disarmNewBill_, 3000); return;
+    }
+    disarmNewBill_();
+    const had = CART.length > 0;
+    CART = []; saveState_();
+    BILL.cust = { name: '', mobile: '', id: '', remark: '' };
+    if (had) BILL.no = nextNo_(BILL.no);                               // the number moves on only when a bill was really made
+    saveBill_(); syncBillUi_(); renderCart_();
+    toast_('Nayi bill ready');
+  }
+
+  // ---- the bill as a picture (to send on WhatsApp or save): drawn on a canvas from the same bill data as the preview
+  function wrapText_(ctx, text, maxW) {
+    const words = String(text).split(/\s+/).filter(Boolean), lines = []; let cur = '';
+    words.forEach(function (w) {
+      const t = cur ? cur + ' ' + w : w;
+      if (ctx.measureText(t).width <= maxW) { cur = t; return; }
+      if (cur) { lines.push(cur); cur = ''; }
+      while (ctx.measureText(w).width > maxW && w.length > 1) {          // one word wider than the column: cut it
+        let n = w.length - 1; while (n > 1 && ctx.measureText(w.slice(0, n)).width > maxW) n--;
+        lines.push(w.slice(0, n)); w = w.slice(n);
+      }
+      cur = w;
+    });
+    if (cur) lines.push(cur);
+    return lines.length ? lines : [''];
+  }
+  function billCanvas_(m) {
+    const probe = document.createElement('canvas').getContext('2d');
+    if (!probe) return null;
+    const FF = 'Inter, Arial, Helvetica, sans-serif', PAD = 28;
+    const F = function (wt, px) { return wt + ' ' + px + 'px ' + FF; };
+    const colW = Object.create(null); let fixed = 0;
+    probe.font = F(700, 14);
+    m.cols.forEach(function (c) {                                      // the number columns are as wide as their widest text, the product column gets the rest
+      if (c.k === 'p') return;
+      let w = probe.measureText(c.h).width;
+      m.rows.forEach(function (r) { w = Math.max(w, probe.measureText(String(r[c.k])).width); });
+      colW[c.k] = Math.ceil(w) + 18; fixed += colW[c.k];
+    });
+    colW.p = Math.max(200, 520 - 2 * PAD - fixed);
+    const W = 2 * PAD + fixed + colW.p, inner = W - 2 * PAD;
+    const ops = []; let y = PAD;
+    const T = function (s, x, yy, font, color, align) { ops.push({ k: 't', s: String(s), x: x, y: yy, f: font, c: color, a: align || 'left' }); };
+    const R = function (x, yy, w, h, color) { ops.push({ k: 'r', x: x, y: yy, w: w, h: h, c: color }); };
+    const wrap = function (text, font, maxW) { probe.font = font; return wrapText_(probe, text, maxW); };
+    wrap(m.title, F(700, 24), inner).forEach(function (s) { y += 28; T(s, PAD, y, F(700, 24), '#132E26'); });
+    if (m.shopMobile) { y += 22; T('Contact: ' + m.shopMobile, PAD, y, F(500, 14), '#555555'); }
+    y += 26; T(m.no ? 'Bill no: ' + m.no : '', PAD, y, F(600, 14), '#222222'); T('Date: ' + m.date, W - PAD, y, F(600, 14), '#222222', 'right');
+    y += 12; R(PAD, y, inner, 1.5, '#D5D1C6'); y += 6;
+    m.cust.forEach(function (c) {
+      y += 21; T(c[0], PAD, y, F(500, 13), '#777777');
+      wrap(c[1], F(600, 14), inner - 96).forEach(function (s, i) { if (i) y += 19; T(s, PAD + 96, y, F(600, 14), '#222222'); });
+    });
+    y += 18;
+    const colX = Object.create(null); let x = PAD;
+    m.cols.forEach(function (c) { colX[c.k] = x; x += colW[c.k]; });
+    const cellX = function (c) { return c.r ? colX[c.k] + colW[c.k] - 9 : colX[c.k] + 9; };
+    R(PAD, y, inner, 30, '#F1EFE8');
+    m.cols.forEach(function (c) { T(c.h, cellX(c), y + 20, F(700, 13), '#222222', c.r ? 'right' : 'left'); });
+    y += 30;
+    m.rows.forEach(function (r) {
+      const nl = wrap(r.name, F(600, 14), colW.p - 18);
+      nl.forEach(function (s, i) { T(s, colX.p + 9, y + 22 + i * 18, F(600, 14), '#222222'); });
+      T('#' + r.code, colX.p + 9, y + 20 + nl.length * 18, F(500, 12), '#888888');
+      m.cols.forEach(function (c) { if (c.k !== 'p') T(r[c.k], cellX(c), y + 22, F(500, 14), '#222222', c.r ? 'right' : 'left'); });
+      y += 32 + nl.length * 18; R(PAD, y - 1, inner, 1, '#E7E4DC');
+    });
+    y += 10;
+    const tx = Math.max(PAD, W - PAD - 320);
+    m.tot.forEach(function (t) {
+      const strong = !!t[2];
+      if (strong) { y += 10; R(tx, y, W - PAD - tx, 2, '#132E26'); y += 10; }
+      y += strong ? 24 : 21;
+      T(t[0], tx, y, F(strong ? 800 : 500, strong ? 17 : 14), strong ? '#132E26' : '#444444');
+      T(t[1], W - PAD, y, F(strong ? 800 : 700, strong ? 17 : 14), strong ? '#132E26' : '#222222', 'right');
+      if (strong) y += 6;
+    });
+    if (m.remark) { y += 8; wrap('Remark: ' + m.remark, F(500, 13), inner).forEach(function (s) { y += 19; T(s, PAD, y, F(500, 13), '#222222'); }); }
+    y += 8;
+    wrap((m.listDate ? 'Price list of ' + m.listDate + '. ' : '') + 'Prices and SP are as per the company price list.', F(500, 11), inner).forEach(function (s) { y += 16; T(s, PAD, y, F(500, 11), '#888888'); });
+    const H = Math.ceil(y + PAD);
+    if (W * H > 14e6) return null;                                     // far too big for a phone's canvas
+    const sc = (W * 2) * (H * 2) > 14e6 ? 1 : 2;                       // twice as sharp when the picture is not huge
+    const cv = document.createElement('canvas'); cv.width = Math.round(W * sc); cv.height = Math.round(H * sc);
+    const ctx = cv.getContext('2d'); if (!ctx) return null;
+    ctx.scale(sc, sc); ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, W, H);
+    ops.forEach(function (o) {
+      if (o.k === 'r') { ctx.fillStyle = o.c; ctx.fillRect(o.x, o.y, o.w, o.h); }
+      else { ctx.font = o.f; ctx.fillStyle = o.c; ctx.textAlign = o.a; ctx.textBaseline = 'alphabetic'; ctx.fillText(o.s, o.x, o.y); }
+    });
+    return cv;
+  }
+  async function imageBill_() {
+    if (!lines_().length) return;
+    const m = billModel_();
+    let cv = null;
+    try { cv = billCanvas_(m); } catch (e) { cv = null; }
+    const blob = cv ? await new Promise(function (res) { try { cv.toBlob(res, 'image/png'); } catch (e) { res(null); } }) : null;
+    if (!blob) { toast_('Image nahi ban payi — PDF / Print use karo'); return; }
+    const name = ('bill-' + (m.no || 'draft')).replace(/[^A-Za-z0-9._-]+/g, '_') + '.png';
+    let file = null; try { file = new File([blob], name, { type: 'image/png' }); } catch (e) { file = null; }
+    if (file && typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: m.title + ' - Bill' + (m.no ? ' ' + m.no : '') }); } catch (e) { /* closed without sending */ }
+      return;
+    }
+    const url = URL.createObjectURL(blob), a = document.createElement('a');         // this phone / browser cannot send a picture straight away: it is saved, from there it can be sent
+    a.href = url; a.download = name; a.style.display = 'none'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    toast_('Bill ki image phone me save ho gayi');
+  }
+
   // ---- totals, bottom bar, buttons, print sheet
   function recalc_() {
     const t = calc_(), dist = MODE === 'Distributor', has = t.items > 0;
     const kv = function (k, v, neg) { return '<div class="kv"><span class="k">' + escapeHtml(k) + '</span><span class="v' + (neg ? ' neg' : '') + '">' + escapeHtml(v) + '</span></div>'; };
     let h = kv('Items', t.items + (t.items === 1 ? ' item' : ' items') + ' · qty ' + trimNum(t.qty));
     h += kv('Total MRP', money(t.mrp));
+    if (!dist && t.disc > 0) h += kv('Discount (' + trimNum(t.pct) + '%)', '−' + money(t.disc), true);
+    h += kv('Total DP', money(t.dp));
     if (dist) h += kv('Margin (MRP − DP)', money(t.margin));
-    else if (t.disc > 0) h += kv('Discount (' + trimNum(t.pct) + '%)', '−' + money(t.disc), true);
     h += kv('Total SP', trimNum(t.sp) + ' SP');
     document.getElementById('totalsBody').innerHTML = h;
     document.getElementById('payLbl').textContent = dist ? 'You pay (DP)' : 'You pay';
@@ -680,9 +1282,14 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     document.getElementById('sbAmt').textContent = money(t.pay);
     ['btnWa', 'btnCopy', 'btnPrint', 'btnClear'].forEach(function (id) { document.getElementById(id).disabled = !has; });
     if (!has) disarmClear_();
-    buildPrintSheet_();
+    syncListRows_();                                                   // the Product List tab shows the same quantities
+    if (VIEW === 'bill') renderBillPreview_();                         // the Bill tab, when it is open, follows every change
+    buildPrintForView_();
   }
-  function scrollToTotals_() { try { document.getElementById('cardTotals').scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {} }
+  function scrollToTotals_() {                                         // the bottom bar: shows the totals (from the Product List tab it first goes back to the Calculator tab; on the Bill tab it shows the bill)
+    if (VIEW === 'list') showView_('calc');
+    try { document.getElementById(VIEW === 'bill' ? 'cardBillPrev' : 'cardTotals').scrollIntoView({ behavior: 'smooth', block: VIEW === 'bill' ? 'start' : 'center' }); } catch (e) {}
+  }
 
   function todayStr_() { return fmtDay_(Date.now()); }
   function shareText_() {
@@ -739,8 +1346,9 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     if (ios && app === 'business') return { url: 'whatsapp-business://send?text=' + enc, web: web, fallbackMs: 1500 };
     return { url: web, web: web };
   }
-  function openShareChooser_() {
+  function openShareChooser_(kind) {
     if (!CART.length) return;
+    SHARE_KIND = kind === 'bill' ? 'bill' : 'calc';                    // which text goes out: the calculation (Calculator tab) or the bill (Bill tab)
     hideToast_();
     document.getElementById('shareNativeBtn').style.display = (typeof navigator.share === 'function') ? 'block' : 'none';
     document.getElementById('shareChooser').classList.add('show');
@@ -749,23 +1357,25 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   async function shareWith_(app) {
     closeShareChooser_();
     if (!CART.length) return;
-    const text = shareText_();
+    const bill = SHARE_KIND === 'bill', text = bill ? billText_() : shareText_();
     if (app === 'native') {
-      try { await navigator.share({ title: 'Mahakal Wellness', text: text }); } catch (e) { /* closed without sending */ }
+      try { await navigator.share({ title: bill ? billModel_().title : 'Mahakal Wellness', text: text }); } catch (e) { /* closed without sending */ }
       return;
     }
     const t = waTargets_(app, text);
     openUrl_(t.url);
     if (t.fallbackMs) setTimeout(function () { if (document.visibilityState === 'visible') openUrl_(t.web); }, t.fallbackMs);
   }
-  async function copyText_() {
-    if (!CART.length) return;
-    const text = shareText_();
+  async function clip_(text) {                                         // copy to the clipboard; false when the phone does not allow it
     let ok = false;
     try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
-      try { const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (e2) { /* shown below */ }
+      try { const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (e2) { /* shown by the caller */ }
     }
-    toast_(ok ? 'List copy ho gayi — kahin bhi paste karo' : 'Copy nahi ho paya');
+    return ok;
+  }
+  async function copyText_() {
+    if (!CART.length) return;
+    toast_((await clip_(shareText_())) ? 'List copy ho gayi — kahin bhi paste karo' : 'Copy nahi ho paya');
   }
   function disarmClear_() {
     CLEAR_ARMED = false; clearTimeout(CLEAR_TIMER);
@@ -789,8 +1399,8 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
 
   // ---- start
   function boot_() {
-    loadState_();
-    syncModeUi_();
+    loadState_(); loadBill_();
+    syncModeUi_(); syncBillUi_();
     const c = lsJson_(LS_PRODUCTS), list = (c && c.v === 1 && isFinite(Number(c.t))) ? cleanList_(c.items) : [];
     if (list.length) applyProducts_(list, Number(c.t), 'saved'); else { renderListStatus_(); renderCart_(); }
     if (navigator.onLine !== false || !PRODUCTS.length) refreshProducts_(false);
@@ -801,6 +1411,9 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
       const row = e.target.closest ? e.target.closest('.search-row') : null;
       if (row) promptQty_(row.getAttribute('data-code'));
     });
+    const pl = document.getElementById('plList');                      // Product List tab (one listener for all rows)
+    pl.addEventListener('click', onPlClick_); pl.addEventListener('input', onPlInput_); pl.addEventListener('change', onPlChange_); pl.addEventListener('keydown', onPlKey_);
+    pl.addEventListener('focusin', function (e) { const t = e.target; if (t && t.classList && t.classList.contains('qty-input')) { try { t.select(); } catch (x) {} } });
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
       if (document.getElementById('qtyModal').classList.contains('show')) cancelQty_();
@@ -811,7 +1424,9 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'visible' && navigator.onLine !== false && Date.now() - LIST_AT > REFRESH_AFTER_MS) refreshProducts_(false);
     });
-    window.addEventListener('beforeprint', buildPrintSheet_);
+    window.addEventListener('beforeprint', buildPrintForView_);
+    const h = String(location.hash || '').replace(/^#/, '').toLowerCase();       // calculator.html#list / calculator.html#bill open that tab straight away
+    if (h === 'list' || h === 'bill') showView_(h);
   }
   boot_();
 
@@ -888,5 +1503,15 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
 })();
 </script>
 <!-- MW-UX-END -->
+<script id="mwPhone">
+/* every mobile / WhatsApp box: digits only and 10 digits at most (a pasted +91 or 0 in front is dropped) */
+(function () {
+  function clean(v) { var d = String(v == null ? '' : v).replace(/\D/g, ''); if (d.length === 12 && d.slice(0, 2) === '91') d = d.slice(2); else if (d.length === 11 && d.charAt(0) === '0') d = d.slice(1); return d.slice(0, 10); }
+  window.phoneClean_ = clean;
+  document.addEventListener('input', function (e) { var el = e.target; if (el && el.tagName === 'INPUT' && (el.type === 'tel' || el.hasAttribute('data-phone'))) { var c = clean(el.value); if (c !== el.value) el.value = c; } }, true);
+  function mark() { Array.prototype.forEach.call(document.querySelectorAll('input[type=tel]'), function (el) { el.setAttribute('inputmode', 'numeric'); }); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mark); else mark();
+})();
+</script>
 </body>
 </html>
