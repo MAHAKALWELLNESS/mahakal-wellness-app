@@ -47,6 +47,8 @@
   #mainChoices .bento-purchase .choice-title, #mainChoices .choice-card.primary .choice-title{color:#fff;}
   #mainChoices .bento-account{background:linear-gradient(135deg,#3D2FB5,#241B6E); border:none;}
   #mainChoices .bento-account .choice-title{color:#fff;}
+  #mainChoices .bento-calc{background:linear-gradient(135deg,#2B7BA8,#1B4F72); border:none;}
+  #mainChoices .bento-calc .choice-title{color:#fff;}
   #mainChoices .bento-hall{background:var(--gold-500);}
   #mainChoices .bento-hall .choice-title{color:var(--green-900);}
   #mainChoices .bento-rate{background:#2A5C4C;}
@@ -118,6 +120,7 @@ html.nl #mainChoices #installAppBtn[style*="block"]{display:flex !important;}
 html.nl #mainChoices .choice-card.bento-purchase{--t1:#3DDC84; --t2:#0FA35A; --t3:#0A7A41;}
 html.nl #mainChoices #installAppBtn{--t1:#5B9CFF; --t2:#2F6FED; --t3:#1B49B0;}
 html.nl #mainChoices .choice-card.bento-account{--t1:#8B7BFF; --t2:#5B3FE0; --t3:#3A2BB0;}
+html.nl #mainChoices .choice-card.bento-calc{--t1:#6CC8FF; --t2:#1E8FE8; --t3:#0F5FA8;}
 html.nl #mainChoices .choice-card.bento-hall{--t1:#FFB04D; --t2:#F57C00; --t3:#B35A00;}
 html.nl #mainChoices .choice-card.bento-rate{--t1:#FFE066; --t2:#FFB300; --t3:#B77E00;}
 html.nl #mainChoices .choice-card.bento-rate .choice-title{color:#4A2B00 !important; text-shadow:0 1px 0 rgba(255,255,255,.5);}
@@ -228,6 +231,10 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     <a class="choice-card primary bento-purchase bento-featured" href="order.html">
       <div class="choice-icon">🛒</div>
       <div class="choice-title">Purchase Product</div>
+    </a>
+    <a class="choice-card bento-calc bento-featured" href="calculator.html">
+      <div class="choice-icon">🧮</div>
+      <div class="choice-title">Product Calculator</div>
     </a>
     <a class="choice-card bento-account bento-featured" href="account.html" id="accountTile">
       <div class="choice-icon">👤</div>

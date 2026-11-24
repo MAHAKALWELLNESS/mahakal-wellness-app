@@ -418,6 +418,7 @@ html.nl .tab[data-tab="pending"]{--c1:#FF8F8F;--c2:#F03E3E;--c3:#A82A2A;--ic:"�
 html.nl .tab[data-tab="expense"]{--c1:#E8A0FA;--c2:#BE4BDB;--c3:#86309C;--ic:"💸";}
 html.nl .tab[data-tab="official"]{--c1:#7F97FF;--c2:#4C6EF5;--c3:#3049B5;--ic:"🏢";}
 html.nl .tab[data-tab="spsets"]{--c1:#A483FF;--c2:#7048E8;--c3:#4D2FA8;--ic:"🎯";}
+html.nl .tab[data-tab="calculator"]{--c1:#8FD3FF;--c2:#2B9BE8;--c3:#14689F;--ic:"🔢";}
 html.nl .tab[data-tab="customers"]{--c1:#4EE0B4;--c2:#0CA678;--c3:#07785A;--ic:"👥";}
 html.nl .tab[data-tab="stockreport"]{--c1:#B6E85A;--c2:#74B816;--c3:#4F7F0E;--ic:"📦";}
 html.nl .tab[data-tab="wallet"]{--c1:#FF9F80;--c2:#E8590C;--c3:#A33F08;--ic:"👛";}
@@ -651,6 +652,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <button class="tab" data-tab="official" onclick="switchTab('official')">Official</button>
       <button class="tab" data-tab="companyinv" id="tabBtnCompanyInv" onclick="switchTab('companyinv')" style="display:none;">Company Invoices</button>
       <button class="tab" data-tab="spsets" onclick="switchTab('spsets')">SP Sets</button>
+      <button class="tab" data-tab="calculator" onclick="switchTab('calculator')">Calculator</button>
       <button class="tab" data-tab="customers" onclick="switchTab('customers')">Customers</button>
       <button class="tab" data-tab="custlogins" onclick="switchTab('custlogins')">Customer Logins<span class="tab-badge" id="custLoginsBadge" style="display:none;"></span></button>
       <button class="tab" data-tab="custcorrect" onclick="switchTab('custcorrect')">Customer Approval<span class="tab-badge" id="custCorrectBadge" style="display:none;"></span></button>
@@ -1143,6 +1145,11 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       </div>
       <div class="card"><p class="section-label">Search by bill no</p><input type="text" id="officialSearch" class="search-input" placeholder="Bill no…" oninput="searchOfficialBills()"></div>
       <div class="card"><h2 id="officialListHeading">Pending SP allocation</h2><div id="officialList"><div class="empty-cart">Loading…</div></div></div>
+    </section>
+
+    <!-- ============ CALCULATOR TAB (every staff member): the same product calculator the customers have (calculator.html) ============ -->
+    <section id="tab-calculator" class="tab-panel">
+      <iframe id="calcFrame" title="Product calculator" data-src="calculator.html?embed=1" style="display:block;width:100%;height:560px;border:0;background:transparent;" loading="lazy"></iframe>
     </section>
 
     <!-- ============ COMPANY INVOICES TAB (main admin): All / Missing / Repeat ============ -->
@@ -4417,6 +4424,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     }
     if (name === 'official') loadOfficialPending();
     if (name === 'companyinv') ciOpen_();
+    if (name === 'calculator') calcTabOpen_();
     if (name === 'productsearch') psOpen_();
     if (name === 'spsets') initSpSetsTab_();
     if (name === 'expense') searchExpenses();
@@ -4454,6 +4462,21 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   }
 
   function fmtDateInput_(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+
+  // ---------------- CALCULATOR TAB ----------------
+  // The product calculator (calculator.html) shown inside the staff app. The page is only loaded the first time the tab is opened,
+  // and the frame is as tall as the free part of the screen, so the calculator scrolls on its own and its bottom bar stays in view.
+  function calcFit_() {
+    const f = document.getElementById('calcFrame'); if (!f || !f.offsetParent) return;
+    const top = Math.max(0, f.getBoundingClientRect().top);
+    f.style.height = Math.max(420, Math.round((window.innerHeight || 700) - top - 12)) + 'px';
+  }
+  function calcTabOpen_() {
+    const f = document.getElementById('calcFrame'); if (!f) return;
+    if (!f.getAttribute('src')) f.setAttribute('src', f.getAttribute('data-src'));
+    calcFit_();
+  }
+  window.addEventListener('resize', calcFit_);
 
   // ---------------- PURCHASE TAB ----------------
   const BILL_DIFF_PER_PC_ = 0.5;       // the company bill is a price change only when it is at least 50 paise PER PIECE above the software DP ...
