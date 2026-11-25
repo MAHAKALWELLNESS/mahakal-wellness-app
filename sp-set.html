@@ -203,6 +203,8 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   .tg.c{background:var(--gold-100); color:#7a5617;}
   .echo-own{margin-top:5px; font-size:12px; font-weight:700; color:var(--green-700);}
   .echo-note{margin-top:5px; font-size:12px; font-weight:700; color:#B54708;}
+  .echo-hint{margin-top:5px; font-size:12px; font-weight:600; color:var(--ink-soft);}
+  .echo-edit{margin-left:6px; padding:3px 11px; border:1.5px solid currentColor; border-radius:999px; background:transparent; color:inherit; font:inherit; font-size:11.5px; font-weight:800; cursor:pointer; line-height:1.4;}
 
   .res-head{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px;}
   .res-t{font-size:24px; line-height:1.1; color:var(--green-900);}
@@ -227,6 +229,30 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   .near{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
   .near-btn{border:1.5px solid var(--green-700); background:#fff; color:var(--green-800); border-radius:12px; padding:9px 12px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; text-align:left; line-height:1.3;}
   .near-btn small{display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft);}
+
+  /* ---- the conditions of the person (product never / at most / at least) ---- */
+  #condMsg:empty{display:none;}
+  #condMsg .box{margin-top:10px;}
+  .cc-list{display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 0;}
+  .cchip{display:inline-flex; align-items:center; gap:7px; max-width:100%; padding:5px 5px 5px 12px; border-radius:999px; background:var(--green-100); color:var(--green-900); font-size:12.5px; font-weight:700; line-height:1.3;}
+  .cchip b{font-weight:800; overflow-wrap:anywhere;}
+  .cchip em{font-style:normal; font-weight:800; padding:1px 8px; border-radius:8px; background:var(--gold-100); color:#7a5617; white-space:nowrap;}
+  .cchip.never em{background:var(--danger-100); color:#8A2A1F;}
+  .cchip.off{opacity:.7;}
+  .cchip small{font-size:11px; font-weight:700; color:var(--ink-soft);}
+  .cchip button{flex:none; width:26px; height:26px; padding:0; border:0; border-radius:50%; background:rgba(0,0,0,.09); color:inherit; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;}
+  .cchip button svg.i{width:14px; height:14px;}
+  .pick-q{font-size:13px; font-weight:700; line-height:1.4;}
+  .pick-list{display:grid; gap:6px; margin-top:8px;}
+  .pick-btn{display:block; width:100%; text-align:left; padding:9px 12px; border-radius:10px; border:1.5px solid var(--green-700); background:#fff; color:var(--green-900); font-family:inherit; font-size:13px; font-weight:800; cursor:pointer; line-height:1.3;}
+  .pick-btn small{display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft);}
+  .pick-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;}
+  .pick-row .copy-btn{flex:1 1 auto;}
+  #condClear{margin-top:12px;}
+  #condGo{margin-top:12px;}
+  .ln-x{flex:none; align-self:center; width:26px; height:26px; margin:-3px -4px -3px 0; padding:0; border:0; border-radius:50%; background:transparent; color:var(--ink-soft); display:inline-flex; align-items:center; justify-content:center; cursor:pointer;}
+  .ln-x svg.i{width:15px; height:15px;}
+  .ln-x:active{background:var(--danger-100); color:var(--danger);}
 
   @media screen{
     html.nl .stick{background:linear-gradient(135deg,#2B1F8F 0%,#5B3FE0 48%,#D6336C 100%); box-shadow:0 10px 24px rgba(61,47,181,.38);}
@@ -267,6 +293,9 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     html.nl .near-btn{border:2px solid #C9C3FF; border-radius:14px; background:linear-gradient(180deg,#FFFFFF,#F1EFFF); color:#4B3FD0; box-shadow:0 3px 0 #D6D1FF;}
     html.nl .near-btn:active{transform:translateY(2px); box-shadow:0 1px 0 #D6D1FF;}
     html.nl .more-btn{background:linear-gradient(180deg,#FFFFFF,#F1EFFF);}
+    html.nl .cchip{background:#EEEAFF; color:#2B1F8F;} html.nl .cchip em{background:#FFF0CC; color:#B85F00;} html.nl .cchip.never em{background:var(--danger-100); color:#8A2A1F;}
+    html.nl .pick-btn{border:2px solid #C9C3FF; border-radius:14px; background:linear-gradient(180deg,#FFFFFF,#F1EFFF); color:#4B3FD0; box-shadow:0 3px 0 #D6D1FF;}
+    html.nl .pick-btn:active{transform:translateY(2px); box-shadow:0 1px 0 #D6D1FF;}
   }
 </style>
 </head>
@@ -327,6 +356,25 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     </section>
 
     <div class="echo" id="echo" hidden></div>
+
+    <section class="card" id="cardCond">
+      <details class="fold" id="condFold">
+        <summary><span>Kuch product hatana ya limit lagani hai?<span class="bdg" id="condBadge" hidden>0</span></span></summary>
+        <div class="fold-in">
+          <p class="hint">Product ka naam likho ya mic dabake bolo, jaise: “obeodoc nahi chahiye”, “thunderblast max 2”, “immunodoc kam se kam 1”. Kai conditions ek saath bhi de sakte ho. Sets turant naye ban jaate hain.</p>
+          <div class="cmd-wrap" style="margin-top:10px">
+            <textarea id="condIn" rows="2" maxlength="300" placeholder="Jaise: obeodoc nahi chahiye" aria-label="Condition" enterkeyhint="go" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+            <button type="button" class="mic" id="condMic" aria-label="Bolkar condition do" aria-pressed="false"><svg class="i"><use href="#i-mic"/></svg></button>
+          </div>
+          <p class="hint" id="condHint">Likho ya mic dabake bolo.</p>
+          <div id="condMsg" aria-live="polite"></div>
+          <button type="button" class="btn btn-gold" id="condGo">Condition lagao</button>
+          <div class="cc-list" id="condList"></div>
+          <button type="button" class="btn btn-outline" id="condClear" hidden>Sab conditions hatao</button>
+        </div>
+      </details>
+    </section>
+
     <div id="results" aria-live="polite"></div>
 
     <p id="legalFoot"><a href="privacy.html">Privacy Policy</a></p>
@@ -338,14 +386,17 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
 // SP SET MAKER - the two pure parts (no screen, no network): the SOLVER and the COMMAND READER.
 // SP and money are worked in WHOLE HUNDREDTHS (integers) - never with floating point sums.
 //
-// smSolve_(products, { target, count, caps, must })
+// smSolve_(products, { target, count, caps, must, limits })
 //   products: [{ code, name, mrp, dp, sp }]
 //   target:   the SP the set must add up to, EXACTLY
 //   count:    how many sets (options) are wanted, cheapest DP first
 //   caps:     null = every product of the list, any quantity.   { code: maxQty } = ONLY these products; maxQty 0 / empty = as many as needed
 //   must:     true = every product of "caps" is in every set at least once
-// gives { sets, error, lo, hi, more, truncated, step }:  sets = [{ lines: [{ p, qty }], sp, dp, mrp, pcs }] in rising DP order;  more = true when more sets than the ones given exist;
-//   step = (only when the SP asked is not a multiple of it) the step in which these products can make SP
+//   limits:   the CONDITIONS of the person: { code: { lo, hi } } - lo = at least that many pieces of the product in every set (0 / missing = no minimum),
+//             hi = at most that many (0 = the product is NEVER used, even when "must" is on; missing / negative = no maximum). A product that is not in "caps" stays out.
+// gives { sets, error, lo, hi, more, truncated, step, conflict }:  sets = [{ lines: [{ p, qty }], sp, dp, mrp, pcs }] in rising DP order;  more = true when more sets than the ones given exist;
+//   step = (only when the SP asked is not a multiple of it) the step in which these products can make SP;  error 'conflict' (+ conflict = { p, lo, hi }) = a product has to be at least lo
+//   but at most hi pieces with lo > hi
 // ---------------------------------------------------------------------------------------------------------------------
 var SM_MAX_SP = 1000;            // the biggest SP target
 var SM_MAX_CELLS = 12000000;     // size limit of the cost table (products x SP steps)
@@ -451,27 +502,41 @@ function smSearch_(cx, K, U) {
 }
 
 function smSolve_(products, opts) {
-  var out = { sets: [], error: '', lo: null, hi: null, more: false, truncated: false, forcedSp: 0, step: 0 };
+  var out = { sets: [], error: '', lo: null, hi: null, more: false, truncated: false, forcedSp: 0, step: 0, conflict: null };
   opts = opts || {};
   var T = smU_(opts.target), K = Math.floor(Number(opts.count)) || 5;
   K = Math.max(1, Math.min(SM_MAX_COUNT, K));
   if (!(T > 0)) { out.error = 'target'; return out; }
   if (T > SM_MAX_SP * 100) { out.error = 'big'; return out; }
-  var caps = opts.caps || null, must = !!(caps && opts.must);
-  var list = [];
+  var caps = opts.caps || null, must = !!(caps && opts.must), limits = opts.limits || null;
+  var list = [], clash = null;
   (products || []).forEach(function (p) {
-    if (!p || !(Number(p.sp) > 0)) return;
+    if (clash || !p || !(Number(p.sp) > 0)) return;
     var s = smU_(p.sp); if (!(s > 0)) return;
-    var cap = Infinity;
+    var lo = 0, hi = Infinity, lim = (limits && smHas_(limits, p.code)) ? limits[p.code] : null, lh = -1, ll = 0;
     if (caps) {
       if (!smHas_(caps, p.code)) return;
-      var cv = Math.floor(Number(caps[p.code])); cap = cv > 0 ? cv : Infinity;
+      var cv = Math.floor(Number(caps[p.code])); hi = cv > 0 ? cv : Infinity;
+      if (must) lo = 1;
     }
-    list.push({ p: p, s: s, c: smU_(p.dp), mrpU: smU_(p.mrp), hi: cap, forced: 0 });
+    if (lim) {
+      var hv = Number(lim.hi), lv = Number(lim.lo);
+      if (lim.hi != null && isFinite(hv) && hv >= 0) lh = Math.floor(hv);
+      if (lim.lo != null && isFinite(lv) && lv >= 1) ll = Math.ceil(lv);
+    }
+    if (lh === 0) {                                                    // "never": stronger than the compulsory box; only an explicit minimum clashes with it
+      if (ll > 0) clash = { p: p, lo: ll, hi: 0 };
+      return;
+    }
+    if (lh > 0) hi = Math.min(hi, lh);
+    if (ll > 0) lo = Math.max(lo, ll);
+    if (lo > hi) { clash = { p: p, lo: lo, hi: hi }; return; }
+    list.push({ p: p, s: s, c: smU_(p.dp), mrpU: smU_(p.mrp), hi: hi - lo, forced: lo });   // hi = how many MORE pieces may be added to the compulsory ones
   });
+  if (clash) { out.error = 'conflict'; out.conflict = clash; return out; }
   if (!list.length) { out.error = 'empty'; return out; }
   var baseSp = 0, baseCost = 0;
-  if (must) list.forEach(function (it) { it.forced = 1; it.hi = it.hi - 1; baseSp += it.s; baseCost += it.c; });
+  list.forEach(function (it) { baseSp += it.forced * it.s; baseCost += it.forced * it.c; });
   out.forcedSp = baseSp / 100;
   var Tr = T - baseSp;                                               // what the free pieces must still add up to
   if (Tr < 0) { out.error = 'forced'; return out; }
@@ -525,7 +590,7 @@ function smSolve_(products, opts) {
     return out;
   }
   // the exact SP cannot be made from these products: which totals right next to it can?
-  if (!exact && !must) out.step = g / 100;                          // every total these products make is a multiple of this
+  if (!exact && baseSp === 0) out.step = g / 100;                   // every total these products make is a multiple of this (only when no compulsory pieces shift the totals)
   var minR = (baseSp > 0) ? 0 : 1, row0 = cx.rows[0], r;
   for (r = Rt; r >= minR; r--) if (row0[r] < SM_INF && (r * g + baseSp) < T) { out.lo = { sp: (r * g + baseSp) / 100, dp: (row0[r] + baseCost) / 100 }; break; }
   for (r = Rt + 1; r <= R; r++) if (row0[r] < SM_INF && (r * g + baseSp) > T) { out.hi = { sp: (r * g + baseSp) / 100, dp: (row0[r] + baseCost) / 100 }; break; }
@@ -666,6 +731,305 @@ function smParse_(text) {
   });
   return res;
 }
+// ---------------------------------------------------------------------------------------------------------------------
+// THE CONDITION READER: what was typed or spoken to limit a product ("obeodoc nahi chahiye", "ओबिडोक 1 से ज़्यादा नहीं", "thunderblast max 2, immunodoc kam se kam 1")
+// smParseCond_(text, products) gives { rules: [ { phrase, cands, total, lo, hi, clear, err } ], clearAll }
+//   one rule per product named. cands = the codes of the products that fit the spoken / typed name, best first (one = sure, several = the person is asked, none = not found), total = how many fit.
+//   lo = at least that many pieces, hi = at most that many (0 = never): undefined = this sentence says nothing about it.  clear = take the limits of the product off.
+//   err = '' | 'noop' (a product, but nothing said about it) | 'noprod' (a limit, but no product) | 'bad' (a minimum above the maximum) | 'sp' (an SP target such as "36 sp" - that belongs in the other box)
+// The name is found by letters (typed) and also by SOUND: Hindi speech writes "ओबिडोक" for OBEODOC, so the consonants of the words are compared as well.
+// ---------------------------------------------------------------------------------------------------------------------
+var SM_C_LISTS = {
+  NEG: 'nahi nahin nahii nhi nai na mat not no never नहीं नही नाही ना मत न',
+  EXCL: 'hatao hata hatana hatado hatade hataye hataiye hatake hatakar hatani nikalo nikal nikaal nikalna nikalkar nikaalo nikalde remove delete exclude excluding skip avoid without bina binaa baghair bagair alawa alava except barring chhodo chhod chhodke chhodkar chhodna chodo chod chodke chodkar chhodiye ' +
+        'हटाओ हटा हटाना हटादो हटाइए हटाएं हटाए हटाकर हटाके निकालो निकाल निकालना निकालकर निकाले निकालें बिना बगैर अलावा छोड़ो छोड़ छोड़ना छोड़के छोड़कर छोड़िए रिमूव डिलीट एक्सक्लूड स्किप विदाउट एक्सेप्ट',
+  MORE: 'zyada jyada zyaada zada jada upar adhik more above over greater bada bade badi ज़्यादा ज्यादा ऊपर अधिक मोर बड़ा बड़े',
+  LESS: 'kam kum less below under fewer neeche niche chhota chhote कम नीचे लेस छोटा छोटे',
+  MAXP: 'max maximum maxi maxx atmost upto limit cap upper adhiktam मैक्स मैक्सिमम मैक्सीमम मेक्स मेक्सिमम अधिकतम अपटू लिमिट कैप',
+  MINP: 'min minimum mini atleast least lowest न्यूनतम मिन मिनिमम मिनीमम लीस्ट मिनी',
+  MAXS: 'tak तक',
+  EXACT: 'sirf sirph keval kewal bas bass only just exactly exact hi सिर्फ केवल बस ओनली एक्जैक्ट एग्जैक्टली ही',
+  BHI: 'bhi भी',
+  UNIT: 'piece pieces pcs pc qty quantity quantities nag nug unit units box dabba dabbe bottle bottles item items product products matra पीस पिस नग क्वांटिटी क्वान्टिटी मात्रा यूनिट बॉक्स डब्बा डिब्बा बोतल आइटम आइटम्स प्रोडक्ट प्रोडक्ट्स',
+  CLEAR: 'clear reset normal any unlimited khuli khula koibhi क्लियर रीसेट नॉर्मल एनी',
+  OR: 'ya or या',
+  SEP: 'aur and tatha phir then also plus और तथा फिर',
+  COND: 'condition conditions shart sharte sharten कंडीशन कंडीशंस कंडीशन्स शर्त शर्तें',
+  ALL: 'sab sabhi saari saare sare sari all everything सब सभी सारी सारे सारा',
+  FILL: 'chahiye chahie chaiye chahiyen chahta chahti chahte chahunga chahungi chahenge hona hone hoga hogi ho hai hain hu hun ki ka ke ko se me mein mai par pe per ye yeh is iss us uss usse isse wo woh vo vah yah ab abhi please plz pls zara jara bhai bhaiya yaar sir ' +
+        'mujhe mujhko muje mere mera meri meko mereko hum hame hamein apne apna apni aap tum kar karo kardo karna kijiye kripya lagao lagana laga lagado daalo dalo dalna daal do de dena dedo le lo lena rakho rakhna rakh rakhe rakhiye banao wala wali wale jaisa jaise jese bolo likho than to ' +
+        'चाहिए चाहिये चाहिएं चाहता चाहती चाहते चाहूंगा होना होने होगा होगी हो है हैं हूँ हूं की का के को से में मैं पर ये यह इस उस उससे इससे वो वह अब अभी प्लीज़ ज़रा जरा भाई यार सर मुझे मुझको मेरे मेरा मेरी मेको हम हमें अपने आप तुम कर करो करदो करना कीजिए लगाओ लगाना लगा डालो डाल दो दे देना ले लो लेना रखो रखना रख रखे बनाओ बनाना बनाने वाला वाली वाले जैसा जैसे बोलो लिखो'
+};
+var SM_C_MULTI = [                                                 // words that mean something only together (written the way smKey_ writes them)
+  [['kam', 'se', 'kam'], 'MINP'], [['zyada', 'se', 'zyada'], 'MAXP'], [['jyada', 'se', 'jyada'], 'MAXP'], [['zada', 'se', 'zada'], 'MAXP'], [['adhik', 'se', 'adhik'], 'MAXP'],
+  [['कम', 'से', 'कम'], 'MINP'], [['ज्यादा', 'से', 'ज्यादा'], 'MAXP'], [['अधिक', 'से', 'अधिक'], 'MAXP'],
+  [['at', 'least'], 'MINP'], [['at', 'most'], 'MAXP'], [['up', 'to'], 'MAXP'], [['not', 'more', 'than'], 'MAXP'], [['no', 'more', 'than'], 'MAXP'], [['not', 'less', 'than'], 'MINP'], [['no', 'less', 'than'], 'MINP'],
+  [['koi', 'limit', 'nahi'], 'CLEAR'], [['limit', 'nahi'], 'CLEAR'], [['no', 'limit'], 'CLEAR'], [['bina', 'limit'], 'CLEAR'], [['without', 'limit'], 'CLEAR'], [['लिमिट', 'नहीं'], 'CLEAR'], [['कोई', 'लिमिट', 'नहीं'], 'CLEAR']
+];
+var SM_C_MAPS = null;
+function smCondMaps_() {
+  if (SM_C_MAPS) return SM_C_MAPS;
+  var M = { role: Object.create(null), multi: [] };
+  Object.keys(SM_C_LISTS).forEach(function (r) {
+    SM_C_LISTS[r].split(' ').forEach(function (w) { if (w) { var k = smKey_(w); if (!(k in M.role)) M.role[k] = r; } });
+  });
+  SM_C_MULTI.forEach(function (m) { M.multi.push({ keys: m[0].map(smKey_), role: m[1] }); });
+  M.multi.sort(function (a, b) { return b.keys.length - a.keys.length; });
+  SM_C_MAPS = M; return M;
+}
+
+// the SOUND of a word: only its consonants, the ones that sound alike written alike. "obeodoc" and "ओबिडोक" are both "bdk"; "thunderblast" and "थंडरब्लास्ट" are both "tndrblst"
+var SM_DEV_SKEL = { 'क': 'k', 'ख': 'k', 'ग': 'g', 'घ': 'g', 'ङ': 'n', 'च': 'k', 'छ': 'k', 'ज': 'g', 'झ': 'g', 'ञ': 'n', 'ट': 't', 'ठ': 't', 'ड': 'd', 'ढ': 'd', 'ण': 'n', 'त': 't', 'थ': 't', 'द': 'd', 'ध': 'd', 'न': 'n',
+  'प': 'p', 'फ': 'p', 'ब': 'b', 'भ': 'b', 'म': 'm', 'र': 'r', 'ल': 'l', 'ळ': 'l', 'व': 'v', 'श': 's', 'ष': 's', 'स': 's', 'ं': 'n', 'ँ': 'n' };
+function smSkel_(w) {
+  var s = String(w == null ? '' : w), out = '', i, c;
+  if (/[ऀ-ॿ]/.test(s)) {
+    try { s = s.normalize('NFD'); } catch (e) { /* an old browser: left as it is */ }
+    for (i = 0; i < s.length; i++) { c = SM_DEV_SKEL[s.charAt(i)]; if (c) out += c; }
+  } else {
+    out = s.toLowerCase().replace(/[^a-z]/g, '').replace(/ch/g, 'k').replace(/kh/g, 'k').replace(/gh/g, 'g').replace(/th/g, 't').replace(/dh/g, 'd').replace(/bh/g, 'b').replace(/ph/g, 'p').replace(/sh/g, 's').replace(/[jz]h/g, 'g')
+      .replace(/c(?=[eiy])/g, 's').replace(/c/g, 'k').replace(/q/g, 'k').replace(/x/g, 'ks').replace(/[zj]/g, 'g').replace(/f/g, 'p').replace(/w/g, 'v').replace(/[aeiouyh]/g, '');
+  }
+  return out.replace(/(.)\1+/g, '$1');
+}
+function smProdIndex_(products) {                                  // the products that can be in a set, with the words of the name (and the sound of each word)
+  var out = [];
+  (products || []).forEach(function (p, i) {
+    if (!p || !(Number(p.sp) > 0)) return;
+    var toks = [], re = /(\d+(?:\.\d+)?)|([a-z]+)/g, m, nm = String(p.name == null ? '' : p.name).toLowerCase();
+    while ((m = re.exec(nm))) { var w = m[1] !== undefined ? m[1] : m[2]; toks.push({ w: w, k: m[1] !== undefined ? w : smSkel_(w) }); }
+    if (toks.length) out.push({ code: String(p.code), t: toks, order: i });
+  });
+  return out;
+}
+// which products fit the words of a name: every word is worth 4 = the same word, 3 = the start of the word was typed, 2 = the same sound, 1 = the start of the same sound
+function smMatchName_(ws, idx) {
+  var n = ws.length, res = [];
+  if (!n) return { top: 0, list: [] };
+  var J = ws.map(function (x) { return x.w; }).join(''), Jk = ws.map(function (x) { return x.k; }).join(''), jRo = /^[a-z0-9]+$/.test(J);
+  idx.forEach(function (P) {
+    var used = [], sum = 0, i, j;
+    ws.forEach(function (x) {
+      var best = 0, bi = -1;
+      for (i = 0; i < P.t.length; i++) {
+        if (used[i]) continue;
+        var t = P.t[i], sc = 0;
+        if (x.w === t.w) sc = 4;
+        else if (/^[a-z]+$/.test(x.w) && x.w.length >= 3 && t.w.indexOf(x.w) === 0) sc = 3;
+        else if (x.k && x.k.length >= 2 && x.k === t.k) sc = 2;
+        else if (x.k && x.k.length >= 3 && t.k.indexOf(x.k) === 0) sc = 1;
+        if (sc > best) { best = sc; bi = i; }
+      }
+      if (bi >= 0) { used[bi] = 1; sum += best; }
+    });
+    var joined = 0;
+    if (n >= 2) {                                                  // the name was said / typed in pieces: "thunder blast" for THUNDERBLAST
+      for (i = 0; i < P.t.length; i++) {
+        var cw = '', ck = '';
+        for (j = i; j < P.t.length; j++) {
+          cw += P.t[j].w; ck += P.t[j].k;
+          var sc2 = 0;
+          if (J === cw) sc2 = 4; else if (jRo && J.length >= 3 && cw.indexOf(J) === 0) sc2 = 3; else if (Jk.length >= 2 && Jk === ck) sc2 = 2; else if (Jk.length >= 3 && ck.indexOf(Jk) === 0) sc2 = 1;
+          if (sc2 > joined) joined = sc2;
+        }
+      }
+      joined *= n;
+    }
+    var score = Math.max(sum, joined);
+    if (score >= 1) res.push({ P: P, score: score });
+  });
+  if (!res.length) return { top: 0, list: [] };
+  res.sort(function (a, b) { return b.score - a.score || a.P.order - b.P.order; });
+  var top = res[0].score, list = res.filter(function (r) { return r.score === top; }).map(function (r) { return r.P; });
+  if (list.length > 1) {                                           // the whole name typed exactly: that product only (HANDWASH, not HANDWASH REFILLING)
+    var exact = list.filter(function (P) { return P.t.length === n && ws.every(function (x, i2) { return x.w === P.t[i2].w; }); });
+    if (exact.length) list = exact;
+  }
+  return { top: top, list: list };
+}
+
+function smCondTokens_(text) {
+  var s = String(text == null ? '' : text).slice(0, 600).toLowerCase();
+  s = s.replace(/[०-९]/g, function (d) { return String(d.charCodeAt(0) - 0x966); }).replace(/[٠-٩]/g, function (d) { return String(d.charCodeAt(0) - 0x660); });
+  s = s.replace(/[,;\n\r।॥|]/g, ',').replace(/\.(?!\d)/g, ',').replace(/₹/g, ' ');
+  var toks = [], re = /(\d+(?:\.\d+)?)|([a-z]+)|([ऀ-ॿ]+)|(,)/g, m;
+  while ((m = re.exec(s))) {
+    if (m[1] !== undefined) toks.push({ k: 'd', v: Number(m[1]), raw: m[1] });
+    else if (m[4] !== undefined) toks.push({ k: 's' });
+    else toks.push({ k: 'w', w: m[2] !== undefined ? m[2] : m[3] });
+  }
+  return toks;
+}
+var SM_C_PREFIX = { MAXP: 1, MINP: 1, EXACT: 1 };                  // words that are said BEFORE their number (max 3); the others ("3 tak", "3 se zyada nahi") come after it
+function smCondNum_(R, N, neg, eq) {                              // one number with the words around it -> { lo, hi }
+  var has = function (r) { return !!R[r]; }, out = {};
+  if (has('MINP')) { if (neg) out.hi = N - 1; else out.lo = N; }
+  else if (has('MAXP') || has('MAXS')) { if (neg) out.lo = N + 1; else out.hi = N; }
+  else if (has('MORE')) { if (neg) out.hi = eq ? N - 1 : N; else out.lo = eq ? N : N + 1; }
+  else if (has('LESS')) { if (neg) out.lo = eq ? N + 1 : N; else out.hi = eq ? N : N - 1; }
+  else if (has('EXACT')) { if (neg) out.hi = N - 1; else { out.lo = N; out.hi = N; } }
+  else { if (neg) out.hi = N - 1; else out.hi = N; }               // "obeodoc 3" = at most 3, "obeodoc 1 bhi nahi" = none
+  if (out.hi !== undefined && out.hi < 0) out.hi = 0;
+  if (out.lo !== undefined && out.lo < 0) out.lo = 0;
+  if (out.hi === 0) out.lo = 0;
+  return out;
+}
+// the numbers and operator words between two product words -> the limits they say
+function smCondRun_(run) {
+  var nums = [], i, stmt = {}, any = false;
+  for (i = 0; i < run.length; i++) if (run[i].k === 'n') nums.push(i);
+  if (!nums.length) return { stmt: null };
+  var groups = nums.map(function () { return []; });
+  for (i = 0; i < nums[0]; i++) groups[0].push(run[i]);                                   // before the first number
+  for (var g = 0; g < nums.length; g++) {
+    var from = nums[g] + 1, to = g + 1 < nums.length ? nums[g + 1] : run.length, mid = run.slice(from, to);
+    if (g + 1 < nums.length) {
+      var cut = mid.length;
+      for (i = 0; i < mid.length; i++) if (mid[i].k === 'o' && SM_C_PREFIX[mid[i].role] && mid[i].key !== 'hi' && mid[i].key !== 'ही') { cut = i; break; }
+      mid.slice(0, cut).forEach(function (x) { groups[g].push(x); });
+      mid.slice(cut).forEach(function (x) { groups[g + 1].push(x); });
+    } else mid.forEach(function (x) { groups[g].push(x); });
+  }
+  for (var j = 0; j < nums.length; j++) {
+    var nt = run[nums[j]], N = Math.floor(nt.v + 1e-9), ops = groups[j];
+    var nx = run[nums[j] + 1], nn = run[nums[j] + 2];
+    if (nx && nn && nn.k === 'n' && nx.k === 'o' && nx.role === 'FILL' && (nx.key === 'se' || nx.key === 'से' || nx.key === 'to') && j + 1 < nums.length && nums[j + 1] === nums[j] + 2) {      // "2 se 4"
+      var a = Math.floor(nt.v + 1e-9), b = Math.floor(nn.v + 1e-9);
+      stmt.lo = Math.min(a, b); stmt.hi = Math.max(a, b); if (stmt.hi === 0) stmt.lo = 0; any = true; j++; continue;
+    }
+    var R = {}, neg = false, eq = false;
+    ops.forEach(function (x) { if (x.k !== 'o') return; R[x.role] = 1; if (x.role === 'NEG' || x.role === 'EXCL') neg = true; if (x.role === 'OR') eq = true; });
+    var d = smCondNum_(R, N, neg, eq);
+    if (d.lo !== undefined) stmt.lo = d.lo;
+    if (d.hi !== undefined) stmt.hi = d.hi;
+    any = true;
+  }
+  return { stmt: any ? stmt : null };
+}
+
+// one sentence (the words between two separators) -> { words, best, stmt, flags, err }
+function smCondClause_(toks, idx) {
+  var M = smCondMaps_(), seq = [], fused = [], i, q;
+  toks.forEach(function (t) {
+    if (t.k === 'w') seq.push(t.keep ? { k: 'p', w: t.w } : { k: 'w', w: t.w, key: smKey_(t.w) }); else seq.push(t);
+  });
+  for (i = 0; i < seq.length; i++) {                               // 1. "kam se kam", "at most" ... = one operator (before any number word: "at" is also "aat" = 8)
+    var hit = null;
+    for (var mi = 0; mi < M.multi.length && !hit; mi++) {
+      var ks = M.multi[mi].keys, ok = i + ks.length <= seq.length;
+      for (q = 0; ok && q < ks.length; q++) ok = seq[i + q].k === 'w' && seq[i + q].key === ks[q];
+      if (ok) hit = M.multi[mi];
+    }
+    if (hit) { fused.push({ k: 'o', role: hit.role, key: '' }); i += hit.keys.length - 1; } else fused.push(seq[i]);
+  }
+  var tk = [];
+  i = 0;
+  while (i < fused.length) {                                       // 2. numbers (digits, or words: ek, teen, sau ...) and the other words: an operator word, or a word of the product's name
+    var t = fused[i];
+    if (t.k === 'd') { tk.push({ k: 'n', v: t.v, weak: false, name: t.raw, dig: true }); i++; continue; }
+    if (t.k === 'w') {
+      var nr = smNumWords_(fused, i);
+      if (nr) { tk.push({ k: 'n', v: nr.v, weak: nr.len === 1 && (nr.v === 1 || nr.v === 2), name: nr.len === 1 ? t.w : '', dig: false }); i += nr.len; continue; }
+      var r = M.role[t.key];
+      tk.push(r ? { k: 'o', role: r, key: t.key } : { k: 'p', w: t.w }); i++; continue;
+    }
+    tk.push(t); i++;
+  }
+  var ask = { MAXP: 1, MINP: 1, EXACT: 1, MORE: 1, LESS: 1, MAXS: 1, BHI: 1, UNIT: 1, OR: 1 };
+  var anyOp = tk.some(function (x) { return x.k === 'o' && x.role !== 'FILL'; });
+  tk = tk.map(function (x, j) {                                    // 3. a spoken "ek" / "do" is a number only next to a word that asks for a number (max do, do hi, do se zyada); "hata do" is not
+    if (x.k !== 'n' || !x.weak) return x;
+    var pv = tk[j - 1], nx = tk[j + 1], n2 = tk[j + 2];
+    var next = nx && nx.k === 'o' && ask[nx.role];
+    var se = nx && nx.k === 'o' && nx.role === 'FILL' && (nx.key === 'se' || nx.key === 'से') && n2 && n2.k === 'o' && (n2.role === 'MORE' || n2.role === 'LESS');
+    var prev = pv && pv.k === 'o' && (pv.role === 'MAXP' || pv.role === 'MINP' || pv.role === 'EXACT' || pv.role === 'MORE' || pv.role === 'LESS');
+    var bare = !nx && pv && pv.k === 'p' && !anyOp;                // "obeodoc ek" at the end of the sentence
+    if (next || se || prev || bare) return x;
+    return { k: 'o', role: 'FILL', key: '' };
+  });
+  var spw = smMaps_().spw, spIntent = false;                       // "36 sp": the SP of a set (the other box), not a condition on a product
+  tk.forEach(function (x, j) {
+    if (x.k === 'p' && (smKey_(x.w) in spw)) { var pa = tk[j - 1], pb = tk[j + 1]; if ((pa && pa.k === 'n') || (pb && pb.k === 'n')) spIntent = true; }
+  });
+  // 4. the name: every word that is not an operator; a number right after a name word that makes the name fit better belongs to the name (B12, 200 ML, PANCH)
+  var inName = tk.map(function (x) { return x.k === 'p'; });
+  var wordOf = function (x) { return x.k === 'p' ? x.w : x.name; };
+  var wordsOf = function () { var ws = []; tk.forEach(function (x, j) { if (inName[j]) ws.push({ w: wordOf(x), k: (x.k === 'n' && x.dig) ? x.name : smSkel_(wordOf(x)) }); }); return ws; };
+  var best = smMatchName_(wordsOf(), idx);
+  for (i = 1; i < tk.length; i++) {
+    if (tk[i].k === 'n' && tk[i].name && inName[i - 1]) {
+      inName[i] = true;
+      var b2 = smMatchName_(wordsOf(), idx);
+      if (b2.top > best.top) best = b2; else inName[i] = false;
+    }
+  }
+  // 5. what is said about the numbers (the runs of numbers and operator words between the name words)
+  var stmt = null, flags = {}, run = [], runs = [];
+  tk.forEach(function (x, j) {
+    if (inName[j]) { if (run.length) runs.push(run); run = []; return; }
+    run.push(x);
+  });
+  if (run.length) runs.push(run);
+  runs.forEach(function (r) {
+    r.forEach(function (x) { if (x.k === 'o') flags[x.role] = (flags[x.role] || 0) + 1; });
+    var rr = smCondRun_(r);
+    if (rr.stmt) { stmt = stmt || {}; if (rr.stmt.lo !== undefined) stmt.lo = rr.stmt.lo; if (rr.stmt.hi !== undefined) stmt.hi = rr.stmt.hi; }
+  });
+  if (!stmt) {
+    if (flags.CLEAR) stmt = { clear: true };
+    else if (flags.NEG || flags.EXCL) stmt = { lo: 0, hi: 0 };
+  }
+  var err = '';
+  if (stmt && stmt.lo !== undefined && stmt.hi !== undefined && stmt.hi > 0 && stmt.lo > stmt.hi) err = 'bad';
+  var words = [];
+  tk.forEach(function (x, j) { if (inName[j]) words.push(wordOf(x)); });
+  return { words: words, best: best, stmt: stmt, flags: flags, err: err, sp: spIntent };
+}
+
+function smParseCond_(text, products) {
+  var res = { rules: [], clearAll: false }, idx = smProdIndex_(products), all = smCondTokens_(text), M = smCondMaps_();
+  var tri = Object.create(null), i;
+  idx.forEach(function (P) { for (var k = 1; k + 1 < P.t.length; k++) if (P.t[k].w === 'and') tri[P.t[k - 1].w + ' and ' + P.t[k + 1].w] = 1; });   // "and" inside a name (LIFT AND SCULPT) is not a separator
+  var clauses = [], cur = [];
+  all.forEach(function (t, j) {
+    var sep = t.k === 's';
+    if (t.k === 'w' && M.role[smKey_(t.w)] === 'SEP') {
+      sep = true;
+      if (t.w === 'and' && all[j - 1] && all[j + 1] && all[j - 1].k === 'w' && all[j + 1].k === 'w' && tri[all[j - 1].w + ' and ' + all[j + 1].w]) { sep = false; t.keep = true; }
+    }
+    if (sep) { if (cur.length) clauses.push(cur); cur = []; } else cur.push(t);
+  });
+  if (cur.length) clauses.push(cur);
+  var rules = [];
+  clauses.forEach(function (c) {
+    var a = smCondClause_(c, idx), hasWords = a.words.length > 0;
+    if (a.sp) { rules.push({ phrase: a.words.join(' '), cands: [], total: 0, lo: undefined, hi: undefined, clear: false, err: 'sp', has: true }); return; }
+    if (!hasWords) {                                               // no product named: "saari conditions hatao" clears everything, otherwise the limit is for the product named just before
+      var f = a.flags;
+      if ((f.COND && (f.ALL || f.EXCL || f.CLEAR)) || (f.CLEAR && (f.ALL || !a.stmt || a.stmt.clear)) || (f.ALL && (f.EXCL || f.CLEAR))) { res.clearAll = true; return; }
+      if (!a.stmt) return;
+    }
+    var r = { phrase: a.words.join(' '), cands: [], total: 0, lo: undefined, hi: undefined, clear: false, err: a.err, has: hasWords };
+    if (hasWords) { r.total = a.best.list.length; r.cands = a.best.list.slice(0, 40).map(function (P) { return P.code; }); }
+    if (a.stmt) { if (a.stmt.clear) r.clear = true; else { r.lo = a.stmt.lo; r.hi = a.stmt.hi; } }
+    else if (hasWords) r.err = 'noop';
+    rules.push(r);
+  });
+  var prev = null;                                                 // a limit with no product named belongs to the product of the sentence before it
+  rules.forEach(function (r) {
+    if (!r.has) { if (prev) { r.phrase = prev.phrase; r.cands = prev.cands; r.total = prev.total; r.has = true; } else r.err = 'noprod'; }
+    if (r.has) prev = r;
+  });
+  var carry = null;                                                // "A aur B nahi chahiye": A has no limit of its own, it takes the one of the sentence after it
+  for (i = rules.length - 1; i >= 0; i--) {
+    var r2 = rules[i];
+    if (r2.err === 'noop' && carry) { r2.lo = carry.lo; r2.hi = carry.hi; r2.clear = carry.clear; r2.err = ''; }
+    else if (!r2.err && (r2.clear || r2.lo !== undefined || r2.hi !== undefined)) carry = r2;
+    else carry = null;
+  }
+  res.rules = rules.map(function (r) { return { phrase: r.phrase, cands: r.cands, total: r.total, lo: r.lo, hi: r.hi, clear: r.clear, err: r.err }; });
+  return res;
+}
 // <<SETMAKER_CORE_END>>
 
 // =====================================================================================================================
@@ -677,16 +1041,19 @@ const SUPABASE_KEY = 'sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP';
 const LS_PRODUCTS = 'mwCalcProducts';      // the saved price list: the very same copy the Product Calculator keeps (each page refreshes it for the other)
 const LS_STATE = 'mwSpSetState';           // what was typed + the products chosen (kept on this phone only)
 const FETCH_TIMEOUT_MS = 15000, REFRESH_AFTER_MS = 6 * 3600 * 1000, STALE_AFTER_MS = 2 * 86400000;
-const DEFAULT_COUNT = 5, MORE_STEP = 5, MAX_TARGETS = 20, MAX_CAP = 9999, SEARCH_MAX = 40, CMD_MAX = 300;
+const DEFAULT_COUNT = 5, MORE_STEP = 5, MAX_TARGETS = 20, MAX_CAP = 9999, SEARCH_MAX = 40, CMD_MAX = 300, MAX_COND = 60;
 
 let PRODUCTS = [];                         // [{code, name, mrp, dp, sp}] in the order the server sent them
 let BYCODE = Object.create(null);          // code -> product (no prototype: a product code can never clash with a built-in name)
 let LIST_AT = 0, LIST_SRC = 'none', LIST_FAILED = false, FETCHING = false, LIST_SIG = '';
 let OWN = [];                              // the products chosen by the person: [{code, cap}] (cap 0 = as many as needed)
 let MUST = false;                          // every chosen product at least once in every set
+let COND = [];                             // the conditions of the person: [{code, lo, hi}]  lo = at least that many (0 = no minimum), hi = at most that many (0 = never, null = no maximum)
+let PENDING = [];                          // conditions waiting for the person to say which product was meant: [{phrase, cands, total, stmt}]
+let CONDMSG = [];                          // what the last condition sentence could not make out: [text]
 let RES = [];                              // one entry per SP asked: { target, count, key, out }
 let ECHO = null;                           // how the last command was understood
-let LISTENING = false, REC = null;
+let LISTENING = '', REC = null;               // which mic is on ('cmd' = the SP command, 'cond' = a condition, '' = none), and the listener
 let SEARCH_ROWS = [], SEARCH_ACTIVE = -1;
 
 // ---- helpers
@@ -720,7 +1087,9 @@ function toast_(msg) {
 
 // ---- what is kept on the phone (every access is guarded: private mode or a full phone must never break the page)
 function saveState_() {
-  lsSet_(LS_STATE, JSON.stringify({ v: 1, cmd: String(el_('cmd').value || '').slice(0, CMD_MAX), own: OWN.map(function (o) { return [o.code, o.cap]; }), must: MUST }));
+  const st = { v: 1, cmd: String(el_('cmd').value || '').slice(0, CMD_MAX), own: OWN.map(function (o) { return [o.code, o.cap]; }), must: MUST };
+  if (COND.length) st.cond = COND.map(function (c) { return [c.code, c.lo, c.hi === null ? -1 : c.hi]; });      // only when there are conditions (older copies stay the same)
+  lsSet_(LS_STATE, JSON.stringify(st));
 }
 function loadState_() {
   const s = lsJson_(LS_STATE);
@@ -734,6 +1103,17 @@ function loadState_() {
     seen[code] = 1; OWN.push({ code: code, cap: (cap >= 1) ? Math.min(MAX_CAP, cap) : 0 });
   });
   MUST = s.must === true;
+  const seenC = Object.create(null);
+  (Array.isArray(s.cond) ? s.cond : []).forEach(function (e) {
+    if (!Array.isArray(e) || COND.length >= MAX_COND) return;
+    const code = e[0] == null ? '' : String(e[0]).slice(0, 80);
+    if (!code || seenC[code]) return;
+    let lo = Math.round(Number(e[1])), hv = Number(e[2]), hi = (e[2] != null && isFinite(hv) && hv >= 0) ? Math.min(MAX_CAP, Math.round(hv)) : null;
+    lo = lo >= 1 ? Math.min(MAX_CAP, lo) : 0;
+    if (hi === 0) lo = 0; else if (hi !== null && lo > hi) lo = 0;
+    if (lo === 0 && hi === null) return;
+    seenC[code] = 1; COND.push({ code: code, lo: lo, hi: hi });
+  });
 }
 
 // ---- the price list: shown from the phone at once, then refreshed from the server when there is internet
@@ -786,11 +1166,13 @@ function applyProducts_(list, at, src) {
   list.forEach(function (p) { BYCODE[p.code] = p; });
   LIST_AT = at; LIST_SRC = src; FETCHING = false;
   LIST_SIG = list.length + '|' + list.map(function (p) { return p.code + '~' + p.mrp + '~' + p.dp + '~' + p.sp; }).join('|');
-  const before = OWN.length;
-  OWN = OWN.filter(function (o) { return BYCODE[o.code] && BYCODE[o.code].sp > 0; });   // a product that is no longer on the list (or has no SP) cannot be used
-  const dropped = before - OWN.length;
+  const gone = Object.create(null), live = function (code) { return !!(BYCODE[code] && BYCODE[code].sp > 0); };
+  OWN = OWN.filter(function (o) { if (live(o.code)) return true; gone[o.code] = 1; return false; });   // a product that is no longer on the list (or has no SP) cannot be used
+  COND = COND.filter(function (c) { if (live(c.code)) return true; gone[c.code] = 1; return false; });
+  PENDING = PENDING.map(function (p) { return { phrase: p.phrase, cands: p.cands.filter(live), total: p.total, stmt: p.stmt }; }).filter(function (p) { return p.cands.length > 0; });
+  const dropped = Object.keys(gone).length;
   if (dropped) saveState_();
-  renderListStatus_(); renderOwn_(); renderSearch_(); refreshResults_();
+  renderListStatus_(); renderOwn_(); renderCond_(); renderCondMsg_(); renderSearch_(); refreshResults_();
   if (dropped) toast_(plural_(dropped, 'product', 'products') + ' hata diye (ab price list me nahi hain)');
   return dropped;
 }
@@ -823,10 +1205,17 @@ function capsNow_() {                                                           
   return c;
 }
 function ownSig_() { return OWN.length ? (MUST ? 'M' : 'F') + OWN.map(function (o) { return o.code + ':' + o.cap; }).join(',') : '-'; }
-function solveEntry_(e) {                                                        // the answer is kept until the list, the chosen products or the number of options change
-  const key = LIST_SIG + '#' + ownSig_() + '#' + e.count;
+function condSig_() { return COND.length ? COND.map(function (c) { return c.code + ':' + c.lo + ':' + (c.hi === null ? 'x' : c.hi); }).join(',') : '-'; }
+function limitsNow_() {                                                          // null = no conditions
+  if (!COND.length) return null;
+  const l = Object.create(null);
+  COND.forEach(function (c) { l[c.code] = { lo: c.lo, hi: c.hi === null ? -1 : c.hi }; });
+  return l;
+}
+function solveEntry_(e) {                                                        // the answer is kept until the list, the chosen products, the conditions or the number of options change
+  const key = LIST_SIG + '#' + ownSig_() + '#' + condSig_() + '#' + e.count;
   if (e.out && e.key === key) return e.out;
-  e.out = smSolve_(PRODUCTS, { target: e.target, count: e.count, caps: capsNow_(), must: MUST && OWN.length > 0 });
+  e.out = smSolve_(PRODUCTS, { target: e.target, count: e.count, caps: capsNow_(), must: MUST && OWN.length > 0, limits: limitsNow_() });
   e.key = key;
   return e.out;
 }
@@ -860,6 +1249,8 @@ function renderEcho_() {
     h += '<b>Samjha:</b> ' + ECHO.targets.map(function (t) { return '<span class="tg">' + escapeHtml(fmtSp_(t)) + ' SP</span>'; }).join(' ');
     if (ECHO.count) h += ' <span class="tg c">' + escapeHtml(plural_(ECHO.count, 'option', 'options')) + '</span>';
     if (OWN.length) h += '<div class="echo-own">Sirf aapke chune hue ' + escapeHtml(plural_(OWN.length, 'product', 'products')) + ' se' + (MUST ? ' (sab zaroor)' : '') + '</div>';
+    if (COND.length) h += '<div class="echo-own">Conditions: ' + escapeHtml(condSummary_(4)) + '<button type="button" class="echo-edit" data-act="open-cond">Badlo</button></div>';
+    else h += '<div class="echo-hint">Koi product nahi chahiye? Uske aage ✕ dabao, ya neeche “Kuch product hatana…” me likho / bolo.</div>';
     if (ECHO.cut > 0) h += '<div class="echo-note">Ek baar me ' + MAX_TARGETS + ' SP hi liye gaye.</div>';
   } else if (!ECHO.tooBig.length) {
     h += 'SP ka koi number samajh nahi aaya. Aise likho ya bolo: <b>20 SP, 21 SP, 36 SP</b>';
@@ -870,17 +1261,26 @@ function renderEcho_() {
 }
 
 function problemHtml_(e, out) {                                                  // why there is no set, and (when it helps) the nearest SP that can be made
-  const sp = fmtSp_(e.target), own = OWN.length > 0;
-  let msg;
+  const sp = fmtSp_(e.target), own = OWN.length > 0, cond = COND.length > 0;
+  const minCond = COND.some(function (c) { return c.lo > 0; });
+  let msg, lead = '';
   if (out.error === 'big') msg = sp + ' SP itna bada hai ki phone par nahi ban paya' + (out.maxSp ? ' — ' + out.maxSp + ' SP tak ka try karo.' : '.');
-  else if (out.error === 'forced') msg = 'Aapne “sab zaroor ho” lagaya hai: chune hue sab products ke 1-1 piece ka hi ' + fmtSp_(out.forcedSp) + ' SP ho jata hai, jo ' + sp + ' SP se zyada hai. “Zaroor ho” band karo ya products kam karo.';
-  else if (out.error === 'empty') msg = own ? 'Chune hue products me kisi ka SP nahi hai, isliye set nahi ban sakta.' : 'Price list me SP wala koi product nahi mila.';
+  else if (out.error === 'forced' && !minCond) msg = 'Aapne “sab zaroor ho” lagaya hai: chune hue sab products ke 1-1 piece ka hi ' + fmtSp_(out.forcedSp) + ' SP ho jata hai, jo ' + sp + ' SP se zyada hai. “Zaroor ho” band karo ya products kam karo.';
+  else if (out.error === 'forced') msg = 'Zaroori pieces (' + (MUST && own ? 'chune hue sab products ke 1-1 piece + ' : '') + 'conditions ke “kam se kam” pieces) ka hi ' + fmtSp_(out.forcedSp) + ' SP ho jata hai, jo ' + sp + ' SP se zyada hai. “Kam se kam” / “zaroor ho” kam karo ya SP badhao.';
+  else if (out.error === 'conflict' && out.conflict) {
+    const cf = out.conflict;
+    lead = '<b>' + escapeHtml(out.conflict.p ? out.conflict.p.name : '') + '</b>: ';
+    msg = cf.hi === 0 ? '“nahi chahiye” bhi hai aur “kam se kam ' + cf.lo + '” bhi — dono saath nahi ho sakte.'
+                      : 'kam se kam ' + cf.lo + ' chahiye par is product ki quantity ' + cf.hi + ' tak hi rakhi hai (chune hue products me ya condition me). Dono me se ek badlo.';
+  }
+  else if (out.error === 'empty') msg = cond ? 'Conditions ke baad koi product bacha hi nahi (sab hata diye). Kuch conditions hatao.' : own ? 'Chune hue products me kisi ka SP nahi hai, isliye set nahi ban sakta.' : 'Price list me SP wala koi product nahi mila.';
   else if (out.error) msg = sp + ' SP ka set nahi ban paya.';
   else {
     const stepTxt = out.step > 0 ? ' (SP ' + fmtSp_(out.step) + ' ke steps me hi bante hain)' : '';
-    msg = (own ? sp + ' SP in products se bilkul nahi ban sakta' : sp + ' SP bilkul nahi ban sakta') + stepTxt + '.';
+    const who = own && cond ? ' in products aur conditions ke saath' : own ? ' in products se' : cond ? ' in conditions ke saath' : '';
+    msg = sp + ' SP' + who + ' bilkul nahi ban sakta' + stepTxt + '.';
   }
-  let h = '<div class="box bad">' + escapeHtml(msg) + '</div>';
+  let h = '<div class="box bad">' + lead + escapeHtml(msg) + '</div>';
   if (!out.error && (out.lo || out.hi)) {
     h += '<p class="hint" style="margin-top:12px">Sabse paas ke SP jo ban sakte hain (tap karo):</p><div class="near">';
     [out.lo, out.hi].forEach(function (n) {
@@ -900,7 +1300,8 @@ function optHtml_(set, i, first, canShare) {
   }
   h += '<ul class="opt-lines">';
   set.lines.forEach(function (l) {
-    h += '<li><span class="q">' + l.qty + ' ×</span><span class="nm">' + escapeHtml(l.p.name) + '</span><span class="ln">' + escapeHtml(fmtSp_(l.qty * l.p.sp)) + ' SP · ' + escapeHtml(money_(l.qty * l.p.dp)) + '</span></li>';
+    h += '<li><span class="q">' + l.qty + ' ×</span><span class="nm">' + escapeHtml(l.p.name) + '</span><span class="ln">' + escapeHtml(fmtSp_(l.qty * l.p.sp)) + ' SP · ' + escapeHtml(money_(l.qty * l.p.dp)) + '</span>' +
+         '<button type="button" class="ln-x" data-act="excl" data-code="' + escapeHtml(l.p.code) + '" aria-label="' + escapeHtml(l.p.name) + ' nahi chahiye — hatao" title="Ye product nahi chahiye"><svg class="i"><use href="#i-x"/></svg></button></li>';
   });
   h += '</ul><div class="opt-foot"><span class="opt-meta">Total ' + escapeHtml(fmtSp_(set.sp)) + ' SP<br>MRP ' + escapeHtml(money_(set.mrp)) + ' · ' + escapeHtml(plural_(set.pcs, 'piece', 'pieces')) + '</span>';
   h += '<span class="opt-btns"><button type="button" class="copy-btn" data-act="copy">Copy</button>' + (canShare ? '<button type="button" class="copy-btn" data-act="share">Share</button>' : '') + '</span></div></article>';
@@ -983,6 +1384,7 @@ function onResultsClick_(ev) {
   const card = b.closest('.res'); if (!card) return;
   const e = entryOf_(card.getAttribute('data-t')); if (!e) return;
   const act = b.getAttribute('data-act'), art = b.closest('.opt');
+  if (act === 'excl') { excludeCode_(b.getAttribute('data-code')); return; }
   const out = solveEntry_(e), i = art ? Number(art.getAttribute('data-i')) : -1;
   if (act === 'more') moreFor_(e, card);
   else if (act === 'near') useNear_(e, Number(b.getAttribute('data-sp')));
@@ -1055,6 +1457,103 @@ function onOwnChange_(ev) {                                                     
   t.value = o.cap > 0 ? String(o.cap) : '';
 }
 
+// ---- the conditions of the person: a product never / at most N / at least N pieces (typed or spoken)
+function nameOfCode_(code) { const p = BYCODE[code]; return p ? p.name : code; }
+function condText_(c) {                                                          // c = { lo, hi }  (hi = null: no maximum)
+  const lo = c.lo > 0 ? c.lo : 0, hi = (c.hi === null || c.hi === undefined) ? null : c.hi;
+  if (hi === 0) return 'nahi chahiye';
+  if (lo > 0 && hi === lo) return 'sirf ' + lo;
+  if (lo > 0 && hi !== null) return lo + ' se ' + hi;
+  if (hi !== null) return 'max ' + hi;
+  if (lo > 0) return 'kam se kam ' + lo;
+  return 'koi limit nahi';
+}
+function stmtText_(st) { return st.clear ? 'limit hatao' : condText_({ lo: st.lo, hi: st.hi === undefined ? null : st.hi }); }
+function condSummary_(n) {
+  const head = COND.slice(0, n).map(function (c) { return nameOfCode_(c.code) + ' ' + condText_(c); }).join(' · ');
+  return head + (COND.length > n ? ' · +' + (COND.length - n) + ' aur' : '');
+}
+function mergeCond_(code, st) {                                                  // what was just said about a product: each side (at least / at most) is replaced only when it was spoken about. false = not kept (too many conditions)
+  if (!BYCODE[code]) return false;
+  if (st.clear) { COND = COND.filter(function (c) { return c.code !== code; }); return true; }
+  let c = COND.filter(function (x) { return x.code === code; })[0];
+  if (!c) { if (COND.length >= MAX_COND) return false; c = { code: code, lo: 0, hi: null }; COND.push(c); }
+  if (st.lo !== undefined) c.lo = Math.max(0, Math.min(MAX_CAP, st.lo));
+  if (st.hi !== undefined) c.hi = Math.max(0, Math.min(MAX_CAP, st.hi));
+  if (c.hi === 0) { if (st.lo !== undefined && st.lo > 0 && st.hi === undefined) c.hi = null; else c.lo = 0; }                 // "never" is dropped when a minimum is asked later
+  if (c.hi !== null && c.hi > 0 && c.lo > c.hi) { if (st.lo !== undefined && st.hi === undefined) c.hi = null; else c.lo = 0; }  // the side that was not just spoken loses
+  if (c.lo === 0 && c.hi === null) COND = COND.filter(function (x) { return x !== c; });
+  return true;
+}
+const MSG_MAXCOND = 'Ek baar me ' + MAX_COND + ' conditions hi rakh sakte ho — pehle kuch hata do.';
+function renderCond_() {
+  const n = COND.length, badge = el_('condBadge');
+  badge.hidden = !n; badge.textContent = String(n);
+  el_('condClear').hidden = !n;
+  el_('condList').innerHTML = COND.map(function (c) {
+    const never = c.hi === 0, outside = OWN.length > 0 && !never && !OWN.some(function (o) { return o.code === c.code; });
+    return '<span class="cchip' + (never ? ' never' : '') + (outside ? ' off' : '') + '" data-code="' + escapeHtml(c.code) + '"><b>' + escapeHtml(nameOfCode_(c.code)) + '</b><em>' + escapeHtml(condText_(c)) + '</em>' +
+      (outside ? '<small>chune hue me nahi</small>' : '') + '<button type="button" data-act="cond-del" aria-label="Ye condition hatao"><svg class="i"><use href="#i-x"/></svg></button></span>';
+  }).join('');
+}
+function renderCondMsg_() {
+  let h = '';
+  CONDMSG.forEach(function (m) { h += '<div class="box bad">' + escapeHtml(m) + '</div>'; });
+  if (PENDING.length) {
+    const p = PENDING[0];
+    h += '<div class="box warn"><div class="pick-q">“' + escapeHtml(p.phrase) + '” — kaun sa product? (' + escapeHtml(stmtText_(p.stmt)) + ')</div><div class="pick-list">';
+    p.cands.forEach(function (code) {
+      const pr = BYCODE[code];
+      h += '<button type="button" class="pick-btn" data-act="pick" data-code="' + escapeHtml(code) + '">' + escapeHtml(pr ? pr.name : code) + '<small>' + escapeHtml(code) + (pr ? ' · ' + escapeHtml(fmtSp_(pr.sp)) + ' SP' : '') + '</small></button>';
+    });
+    h += '</div>';
+    if (p.total > p.cands.length) h += '<p class="hint" style="margin-top:8px">Aur ' + (p.total - p.cands.length) + ' products bhi milte hain — naam poora likho ya bolo.</p>';
+    h += '<div class="pick-row">' + (p.total === p.cands.length && p.cands.length > 1 ? '<button type="button" class="copy-btn" data-act="pick-all">Sabhi ' + p.cands.length + ' pe lagao</button>' : '') + '<button type="button" class="copy-btn" data-act="pick-skip">Rehne do</button></div></div>';
+  }
+  el_('condMsg').innerHTML = h;
+}
+function condChanged_() { saveState_(); renderCond_(); renderCondMsg_(); refreshResults_(); }
+function runCond_(text) {
+  stopMic_();
+  text = String(text == null ? '' : text).slice(0, CMD_MAX);
+  if (!text.trim()) { toast_('Pehle likho ya bolo — jaise: obeodoc nahi chahiye'); try { el_('condIn').focus(); } catch (e) {} return; }
+  if (!PRODUCTS.length) { toast_(FETCHING ? 'Product list abhi load ho rahi hai — thoda ruko' : 'Product list nahi aayi — internet check karo'); return; }
+  const pr = smParseCond_(text, PRODUCTS), done = [];
+  CONDMSG = []; PENDING = [];
+  if (pr.clearAll) { COND = []; done.push('Sab conditions hata di'); }
+  pr.rules.forEach(function (r) {
+    const st = r.clear ? { clear: true } : { lo: r.lo, hi: r.hi };
+    if (r.err === 'noprod') CONDMSG.push('Kis product ke liye? Product ka naam bhi likho ya bolo.');
+    else if (r.err === 'noop') CONDMSG.push('“' + r.phrase + '” ka kya karna hai? Aise likho: nahi chahiye, max 1, kam se kam 2.');
+    else if (r.err === 'sp') CONDMSG.push('“' + r.phrase + '” SP ka command lagta hai — SP upar wale box me likho. Yahan product ki condition likho, jaise: obeodoc nahi chahiye.');
+    else if (r.err === 'bad') CONDMSG.push('“' + r.phrase + '”: “kam se kam” “max” se zyada nahi ho sakta.');
+    else if (r.total === 0) CONDMSG.push('“' + r.phrase + '” naam ka koi product nahi mila. Naam thoda saaf likho ya bolo.');
+    else if (r.total === 1) { if (mergeCond_(r.cands[0], st)) done.push(nameOfCode_(r.cands[0]) + ': ' + stmtText_(st)); else if (CONDMSG.indexOf(MSG_MAXCOND) < 0) CONDMSG.push(MSG_MAXCOND); }
+    else PENDING.push({ phrase: r.phrase, cands: r.cands.slice(), total: r.total, stmt: st });
+  });
+  if (!pr.clearAll && !pr.rules.length) CONDMSG.push('Samajh nahi aaya. Aise likho ya bolo: obeodoc nahi chahiye');
+  if (!CONDMSG.length && !PENDING.length) el_('condIn').value = '';             // everything was understood: the box is free for the next one
+  condChanged_();
+  if (done.length) toast_(done.length === 1 ? done[0] : plural_(done.length, 'condition', 'conditions') + ' lag gayi');
+}
+function onCondMsgClick_(ev) {
+  const b = ev.target && ev.target.closest ? ev.target.closest('[data-act]') : null;
+  if (!b || !PENDING.length) return;
+  const act = b.getAttribute('data-act'), p = PENDING[0];
+  if (act === 'pick') { const code = b.getAttribute('data-code'); if (p.cands.indexOf(code) < 0) return; if (mergeCond_(code, p.stmt)) toast_(nameOfCode_(code) + ': ' + stmtText_(p.stmt)); else CONDMSG.push(MSG_MAXCOND); }
+  else if (act === 'pick-all') { let k = 0; p.cands.forEach(function (c) { if (mergeCond_(c, p.stmt)) k++; }); if (k) toast_(plural_(k, 'product', 'products') + ': ' + stmtText_(p.stmt)); if (k < p.cands.length) CONDMSG.push(MSG_MAXCOND); }
+  else if (act !== 'pick-skip') return;
+  PENDING.shift();
+  if (!PENDING.length && !CONDMSG.length) el_('condIn').value = '';
+  condChanged_();
+}
+function excludeCode_(code) {                                                    // the small x on a line of a set: this product is not wanted
+  if (!BYCODE[code]) return;
+  if (!mergeCond_(code, { lo: 0, hi: 0 })) { toast_(MSG_MAXCOND); return; }
+  condChanged_();
+  toast_(nameOfCode_(code) + ' hata diya — wapas lene ke liye “Badlo” dabao');
+}
+
 // ---- the command box and the voice
 function autoGrow_() {
   const ta = el_('cmd'); ta.style.height = 'auto';
@@ -1062,26 +1561,32 @@ function autoGrow_() {
 }
 function setHint_(txt, live) { const h = el_('cmdHint'); h.textContent = txt; h.classList.toggle('live', !!live); }
 const HINT_IDLE = 'Likho ya mic dabake bolo. Ek saath kai SP bhi de sakte ho.';
+const COND_IDLE = 'Likho ya mic dabake bolo.';
+const MICS = {
+  cmd: { box: 'cmd', btn: 'micBtn', hint: 'cmdHint', idle: HINT_IDLE, label: 'Bolkar command do', live: 'Sun raha hu… ab bolo, jaise “bees SP, chhattis SP”', run: function (t) { runCommand_(t); } },
+  cond: { box: 'condIn', btn: 'condMic', hint: 'condHint', idle: COND_IDLE, label: 'Bolkar condition do', live: 'Sun raha hu… ab bolo, jaise “obeodoc nahi chahiye”', run: function (t) { runCond_(t); } }
+};
 function micCtor_() { return window.SpeechRecognition || window.webkitSpeechRecognition || null; }
-function setListening_(on) {
-  LISTENING = on;
-  const b = el_('micBtn'); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
-  b.setAttribute('aria-label', on ? 'Sunna band karo' : 'Bolkar command do');
-  if (on) setHint_('Sun raha hu… ab bolo, jaise “bees SP, chhattis SP”', true); else setHint_(HINT_IDLE, false);
+function setListening_(which, on) {
+  const m = MICS[which], b = el_(m.btn), h = el_(m.hint);
+  LISTENING = on ? which : '';
+  b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  b.setAttribute('aria-label', on ? 'Sunna band karo' : m.label);
+  h.textContent = on ? m.live : m.idle; h.classList.toggle('live', !!on);
 }
 function stopMic_() {
   if (REC) { const r = REC; REC = null; try { r.onend = null; r.onresult = null; r.onerror = null; r.abort ? r.abort() : r.stop(); } catch (x) {} }
-  if (LISTENING) setListening_(false);
+  if (LISTENING) setListening_(LISTENING, false);
 }
-function startMic_() {
-  const SR = micCtor_();
+function startMic_(which) {
+  const SR = micCtor_(), m = MICS[which];
   if (!SR) { toast_('Is browser me voice nahi chalti — type karke likho'); return; }
   stopMic_();
   let got = false, failed = false;
   try {
     const r = new SR();
     r.lang = 'hi-IN'; r.interimResults = true; r.continuous = false; r.maxAlternatives = 1;
-    r.onstart = function () { setListening_(true); };
+    r.onstart = function () { setListening_(which, true); };
     r.onresult = function (ev) {
       let fin = '', interim = '';
       for (let i = 0; i < ev.results.length; i++) {
@@ -1089,7 +1594,7 @@ function startMic_() {
         if (res.isFinal) fin += t + ' '; else interim += t;
       }
       const all = (fin + interim).trim();
-      if (all) { got = true; el_('cmd').value = all.slice(0, CMD_MAX); autoGrow_(); }
+      if (all) { got = true; el_(m.box).value = all.slice(0, CMD_MAX); if (which === 'cmd') autoGrow_(); }
     };
     r.onerror = function (ev) {
       const c = ev && ev.error ? String(ev.error) : '';
@@ -1103,32 +1608,36 @@ function startMic_() {
            : 'Voice me dikkat aayi — type karke likho');
     };
     r.onend = function () {
-      REC = null; setListening_(false);
-      const t = String(el_('cmd').value || '').trim();
-      if (got && t) { saveState_(); runCommand_(t); }
+      REC = null; setListening_(which, false);
+      const t = String(el_(m.box).value || '').trim();
+      if (got && t) { saveState_(); m.run(t); }
       else if (!failed) toast_('Kuch sunai nahi diya — dobara bolo');
     };
     REC = r; r.start();
-  } catch (e) { REC = null; setListening_(false); toast_('Mic shuru nahi ho paya — dobara try karo'); }
+  } catch (e) { REC = null; setListening_(which, false); toast_('Mic shuru nahi ho paya — dobara try karo'); }
 }
-function toggleMic_() {                                                           // second tap while listening: stop and use what was heard so far
-  if (REC && LISTENING) { try { REC.stop(); } catch (x) { stopMic_(); } return; }
-  startMic_();
+function toggleMic_(which) {                                                      // second tap while listening: stop and use what was heard so far
+  if (REC && LISTENING === which) { try { REC.stop(); } catch (x) { stopMic_(); } return; }
+  startMic_(which);
 }
 
 // ---- start
 function boot_() {
   loadState_(); autoGrow_();
   if (OWN.length) el_('ownFold').open = true;
+  if (COND.length) el_('condFold').open = true;
   const c = lsJson_(LS_PRODUCTS), list = (c && c.v === 1 && isFinite(Number(c.t))) ? cleanList_(c.items) : [];
-  if (list.length) applyProducts_(list, Number(c.t), 'saved'); else { renderListStatus_(); renderOwn_(); }
+  if (list.length) applyProducts_(list, Number(c.t), 'saved'); else { renderListStatus_(); renderOwn_(); renderCond_(); }
   if (navigator.onLine !== false || !PRODUCTS.length) refreshProducts_(false);
-  if (!micCtor_()) { el_('micBtn').hidden = true; el_('cmdHint').textContent = 'Likho: jaise 20 SP, 21 SP, 36 SP. Ek saath kai SP bhi de sakte ho. (Is browser me bolkar command nahi chalta.)'; }
+  if (!micCtor_()) {
+    el_('micBtn').hidden = true; el_('cmdHint').textContent = 'Likho: jaise 20 SP, 21 SP, 36 SP. Ek saath kai SP bhi de sakte ho. (Is browser me bolkar command nahi chalta.)';
+    el_('condMic').hidden = true; el_('condHint').textContent = 'Likho: jaise obeodoc nahi chahiye. (Is browser me bolkar nahi chalta.)';
+  }
   const cmd = el_('cmd');
   cmd.addEventListener('input', function () { autoGrow_(); saveState_(); });
   cmd.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runCommand_(cmd.value); } });
   el_('makeBtn').addEventListener('click', function () { runCommand_(cmd.value); });
-  el_('micBtn').addEventListener('click', toggleMic_);
+  el_('micBtn').addEventListener('click', function () { toggleMic_('cmd'); });
   el_('refreshBtn').addEventListener('click', function () { refreshProducts_(true); });
   el_('exRow').addEventListener('click', function (e) {
     const b = e.target.closest ? e.target.closest('.ex') : null; if (!b) return;
@@ -1156,6 +1665,22 @@ function boot_() {
   el_('mustChk').addEventListener('change', function () { MUST = this.checked; saveState_(); refreshResults_(); });
   el_('ownGo').addEventListener('click', function () { runCommand_(cmd.value); });
   el_('ownClear').addEventListener('click', function () { OWN = []; MUST = false; renderSearch_(); renderOwn_(); saveState_(); refreshResults_(); });
+  const ci = el_('condIn');
+  ci.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runCond_(ci.value); } });
+  el_('condGo').addEventListener('click', function () { runCond_(ci.value); });
+  el_('condMic').addEventListener('click', function () { toggleMic_('cond'); });
+  el_('condMsg').addEventListener('click', onCondMsgClick_);
+  el_('echo').addEventListener('click', function (e) {                            // "Badlo" under the SP numbers: opens the conditions window
+    const b = e.target.closest ? e.target.closest('[data-act="open-cond"]') : null; if (!b) return;
+    el_('condFold').open = true;
+    const cd = el_('cardCond'); try { cd.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (x) { cd.scrollIntoView(); }
+  });
+  el_('condList').addEventListener('click', function (e) {
+    const b = e.target.closest ? e.target.closest('[data-act="cond-del"]') : null; if (!b) return;
+    const chip = b.closest('.cchip'), code = chip ? chip.getAttribute('data-code') : '';
+    COND = COND.filter(function (c) { return c.code !== code; }); condChanged_();
+  });
+  el_('condClear').addEventListener('click', function () { COND = []; PENDING = []; CONDMSG = []; condChanged_(); });
   window.addEventListener('online', function () { renderListStatus_(); refreshProducts_(false); });
   window.addEventListener('offline', renderListStatus_);
   document.addEventListener('visibilitychange', function () {
