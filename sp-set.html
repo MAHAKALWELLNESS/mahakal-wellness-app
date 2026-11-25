@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SP Set Maker — Mahakal Wellness</title>
+<meta name="theme-color" content="#132E26">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MW SP Set">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green-900:#132E26; --green-800:#1E4A3D; --green-700:#2A5C4C; --green-100:#DCE9E3;
+    --gold-500:#D9A441; --gold-600:#B8842C; --gold-100:#F7E9C7;
+    --surface:#FFFFFF; --bg:#F6F5F1; --ink-soft:#555; --ink-faint:#8A8A8A; --line:#E7E4DC;
+    --danger:#C0392B; --danger-100:#FBE7E4; --ok:#2E7D4F; --ok-100:#E3F1E8;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'Inter',sans-serif; background:var(--bg); color:#222; -webkit-font-smoothing:antialiased;}
+  h1,h2{font-family:'Fraunces',serif; margin:0;}
+  [hidden]{display:none !important;}
+  .ico-sprite{position:absolute; width:0; height:0; overflow:hidden;}
+  svg.i{width:18px; height:18px; flex:none; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; vertical-align:middle;}
+  main{max-width:520px; margin:0 auto; padding:14px 14px 40px;}
+  .card{background:var(--surface); border-radius:16px; padding:18px; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  .btn{display:block; width:100%; padding:14px; border-radius:12px; border:none; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; text-align:center; text-decoration:none;}
+  .btn-gold{background:var(--gold-500); color:var(--green-900);}
+  .btn-outline{background:transparent; border:1.5px solid var(--line); color:var(--green-800);}
+  .btn:disabled{opacity:.5; cursor:not-allowed;}
+  .hint{font-size:12.5px; color:var(--ink-faint); margin:0;}
+  .box{border-radius:10px; padding:10px 12px; font-size:12.5px; margin-top:10px; line-height:1.45;}
+  .box.warn{background:var(--gold-100); color:#7a5617;}
+  .box.bad{background:var(--danger-100); color:#8A2A1F;}
+  .box.good{background:var(--ok-100); color:#1D5A37;}
+  .qty-btn{width:34px; height:34px; border-radius:8px; border:1.5px solid var(--line); background:#fff; font-size:17px; font-weight:700; color:var(--green-800); cursor:pointer; font-family:inherit; padding:0;}
+  .qty-input{width:58px; height:36px; padding:0 4px; text-align:center; font-size:15px; font-weight:700; font-family:inherit; color:#222; border:1.5px solid var(--line); border-radius:8px; background:#fff; -moz-appearance:textfield; appearance:textfield;}
+  .qty-input::-webkit-outer-spin-button,.qty-input::-webkit-inner-spin-button{-webkit-appearance:none; margin:0;}
+  .qty-input:focus{outline:none; border-color:var(--gold-500);}
+  .copy-btn{border:1.5px solid var(--line); background:#fff; color:var(--green-800); border-radius:8px; padding:6px 12px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit;}
+  .search-results{margin-top:8px; max-height:min(46vh,340px); overflow-y:auto; background:#fff; border-radius:16px; box-shadow:0 10px 26px rgba(0,0,0,.16); padding:2px 12px;}
+  .search-results:empty{display:none;}
+  .search-row{display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--line); cursor:pointer;}
+  .search-row:last-child{border-bottom:none;}
+  .search-row:active, .search-row.kbd-active{background:var(--bg);}
+  .search-row .sg-main{flex:1; min-width:0;}
+  .search-name{font-size:13.5px; font-weight:700; overflow-wrap:anywhere;}
+  .search-meta{font-size:11.5px; color:var(--ink-faint);}
+  .search-add{flex:none; width:30px; height:30px; border-radius:50%; background:var(--green-100); color:var(--green-800); display:inline-flex; align-items:center; justify-content:center;}
+  .search-none{padding:12px 2px; font-size:12.5px; color:var(--ink-faint);}
+  #legalFoot{text-align:center; margin:10px 16px 6px; font-size:12.5px; color:var(--ink-soft);}
+  #legalFoot a{color:inherit; text-decoration:underline;}
+</style>
+<style id="mwPubLook">
+@media screen{
+html.nl{ --green-900:#241B6E; --green-800:#3D2FB5; --green-700:#5B4BDB; --green-100:#E9E6FF; --gold-500:#FFB020; --gold-600:#B85F00; --gold-100:#FFF0CC; --surface:#FFFFFF; --bg:#EEF1FF; --ink-soft:#4B5275; --ink-faint:#757CA3; --line:#E0E3F5; --danger:#E03131; --danger-100:#FFE4E5; --ok:#0A9F73; --ok-100:#D8F7EC; }
+html.nl body{background:linear-gradient(180deg,#E7ECFF 0%,#F4EEFF 42%,#FFF1E8 100%) fixed; color:#1F2347;}
+html.nl .topbar{background:linear-gradient(135deg,#2B1F8F 0%,#5B3FE0 48%,#D6336C 100%); border-radius:0 0 28px 28px; box-shadow:0 10px 24px rgba(61,47,181,.38); padding:18px 16px 24px;}
+html.nl .topbar h1{font-size:19px; font-weight:700; text-shadow:0 2px 5px rgba(0,0,0,.28);}
+html.nl .topbar p{color:#EDE9FF; opacity:1;}
+html.nl main{padding-top:22px;}
+html.nl .card{border-radius:22px; border:1px solid rgba(255,255,255,.85); background:linear-gradient(180deg,#FFFFFF 0%,#FBFAFF 100%); box-shadow:inset 0 5px 0 var(--acc,#7C6CFF), 0 5px 0 rgba(150,140,230,.22), 0 12px 24px rgba(82,64,230,.13);}
+html.nl .card:nth-of-type(6n+2){--acc:#FF8DB3;} html.nl .card:nth-of-type(6n+3){--acc:#34D87F;} html.nl .card:nth-of-type(6n+4){--acc:#FFAE57;} html.nl .card:nth-of-type(6n+5){--acc:#36C5DB;} html.nl .card:nth-of-type(6n){--acc:#A483FF;}
+html.nl .card h2{color:#2B1F8F; font-weight:800;}
+html.nl .section-label{color:#6A5FD0; font-weight:800; letter-spacing:.6px;}
+html.nl .section-label::before{content:''; display:inline-block; width:9px; height:9px; margin-right:7px; border-radius:50%; background:linear-gradient(135deg,#FF8DB3,#7C6CFF); box-shadow:0 2px 0 rgba(0,0,0,.12); vertical-align:-1px;}
+html.nl .field label{color:#4B5275; font-weight:700;}
+html.nl .field input:not([type=radio]):not([type=checkbox]), html.nl .field select, html.nl .field textarea{border:2px solid #DAD6FF; border-radius:14px; background:#FBFAFF; transition:border-color .15s, box-shadow .15s;}
+html.nl .field input:not([type=radio]):not([type=checkbox]):focus, html.nl .field select:focus, html.nl .field textarea:focus{border-color:#7C6CFF; box-shadow:0 0 0 4px rgba(124,108,255,.2); background:#fff;}
+html.nl select{border:2px solid #DAD6FF !important; border-radius:14px !important; background-color:#FBFAFF !important;}
+html.nl select:focus{border-color:#7C6CFF !important; box-shadow:0 0 0 4px rgba(124,108,255,.2);}
+html.nl .btn{border-radius:16px; font-weight:800; letter-spacing:.2px; transition:transform .1s ease, box-shadow .1s ease;}
+html.nl .btn:active{transform:translateY(4px);}
+html.nl .btn-gold{background:linear-gradient(180deg,#FFD66B 0%,#FFA62B 100%); color:#4A2B00; box-shadow:0 5px 0 #C97A00, 0 10px 18px rgba(255,166,43,.45), inset 0 2px 0 rgba(255,255,255,.55);}
+html.nl .btn-gold:active{box-shadow:0 1px 0 #C97A00, 0 3px 8px rgba(255,166,43,.35), inset 0 2px 0 rgba(255,255,255,.45);}
+html.nl .btn-outline{background:#fff; border:2px solid #C9C3FF; color:#4B3FD0; box-shadow:0 4px 0 #D6D1FF, 0 8px 14px rgba(82,64,230,.12);}
+html.nl .btn-outline:active{box-shadow:0 1px 0 #D6D1FF;}
+html.nl .btn:disabled{opacity:.5; filter:grayscale(.3);}
+html.nl .search-results{background:#fff; border-radius:18px; box-shadow:0 10px 26px rgba(82,64,230,.18), 0 4px 0 rgba(150,140,230,.2); padding:2px 10px;}
+html.nl .search-row{border-bottom:1px dashed #DAD6FF;} html.nl .search-row:active, html.nl .search-row.kbd-active{background:#EEEAFF;}
+html.nl .search-name{color:#2B1F8F;} html.nl .search-price{color:#D9480F;}
+html.nl .cart-row{border-bottom:1px dashed #D8D3FF;}
+html.nl .qty-btn{border:none; border-radius:10px; background:linear-gradient(180deg,#F1EFFF,#DDD8FF); color:#4B3FD0; box-shadow:0 3px 0 #C7C0FF;}
+html.nl .qty-btn:active{transform:translateY(2px); box-shadow:0 1px 0 #C7C0FF;}
+html.nl .total-row{border-top:2px dashed #D8D3FF;} html.nl .total-row .val{color:#D9480F;}
+html.nl .modal-overlay, html.nl .qty-modal-overlay{background:rgba(36,27,110,.55); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);}
+html.nl .modal-sheet, html.nl .qty-modal-sheet{border-radius:30px 30px 0 0; background:linear-gradient(180deg,#FFFFFF 0%,#F8F6FF 100%); box-shadow:0 -14px 40px rgba(36,27,110,.4), inset 0 6px 0 #7C6CFF;}
+html.nl .modal-sheet::before, html.nl .qty-modal-sheet::before{content:''; display:block; width:46px; height:5px; border-radius:3px; background:#D3CDFF; margin:-8px auto 14px;}
+html.nl .qty-modal-sheet h2{color:#2B1F8F; font-weight:800;}
+html.nl .summary-bar{background:linear-gradient(180deg,#FFFFFF,#F1EEFF); border-top:none; border-radius:24px 24px 0 0; box-shadow:0 -10px 26px rgba(82,64,230,.22);}
+html.nl .toast{background:linear-gradient(135deg,#3D2FB5,#7048E8); border-radius:16px; box-shadow:0 10px 26px rgba(61,47,181,.45); font-weight:700;}
+html.nl .chip{border:2px solid #DAD6FF; border-radius:14px; background:#fff; color:#4B5275; font-weight:800; box-shadow:0 3px 0 #E4E0FF;}
+html.nl .chip.on{border-color:#5B3FE0; background:linear-gradient(180deg,#8B7BFF,#5B3FE0); color:#fff; box-shadow:0 3px 0 #3A2BB0, 0 6px 12px rgba(91,63,224,.3);}
+html.nl .copy-btn{border:none; background:linear-gradient(180deg,#F1EFFF,#DDD8FF); color:#4B3FD0; border-radius:10px; box-shadow:0 3px 0 #C7C0FF;}
+html.nl .kv{border-bottom:1px dashed #DAD6FF;} html.nl .kv .v{color:#2B1F8F;}
+html.nl .box{border-radius:14px;} html.nl .box.warn{background:linear-gradient(180deg,#FFF3D1,#FFEBB5); box-shadow:0 3px 0 #FFD98A;} html.nl .box.bad{box-shadow:0 3px 0 #FFB3B6;} html.nl .box.good{box-shadow:0 3px 0 #9BE3C7;}
+html.nl .qr-box img{box-shadow:0 0 0 4px #fff, 0 0 0 7px #C9C3FF, 0 9px 0 rgba(150,140,230,.3); background:#fff;}
+html.nl #payQrImg{box-shadow:0 0 0 4px #fff, 0 0 0 7px #C9C3FF, 0 9px 0 rgba(150,140,230,.3); background:#fff;}
+html.nl .proof-img{box-shadow:0 0 0 3px #fff, 0 0 0 5px #C9C3FF;}
+html.nl .pay-amount{color:#D9480F;}
+html.nl .success-icon{background:linear-gradient(180deg,#5BE3A5,#12A85A); color:#fff; box-shadow:0 5px 0 #0B7A40, 0 10px 16px rgba(18,168,90,.35);}
+}
+@media screen and (prefers-reduced-motion:reduce){ html.nl .logo, html.nl #mainBrandLogoImg, html.nl #welcomeLogoImg{animation:none !important;} html.nl *{transition:none !important;} }
+</style>
+<script id="mwLookEarly">(function(){var SU='https://lrrqdmmugvizkbjfwneb.supabase.co',KEY='sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP',d=document.documentElement,m=document.querySelector('meta[name=theme-color]'),orig=m?m.getAttribute('content'):null,cached=null;
+try{cached=localStorage.getItem('mwLook');}catch(e){}
+function paint(on){d.classList.toggle('nl',on);if(m&&orig)m.setAttribute('content',on?'#2B1F8F':orig);}
+function apply(look){var on=look!=='old';paint(on);try{localStorage.setItem('mwLook',on?'new':'old');}catch(e){}}
+paint(cached!=='old');window.mwApplyLook_=apply;
+// which look did the main admin choose? asked when the page opens, when it comes back to the front, and every minute while it stays open (a page that is already open follows the switch too)
+// the same way the app's own database library asks (apikey + Authorization); if the server does not like that, once more with the apikey alone - so the answer never depends on one way of asking
+function post(withAuth){var h={'apikey':KEY,'Content-Type':'application/json'};if(withAuth)h['Authorization']='Bearer '+KEY;return fetch(SU+'/rest/v1/rpc/get_app_look',{method:'POST',headers:h,body:'{}'}).then(function(r){return r.ok?r.json():null;});}
+function got(v){if(v==='new'||v==='old'){apply(v);return true;}return false;}
+function ask(){try{post(true).then(function(v){if(!got(v))return post(false).then(got);}).catch(function(){try{post(false).then(got).catch(function(){});}catch(e){}});}catch(e){}}
+ask();window.mwAskLook_=ask;
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')ask();});
+window.addEventListener('pageshow',function(e){if(e.persisted)ask();});
+setInterval(function(){if(document.visibilityState==='visible')ask();},window.__lookPollMs||60000);
+})();</script>
+<style id="mwShareCss">
+.link-box{word-break:break-all; font-size:12px; line-height:1.4; background:var(--bg); border:1.5px dashed var(--line); border-radius:10px; padding:9px 11px; color:var(--green-800); margin-top:10px;}
+.share-app{display:flex; align-items:center; gap:14px; width:100%; padding:14px 16px; border-radius:14px; border:none; font-size:16px; font-weight:800; font-family:inherit; cursor:pointer; margin-bottom:10px; color:#fff; text-align:left;}
+.share-app .ic{font-size:26px;} .share-app small{display:block; font-weight:600; font-size:11.5px; opacity:.92; margin-top:1px;}
+.share-app.wa{background:#1FA855;} .share-app.w4b{background:#0E7C6B;}
+#shareToast{position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(12px); max-width:88vw; background:var(--green-900); color:#fff; padding:10px 18px; border-radius:12px; font-size:13px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:200; text-align:center;}
+#shareToast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+@media screen{
+  html.nl .share-app{border-radius:18px; text-shadow:0 1px 2px rgba(0,0,0,.25);}
+  html.nl .share-app.wa{background:linear-gradient(180deg,#3DDC84,#0FA35A); box-shadow:0 5px 0 #0A7A41, 0 10px 16px rgba(15,163,90,.35), inset 0 2px 0 rgba(255,255,255,.4);}
+  html.nl .share-app.w4b{background:linear-gradient(180deg,#36C5DB,#0E8FA3); box-shadow:0 5px 0 #0A6F80, 0 10px 16px rgba(14,143,163,.35), inset 0 2px 0 rgba(255,255,255,.4);}
+  html.nl .share-app:active{transform:translateY(4px); box-shadow:0 1px 0 rgba(0,0,0,.25);}
+  html.nl #shareToast{background:linear-gradient(135deg,#3D2FB5,#7048E8); border-radius:16px; box-shadow:0 10px 26px rgba(61,47,181,.45);}
+  html.nl .link-box{background:#FBFAFF; border-color:#C9C3FF; color:#2B1F8F;}
+}
+</style>
+<style id="mwBold">
+  /* the text a little bolder everywhere (Inter Medium for the text, SemiBold for the small grey texts) */
+  body{font-weight:500;}
+  input,select,textarea{font-weight:500;}
+  button{font-weight:600;}
+  .hint,.result-meta,.a-sub,.sub,small,.opt{font-weight:600;}
+  .opt{font-size:12px; color:var(--ink-soft,#777);}
+</style>
+<style id="mwSpSetCss">
+  /* ---- SP Set Maker: header, the command box with the mic, the products chosen by the person, the result cards ---- */
+  .stick{position:sticky; top:0; z-index:35; padding:10px 14px 12px; background:linear-gradient(135deg,var(--green-900) 0%,var(--green-800) 100%); box-shadow:0 6px 16px rgba(0,0,0,.2); border-radius:0 0 22px 22px;}
+  .hdr-top{display:flex; align-items:center; gap:10px; max-width:520px; margin:0 auto;}
+  .hdr-btn{flex:none; width:38px; height:38px; padding:0; border-radius:12px; border:1px solid rgba(255,255,255,.3); background:rgba(255,255,255,.14); color:#fff; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; text-decoration:none; font-family:inherit;}
+  .hdr-btn:disabled{opacity:.55; cursor:default;}
+  .hdr-btn.spin svg{animation:hdrSpin 1s linear infinite;}
+  @keyframes hdrSpin{to{transform:rotate(360deg);}}
+  .hdr-title{flex:1; min-width:0; text-align:center;}
+  .hdr-title h1{font-family:'Fraunces',serif; font-size:19px; font-weight:700; line-height:1.15; color:#fff;}
+  .hdr-title p{margin:3px 0 0; font-size:10.5px; letter-spacing:2.2px; font-weight:700; color:var(--gold-100); text-transform:uppercase;}
+
+  .card-t{display:flex; align-items:center; gap:10px; margin:0 0 12px; font-family:'Inter',sans-serif; font-size:12.5px; font-weight:800; letter-spacing:.7px; text-transform:uppercase; color:var(--green-900);}
+  .ic-box{width:30px; height:30px; flex:none; border-radius:10px; background:var(--green-100); color:var(--green-800); display:inline-flex; align-items:center; justify-content:center;}
+
+  .cmd-wrap{display:flex; align-items:flex-start; gap:8px;}
+  .cmd-wrap textarea{flex:1; min-width:0; min-height:68px; max-height:150px; resize:none; padding:11px 12px; border:1.5px solid var(--line); border-radius:12px; font-family:inherit; font-size:16px; line-height:1.4; background:#fff; color:#222;}
+  .cmd-wrap textarea:focus{outline:none; border-color:var(--gold-500);}
+  .mic{flex:none; width:50px; height:50px; padding:0; border:0; border-radius:50%; background:linear-gradient(135deg,#12B981,#047857); color:#fff; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 10px rgba(4,120,87,.42);}
+  .mic svg.i{width:23px; height:23px;}
+  .mic:active{transform:translateY(1px) scale(.97);}
+  .mic.on{background:linear-gradient(135deg,#F43F5E,#BE123C); box-shadow:0 0 0 0 rgba(244,63,94,.55); animation:micPulse 1.2s ease-out infinite;}
+  @keyframes micPulse{0%{box-shadow:0 0 0 0 rgba(244,63,94,.55);} 100%{box-shadow:0 0 0 16px rgba(244,63,94,0);}}
+  #cmdHint{margin:8px 2px 0; min-height:16px;}
+  #cmdHint.live{color:#BE123C; font-weight:700;}
+  .ex-row{display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 12px;}
+  .ex{border:1.5px solid var(--line); background:#fff; color:var(--green-800); border-radius:999px; padding:6px 12px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit;}
+  .ex:active{background:var(--green-100);}
+  #listStatus{margin-top:10px; text-align:center;}
+  #staleBox{display:none;}
+
+  details.fold{border:1.5px solid var(--line); border-radius:12px; padding:0 12px; background:#fff;}
+  details.fold > summary{cursor:pointer; padding:12px 0; font-size:13.5px; font-weight:800; color:var(--green-800); list-style:none; display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  details.fold > summary::-webkit-details-marker{display:none;}
+  details.fold > summary::after{content:'+'; font-size:20px; line-height:1; font-weight:700;}
+  details.fold[open] > summary::after{content:'\2212';}
+  details.fold[open] > summary{border-bottom:1px solid var(--line); margin-bottom:12px;}
+  .bdg{min-width:22px; height:22px; padding:0 7px; border-radius:11px; background:var(--green-800); color:#fff; font-size:11.5px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; margin-left:8px;}
+  .fold-in{padding-bottom:14px;}
+  .srch-bar{display:flex; align-items:center; gap:8px; margin-top:10px; background:#fff; border:2px solid var(--green-700); border-radius:16px; padding:4px 12px;}
+  .srch-bar > svg.i{width:19px; height:19px; color:var(--green-700);}
+  .srch-bar input{flex:1; min-width:0; border:0; outline:0; background:transparent; font-family:inherit; font-size:16px; padding:10px 0; color:#222;}
+  #ownList{margin-top:8px;}
+  .own-row{display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px dashed var(--line);}
+  .own-main{flex:1; min-width:0;}
+  .own-name{font-size:13.5px; font-weight:700; overflow-wrap:anywhere;}
+  .own-meta{font-size:11.5px; color:var(--ink-faint); margin-top:1px;}
+  .own-x{flex:none; width:34px; height:34px; padding:0; border:0; border-radius:10px; background:transparent; color:var(--ink-soft); display:inline-flex; align-items:center; justify-content:center; cursor:pointer;}
+  .chk{display:flex; align-items:flex-start; gap:10px; padding:12px 2px 6px; font-size:13px; font-weight:700; color:var(--ink-soft); line-height:1.4; cursor:pointer;}
+  .chk input{flex:none; width:20px; height:20px; margin:1px 0 0; accent-color:var(--green-800);}
+  .own-btns{display:grid; gap:8px; margin-top:10px;}
+
+  .echo{margin:0 2px 12px; padding:11px 13px; border-radius:14px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.06); font-size:13px; line-height:1.5; scroll-margin-top:76px;}
+  .echo.bad{background:var(--danger-100); color:#8A2A1F; font-weight:600;}
+  .tg{display:inline-block; margin:2px 3px 2px 0; padding:2px 9px; border-radius:999px; background:var(--green-100); color:var(--green-800); font-weight:800; font-size:12.5px;}
+  .tg.c{background:var(--gold-100); color:#7a5617;}
+  .echo-own{margin-top:5px; font-size:12px; font-weight:700; color:var(--green-700);}
+  .echo-note{margin-top:5px; font-size:12px; font-weight:700; color:#B54708;}
+
+  .res-head{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px;}
+  .res-t{font-size:24px; line-height:1.1; color:var(--green-900);}
+  .res-sub{margin:3px 0 0; font-size:12px; color:var(--ink-faint); font-weight:600;}
+  .opt{border:1.5px solid var(--line); border-radius:14px; padding:11px 12px; margin-bottom:10px; background:#fff;}
+  .opt.best{border-color:var(--ok); background:linear-gradient(180deg,#F3FBF6,#fff);}
+  .opt-top{display:flex; align-items:baseline; justify-content:space-between; gap:8px;}
+  .opt-n{font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--ink-faint);}
+  .opt-n em{font-style:normal; margin-left:6px; padding:2px 7px; border-radius:8px; background:var(--ok-100); color:var(--ok); letter-spacing:0; text-transform:none; font-size:11px;}
+  .opt-dp{font-size:21px; font-weight:800; color:var(--green-800); white-space:nowrap;}
+  .opt-dp small{font-size:10.5px; font-weight:800; color:var(--ink-faint); margin-right:5px; letter-spacing:.5px;}
+  .opt-plus{margin-top:3px; font-size:11.5px; font-weight:700; color:#B54708;}
+  .opt-lines{list-style:none; margin:9px 0 0; padding:0;}
+  .opt-lines li{display:flex; gap:8px; align-items:baseline; padding:7px 0; border-top:1px dashed var(--line); font-size:13.5px;}
+  .opt-lines .q{flex:none; min-width:38px; font-weight:800; color:var(--green-800);}
+  .opt-lines .nm{flex:1; min-width:0; font-weight:600; overflow-wrap:anywhere;}
+  .opt-lines .ln{flex:none; text-align:right; font-size:12px; color:var(--ink-soft); font-weight:700;}
+  .opt-foot{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:8px; padding-top:9px; border-top:1px solid var(--line);}
+  .opt-meta{font-size:12px; color:var(--ink-faint); font-weight:600; line-height:1.4;}
+  .opt-btns{display:flex; gap:6px; flex:none;}
+  .more-btn{margin-top:4px;}
+  .near{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+  .near-btn{border:1.5px solid var(--green-700); background:#fff; color:var(--green-800); border-radius:12px; padding:9px 12px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; text-align:left; line-height:1.3;}
+  .near-btn small{display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft);}
+
+  @media screen{
+    html.nl .stick{background:linear-gradient(135deg,#2B1F8F 0%,#5B3FE0 48%,#D6336C 100%); box-shadow:0 10px 24px rgba(61,47,181,.38);}
+    html.nl .hdr-title h1{font-size:19px; text-shadow:0 2px 5px rgba(0,0,0,.28);}
+    html.nl .hdr-title p{color:#EDE9FF;}
+    html.nl .card-t{color:#2B1F8F;} html.nl .ic-box{background:#EEEAFF; color:#4B3FD0;}
+    html.nl .cmd-wrap textarea{border:2px solid #DAD6FF; border-radius:16px; background:#FBFAFF; transition:border-color .15s, box-shadow .15s;}
+    html.nl .cmd-wrap textarea:focus{border-color:#7C6CFF; box-shadow:0 0 0 4px rgba(124,108,255,.2); background:#fff;}
+    html.nl .mic{background:linear-gradient(180deg,#8B7BFF,#5B3FE0); box-shadow:0 4px 0 #3A2BB0, 0 8px 14px rgba(91,63,224,.35);}
+    html.nl .mic:active{transform:translateY(3px); box-shadow:0 1px 0 #3A2BB0;}
+    html.nl .mic.on{background:linear-gradient(180deg,#FF6B8B,#E03131); box-shadow:0 4px 0 #A61E4D, 0 0 0 0 rgba(224,49,49,.5); animation:micPulseNl 1.2s ease-out infinite;}
+    @keyframes micPulseNl{0%{box-shadow:0 4px 0 #A61E4D, 0 0 0 0 rgba(224,49,49,.5);} 100%{box-shadow:0 4px 0 #A61E4D, 0 0 0 16px rgba(224,49,49,0);}}
+    html.nl #cmdHint.live{color:#E03131;}
+    html.nl .ex{border:2px solid #DAD6FF; background:#fff; color:#4B3FD0; box-shadow:0 3px 0 #E4E0FF; font-weight:800;}
+    html.nl .ex:active{transform:translateY(2px); box-shadow:0 1px 0 #E4E0FF;}
+    html.nl details.fold{border:2px solid #DAD6FF; border-radius:16px; background:#FBFAFF;}
+    html.nl details.fold > summary{color:#4B3FD0;} html.nl details.fold[open] > summary{border-bottom-color:#DAD6FF;}
+    html.nl .bdg{background:#5B3FE0;}
+    html.nl .srch-bar{border-color:#7C6CFF; background:#fff; box-shadow:0 6px 16px rgba(82,64,230,.14);}
+    html.nl .srch-bar:focus-within{box-shadow:0 0 0 4px rgba(124,108,255,.22), 0 6px 16px rgba(82,64,230,.14);}
+    html.nl .srch-bar > svg.i{color:#5B3FE0;}
+    html.nl .search-add{background:#EEEAFF; color:#4B3FD0;}
+    html.nl .qty-input{border:2px solid #DAD6FF; border-radius:10px; background:#FBFAFF;}
+    html.nl .qty-input:focus{border-color:#7C6CFF; box-shadow:0 0 0 4px rgba(124,108,255,.2); background:#fff;}
+    html.nl .own-row{border-bottom:1px dashed #D8D3FF;}
+    html.nl .chk input{accent-color:#5B3FE0;}
+    html.nl .echo{border-radius:18px; box-shadow:0 8px 18px rgba(82,64,230,.12); background:rgba(255,255,255,.92);}
+    html.nl .echo.bad{background:var(--danger-100); box-shadow:0 3px 0 #FFB3B6;}
+    html.nl .tg{background:#EEEAFF; color:#4B3FD0;} html.nl .tg.c{background:#FFF0CC; color:#B85F00;}
+    html.nl .echo-own{color:#4B3FD0;}
+    html.nl .res-t{color:#2B1F8F;}
+    html.nl .opt{border:2px solid #DAD6FF; border-radius:18px; background:#FBFAFF; box-shadow:0 3px 0 #E4E0FF;}
+    html.nl .opt.best{border-color:#12B981; background:linear-gradient(180deg,#EFFFF8,#FBFAFF); box-shadow:0 3px 0 #9BE3C7;}
+    html.nl .opt-dp{color:#D9480F;}
+    html.nl .opt-lines li{border-top:1px dashed #D8D3FF;}
+    html.nl .opt-lines .q{color:#4B3FD0;}
+    html.nl .opt-foot{border-top:2px dashed #D8D3FF;}
+    html.nl .near-btn{border:2px solid #C9C3FF; border-radius:14px; background:linear-gradient(180deg,#FFFFFF,#F1EFFF); color:#4B3FD0; box-shadow:0 3px 0 #D6D1FF;}
+    html.nl .near-btn:active{transform:translateY(2px); box-shadow:0 1px 0 #D6D1FF;}
+    html.nl .more-btn{background:linear-gradient(180deg,#FFFFFF,#F1EFFF);}
+  }
+</style>
+</head>
+<body>
+  <!-- the small pictures used on the page -->
+  <svg class="ico-sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.8-3.4L23 10M1 14l4.7 4.4A9 9 0 0 0 20.5 15"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v4M8 23h8"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  </svg>
+
+  <div class="stick" id="stick">
+    <header class="hdr-top" id="pageHdr">
+      <a class="hdr-btn" id="backLink" href="index.html" aria-label="Back to the main page"><svg class="i"><use href="#i-back"/></svg></a>
+      <div class="hdr-title"><h1>Mahakal Wellness</h1><p>SP Set Maker</p></div>
+      <button type="button" class="hdr-btn" id="refreshBtn" aria-label="Refresh the price list"><svg class="i"><use href="#i-refresh"/></svg></button>
+    </header>
+  </div>
+
+  <main>
+    <section class="card" id="cardCmd">
+      <h2 class="card-t"><span class="ic-box"><svg class="i"><use href="#i-target"/></svg></span>Kitne SP ka set chahiye?</h2>
+      <div class="cmd-wrap">
+        <textarea id="cmd" rows="2" maxlength="300" placeholder="Jaise: 20 SP, 21 SP, 36 SP" aria-label="SP command" enterkeyhint="go" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+        <button type="button" class="mic" id="micBtn" aria-label="Bolkar command do" aria-pressed="false"><svg class="i"><use href="#i-mic"/></svg></button>
+      </div>
+      <p class="hint" id="cmdHint">Likho ya mic dabake bolo. Ek saath kai SP bhi de sakte ho.</p>
+      <div class="ex-row" id="exRow">
+        <button type="button" class="ex" data-cmd="20 SP">20 SP</button>
+        <button type="button" class="ex" data-cmd="20 SP, 21 SP, 36 SP">20, 21, 36 SP</button>
+        <button type="button" class="ex" data-cmd="27 SP 3 option">27 SP 3 option</button>
+      </div>
+      <button type="button" class="btn btn-gold" id="makeBtn">Set banao</button>
+      <p class="hint" id="listStatus">Loading the product list…</p>
+      <div class="box warn" id="staleBox"></div>
+    </section>
+
+    <section class="card" id="cardOwn">
+      <details class="fold" id="ownFold">
+        <summary><span>Apne products se banana hai?<span class="bdg" id="ownBadge" hidden>0</span></span></summary>
+        <div class="fold-in">
+          <p class="hint">Jo products customer ke paas hain ya jo chahiye woh chuno. Quantity likhna zaroori nahi: khali chhodo to jitne chahiye utne lagenge, likhoge to us product ke utne piece se zyada nahi lagenge.</p>
+          <div class="srch-bar"><svg class="i"><use href="#i-search"/></svg><input type="text" id="ownSearch" placeholder="Product ka naam ya code" aria-label="Search a product to choose" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+          <div class="search-results" id="ownResults"></div>
+          <div id="ownList"></div>
+          <label class="chk" id="mustRow" hidden><input type="checkbox" id="mustChk"><span>Chune hue sab products har set me kam se kam 1 zaroor ho</span></label>
+          <div class="own-btns">
+            <button type="button" class="btn btn-gold" id="ownGo" hidden>In products se set banao</button>
+            <button type="button" class="btn btn-outline" id="ownClear" hidden>Sab hatao</button>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <div class="echo" id="echo" hidden></div>
+    <div id="results" aria-live="polite"></div>
+
+    <p id="legalFoot"><a href="privacy.html">Privacy Policy</a></p>
+  </main>
+
+<script>
+// <<SETMAKER_CORE_START>>
+// ---------------------------------------------------------------------------------------------------------------------
+// SP SET MAKER - the two pure parts (no screen, no network): the SOLVER and the COMMAND READER.
+// SP and money are worked in WHOLE HUNDREDTHS (integers) - never with floating point sums.
+//
+// smSolve_(products, { target, count, caps, must })
+//   products: [{ code, name, mrp, dp, sp }]
+//   target:   the SP the set must add up to, EXACTLY
+//   count:    how many sets (options) are wanted, cheapest DP first
+//   caps:     null = every product of the list, any quantity.   { code: maxQty } = ONLY these products; maxQty 0 / empty = as many as needed
+//   must:     true = every product of "caps" is in every set at least once
+// gives { sets, error, lo, hi, more, truncated, step }:  sets = [{ lines: [{ p, qty }], sp, dp, mrp, pcs }] in rising DP order;  more = true when more sets than the ones given exist;
+//   step = (only when the SP asked is not a multiple of it) the step in which these products can make SP
+// ---------------------------------------------------------------------------------------------------------------------
+var SM_MAX_SP = 1000;            // the biggest SP target
+var SM_MAX_CELLS = 12000000;     // size limit of the cost table (products x SP steps)
+var SM_NODE_CAP = 300000;        // safety stop of the search
+var SM_INF = 1073741823;         // "cannot be made"
+var SM_TIE_EXTRA = 300;          // sets with the same price as the last option that are also looked at (so the cut is always the same)
+var SM_MAX_COUNT = 60;
+
+function smU_(x) { var n = Math.round((Number(x) || 0) * 100); return n > 0 ? n : 0; }
+function smGcd_(a, b) { while (b) { var t = a % b; a = b; b = t; } return a; }
+function smHas_(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+function smLess_(a, b) { return a.f !== b.f ? a.f < b.f : (a.r !== b.r ? a.r < b.r : a.seq < b.seq); }
+function smPush_(h, nd) {
+  h.push(nd); var i = h.length - 1;
+  while (i > 0) { var p = (i - 1) >> 1; if (smLess_(h[i], h[p])) { var t = h[i]; h[i] = h[p]; h[p] = t; i = p; } else break; }
+}
+function smPop_(h) {
+  var top = h[0], last = h.pop();
+  if (h.length) {
+    h[0] = last; var i = 0, n = h.length;
+    for (;;) {
+      var l = 2 * i + 1, r = l + 1, m = i;
+      if (l < n && smLess_(h[l], h[m])) m = l;
+      if (r < n && smLess_(h[r], h[m])) m = r;
+      if (m === i) break;
+      var t = h[i]; h[i] = h[m]; h[m] = t; i = m;
+    }
+  }
+  return top;
+}
+
+// the order of sets: cheaper DP first; at the same DP fewer pieces first, then by product code / quantity (so the same question always gives the same answer)
+function smCmpSig_(a, b) {
+  var n = Math.min(a.length, b.length);
+  for (var i = 0; i < n; i++) {
+    if (a[i][0] !== b[i][0]) return a[i][0] < b[i][0] ? -1 : 1;
+    if (a[i][1] !== b[i][1]) return a[i][1] < b[i][1] ? -1 : 1;
+  }
+  return a.length - b.length;
+}
+function smCmpSets_(a, b) {
+  if (a.dpU !== b.dpU) return a.dpU - b.dpU;
+  if (a.pcs !== b.pcs) return a.pcs - b.pcs;
+  return smCmpSig_(a.sig, b.sig);
+}
+
+// rows[j][r] = the cheapest cost of making exactly r steps of SP from the products j.. of the list (each used at most HI times); SM_INF = cannot be made
+function smTable_(cx, R) {
+  var m = cx.m, rows = new Array(m + 1);
+  rows[m] = new Int32Array(R + 1); rows[m].fill(SM_INF); rows[m][0] = 0;
+  for (var j = m - 1; j >= 0; j--) {
+    var nxt = rows[j + 1], cur = new Int32Array(R + 1), s = cx.S[j], c = cx.C[j], hi = cx.HI[j], r, best, y;
+    if (hi >= Math.floor(R / s)) {                                   // no real limit: one more piece of this product, or not
+      for (r = 0; r <= R; r++) {
+        best = nxt[r];
+        if (r >= s) { y = cur[r - s]; if (y < SM_INF) { y += c; if (y < best) best = y; } }
+        cur[r] = best >= SM_INF ? SM_INF : best;
+      }
+    } else {
+      for (r = 0; r <= R; r++) {
+        best = nxt[r];
+        var qmax = Math.min(hi, Math.floor(r / s));
+        for (var q = 1; q <= qmax; q++) { y = nxt[r - q * s]; if (y < SM_INF) { y += q * c; if (y < best) best = y; } }
+        cur[r] = best >= SM_INF ? SM_INF : best;
+      }
+    }
+    rows[j] = cur;
+  }
+  return rows;
+}
+
+// best-first search over "which product, how many" choices (the products in list order). The table above is the EXACT cost of finishing a
+// choice, so the sets come out in rising price order and none is met twice. U = only sets that cost at most U are looked for.
+function smSearch_(cx, K, U) {
+  var heap = [], sols = [], seq = 0, pops = 0, kth = -1, truncated = false, stopped = false, pruned = false;
+  var h0 = cx.rows[0][cx.Rt];
+  if (h0 >= SM_INF) return { sols: sols, complete: true, truncated: false };
+  if (h0 > U) return { sols: sols, complete: false, truncated: false };           // sets exist, but all of them cost more than U
+  smPush_(heap, { f: h0, cost: 0, r: cx.Rt, j: 0, par: null, it: -1, q: 0, seq: seq++ });
+  while (heap.length) {
+    var nd = smPop_(heap);
+    if (sols.length >= K && nd.f > kth) { stopped = true; break; }
+    if (nd.r === 0) {
+      sols.push(nd);
+      if (sols.length === K) kth = nd.f;
+      if (sols.length >= K + SM_TIE_EXTRA) { stopped = true; break; }
+      continue;
+    }
+    if (++pops > cx.nodeCap) { truncated = true; break; }
+    for (var i = nd.j; i < cx.m; i++) {
+      var s = cx.S[i]; if (s > nd.r) continue;
+      var c = cx.C[i], qmax = Math.min(cx.HI[i], Math.floor(nd.r / s)), nxt = cx.rows[i + 1];
+      for (var q = 1; q <= qmax; q++) {
+        var r2 = nd.r - q * s, h = nxt[r2];
+        if (h >= SM_INF) continue;
+        var cost = nd.cost + q * c, f = cost + h;
+        if (f > U) { pruned = true; continue; }                  // a set that costs more than U exists (h is the exact cost of finishing)
+        smPush_(heap, { f: f, cost: cost, r: r2, j: i + 1, par: nd, it: i, q: q, seq: seq++ });
+      }
+    }
+  }
+  return { sols: sols, complete: !stopped && !truncated && !pruned, truncated: truncated };   // complete = no set that costs more than the ones found is left
+}
+
+function smSolve_(products, opts) {
+  var out = { sets: [], error: '', lo: null, hi: null, more: false, truncated: false, forcedSp: 0, step: 0 };
+  opts = opts || {};
+  var T = smU_(opts.target), K = Math.floor(Number(opts.count)) || 5;
+  K = Math.max(1, Math.min(SM_MAX_COUNT, K));
+  if (!(T > 0)) { out.error = 'target'; return out; }
+  if (T > SM_MAX_SP * 100) { out.error = 'big'; return out; }
+  var caps = opts.caps || null, must = !!(caps && opts.must);
+  var list = [];
+  (products || []).forEach(function (p) {
+    if (!p || !(Number(p.sp) > 0)) return;
+    var s = smU_(p.sp); if (!(s > 0)) return;
+    var cap = Infinity;
+    if (caps) {
+      if (!smHas_(caps, p.code)) return;
+      var cv = Math.floor(Number(caps[p.code])); cap = cv > 0 ? cv : Infinity;
+    }
+    list.push({ p: p, s: s, c: smU_(p.dp), mrpU: smU_(p.mrp), hi: cap, forced: 0 });
+  });
+  if (!list.length) { out.error = 'empty'; return out; }
+  var baseSp = 0, baseCost = 0;
+  if (must) list.forEach(function (it) { it.forced = 1; it.hi = it.hi - 1; baseSp += it.s; baseCost += it.c; });
+  out.forcedSp = baseSp / 100;
+  var Tr = T - baseSp;                                               // what the free pieces must still add up to
+  if (Tr < 0) { out.error = 'forced'; return out; }
+  var items = list.filter(function (it) { return it.hi >= 1; });
+  items.sort(function (a, b) { return b.s - a.s || a.c - b.c || (a.p.code < b.p.code ? -1 : a.p.code > b.p.code ? 1 : 0); });
+  var m = items.length, g = 0, maxS = 0;
+  items.forEach(function (it) { g = smGcd_(g, it.s); if (it.s > maxS) maxS = it.s; });
+
+  var pos = new Map();                                               // list index of every item (for building sets)
+  list.forEach(function (it, i) { pos.set(it, i); });
+  function build(nd) {                                              // a search node -> a set
+    var qty = list.map(function (it) { return it.forced; });
+    for (var p = nd; p && p.it >= 0; p = p.par) qty[pos.get(items[p.it])] += p.q;
+    var lines = [], spU = 0, dpU = 0, mrpU = 0, pcs = 0, sig = [];
+    list.forEach(function (it, i) {
+      var q = qty[i]; if (!(q > 0)) return;
+      lines.push({ p: it.p, qty: q }); spU += q * it.s; dpU += q * it.c; mrpU += q * it.mrpU; pcs += q; sig.push([String(it.p.code), q]);
+    });
+    sig.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
+    lines.sort(function (a, b) { return b.qty * smU_(b.p.dp) - a.qty * smU_(a.p.dp) || (a.p.name < b.p.name ? -1 : a.p.name > b.p.name ? 1 : 0); });
+    return { lines: lines, spU: spU, dpU: dpU, mrpU: mrpU, pcs: pcs, sig: sig, sp: spU / 100, dp: dpU / 100, mrp: mrpU / 100 };
+  }
+
+  if (m === 0) {                                                   // nothing free to add: only the compulsory pieces
+    if (Tr === 0) out.sets = [build({ it: -1, par: null })];
+    else if (baseSp > 0) out.lo = { sp: baseSp / 100, dp: baseCost / 100 };   // only the compulsory pieces are left: that is the nearest total below
+    return out;
+  }
+  var exact = (Tr % g === 0);
+  var Rt = exact ? Tr / g : Math.floor(Tr / g);
+  var margin = Math.ceil(2 * maxS / g) + 2;
+  var R = Rt + 1 + margin;
+  if ((m + 1) * (R + 1) > SM_MAX_CELLS) {
+    out.error = 'big'; out.maxSp = Math.max(0, Math.floor((Math.floor(SM_MAX_CELLS / (m + 1)) - margin - 2) * g / 100)); return out;
+  }
+  var cx = { m: m, S: items.map(function (it) { return it.s / g; }), C: items.map(function (it) { return it.c; }), HI: items.map(function (it) { return it.hi; }), rows: null, Rt: Rt, nodeCap: SM_NODE_CAP };
+  cx.rows = smTable_(cx, R);
+  var best = exact ? cx.rows[0][Rt] : SM_INF;
+  if (best < SM_INF) {
+    var mults = [0.004, 0.02, 0.08, 0.3, 1.5, Infinity], res = null;
+    for (var k = 0; k < mults.length; k++) {
+      var U = mults[k] === Infinity ? Infinity : best + Math.ceil(best * mults[k]) + 1;
+      res = smSearch_(cx, K, U);
+      if (res.sols.length >= K || (res.complete && U === Infinity) || res.truncated) break;
+    }
+    out.truncated = !!res.truncated;
+    var sets = res.sols.map(build);
+    sets.sort(smCmpSets_);
+    out.more = sets.length > K || (sets.length === K && !res.complete && !res.truncated);
+    out.sets = sets.slice(0, K);
+    return out;
+  }
+  // the exact SP cannot be made from these products: which totals right next to it can?
+  if (!exact && !must) out.step = g / 100;                          // every total these products make is a multiple of this
+  var minR = (baseSp > 0) ? 0 : 1, row0 = cx.rows[0], r;
+  for (r = Rt; r >= minR; r--) if (row0[r] < SM_INF && (r * g + baseSp) < T) { out.lo = { sp: (r * g + baseSp) / 100, dp: (row0[r] + baseCost) / 100 }; break; }
+  for (r = Rt + 1; r <= R; r++) if (row0[r] < SM_INF && (r * g + baseSp) > T) { out.hi = { sp: (r * g + baseSp) / 100, dp: (row0[r] + baseCost) / 100 }; break; }
+  return out;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// THE COMMAND READER: what was typed or spoken (Hindi, English or Hinglish) -> the SP targets and the number of options
+// smParse_(text) gives { targets: [numbers], count: number | null, tooBig: [numbers] }
+// ---------------------------------------------------------------------------------------------------------------------
+var SM_HI = 'शून्य एक दो तीन चार पाँच छह सात आठ नौ दस ग्यारह बारह तेरह चौदह पंद्रह सोलह सत्रह अठारह उन्नीस बीस इक्कीस बाईस तेईस चौबीस पच्चीस छब्बीस सत्ताईस अट्ठाईस उनतीस तीस इकतीस बत्तीस तैंतीस चौंतीस पैंतीस छत्तीस सैंतीस अड़तीस उनतालीस चालीस इकतालीस बयालीस तैंतालीस चौवालीस पैंतालीस छियालीस सैंतालीस अड़तालीस उनचास पचास इक्यावन बावन तिरपन चौवन पचपन छप्पन सत्तावन अट्ठावन उनसठ साठ इकसठ बासठ तिरसठ चौंसठ पैंसठ छियासठ सड़सठ अड़सठ उनहत्तर सत्तर इकहत्तर बहत्तर तिहत्तर चौहत्तर पचहत्तर छिहत्तर सतहत्तर अठहत्तर उन्यासी अस्सी इक्यासी बयासी तिरासी चौरासी पचासी छियासी सत्तासी अट्ठासी नवासी नब्बे इक्यानवे बानवे तिरानवे चौरानवे पचानवे छियानवे सत्तानवे अट्ठानवे निन्यानवे सौ'.split(' ');
+var SM_HI_ALT = 'पांच:5 पाच:5 छः:6 छे:6 छै:6 छ:6 सताईस:27 अठाईस:28 अट्ठाइस:28 तेंतीस:33 छतीस:36 अठतीस:38 उन्तालीस:39 चालिस:40 बयालिस:42 चवालीस:44 चौआलीस:44 पैतालीस:45 उन्चास:49 इकावन:51 तिरेपन:53 चौअन:54 छपन:56 सतावन:57 अठावन:58 सतर:70 उनासी:79 बिस:20 बाइस:22 तेइस:23 पचीस:25 छब्बिस:26 उनतिस:29 तिस:30'.split(' ');
+var SM_RO = 'zero ek do teen char paanch chhe saat aath nau das gyarah barah terah chaudah pandrah solah satrah atharah unnis bees ikkis baais teis chaubis pachchis chhabbis sattais atthais untis tees iktis battis taintis chauntis paintis chhattis saintis adtis untalis chalis iktalis bayalis taintalis chauvalis paintalis chhiyalis saintalis adtalis unchas pachas ikyawan bawan tirpan chauwan pachpan chhappan sattawan atthawan unsath saath iksath baasath tirsath chaunsath painsath chhiyasath sadsath adsath unhattar sattar ikhattar bahattar tihattar chauhattar pachhattar chhihattar sathattar athhattar unyasi assi ikyasi bayasi tirasi chaurasi pachasi chhiyasi sattasi atthasi navasi nabbe ikyanave banave tiranave chauranave pachanave chhiyanave sattanave atthanave ninyanave sau'.split(' ');
+var SM_RO_ALT = 'tin:3 chaar:4 panch:5 pach:5 chhah:6 chah:6 cheh:6 che:6 sat:7 aat:8 ath:8 nou:9 nao:9 gyaarah:11 baarah:12 teraah:13 chaudaha:14 pandraha:15 satraah:17 athaarah:18 unnees:19 unis:19 bis:20 ikkees:21 ikis:21 ikkeis:21 baees:22 bais:22 bayis:22 tais:23 teees:23 chaubees:24 pachis:25 pachees:25 pacchis:25 chabbis:26 chhabis:26 chhabbees:26 sattaees:27 satais:27 sataais:27 athais:28 athaais:28 untees:29 unatis:29 tis:30 ektis:31 batis:32 battees:32 taitis:33 tentis:33 chauntees:34 paitis:35 paintees:35 chattis:36 chhatis:36 chhattees:36 saintees:37 artis:38 adtees:38 untaalis:39 chalees:40 chaalis:40 paachas:50 sath:60'.split(' ');
+var SM_EN = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+var SM_FRAC = 'साढ़े:0.5 साढे:0.5 sadhe:0.5 saadhe:0.5 sade:0.5 सवा:0.25 sawa:0.25 sava:0.25 पौने:-0.25 paune:-0.25 pone:-0.25'.split(' ');
+var SM_FRAC_WHOLE = 'डेढ़:1.5 डेढ:1.5 dedh:1.5 derh:1.5 ढाई:2.5 dhai:2.5 dhaai:2.5 आधा:0.5 adha:0.5 aadha:0.5'.split(' ');
+var SM_SPW = ['sp', 'एसपी', 'एसपि', 'point', 'points', 'pt', 'pts', 'पॉइंट', 'पॉइंट्स', 'पाइंट', 'पाइंट्स', 'पोइंट', 'पोइंट्स', 'पॉइन्ट', 'पॉइन्ट्स', 'पॉइंटस', 'पॉइन्टस'];
+var SM_CNT = ['set', 'sets', 'सेट', 'सेट्स', 'सेटस', 'option', 'options', 'ऑप्शन', 'ऑप्शंस', 'ऑप्शन्स', 'ओप्शन', 'विकल्प', 'bill', 'bills', 'बिल', 'combination', 'combinations', 'कॉम्बिनेशन', 'combo', 'कॉम्बो', 'tarah', 'tarike', 'तरह', 'तरीके'];
+var SM_MONEY = ['rs', 'rupee', 'rupees', 'rupaye', 'rupay', 'inr', 'रुपये', 'रुपए', 'रूपये', 'रुपया', 'रूपए', 'रुपयों'];
+var SM_UNIT = ['piece', 'pieces', 'pcs', 'pc', 'qty', 'nag', 'नग', 'पीस', 'पिस', 'box', 'boxes', 'dabba', 'डब्बा', 'डिब्बा', 'bottle', 'bottles', 'बोतल', 'item', 'items', 'product', 'products', 'प्रोडक्ट', 'आइटम'];
+var SM_DEC = ['point', 'पॉइंट', 'पाइंट', 'दशमलव', 'dot', 'डॉट', 'डाट'];
+var SM_FILL = ['aur', 'और', 'and', 'or', 'ya', 'या', 'ka', 'ke', 'ki', 'का', 'के', 'की', 'ko', 'को', 'se', 'से'];
+
+function smDev_(w) {                                               // one spelling for the small differences (chandrabindu / anusvara, nukta)
+  var s = String(w);
+  try { s = s.normalize('NFD'); } catch (e) { /* an old browser: left as it is */ }
+  return s.replace(/़/g, '').replace(/ँ/g, 'ं');
+}
+function smRo_(w) {                                                // one spelling for the usual Roman spelling differences
+  return String(w).toLowerCase().replace(/ee/g, 'i').replace(/oo/g, 'u').replace(/aa/g, 'a').replace(/ii/g, 'i').replace(/([a-z])\1+/g, '$1').replace(/([cks])h/g, '$1');
+}
+function smKey_(w) { return /[ऀ-ॿ]/.test(w) ? smDev_(w) : smRo_(w); }
+var SM_MAPS = null;
+function smMaps_() {
+  if (SM_MAPS) return SM_MAPS;
+  var M = { word: Object.create(null), frac: Object.create(null), whole: Object.create(null), spw: Object.create(null), cnt: Object.create(null), money: Object.create(null), unit: Object.create(null), dec: Object.create(null), fill: Object.create(null) };
+  var putv = function (map, word, v) { var k = smKey_(word); if (!(k in map)) map[k] = v; };
+  SM_HI.forEach(function (x, i) { putv(M.word, x, i); });
+  SM_HI_ALT.forEach(function (x) { var p = x.split(':'); putv(M.word, p[0], Number(p[1])); });
+  SM_RO.forEach(function (x, i) { putv(M.word, x, i); });
+  SM_RO_ALT.forEach(function (x) { var p = x.split(':'); putv(M.word, p[0], Number(p[1])); });
+  SM_FRAC.forEach(function (x) { var p = x.split(':'); putv(M.frac, p[0], Number(p[1])); });
+  SM_FRAC_WHOLE.forEach(function (x) { var p = x.split(':'); putv(M.whole, p[0], Number(p[1])); });
+  [['spw', SM_SPW], ['cnt', SM_CNT], ['money', SM_MONEY], ['unit', SM_UNIT], ['dec', SM_DEC], ['fill', SM_FILL]].forEach(function (pr) { pr[1].forEach(function (x) { putv(M[pr[0]], x, 1); }); });
+  SM_MAPS = M; return M;
+}
+function smWordVal_(w) { var M = smMaps_(), k = smKey_(w); return (k in M.word) ? M.word[k] : -1; }
+function smIs_(kind, tok) { return !!tok && tok.k === 'w' && (smKey_(tok.w) in smMaps_()[kind]); }
+
+// English: [one..nine hundred] [and] [twenty..ninety [one..nine] | zero..nineteen]
+function smEnglish_(toks, i) {
+  var j = i, v = 0, any = false, t = toks[j];
+  var en = function (tok) { return tok && tok.k === 'w' && smHas_(SM_EN, tok.w) ? SM_EN[tok.w] : -1; };
+  if (t && t.k === 'w' && t.w === 'hundred') { v = 100; j++; any = true; }
+  else if (en(t) >= 1 && en(t) <= 9 && toks[j + 1] && toks[j + 1].k === 'w' && toks[j + 1].w === 'hundred') { v = en(t) * 100; j += 2; any = true; }
+  if (any && toks[j] && toks[j].k === 'w' && toks[j].w === 'and' && en(toks[j + 1]) >= 0) j++;
+  var x = en(toks[j]);
+  if (x >= 20) { v += x; j++; any = true; if (en(toks[j]) >= 1 && en(toks[j]) <= 9) { v += en(toks[j]); j++; } }
+  else if (x >= 0) { v += x; j++; any = true; }
+  return any ? { v: v, len: j - i } : null;
+}
+// a number written in words, starting at toks[i] -> { v, len } or null   (Hindi: bees, छत्तीस, do sau paintis, साढ़े बारह, डेढ़ ... English: thirty six, one hundred and five)
+function smNumWords_(toks, i) {
+  var M = smMaps_(), w = toks[i].w, nx = toks[i + 1], k = smKey_(w);
+  if (k in M.whole) return { v: M.whole[k], len: 1 };
+  if (k in M.frac) {                                               // sadhe X, sawa X, paune X
+    if (nx && nx.k === 'd') return { v: nx.v + M.frac[k], len: 2 };
+    if (nx && nx.k === 'w') { var nv = smWordVal_(nx.w); if (nv >= 1 && nv < 100) return { v: nv + M.frac[k], len: 2 }; }
+    return null;
+  }
+  if (smHas_(SM_EN, w) || w === 'hundred') return smEnglish_(toks, i);
+  var v = smWordVal_(w);
+  if (v < 0) return null;
+  if (v >= 1 && v <= 9 && nx && nx.k === 'w' && smWordVal_(nx.w) === 100) {   // do sau, teen sau paintis
+    var total = v * 100, len = 2, t2 = toks[i + 2];
+    if (t2 && t2.k === 'w') { var tv = smWordVal_(t2.w); if (tv >= 1 && tv < 100) { total += tv; len = 3; } }
+    return { v: total, len: len };
+  }
+  return { v: v, len: 1 };
+}
+function smNorm_(text) {
+  var s = String(text == null ? '' : text).toLowerCase();
+  s = s.replace(/[०-९]/g, function (d) { return String(d.charCodeAt(0) - 0x966); });
+  s = s.replace(/[٠-٩]/g, function (d) { return String(d.charCodeAt(0) - 0x660); });
+  s = s.replace(/[।॥|]/g, ' ').replace(/₹/g, ' rs ');
+  s = s.replace(/एस\s*\.?\s*पी/g, ' sp ').replace(/(^|[^a-z])s\s*\.?\s*p(?![a-z])/g, '$1 sp ');
+  return s;
+}
+function smTokens_(s) {
+  var toks = [], re = /(\d+(?:\.\d+)?)|([a-z]+)|([ऀ-ॿ]+)/g, m;
+  while ((m = re.exec(s))) {
+    if (m[1] !== undefined) toks.push({ k: 'd', v: Number(m[1]), raw: m[1] });
+    else toks.push({ k: 'w', w: m[2] !== undefined ? m[2] : m[3] });
+  }
+  return toks;
+}
+
+function smParse_(text) {
+  var res = { targets: [], count: null, tooBig: [] };
+  var toks = smTokens_(smNorm_(text)), out = [], i = 0, tk, j;
+  while (i < toks.length) {                                        // 1. number words -> numbers
+    tk = toks[i];
+    if (tk.k === 'w') {
+      var nr = smNumWords_(toks, i);
+      if (nr) { out.push({ k: 'n', v: nr.v, src: 'w', int: nr.v % 1 === 0 }); i += nr.len; continue; }
+      out.push(tk); i++; continue;
+    }
+    out.push({ k: 'n', v: tk.v, src: 'd', raw: tk.raw, int: tk.raw.indexOf('.') < 0 }); i++;
+  }
+  var seq = [];
+  j = 0;
+  while (j < out.length) {                                         // 2. "27 point 5" = 27.5
+    var a = out[j], b = out[j + 1], c = out[j + 2];
+    if (a.k === 'n' && a.int && smIs_('dec', b) && c && c.k === 'n' && c.int && c.v >= 0 && (c.src === 'd' ? c.raw.length <= 2 : c.v < 10)) {
+      seq.push({ k: 'n', v: a.v + c.v / Math.pow(10, c.src === 'd' ? c.raw.length : 1), src: a.src, int: false }); j += 3; continue;
+    }
+    seq.push(a); j++;
+  }
+  var targets = [], words = [];
+  for (j = 0; j < seq.length; j++) {                               // 3. which number is what
+    var n = seq[j];
+    if (n.k !== 'n') continue;
+    var pv = seq[j - 1], nx = seq[j + 1];
+    if (smIs_('money', nx) || smIs_('money', pv) || smIs_('unit', nx)) continue;
+    if (smIs_('cnt', nx)) { if (n.int && n.v >= 1) res.count = Math.min(SM_MAX_COUNT, n.v); continue; }
+    if (smIs_('spw', nx)) { targets.push(n.v); continue; }
+    if (n.src === 'd') targets.push(n.v);
+    else if (n.v !== 1 && n.v !== 2) words.push(n.v);              // "ek" / "do" alone are most likely "one" / "give", not an SP number
+  }
+  if (!targets.length && words.length) targets = words;
+  var seen = {};
+  targets.forEach(function (t) {
+    t = Math.round(t * 100) / 100;
+    if (!(t > 0)) return;
+    if (t > SM_MAX_SP) { if (res.tooBig.indexOf(t) < 0) res.tooBig.push(t); return; }
+    if (!seen[t]) { seen[t] = 1; res.targets.push(t); }
+  });
+  return res;
+}
+// <<SETMAKER_CORE_END>>
+
+// =====================================================================================================================
+// THE PAGE: price list, products chosen by the person, the command box (typed or spoken) and the result cards
+// =====================================================================================================================
+// The same public price list the order form uses (code, name, MRP, DP, SP). Nothing here is secret: the key below is the public (publishable) one.
+const SUPABASE_URL = 'https://lrrqdmmugvizkbjfwneb.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP';
+const LS_PRODUCTS = 'mwCalcProducts';      // the saved price list: the very same copy the Product Calculator keeps (each page refreshes it for the other)
+const LS_STATE = 'mwSpSetState';           // what was typed + the products chosen (kept on this phone only)
+const FETCH_TIMEOUT_MS = 15000, REFRESH_AFTER_MS = 6 * 3600 * 1000, STALE_AFTER_MS = 2 * 86400000;
+const DEFAULT_COUNT = 5, MORE_STEP = 5, MAX_TARGETS = 20, MAX_CAP = 9999, SEARCH_MAX = 40, CMD_MAX = 300;
+
+let PRODUCTS = [];                         // [{code, name, mrp, dp, sp}] in the order the server sent them
+let BYCODE = Object.create(null);          // code -> product (no prototype: a product code can never clash with a built-in name)
+let LIST_AT = 0, LIST_SRC = 'none', LIST_FAILED = false, FETCHING = false, LIST_SIG = '';
+let OWN = [];                              // the products chosen by the person: [{code, cap}] (cap 0 = as many as needed)
+let MUST = false;                          // every chosen product at least once in every set
+let RES = [];                              // one entry per SP asked: { target, count, key, out }
+let ECHO = null;                           // how the last command was understood
+let LISTENING = false, REC = null;
+let SEARCH_ROWS = [], SEARCH_ACTIVE = -1;
+
+// ---- helpers
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function el_(id) { return document.getElementById(id); }
+function lsGet_(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet_(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+function lsJson_(k) { const s = lsGet_(k); if (!s) return null; try { return JSON.parse(s); } catch (e) { return null; } }
+function num_(v) { return (typeof v === 'number' || (typeof v === 'string' && v.trim() !== '')) ? Number(v) : NaN; }
+function r2_(n) { const v = Math.round((Number(n) || 0) * 100) / 100; return v === 0 ? 0 : v; }
+function fmtSp_(n) { return String(r2_(n)); }                                    // 12.5 -> "12.5", 15 -> "15", 0.05 -> "0.05"
+function money_(n) { return '₹' + r2_(n).toLocaleString('en-IN', { maximumFractionDigits: 2 }); }
+function fmtWhen_(t) {
+  const d = new Date(t), same = d.toDateString() === new Date().toDateString();
+  try {
+    return same ? d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })
+                : d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  } catch (e) { return d.toISOString().slice(0, 16).replace('T', ' '); }
+}
+function plural_(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+// a real floating message (the same one the other pages use)
+function toast_(msg) {
+  let el = el_('shareToast');
+  if (!el) { el = document.createElement('div'); el.id = 'shareToast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  el.textContent = msg; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(function () { el.classList.remove('show'); }, 3000);
+}
+
+// ---- what is kept on the phone (every access is guarded: private mode or a full phone must never break the page)
+function saveState_() {
+  lsSet_(LS_STATE, JSON.stringify({ v: 1, cmd: String(el_('cmd').value || '').slice(0, CMD_MAX), own: OWN.map(function (o) { return [o.code, o.cap]; }), must: MUST }));
+}
+function loadState_() {
+  const s = lsJson_(LS_STATE);
+  if (!s || typeof s !== 'object') return;
+  el_('cmd').value = (typeof s.cmd === 'string') ? s.cmd.slice(0, CMD_MAX) : '';
+  const seen = Object.create(null);
+  (Array.isArray(s.own) ? s.own : []).forEach(function (e) {
+    if (!Array.isArray(e)) return;
+    const code = e[0] == null ? '' : String(e[0]).slice(0, 80), cap = Math.round(Number(e[1]));
+    if (!code || seen[code]) return;
+    seen[code] = 1; OWN.push({ code: code, cap: (cap >= 1) ? Math.min(MAX_CAP, cap) : 0 });
+  });
+  MUST = s.must === true;
+}
+
+// ---- the price list: shown from the phone at once, then refreshed from the server when there is internet
+function cleanList_(raw) {                                                       // only well-formed rows are used
+  const out = [], seen = Object.create(null);
+  (Array.isArray(raw) ? raw : []).forEach(function (r) {
+    let code, name, mrp, dp, sp;
+    if (Array.isArray(r)) { code = r[0]; name = r[1]; mrp = r[2]; dp = r[3]; sp = r[4]; }
+    else if (r && typeof r === 'object') { code = r.code; name = r.name; mrp = r.mrp; dp = r.dp; sp = r.sp; }
+    else return;
+    code = code == null ? '' : String(code).trim(); name = name == null ? '' : String(name).trim();
+    mrp = num_(mrp); dp = num_(dp); sp = num_(sp);                               // a price that is empty / missing is not a price (it must never show up as Rs 0)
+    if (!code || !name || seen[code] || !isFinite(mrp) || !isFinite(dp) || !isFinite(sp) || mrp < 0 || dp < 0 || sp < 0) return;
+    seen[code] = 1; out.push({ code: code, name: name, mrp: mrp, dp: dp, sp: sp });
+  });
+  return out;
+}
+function fetchList_() {
+  const url = SUPABASE_URL + '/rest/v1/rpc/get_public_products_for_order';
+  function post(withAuth) {
+    const h = { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' };
+    if (withAuth) h['Authorization'] = 'Bearer ' + SUPABASE_KEY;
+    const ctl = (typeof AbortController === 'function') ? new AbortController() : null;
+    const timer = ctl ? setTimeout(function () { ctl.abort(); }, FETCH_TIMEOUT_MS) : null;
+    return fetch(url, { method: 'POST', headers: h, body: '{}', cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .finally(function () { if (timer) clearTimeout(timer); });
+  }
+  // the same way the order form's database library asks (apikey + Authorization); only if the server answers with an error, once more with the apikey alone
+  return post(true).catch(function (e) { return (e && String(e.message).indexOf('HTTP') === 0) ? post(false) : Promise.reject(e); });
+}
+function refreshProducts_(manual) {
+  if (FETCHING) return;
+  FETCHING = true; renderListStatus_();
+  fetchList_().then(function (raw) {
+    const list = cleanList_(raw);
+    if (!list.length) throw new Error('empty list');                             // never replace a good saved list with nothing
+    const at = Date.now();
+    lsSet_(LS_PRODUCTS, JSON.stringify({ v: 1, t: at, items: list.map(function (p) { return [p.code, p.name, p.mrp, p.dp, p.sp]; }) }));
+    LIST_FAILED = false; FETCHING = false;
+    const dropped = applyProducts_(list, at, 'fresh');
+    if (manual && !dropped) toast_('Price list update ho gayi');
+  }).catch(function () {
+    LIST_FAILED = true; FETCHING = false; renderListStatus_();
+    if (manual) toast_(PRODUCTS.length ? 'Update nahi ho paya — saved list chal rahi hai' : 'List nahi aayi — internet check karo');
+  });
+}
+function applyProducts_(list, at, src) {
+  PRODUCTS = list; BYCODE = Object.create(null);
+  list.forEach(function (p) { BYCODE[p.code] = p; });
+  LIST_AT = at; LIST_SRC = src; FETCHING = false;
+  LIST_SIG = list.length + '|' + list.map(function (p) { return p.code + '~' + p.mrp + '~' + p.dp + '~' + p.sp; }).join('|');
+  const before = OWN.length;
+  OWN = OWN.filter(function (o) { return BYCODE[o.code] && BYCODE[o.code].sp > 0; });   // a product that is no longer on the list (or has no SP) cannot be used
+  const dropped = before - OWN.length;
+  if (dropped) saveState_();
+  renderListStatus_(); renderOwn_(); renderSearch_(); refreshResults_();
+  if (dropped) toast_(plural_(dropped, 'product', 'products') + ' hata diye (ab price list me nahi hain)');
+  return dropped;
+}
+function renderListStatus_() {
+  const el = el_('listStatus'), btn = el_('refreshBtn'), stale = el_('staleBox');
+  const offline = navigator.onLine === false;
+  let txt;
+  if (!PRODUCTS.length) {
+    txt = FETCHING ? 'Loading the product list…'
+        : offline ? 'You are offline and no price list is saved on this phone yet. Connect to the internet once to load it.'
+        : 'The product list could not be loaded. Check the internet and tap the refresh button.';
+  } else {
+    txt = PRODUCTS.length + ' products · ' + (LIST_SRC === 'fresh' ? 'updated ' : 'saved list from ') + fmtWhen_(LIST_AT);
+    if (FETCHING) txt += ' · updating…';
+    else if (offline) txt = 'Offline · ' + txt;
+    else if (LIST_FAILED) txt = 'Could not update · ' + txt;
+  }
+  el.textContent = txt;
+  btn.disabled = FETCHING; btn.classList.toggle('spin', FETCHING);
+  const age = Date.now() - LIST_AT, old = PRODUCTS.length > 0 && LIST_SRC !== 'fresh' && age > STALE_AFTER_MS;
+  stale.style.display = old ? 'block' : 'none';
+  stale.textContent = old ? 'These prices were saved ' + Math.floor(age / 86400000) + ' days ago and may have changed. Connect to the internet once to get the latest prices.' : '';
+}
+
+// ---- making the sets
+function capsNow_() {                                                            // null = the whole price list
+  if (!OWN.length) return null;
+  const c = Object.create(null);
+  OWN.forEach(function (o) { c[o.code] = o.cap; });
+  return c;
+}
+function ownSig_() { return OWN.length ? (MUST ? 'M' : 'F') + OWN.map(function (o) { return o.code + ':' + o.cap; }).join(',') : '-'; }
+function solveEntry_(e) {                                                        // the answer is kept until the list, the chosen products or the number of options change
+  const key = LIST_SIG + '#' + ownSig_() + '#' + e.count;
+  if (e.out && e.key === key) return e.out;
+  e.out = smSolve_(PRODUCTS, { target: e.target, count: e.count, caps: capsNow_(), must: MUST && OWN.length > 0 });
+  e.key = key;
+  return e.out;
+}
+function prodOf_(o) { return BYCODE[o.code] || null; }                          // the price-list row of a chosen product (null while the list is not there)
+function entryOf_(t) { for (let i = 0; i < RES.length; i++) if (String(RES[i].target) === String(t)) return RES[i]; return null; }
+
+function runCommand_(text) {
+  stopMic_();
+  text = String(text == null ? '' : text).slice(0, CMD_MAX);
+  if (!text.trim()) { toast_('Pehle likho ya bolo — jaise: 20 SP, 36 SP'); try { el_('cmd').focus(); } catch (e) {} return; }
+  if (!PRODUCTS.length) { toast_(FETCHING ? 'Product list abhi load ho rahi hai — thoda ruko' : 'Product list nahi aayi — internet check karo'); return; }
+  const pr = smParse_(text);
+  const targets = pr.targets.slice(0, MAX_TARGETS);
+  ECHO = { targets: targets, tooBig: pr.tooBig.slice(), cut: pr.targets.length - targets.length, count: pr.count };
+  const count = pr.count || DEFAULT_COUNT;
+  RES = targets.map(function (t) { return { target: t, count: count, key: '', out: null }; });
+  saveState_(); renderEcho_(); renderResults_();
+  const eb = el_('echo');
+  try { eb.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { eb.scrollIntoView(); }
+}
+function refreshResults_() {                                                     // the list or the chosen products changed: the cards on the screen follow
+  if (!RES.length && !ECHO) return;
+  renderEcho_(); renderResults_();
+}
+
+function renderEcho_() {
+  const box = el_('echo');
+  if (!ECHO) { box.hidden = true; box.innerHTML = ''; box.className = 'echo'; return; }
+  let h = '';
+  if (ECHO.targets.length) {
+    h += '<b>Samjha:</b> ' + ECHO.targets.map(function (t) { return '<span class="tg">' + escapeHtml(fmtSp_(t)) + ' SP</span>'; }).join(' ');
+    if (ECHO.count) h += ' <span class="tg c">' + escapeHtml(plural_(ECHO.count, 'option', 'options')) + '</span>';
+    if (OWN.length) h += '<div class="echo-own">Sirf aapke chune hue ' + escapeHtml(plural_(OWN.length, 'product', 'products')) + ' se' + (MUST ? ' (sab zaroor)' : '') + '</div>';
+    if (ECHO.cut > 0) h += '<div class="echo-note">Ek baar me ' + MAX_TARGETS + ' SP hi liye gaye.</div>';
+  } else if (!ECHO.tooBig.length) {
+    h += 'SP ka koi number samajh nahi aaya. Aise likho ya bolo: <b>20 SP, 21 SP, 36 SP</b>';
+  }
+  if (ECHO.tooBig.length) h += '<div class="echo-note">' + escapeHtml(ECHO.tooBig.map(fmtSp_).join(', ')) + ' SP bahut bada hai — ' + SM_MAX_SP + ' SP tak ke hi set bante hain.</div>';
+  box.className = 'echo' + (ECHO.targets.length ? '' : ' bad');
+  box.innerHTML = h; box.hidden = false;
+}
+
+function problemHtml_(e, out) {                                                  // why there is no set, and (when it helps) the nearest SP that can be made
+  const sp = fmtSp_(e.target), own = OWN.length > 0;
+  let msg;
+  if (out.error === 'big') msg = sp + ' SP itna bada hai ki phone par nahi ban paya' + (out.maxSp ? ' — ' + out.maxSp + ' SP tak ka try karo.' : '.');
+  else if (out.error === 'forced') msg = 'Aapne “sab zaroor ho” lagaya hai: chune hue sab products ke 1-1 piece ka hi ' + fmtSp_(out.forcedSp) + ' SP ho jata hai, jo ' + sp + ' SP se zyada hai. “Zaroor ho” band karo ya products kam karo.';
+  else if (out.error === 'empty') msg = own ? 'Chune hue products me kisi ka SP nahi hai, isliye set nahi ban sakta.' : 'Price list me SP wala koi product nahi mila.';
+  else if (out.error) msg = sp + ' SP ka set nahi ban paya.';
+  else {
+    const stepTxt = out.step > 0 ? ' (SP ' + fmtSp_(out.step) + ' ke steps me hi bante hain)' : '';
+    msg = (own ? sp + ' SP in products se bilkul nahi ban sakta' : sp + ' SP bilkul nahi ban sakta') + stepTxt + '.';
+  }
+  let h = '<div class="box bad">' + escapeHtml(msg) + '</div>';
+  if (!out.error && (out.lo || out.hi)) {
+    h += '<p class="hint" style="margin-top:12px">Sabse paas ke SP jo ban sakte hain (tap karo):</p><div class="near">';
+    [out.lo, out.hi].forEach(function (n) {
+      if (n) h += '<button type="button" class="near-btn" data-act="near" data-sp="' + escapeHtml(String(n.sp)) + '">' + escapeHtml(fmtSp_(n.sp)) + ' SP<small>sabse kam DP ' + escapeHtml(money_(n.dp)) + '</small></button>';
+    });
+    h += '</div>';
+  }
+  return h;
+}
+function optHtml_(set, i, first, canShare) {
+  let h = '<article class="opt' + (i === 0 ? ' best' : '') + '" data-i="' + i + '">';
+  h += '<div class="opt-top"><span class="opt-n">Option ' + (i + 1) + (i === 0 ? '<em>Sabse kam DP</em>' : '') + '</span>';
+  h += '<span class="opt-dp"><small>DP</small>' + escapeHtml(money_(set.dp)) + '</span></div>';
+  if (i > 0) {
+    const d = r2_(set.dp - first.dp);
+    h += '<div class="opt-plus">' + (d > 0 ? escapeHtml('+' + money_(d)) + ' Option 1 se zyada' : 'Option 1 ke barabar') + '</div>';
+  }
+  h += '<ul class="opt-lines">';
+  set.lines.forEach(function (l) {
+    h += '<li><span class="q">' + l.qty + ' ×</span><span class="nm">' + escapeHtml(l.p.name) + '</span><span class="ln">' + escapeHtml(fmtSp_(l.qty * l.p.sp)) + ' SP · ' + escapeHtml(money_(l.qty * l.p.dp)) + '</span></li>';
+  });
+  h += '</ul><div class="opt-foot"><span class="opt-meta">Total ' + escapeHtml(fmtSp_(set.sp)) + ' SP<br>MRP ' + escapeHtml(money_(set.mrp)) + ' · ' + escapeHtml(plural_(set.pcs, 'piece', 'pieces')) + '</span>';
+  h += '<span class="opt-btns"><button type="button" class="copy-btn" data-act="copy">Copy</button>' + (canShare ? '<button type="button" class="copy-btn" data-act="share">Share</button>' : '') + '</span></div></article>';
+  return h;
+}
+function cardHtml_(e) {
+  const out = solveEntry_(e), canShare = typeof navigator.share === 'function', n = out.sets.length;
+  let h = '<section class="card res" data-t="' + escapeHtml(String(e.target)) + '"><div class="res-head"><div><h2 class="res-t">' + escapeHtml(fmtSp_(e.target)) + ' SP</h2>';
+  h += '<p class="res-sub">' + (n ? escapeHtml(plural_(n, 'option', 'options')) + ' · DP sabse kam se badhte hue' : 'Set nahi bana') + '</p></div>';
+  if (n) h += '<button type="button" class="copy-btn" data-act="copyall">Copy sab</button>';
+  h += '</div>';
+  if (!n) return h + problemHtml_(e, out) + '</section>';
+  h += '<div class="opts">';
+  out.sets.forEach(function (s, i) { h += optHtml_(s, i, out.sets[0], canShare); });
+  h += '</div>';
+  if (out.truncated) h += '<div class="box warn">Hisaab bahut bada tha, isliye ho sakta hai isse bhi sasta set maujood ho.</div>';
+  if (out.more && e.count < SM_MAX_COUNT) h += '<button type="button" class="btn btn-outline more-btn" data-act="more">Aur dikhao</button>';
+  return h + '</section>';
+}
+function renderResults_() {
+  el_('results').innerHTML = RES.map(cardHtml_).join('');
+}
+function renderCard_(e) {                                                        // only one card changed (more options, or a nearer SP was chosen)
+  const old = el_('results').querySelector('.res[data-t="' + String(e.target).replace(/"/g, '') + '"]');
+  if (!old) { renderResults_(); return; }
+  const tmp = document.createElement('div'); tmp.innerHTML = cardHtml_(e);
+  old.parentNode.replaceChild(tmp.firstChild, old);
+}
+function moreFor_(e, card) {
+  const had = e.count;
+  e.count = Math.min(SM_MAX_COUNT, e.count + MORE_STEP);
+  renderCard_(e);
+  const now = el_('results').querySelector('.res[data-t="' + String(e.target) + '"] .opt[data-i="' + had + '"]');
+  if (now) { try { now.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (x) { now.scrollIntoView(); } }
+}
+function useNear_(e, sp) {                                                       // the exact SP cannot be made: take the nearest one that can
+  sp = r2_(sp);
+  const dup = entryOf_(sp);
+  if (dup) { RES = RES.filter(function (x) { return x !== e; }); }
+  else { e.target = sp; e.out = null; e.key = ''; }
+  if (ECHO) ECHO.targets = RES.map(function (x) { return x.target; });
+  el_('cmd').value = RES.map(function (x) { return fmtSp_(x.target) + ' SP'; }).join(', '); autoGrow_(); saveState_();
+  renderEcho_(); renderResults_();
+}
+
+// ---- the text of a set (for Copy / Share)
+function optText_(e, set, i) {
+  const lines = ['SP Set - ' + fmtSp_(e.target) + ' SP (Option ' + (i + 1) + ')'];
+  set.lines.forEach(function (l) { lines.push(l.qty + ' x ' + l.p.name + ' (' + fmtSp_(l.p.sp) + ' SP each) - DP ' + money_(l.qty * l.p.dp)); });
+  lines.push('Total: ' + fmtSp_(set.sp) + ' SP | DP ' + money_(set.dp) + ' | MRP ' + money_(set.mrp));
+  return lines.join('\n');
+}
+function allText_(e) {
+  const out = solveEntry_(e);
+  return out.sets.map(function (s, i) { return optText_(e, s, i); }).join('\n\n');
+}
+function fallbackCopy_(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
+  document.body.appendChild(ta); ta.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch (x) { ok = false; }
+  document.body.removeChild(ta);
+  return ok;
+}
+function copyText_(text) {
+  const done = function () { toast_('Copy ho gaya'); }, fail = function () { toast_('Copy nahi ho paya'); };
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    navigator.clipboard.writeText(text).then(done, function () { if (fallbackCopy_(text)) done(); else fail(); });
+    return;
+  }
+  if (fallbackCopy_(text)) done(); else fail();
+}
+function shareText_(title, text) {
+  if (typeof navigator.share === 'function') { try { navigator.share({ title: title, text: text }).catch(function () { /* closed without sending */ }); } catch (x) { copyText_(text); } return; }
+  copyText_(text);
+}
+function onResultsClick_(ev) {
+  const b = ev.target && ev.target.closest ? ev.target.closest('[data-act]') : null;
+  if (!b) return;
+  const card = b.closest('.res'); if (!card) return;
+  const e = entryOf_(card.getAttribute('data-t')); if (!e) return;
+  const act = b.getAttribute('data-act'), art = b.closest('.opt');
+  const out = solveEntry_(e), i = art ? Number(art.getAttribute('data-i')) : -1;
+  if (act === 'more') moreFor_(e, card);
+  else if (act === 'near') useNear_(e, Number(b.getAttribute('data-sp')));
+  else if (act === 'copyall') copyText_(allText_(e));
+  else if (act === 'copy' && out.sets[i]) copyText_(optText_(e, out.sets[i], i));
+  else if (act === 'share' && out.sets[i]) shareText_('SP Set ' + fmtSp_(e.target) + ' SP', optText_(e, out.sets[i], i));
+}
+
+// ---- the products chosen by the person
+function ownMatches_(q) {
+  const words = String(q || '').toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  const have = Object.create(null); OWN.forEach(function (o) { have[o.code] = 1; });
+  const out = [];
+  for (let i = 0; i < PRODUCTS.length && out.length < SEARCH_MAX; i++) {
+    const p = PRODUCTS[i];
+    if (!(p.sp > 0) || have[p.code]) continue;
+    const hay = (p.name + ' ' + p.code).toLowerCase();
+    if (words.every(function (w) { return hay.indexOf(w) >= 0; })) out.push(p);
+  }
+  return out;
+}
+function renderSearch_() {
+  const box = el_('ownResults'), q = el_('ownSearch').value;
+  SEARCH_ROWS = ownMatches_(q); SEARCH_ACTIVE = -1;
+  if (!q.trim()) { box.innerHTML = ''; return; }
+  if (!SEARCH_ROWS.length) { box.innerHTML = '<div class="search-none">' + (PRODUCTS.length ? 'Is naam ka koi product nahi mila (ya uska SP 0 hai).' : 'Product list abhi aayi nahi.') + '</div>'; return; }
+  box.innerHTML = SEARCH_ROWS.map(function (p) {
+    return '<div class="search-row" data-code="' + escapeHtml(p.code) + '"><div class="sg-main"><div class="search-name">' + escapeHtml(p.name) + '</div><div class="search-meta">' + escapeHtml(p.code) + ' · ' + escapeHtml(fmtSp_(p.sp)) + ' SP · DP ' + escapeHtml(money_(p.dp)) + '</div></div><span class="search-add"><svg class="i"><use href="#i-plus"/></svg></span></div>';
+  }).join('');
+}
+function markActive_() {
+  Array.prototype.forEach.call(el_('ownResults').querySelectorAll('.search-row'), function (r, i) { r.classList.toggle('kbd-active', i === SEARCH_ACTIVE); });
+  const a = el_('ownResults').querySelector('.kbd-active'); if (a && a.scrollIntoView) { try { a.scrollIntoView({ block: 'nearest' }); } catch (x) {} }
+}
+function addOwn_(code) {
+  if (!BYCODE[code] || OWN.some(function (o) { return o.code === code; })) return;
+  OWN.push({ code: code, cap: 0 });
+  el_('ownSearch').value = ''; renderSearch_(); renderOwn_(); saveState_(); refreshResults_();
+}
+function removeOwn_(code) {
+  OWN = OWN.filter(function (o) { return o.code !== code; });
+  renderSearch_(); renderOwn_(); saveState_(); refreshResults_();
+}
+function renderOwn_() {
+  const list = el_('ownList'), n = OWN.length;
+  list.innerHTML = OWN.map(function (o) {
+    const p = prodOf_(o);
+    return '<div class="own-row" data-code="' + escapeHtml(o.code) + '"><div class="own-main"><div class="own-name">' + escapeHtml(p ? p.name : o.code) + '</div><div class="own-meta">' + (p ? escapeHtml(o.code) + ' · ' + escapeHtml(fmtSp_(p.sp)) + ' SP · DP ' + escapeHtml(money_(p.dp)) : 'price list ka intezar…') + '</div></div>' +
+      '<input type="number" class="qty-input" inputmode="numeric" min="1" step="1" placeholder="Qty" value="' + (o.cap > 0 ? o.cap : '') + '" aria-label="Kitne piece tak (khali = jitne chahiye)">' +
+      '<button type="button" class="own-x" data-act="own-del" aria-label="Hatao"><svg class="i"><use href="#i-x"/></svg></button></div>';
+  }).join('');
+  const badge = el_('ownBadge'); badge.hidden = !n; badge.textContent = String(n);
+  el_('mustRow').hidden = !n; el_('mustChk').checked = MUST && n > 0;
+  el_('ownGo').hidden = !n; el_('ownClear').hidden = !n;
+}
+function onOwnInput_(ev) {
+  const t = ev.target; if (!t || !t.classList || !t.classList.contains('qty-input')) return;
+  const row = t.closest('.own-row'), code = row ? row.getAttribute('data-code') : '';
+  const o = OWN.filter(function (x) { return x.code === code; })[0]; if (!o) return;
+  const v = Math.floor(Number(t.value));
+  o.cap = (t.value !== '' && v >= 1) ? Math.min(MAX_CAP, v) : 0;
+  if (v > MAX_CAP) t.value = String(MAX_CAP);
+  saveState_(); refreshResults_();
+}
+function onOwnChange_(ev) {                                                      // the box was left: show what is really used
+  const t = ev.target; if (!t || !t.classList || !t.classList.contains('qty-input')) return;
+  const row = t.closest('.own-row'), code = row ? row.getAttribute('data-code') : '';
+  const o = OWN.filter(function (x) { return x.code === code; })[0]; if (!o) return;
+  t.value = o.cap > 0 ? String(o.cap) : '';
+}
+
+// ---- the command box and the voice
+function autoGrow_() {
+  const ta = el_('cmd'); ta.style.height = 'auto';
+  ta.style.height = Math.min(150, Math.max(68, ta.scrollHeight + 2)) + 'px';
+}
+function setHint_(txt, live) { const h = el_('cmdHint'); h.textContent = txt; h.classList.toggle('live', !!live); }
+const HINT_IDLE = 'Likho ya mic dabake bolo. Ek saath kai SP bhi de sakte ho.';
+function micCtor_() { return window.SpeechRecognition || window.webkitSpeechRecognition || null; }
+function setListening_(on) {
+  LISTENING = on;
+  const b = el_('micBtn'); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  b.setAttribute('aria-label', on ? 'Sunna band karo' : 'Bolkar command do');
+  if (on) setHint_('Sun raha hu… ab bolo, jaise “bees SP, chhattis SP”', true); else setHint_(HINT_IDLE, false);
+}
+function stopMic_() {
+  if (REC) { const r = REC; REC = null; try { r.onend = null; r.onresult = null; r.onerror = null; r.abort ? r.abort() : r.stop(); } catch (x) {} }
+  if (LISTENING) setListening_(false);
+}
+function startMic_() {
+  const SR = micCtor_();
+  if (!SR) { toast_('Is browser me voice nahi chalti — type karke likho'); return; }
+  stopMic_();
+  let got = false, failed = false;
+  try {
+    const r = new SR();
+    r.lang = 'hi-IN'; r.interimResults = true; r.continuous = false; r.maxAlternatives = 1;
+    r.onstart = function () { setListening_(true); };
+    r.onresult = function (ev) {
+      let fin = '', interim = '';
+      for (let i = 0; i < ev.results.length; i++) {
+        const res = ev.results[i], t = (res && res[0]) ? res[0].transcript : '';
+        if (res.isFinal) fin += t + ' '; else interim += t;
+      }
+      const all = (fin + interim).trim();
+      if (all) { got = true; el_('cmd').value = all.slice(0, CMD_MAX); autoGrow_(); }
+    };
+    r.onerror = function (ev) {
+      const c = ev && ev.error ? String(ev.error) : '';
+      if (c === 'aborted') return;
+      failed = true;
+      toast_(c === 'not-allowed' || c === 'service-not-allowed' ? 'Mic ki permission nahi mili — settings me Microphone allow karo'
+           : c === 'no-speech' ? 'Kuch sunai nahi diya — dobara bolo'
+           : c === 'audio-capture' ? 'Mic nahi mila — phone ka mic check karo'
+           : c === 'network' ? 'Voice ke liye internet chahiye'
+           : c === 'language-not-supported' ? 'Hindi voice is phone me nahi chal rahi — type karke likho'
+           : 'Voice me dikkat aayi — type karke likho');
+    };
+    r.onend = function () {
+      REC = null; setListening_(false);
+      const t = String(el_('cmd').value || '').trim();
+      if (got && t) { saveState_(); runCommand_(t); }
+      else if (!failed) toast_('Kuch sunai nahi diya — dobara bolo');
+    };
+    REC = r; r.start();
+  } catch (e) { REC = null; setListening_(false); toast_('Mic shuru nahi ho paya — dobara try karo'); }
+}
+function toggleMic_() {                                                           // second tap while listening: stop and use what was heard so far
+  if (REC && LISTENING) { try { REC.stop(); } catch (x) { stopMic_(); } return; }
+  startMic_();
+}
+
+// ---- start
+function boot_() {
+  loadState_(); autoGrow_();
+  if (OWN.length) el_('ownFold').open = true;
+  const c = lsJson_(LS_PRODUCTS), list = (c && c.v === 1 && isFinite(Number(c.t))) ? cleanList_(c.items) : [];
+  if (list.length) applyProducts_(list, Number(c.t), 'saved'); else { renderListStatus_(); renderOwn_(); }
+  if (navigator.onLine !== false || !PRODUCTS.length) refreshProducts_(false);
+  if (!micCtor_()) { el_('micBtn').hidden = true; el_('cmdHint').textContent = 'Likho: jaise 20 SP, 21 SP, 36 SP. Ek saath kai SP bhi de sakte ho. (Is browser me bolkar command nahi chalta.)'; }
+  const cmd = el_('cmd');
+  cmd.addEventListener('input', function () { autoGrow_(); saveState_(); });
+  cmd.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runCommand_(cmd.value); } });
+  el_('makeBtn').addEventListener('click', function () { runCommand_(cmd.value); });
+  el_('micBtn').addEventListener('click', toggleMic_);
+  el_('refreshBtn').addEventListener('click', function () { refreshProducts_(true); });
+  el_('exRow').addEventListener('click', function (e) {
+    const b = e.target.closest ? e.target.closest('.ex') : null; if (!b) return;
+    cmd.value = b.getAttribute('data-cmd') || ''; autoGrow_(); saveState_(); runCommand_(cmd.value);
+  });
+  el_('results').addEventListener('click', onResultsClick_);
+  const os = el_('ownSearch');
+  os.addEventListener('input', renderSearch_);
+  os.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (SEARCH_ROWS.length) { SEARCH_ACTIVE = Math.min(SEARCH_ROWS.length - 1, SEARCH_ACTIVE + 1); markActive_(); } }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); if (SEARCH_ROWS.length) { SEARCH_ACTIVE = Math.max(0, SEARCH_ACTIVE - 1); markActive_(); } }
+    else if (e.key === 'Enter') { e.preventDefault(); const p = SEARCH_ROWS[SEARCH_ACTIVE >= 0 ? SEARCH_ACTIVE : 0]; if (p) addOwn_(p.code); }
+  });
+  el_('ownResults').addEventListener('click', function (e) {
+    const row = e.target.closest ? e.target.closest('.search-row') : null;
+    if (row) { addOwn_(row.getAttribute('data-code')); try { os.focus(); } catch (x) {} }
+  });
+  const ol = el_('ownList');
+  ol.addEventListener('input', onOwnInput_); ol.addEventListener('change', onOwnChange_);
+  ol.addEventListener('click', function (e) {
+    const b = e.target.closest ? e.target.closest('[data-act="own-del"]') : null; if (!b) return;
+    const row = b.closest('.own-row'); if (row) removeOwn_(row.getAttribute('data-code'));
+  });
+  ol.addEventListener('focusin', function (e) { const t = e.target; if (t && t.classList && t.classList.contains('qty-input')) { try { t.select(); } catch (x) {} } });
+  el_('mustChk').addEventListener('change', function () { MUST = this.checked; saveState_(); refreshResults_(); });
+  el_('ownGo').addEventListener('click', function () { runCommand_(cmd.value); });
+  el_('ownClear').addEventListener('click', function () { OWN = []; MUST = false; renderSearch_(); renderOwn_(); saveState_(); refreshResults_(); });
+  window.addEventListener('online', function () { renderListStatus_(); refreshProducts_(false); });
+  window.addEventListener('offline', renderListStatus_);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') stopMic_();
+    else if (navigator.onLine !== false && Date.now() - LIST_AT > REFRESH_AFTER_MS) refreshProducts_(false);
+  });
+}
+boot_();
+</script>
+<!-- MW-UX-START (keyboard + back button; the same in every page, built by tools/apply_ux_snippets.py) -->
+<style id="mwUxCss">
+  :root{--kb:0px; --vvh:100vh;}
+  .modal-overlay,.qty-modal-overlay,#notifPanel,#notifDetailPopup{bottom:var(--kb) !important;}
+  .modal-sheet,.qty-modal-sheet{max-height:calc(var(--vvh) * .92) !important;}
+  .summary-bar{bottom:var(--kb) !important;}
+  .toast{bottom:calc(100px + var(--kb)) !important;}
+  html.kb-open body{padding-bottom:calc(var(--kb) + 24px);}
+</style>
+<script>
+/* On-screen keyboard: --kb = how much of the bottom of the screen the keyboard covers, --vvh = the height that is really visible. */
+(function () {
+  var vv = window.visualViewport, root = document.documentElement;
+  function update() {
+    var kb = 0, h = window.innerHeight;
+    if (vv) { h = vv.height; if (!vv.scale || Math.abs(vv.scale - 1) < 0.02) kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)); }
+    if (kb < 60) kb = 0;                                   // the browser's own bars growing or shrinking are not a keyboard
+    root.style.setProperty('--kb', kb + 'px'); root.style.setProperty('--vvh', Math.round(h) + 'px'); root.classList.toggle('kb-open', kb > 0);
+  }
+  if (vv) { vv.addEventListener('resize', update); vv.addEventListener('scroll', update); }
+  window.addEventListener('resize', update);
+  window.addEventListener('orientationchange', function () { setTimeout(update, 350); });
+  update();
+  // keep the field being typed in on screen (also when the keyboard takes a moment to open)
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!t || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || /^(checkbox|radio|button|submit|file|range|color)$/i.test(t.type || '')) return;
+    [120, 450, 900].forEach(function (ms) {
+      setTimeout(function () { if (document.activeElement !== t) return; try { t.scrollIntoView({ block: 'center', behavior: ms === 120 ? 'auto' : 'smooth', inline: 'nearest' }); } catch (x) {} }, ms);
+    });
+  });
+})();
+</script>
+<script>
+/* Popup layers: the popup opened LAST is always the top one. Every popup that is shown takes the next layer number, above every popup shown before it
+   (whatever its place in the page), so a popup opened from another popup - Edit customer from the customer window, Transport charges from the bill,
+   a confirm window from a list - can never come up UNDER the window it was opened from. Messages (layer 200) and the sign-in screen (300) stay above. */
+(function () {
+  var SEL = '.modal-overlay, .qty-modal-overlay', BASE = 80, MAX = 190, next = BASE;
+  function anyShown() { return !!document.querySelector('.modal-overlay.show, .qty-modal-overlay.show'); }
+  function sync(el) {
+    var on = el.classList.contains('show');
+    if (on && el.getAttribute('data-mwz') === null) {
+      if (el.__mwz0 === undefined) el.__mwz0 = el.style.zIndex || '';
+      next = Math.min(next + 1, MAX); el.style.zIndex = String(next); el.setAttribute('data-mwz', String(next));
+    } else if (!on && el.getAttribute('data-mwz') !== null) {
+      el.removeAttribute('data-mwz'); el.style.zIndex = el.__mwz0 || '';
+      if (!anyShown()) next = BASE;
+    }
+  }
+  var attrObs = new MutationObserver(function (list) { list.forEach(function (m) { sync(m.target); }); });
+  function watch(el) { if (el.__mwWatched) return; el.__mwWatched = true; attrObs.observe(el, { attributes: true, attributeFilter: ['class'] }); sync(el); }
+  function scan(root) { if (root.matches && root.matches(SEL)) watch(root); if (root.querySelectorAll) Array.prototype.forEach.call(root.querySelectorAll(SEL), watch); }
+  function start() {
+    scan(document);
+    new MutationObserver(function (list) { list.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1) scan(n); }); }); }).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
+</script>
+<!-- MW-UX-END -->
+<script id="mwPhone">
+/* every mobile / WhatsApp box: digits only and 10 digits at most (a pasted +91 or 0 in front is dropped) */
+(function () {
+  function clean(v) { var d = String(v == null ? '' : v).replace(/\D/g, ''); if (d.length === 12 && d.slice(0, 2) === '91') d = d.slice(2); else if (d.length === 11 && d.charAt(0) === '0') d = d.slice(1); return d.slice(0, 10); }
+  window.phoneClean_ = clean;
+  document.addEventListener('input', function (e) { var el = e.target; if (el && el.tagName === 'INPUT' && (el.type === 'tel' || el.hasAttribute('data-phone'))) { var c = clean(el.value); if (c !== el.value) el.value = c; } }, true);
+  function mark() { Array.prototype.forEach.call(document.querySelectorAll('input[type=tel]'), function (el) { el.setAttribute('inputmode', 'numeric'); }); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mark); else mark();
+})();
+</script>
+</body>
+</html>
