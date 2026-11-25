@@ -269,6 +269,10 @@
   .subtab.active{background:var(--green-800); border-color:var(--green-800); color:#fff;}
   .subtab-panel{display:none;}
   .subtab-panel.active{display:block;}
+  /* Product Search has four pills (Duplicates, Find & edit, Hidden, Website): on a narrow phone they sit a little closer and, if they still do not fit, wrap to a second line instead of sliding out of the screen */
+  #tab-productsearch .subtabs{flex-wrap:wrap; gap:8px;}
+  @media (max-width:420px){ #tab-productsearch .subtabs{gap:8px 5px;} #tab-productsearch .subtab{padding:8px 10px;} }
+  @media (max-width:380px){ #tab-productsearch .subtab{padding:8px 8px;} }
   .tab-panel{display:none;}
   .tab-panel.active{display:block;}
 
@@ -371,6 +375,25 @@
   }
 </style>
 <style id="mwListCss">.sps-opt{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;margin:6px 0;font-size:13.5px;cursor:pointer;} .sps-imp{border-top:1px solid var(--line);padding:10px 0;} .receipt-meta .rcpt-no,.receipt-meta .rcpt-memo{font-size:15px;font-weight:800;color:var(--green-900);} .rcpt-name{font-weight:800;font-size:14px;color:var(--green-900);} .receipt-meta{flex-wrap:wrap;gap:2px 10px;} [data-pdf-capturing="1"] .screen-only{display:none !important;} @media print{.screen-only{display:none !important;}} .quickbtn.on{background:var(--green-700);color:#fff;border-color:var(--green-700);} .date-filter{margin-top:8px;} .memo-note{margin:8px 0;padding:8px 10px;border-radius:8px;background:var(--gold-100);font-size:12.5px;color:var(--ink);} .memo-note a{color:var(--green-800);font-weight:700;}</style>
+<style id="webSyncCss">
+  .ps-thumb{width:46px; height:46px; border-radius:9px; object-fit:cover; flex:none; background:#eee; border:1px solid var(--line); cursor:pointer;}
+  .ps-nophoto{display:inline-block; cursor:default;}
+  .web-bar{height:10px; border-radius:6px; background:var(--green-100); overflow:hidden; margin:8px 0;}
+  .web-bar>i{display:block; height:100%; width:0; background:var(--green-700); transition:width .3s;}
+  .web-row .ps-title{font-size:13.5px;}
+  .web-diff{font-size:12.5px; margin:3px 0 0; overflow-wrap:anywhere; line-height:1.4;}
+  .web-diff .l{display:inline-block; min-width:40px; color:var(--ink-soft); font-weight:700;}
+  .web-old{color:var(--ink-faint); text-decoration:line-through;} .web-new{color:var(--green-800); font-weight:800;}
+  .web-diff.off{opacity:.4;}
+  .web-sw{display:inline-flex; align-items:center; gap:6px; margin:4px 12px 4px 0; font-size:13px; font-weight:600; color:var(--green-900);}
+  .web-sw input{width:18px; height:18px;}
+  .web-filters{display:flex; flex-wrap:wrap; gap:8px; margin:8px 0;} .web-filters .quickbtn{margin-left:0;}
+  .web-photos{display:flex; gap:6px; overflow-x:auto; padding:4px 0; -webkit-overflow-scrolling:touch;}
+  .web-photos img{width:84px; height:84px; object-fit:cover; border-radius:10px; border:1px solid var(--line); display:block;}
+  .web-det summary{cursor:pointer; font-weight:700; font-size:12.5px; margin:6px 0 2px; color:var(--green-800);}
+  .web-text{white-space:pre-wrap; font-size:12.5px; color:var(--ink-soft); overflow-wrap:anywhere; line-height:1.45;}
+  .web-savebar{position:sticky; bottom:8px; z-index:5;}
+</style>
 <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('mwLook')!=='old'){d.classList.add('nl');var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content','#2B1F8F');}}catch(e){document.documentElement.classList.add('nl');}})();</script>
 <style id="mwNewLook">
 @media screen{
@@ -924,6 +947,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
         <button class="subtab active" data-subtab="dups" onclick="switchPsTab_('dups')">Duplicates</button>
         <button class="subtab" data-subtab="find" onclick="switchPsTab_('find')">Find &amp; edit</button>
         <button class="subtab" data-subtab="hidden" onclick="switchPsTab_('hidden')">Hidden<span class="n" id="psHiddenCount"></span></button>
+        <button class="subtab" data-subtab="web" id="psWebTabBtn" onclick="switchPsTab_('web')">🌐 Website</button>
       </div>
       <div id="pssub-dups" class="subtab-panel active">
         <button class="btn btn-gold btn-block" style="margin-bottom:12px;" onclick="psLoadDups_()">↻ Refresh</button>
@@ -951,6 +975,16 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       <div id="pssub-hidden" class="subtab-panel">
         <div class="card"><p class="hint" style="margin:0 0 8px;">Products hidden from search. They are still in your stock list and in their bills.</p><button class="quickbtn" type="button" id="psBulkHiddenBtn" onclick="psBulkFromHidden_()">📦 Move the stock of all hidden products to their current code</button></div>
         <div id="psHiddenList"></div>
+      </div>
+      <div id="pssub-web" class="subtab-panel">
+        <div class="card">
+          <p class="section-label">Products &amp; photos from asclepiuswellness.com</p>
+          <p class="hint" id="webLast" style="margin:0 0 8px;">Loading…</p>
+          <button class="btn btn-gold btn-block" type="button" id="webRefreshBtn" onclick="webStart_()">🔄 Refresh from website</button>
+          <p class="hint" style="margin:8px 0 0;">Reads the latest names, prices and photos from the website and shows what is different (old → new). Your product list changes only after you tick what you want and press Save.</p>
+        </div>
+        <div id="webProgress"></div>
+        <div id="webReview"></div>
       </div>
     </section>
 
@@ -2251,6 +2285,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       </div>
       <div id="psEditWarn"></div>
       <div id="psEditUse"></div>
+      <div id="psEditWeb"></div>
       <p class="login-error" id="psEditError" style="min-height:0;margin:4px 0 0;"></p>
       <div id="psEditLog"></div>
       <div class="modal-actions">
@@ -6497,7 +6532,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     c.querySelectorAll(':scope > .subtabs > .subtab[data-subtab]').forEach(function (b) { b.classList.toggle('active', b.dataset.subtab === name); });
     c.querySelectorAll(':scope > .subtab-panel').forEach(function (p) { p.classList.remove('active'); });
     document.getElementById('pssub-' + name).classList.add('active');
-    if (name === 'dups') psLoadDups_(); else if (name === 'hidden') psRenderHidden_(); else psFind_();
+    if (name === 'dups') psLoadDups_(); else if (name === 'hidden') psRenderHidden_(); else if (name === 'web') webOpen_(); else psFind_();
   }
   function psStockChips_(o) {
     const cls = function (n) { n = Number(n) || 0; return n < 0 ? ' bad' : n ? ' warn' : ' dim'; };         // minus stock is red
@@ -6618,13 +6653,14 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
       const list = zero ? PRODUCTS.filter(function (p) { return !(Number(p.dp) > 0); }).sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); }).slice(0, 60)
         : PRODUCTS.filter(function (p) { return String(p.name).toLowerCase().indexOf(q) > -1 || String(p.code).toLowerCase() === q || String(p.code).toLowerCase().indexOf(q) === 0; }).slice(0, 25);
       if (!list.length) { box.innerHTML = '<div class="card"><div class="empty-cart">' + (zero ? 'Good - no product has DP 0.' : 'No product matches that.') + '</div></div>'; return; }
-      const { data } = await sb.rpc('get_product_usage', { p_codes: list.map(function (p) { return String(p.code); }) });
+      const [usage] = await Promise.all([sb.rpc('get_product_usage', { p_codes: list.map(function (p) { return String(p.code); }) }), webEnsurePhotos_()]);      // (the website photos are shown as small pictures)
+      const data = usage.data;
       if (mine !== PSD_.findSeq) return;
       const use = {}; (data || []).forEach(function (u) { use[u.code] = u; });
       box.innerHTML = '<div class="card">' + list.map(function (p) {
         const u = use[String(p.code)] || { bills: 0, billQty: 0, pendingQty: 0, purchases: 0, purchaseQty: 0, inCompanyList: false, mustKeep: false, onlineStock: p.online_stock, physicalStock: p.physical_stock };
         const hidden = p.search_active === false;
-        return '<div class="ps-row" data-code="' + escapeHtml(p.code) + '"><div class="ps-main"><div class="ps-title"><strong>#' + escapeHtml(p.code) + '</strong> · ' + escapeHtml(p.name) + '</div>' +
+        return '<div class="ps-row" data-code="' + escapeHtml(p.code) + '">' + webThumb_(p.code) + '<div class="ps-main"><div class="ps-title"><strong>#' + escapeHtml(p.code) + '</strong> · ' + escapeHtml(p.name) + '</div>' +
           '<div class="hint" style="margin:1px 0 0;">MRP ' + PS_MONEY_(p.mrp) + ' · DP ' + PS_MONEY_(p.dp) + ' · SP ' + trimNum(Number(p.sp) || 0) + '</div>' +
           '<div>' + (Number(p.dp) > 0 ? '' : '<span class="ps-chip bad">DP is 0 - please edit</span>') + (hidden ? '<span class="ps-chip bad">Hidden from search</span>' : '') + (u.mustKeep ? '<span class="ps-chip warn">Used in company purchase - stays active</span>' : '') + psStockChips_(u) + psUseChips_(u) + '</div>' + psActionsHtml_(p.code, u.bills) + '</div>' +
           '<button class="quickbtn" type="button" data-act="' + (hidden ? 'show' : 'hide') + '" data-code="' + escapeHtml(p.code) + '"' + (!hidden && u.mustKeep ? ' disabled' : '') + '>' + (hidden ? 'Show in search' : 'Hide from search') + '</button></div>';
@@ -6659,6 +6695,277 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     const { data } = await sb.rpc('get_product_usage', { p_codes: hid.map(function (p) { return String(p.code); }) });    // where each hidden product was used: bills, company purchases
     if (mine !== PSD_.hidSeq || !data) return;
     const use = {}; data.forEach(function (u) { use[u.code] = u; }); PSD_.hiddenUse = use; draw(use);
+  }
+
+  // =================== WEBSITE REFRESH (main admin): the products, prices and photos of asclepiuswellness.com ===================
+  // The database reads the website's public pages (website_sync_start / website_sync_work, a few at a time), compares them with the product list
+  // (website_sync_review) and saves ONLY what the main admin ticked and confirmed (website_sync_apply). The product list does not change before that.
+  // The photos are shown from the website's own photo store (nothing is copied); only addresses of that store are ever used as a picture.
+  let WEB_ = { batch: null, running: false, run: 0, fail: 0, status: null, msg: '', last: null, review: null, tickP: {}, tickN: {}, fields: { name: true, dp: true, mrp: true, sp: true }, saveInfo: true, filter: 'all', shown: 60, shownNew: 60, saving: false, photos: null, photosLoading: null };
+  const WEB_IMG_RE_ = /^https:\/\/awpl-kycdocs\.s3\.ap-south-1\.amazonaws\.com\/upload1\/product\/[A-Za-z0-9._-]+$/;
+  const WEB_PDF_RE_ = /^https:\/\/awpl-kycdocs\.s3\.ap-south-1\.amazonaws\.com\/upload1\/product\/[A-Za-z0-9._-]+\.pdf$/;
+  function webImg_(u) { return typeof u === 'string' && WEB_IMG_RE_.test(u) ? u : ''; }
+  function webMissing_(err) { return !!err && /could not find the function|schema cache|does not exist/i.test(err.message || ''); }
+  function webSleep_(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function webMoney_(n) { return n == null || n === '' ? '—' : money(n); }
+  function webSp_(n) { return n == null || n === '' ? '—' : trimNum(n); }
+  function webAgo_(t) {
+    const ms = Date.now() - new Date(t).getTime(); if (!isFinite(ms)) return '';
+    const m = Math.round(ms / 60000);
+    if (m < 1) return 'just now'; if (m < 60) return m + ' min ago'; if (m < 36 * 60) return Math.round(m / 60) + ' h ago';
+    return dayIst_(t);
+  }
+  const WEB_NEED_SQL_ = 'This needs the database update <strong>website_sync.sql</strong>. Please run it in Supabase first.';
+
+  // ---- the photos (small pictures in the Find list) and the details (Edit window)
+  async function webEnsurePhotos_() {
+    if (WEB_.photos) return WEB_.photos;
+    if (WEB_.photosLoading) return WEB_.photosLoading;
+    WEB_.photosLoading = (async function () {
+      const m = {};
+      try {
+        const { data, error } = await sb.rpc('get_product_photos');
+        if (!error && Array.isArray(data)) data.forEach(function (x) { const u = webImg_(x.image); if (u) m[String(x.code)] = { image: u, n: Number(x.n) || 1 }; });
+      } catch (e) { /* no photos yet - the list simply has no pictures */ }
+      WEB_.photos = m; WEB_.photosLoading = null; return m;
+    })();
+    return WEB_.photosLoading;
+  }
+  function webThumb_(code) {
+    const ph = WEB_.photos && WEB_.photos[String(code)];
+    return ph ? '<img class="ps-thumb" loading="lazy" alt="" src="' + escapeHtml(ph.image) + '" data-ps-edit="' + escapeHtml(code) + '" title="Photos and details from the website">' : '';
+  }
+  function webInfoHtml_(w) {
+    if (!w || !w.code) return '';
+    const imgs = (Array.isArray(w.images) ? w.images : []).map(webImg_).filter(Boolean);
+    const sec = function (label, txt) { return txt ? '<details class="web-det"><summary>' + label + '</summary><div class="web-text">' + escapeHtml(txt) + '</div></details>' : ''; };
+    const pdf = typeof w.pdf_url === 'string' && WEB_PDF_RE_.test(w.pdf_url) ? w.pdf_url : '';
+    return '<div class="web-box"><p class="section-label" style="margin:10px 0 4px;">From the website' + (w.fetched_at ? ' <span style="text-transform:none;font-weight:600;">· read ' + escapeHtml(webAgo_(w.fetched_at)) + '</span>' : '') + '</p>' +
+      (imgs.length ? '<div class="web-photos">' + imgs.map(function (u) { return '<a href="' + escapeHtml(u) + '" target="_blank" rel="noopener"><img loading="lazy" alt="" src="' + escapeHtml(u) + '"></a>'; }).join('') + '</div>' : '<p class="hint" style="margin:0;">No photo on the website.</p>') +
+      '<p class="hint" style="margin:4px 0 0;">' + (w.size ? 'Size ' + escapeHtml(w.size) + ' · ' : '') + 'On the website: MRP ' + webMoney_(w.web_mrp) + ' · DP ' + webMoney_(w.web_dp) + ' · SP ' + webSp_(w.web_sp) + '</p>' +
+      sec('Description', w.description) + sec('Benefits', w.benefits) + sec('How to use', w.howtouse) + sec('Ingredients', w.ingredients) +
+      (pdf ? '<p style="margin:6px 0 0;"><a href="' + escapeHtml(pdf) + '" target="_blank" rel="noopener">📄 Product PDF</a></p>' : '') + '</div>';
+  }
+
+  // ---- the Website tab: what was done last, and unfinished / unsaved refreshes
+  async function webOpen_() {
+    if (WEB_.running) { webDrawProgress_(); return; }
+    const top = document.getElementById('webLast'), btn = document.getElementById('webRefreshBtn');
+    const { data, error } = await sb.rpc('website_sync_last');
+    if (error) {
+      const miss = webMissing_(error);
+      top.innerHTML = miss ? WEB_NEED_SQL_ : 'Could not load: ' + escapeHtml(error.message);
+      btn.disabled = miss; return;
+    }
+    btn.disabled = !!WEB_.running; WEB_.last = data || {};
+    webDrawLast_();
+  }
+  function webDrawLast_() {
+    const d = WEB_.last || {}, top = document.getElementById('webLast'), box = document.getElementById('webProgress');
+    top.innerHTML = Number(d.info_count) ? 'Photos &amp; details are saved for <strong>' + trimNum(d.info_count) + '</strong> products (<strong>' + trimNum(d.photo_count) + '</strong> with photos)' + (d.last_saved_at ? ' · last saved ' + escapeHtml(webAgo_(d.last_saved_at)) : '') + '.' : 'Nothing has been taken from the website yet' + (d.last_saved_at ? ' (last saved ' + escapeHtml(webAgo_(d.last_saved_at)) + ')' : '') + '.';
+    if (WEB_.running || WEB_.review) return;
+    let c = '';
+    if (d.running) c = '<div class="card"><p style="margin:0 0 8px;">A refresh started <strong>' + escapeHtml(webAgo_(d.running.started_at)) + '</strong> was not finished.</p><div class="ps-actions"><button class="quickbtn" type="button" style="margin-left:0;" id="webResumeBtn" onclick="webStart_()">▶ Continue it</button><button class="quickbtn" type="button" onclick="webDiscard_(' + Number(d.running.id) + ')">✖ Throw it away</button></div></div>';
+    else if (d.ready) c = '<div class="card"><p style="margin:0 0 8px;">The refresh read <strong>' + escapeHtml(webAgo_(d.ready.finished_at || d.ready.started_at)) + '</strong> was not saved yet.</p><div class="ps-actions"><button class="quickbtn" type="button" style="margin-left:0;" id="webShowBtn" onclick="webLoadReview_(' + Number(d.ready.id) + ')">👁 Show the differences</button><button class="quickbtn" type="button" onclick="webDiscard_(' + Number(d.ready.id) + ')">✖ Throw it away</button></div></div>';
+    box.innerHTML = c;
+  }
+  async function webDiscard_(id) {
+    if (WEB_.running) return;
+    const { error } = await sb.rpc('website_sync_cancel', { p_batch: id });
+    if (error) { showToast(error.message, true); return; }
+    WEB_.review = null; document.getElementById('webReview').innerHTML = ''; document.getElementById('webProgress').innerHTML = '';
+    webOpen_();
+  }
+
+  // ---- 1. read the website: the database does the reading, a few pages at a time; three calls run side by side
+  async function webStart_() {
+    if (WEB_.running || WEB_.saving) return;
+    const btn = document.getElementById('webRefreshBtn'); btn.disabled = true;
+    const { data, error } = await sb.rpc('website_sync_start');
+    btn.disabled = false;
+    if (error) { document.getElementById('webProgress').innerHTML = '<div class="card"><p class="login-error" style="margin:0;">' + (webMissing_(error) ? WEB_NEED_SQL_ : escapeHtml(error.message)) + '</p></div>'; return; }
+    WEB_.batch = data.batch; WEB_.status = data; WEB_.msg = ''; WEB_.review = null; WEB_.tickP = {}; WEB_.tickN = {};
+    document.getElementById('webReview').innerHTML = '';
+    webRun_();
+  }
+  function webRun_() {
+    if (WEB_.running) return;
+    WEB_.running = true; WEB_.fail = 0; const mine = ++WEB_.run;
+    webDrawProgress_();
+    const loop = async function () {
+      let idle = 0;
+      while (WEB_.running && WEB_.run === mine) {
+        let res;
+        try { res = await sb.rpc('website_sync_work', { p_batch: WEB_.batch, p_budget_ms: 2500 }); } catch (e) { res = { data: null, error: e }; }
+        if (!WEB_.running || WEB_.run !== mine) return;
+        if (res.error) {
+          WEB_.fail++;
+          if (WEB_.fail >= 8) { webPause_('The connection keeps failing (' + (res.error.message || res.error) + '). Press Continue when the internet is back.'); return; }
+          await webSleep_(1000 * Math.min(WEB_.fail, 5)); continue;
+        }
+        WEB_.fail = 0; WEB_.status = res.data; webDrawProgress_();
+        if (res.data.status !== 'running' || Number(res.data.pending) === 0) { webWorkDone_(mine); return; }
+        if (Number(res.data.worked) === 0) { idle++; await webSleep_(idle < 4 ? 700 : 1500); } else idle = 0;
+      }
+    };
+    [0, 350, 700].forEach(function (ms) { setTimeout(loop, ms); });
+  }
+  function webPause_(msg) { WEB_.running = false; WEB_.run++; WEB_.msg = msg || ''; webDrawProgress_(); }
+  async function webWorkDone_(mine) {
+    if (!WEB_.running || WEB_.run !== mine) return;
+    WEB_.running = false; WEB_.run++;
+    webDrawProgress_();
+    if (WEB_.status && WEB_.status.status === 'ready') await webLoadReview_(WEB_.batch);
+  }
+  function webDrawProgress_() {
+    const box = document.getElementById('webProgress'), st = WEB_.status || {};
+    const total = Number(st.total) || 0, fin = (Number(st.done) || 0) + (Number(st.error) || 0), pct = total ? Math.min(100, Math.round(fin * 100 / total)) : 0;
+    let h = '';
+    if (WEB_.running) {
+      h = '<div class="card"><p style="margin:0;font-weight:700;color:var(--green-900);">Reading the website…</p><div class="web-bar"><i style="width:' + pct + '%"></i></div>' +
+        '<p class="hint" id="webProgressText" style="margin:0;">' + trimNum(fin) + ' of ' + trimNum(total) + ' pages · ' + trimNum(st.items || 0) + ' products found' + (Number(st.error) ? ' · <span style="color:var(--danger);">' + trimNum(st.error) + ' pages failed (tried 3 times)</span>' : '') + '</p>' +
+        '<div class="ps-actions"><button class="quickbtn" type="button" style="margin-left:0;" id="webPauseBtn" onclick="webPause_(\'Paused. Press Continue to carry on from here.\')">⏸ Pause</button></div></div>';
+    } else if (st.status === 'failed') {
+      h = '<div class="card"><p class="login-error" style="margin:0;" id="webFailedMsg">The website could not be read (' + trimNum(st.error || 0) + ' pages failed). Please try again in a few minutes.</p></div>';
+    } else if (WEB_.msg) {
+      h = '<div class="card"><p style="margin:0 0 8px;" id="webPausedMsg">' + escapeHtml(WEB_.msg) + '</p><div class="ps-actions"><button class="quickbtn" type="button" style="margin-left:0;" id="webContinueBtn" onclick="webStart_()">▶ Continue</button></div></div>';
+    }
+    box.innerHTML = h;
+    document.getElementById('webRefreshBtn').disabled = !!WEB_.running;
+  }
+
+  // ---- 2. the differences: old (the product list) → new (the website); the main admin ticks what to save
+  async function webLoadReview_(id) {
+    const rbox = document.getElementById('webReview');
+    rbox.innerHTML = '<div class="card"><div class="empty-cart">Comparing…</div></div>';
+    const { data, error } = await sb.rpc('website_sync_review', { p_batch: id });
+    if (error) { rbox.innerHTML = '<div class="card"><p class="login-error" style="margin:0;">' + escapeHtml(error.message) + '</p></div>'; return; }
+    WEB_.batch = id; WEB_.review = data; WEB_.tickP = {}; WEB_.tickN = {}; WEB_.filter = 'all'; WEB_.shown = 60; WEB_.shownNew = 60; WEB_.saveInfo = true;
+    (data.changed || []).forEach(function (r) { WEB_.tickP[r.code] = true; });            // everything that is different is ticked; the main admin unticks what he does not want
+    document.getElementById('webProgress').innerHTML = '';
+    webDrawReview_();
+  }
+  function webHas_(r) { return (WEB_.fields.name && r.d_name) || (WEB_.fields.dp && r.d_dp) || (WEB_.fields.mrp && r.d_mrp) || (WEB_.fields.sp && r.d_sp); }
+  function webVisible_() {
+    const f = WEB_.filter;
+    return ((WEB_.review && WEB_.review.changed) || []).filter(function (r) { return f === 'all' || (f === 'name' && r.d_name) || (f === 'dp' && r.d_dp) || (f === 'mrp' && r.d_mrp) || (f === 'sp' && r.d_sp); });
+  }
+  function webSel_() {                       // what a Save would do right now
+    const R = WEB_.review || {}, c = { rows: [], name: 0, dp: 0, mrp: 0, sp: 0, add: [] };
+    (R.changed || []).forEach(function (r) {
+      if (!WEB_.tickP[r.code] || !webHas_(r)) return;
+      c.rows.push(r.code); if (WEB_.fields.name && r.d_name) c.name++; if (WEB_.fields.dp && r.d_dp) c.dp++; if (WEB_.fields.mrp && r.d_mrp) c.mrp++; if (WEB_.fields.sp && r.d_sp) c.sp++;
+    });
+    (R.new_items || []).forEach(function (r) { if (WEB_.tickN[r.code] && r.ok) c.add.push(r.code); });
+    return c;
+  }
+  function webLine_(label, key, o, n, fmt) {
+    const on = WEB_.fields[key];
+    return '<div class="web-diff' + (on ? '' : ' off') + '" data-f="' + key + '"><span class="l">' + label + '</span> <span class="web-old">' + escapeHtml(fmt(o)) + '</span> → <span class="web-new">' + escapeHtml(fmt(n)) + '</span>' + (on ? '' : ' <i>(not saved - switched off)</i>') + '</div>';
+  }
+  function webRowHtml_(r) {
+    const img = webImg_(r.image), st = String(r.status || '');
+    return '<div class="ps-row web-row" data-code="' + escapeHtml(r.code) + '"><input type="checkbox" class="web-tick" data-code="' + escapeHtml(r.code) + '"' + (WEB_.tickP[r.code] ? ' checked' : '') + ' aria-label="Save the website details of #' + escapeHtml(r.code) + '">' +
+      (img ? '<img class="ps-thumb" loading="lazy" alt="" src="' + escapeHtml(img) + '">' : '<span class="ps-thumb ps-nophoto"></span>') +
+      '<div class="ps-main"><div class="ps-title"><strong>#' + escapeHtml(r.code) + '</strong> · ' + escapeHtml(r.name_old) + (st && st !== 'Active' ? ' <span class="ps-chip dim">' + escapeHtml(st) + '</span>' : '') + '</div>' +
+      (r.d_name ? webLine_('Name', 'name', r.name_old, r.name_new, String) : '') + (r.d_dp ? webLine_('DP', 'dp', r.dp_old, r.dp_new, webMoney_) : '') + (r.d_mrp ? webLine_('MRP', 'mrp', r.mrp_old, r.mrp_new, webMoney_) : '') + (r.d_sp ? webLine_('SP', 'sp', r.sp_old, r.sp_new, webSp_) : '') + '</div></div>';
+  }
+  function webNewRowHtml_(r) {
+    const img = webImg_(r.image), ok = !!r.ok;
+    return '<div class="ps-row web-row" data-code="' + escapeHtml(r.code) + '"><input type="checkbox" class="web-ntick" data-code="' + escapeHtml(r.code) + '"' + (ok && WEB_.tickN[r.code] ? ' checked' : '') + (ok ? '' : ' disabled') + ' aria-label="Add #' + escapeHtml(r.code) + ' as a new product">' +
+      (img ? '<img class="ps-thumb" loading="lazy" alt="" src="' + escapeHtml(img) + '">' : '<span class="ps-thumb ps-nophoto"></span>') +
+      '<div class="ps-main"><div class="ps-title"><strong>#' + escapeHtml(r.code) + '</strong> · ' + escapeHtml(r.name) + '</div><div class="hint" style="margin:1px 0 0;">MRP ' + webMoney_(r.mrp) + ' · DP ' + webMoney_(r.dp) + ' · SP ' + webSp_(r.sp) + (r.size ? ' · ' + escapeHtml(r.size) : '') + '</div>' +
+      (r.group ? '<span class="ps-chip dim">' + escapeHtml(r.group) + '</span>' : '') + (ok ? '' : '<span class="ps-chip bad">Cannot be added: the website has no DP for it</span>') + '</div></div>';
+  }
+  function webBarText_() {
+    const R = WEB_.review || {}, k = R.counts || {}, c = webSel_(), parts = [];
+    if (c.rows.length) parts.push('<strong>' + trimNum(c.rows.length) + '</strong> product' + (c.rows.length === 1 ? '' : 's') + ' will change (' + [c.name ? 'names ' + c.name : '', c.dp ? 'DP ' + c.dp : '', c.mrp ? 'MRP ' + c.mrp : '', c.sp ? 'SP ' + c.sp : ''].filter(Boolean).join(' · ') + ')');
+    if (c.add.length) parts.push('<strong>' + trimNum(c.add.length) + '</strong> new product' + (c.add.length === 1 ? '' : 's') + ' will be added (stock 0)');
+    if (WEB_.saveInfo) parts.push('photos &amp; details of <strong>' + trimNum(Number(k.with_photos) || 0) + '</strong> products will be kept');
+    return parts.length ? parts.join('<br>') : 'Nothing is ticked.';
+  }
+  function webRefreshBar_() {
+    const t = document.getElementById('webSelText'), b = document.getElementById('webSaveBtn'); if (!t || !b) return;
+    const c = webSel_(); t.innerHTML = webBarText_(); b.disabled = !!WEB_.saving || !(c.rows.length || c.add.length || WEB_.saveInfo);
+  }
+  function webDrawReview_() {
+    const R = WEB_.review, box = document.getElementById('webReview'); if (!R) { box.innerHTML = ''; return; }
+    const k = R.counts || {}, vis = webVisible_(), news = R.new_items || [], miss = R.missing || [], chip = function (t, cls) { return '<span class="ps-chip' + (cls ? ' ' + cls : '') + '">' + t + '</span>'; };
+    const f = WEB_.filter, fb = function (key, label, n) { return '<button class="quickbtn' + (f === key ? ' on' : '') + '" type="button" data-web-filter="' + key + '">' + label + ' ' + trimNum(n) + '</button>'; };
+    const sw = function (key, label, n) { return '<label class="web-sw"><input type="checkbox" data-web-field="' + key + '"' + (WEB_.fields[key] ? ' checked' : '') + '> ' + label + ' (' + trimNum(n) + ')</label>'; };
+    let h = '<div class="card"><p class="section-label">What the website has</p><div>' +
+      chip(trimNum(k.website_items || 0) + ' products on the website') + chip(trimNum(k.unchanged || 0) + ' same as yours', 'dim') + chip(trimNum(k.changed || 0) + ' different', Number(k.changed) ? 'warn' : 'dim') +
+      chip(trimNum(k.new_items || 0) + ' new', Number(k.new_items) ? '' : 'dim') + chip(trimNum(k.missing || 0) + ' not on the website', 'dim') + chip(trimNum(k.with_photos || 0) + ' with photos', 'dim') + '</div>';
+    if ((R.warnings || []).length) h += '<p class="hint" style="margin:8px 0 0;color:var(--gold-600);">⚠ ' + R.warnings.map(function (w) { return escapeHtml(w.name || w.slug) + ': the website lists ' + trimNum(w.site_count) + ' but ' + trimNum(w.found) + ' were found'; }).join(' · ') + ' - press Refresh again if this is not expected.</p>';
+    if ((R.errors || []).length) h += '<p class="hint" style="margin:8px 0 0;color:var(--danger);">⚠ ' + trimNum(k.errors || R.errors.length) + ' pages could not be read (' + R.errors.slice(0, 3).map(function (e) { return escapeHtml(e.key + ': ' + e.error); }).join(' · ') + '). Their products are compared with what was read - press Refresh again to try them once more.</p>';
+    h += '</div>';
+
+    h += '<div class="card"><p class="section-label">Different from your product list (' + trimNum(k.changed || 0) + ')</p>';
+    if (!(R.changed || []).length) h += '<p class="hint" style="margin:0;">Nothing is different - names, DP, MRP and SP of your products are the same as on the website.</p>';
+    else {
+      h += '<p class="hint" style="margin:0 0 4px;">Old value is struck through, the website\'s value is in green. Tick the products to update and choose which fields to save:</p><div>' +
+        sw('name', 'Names', k.name_changes || 0) + sw('dp', 'DP', k.dp_changes || 0) + sw('mrp', 'MRP', k.mrp_changes || 0) + sw('sp', 'SP', k.sp_changes || 0) + '</div>' +
+        '<div class="web-filters">' + fb('all', 'All', k.changed || 0) + fb('name', 'Names', k.name_changes || 0) + fb('dp', 'DP', k.dp_changes || 0) + fb('mrp', 'MRP', k.mrp_changes || 0) + fb('sp', 'SP', k.sp_changes || 0) + '</div>' +
+        '<div class="ps-actions" style="margin:0 0 4px;"><button class="quickbtn" type="button" style="margin-left:0;" data-web-tickall="1">Tick all shown (' + trimNum(vis.length) + ')</button><button class="quickbtn" type="button" data-web-tickall="0">Untick all shown</button></div>' +
+        vis.slice(0, WEB_.shown).map(webRowHtml_).join('') + (vis.length > WEB_.shown ? '<button class="quickbtn" type="button" style="margin:8px 0 0;" data-web-more="1">Show more (' + trimNum(vis.length - WEB_.shown) + ' left)</button>' : '');
+    }
+    h += '</div>';
+
+    if (news.length) {
+      h += '<div class="card"><p class="section-label">New on the website - not in your product list (' + trimNum(news.length) + ')</p><p class="hint" style="margin:0 0 4px;">Tick to add them as products (Active, stock 0). Nothing is added unless ticked.</p>' +
+        '<div class="ps-actions" style="margin:0 0 4px;"><button class="quickbtn" type="button" style="margin-left:0;" data-web-newall="1">Tick all that can be added</button><button class="quickbtn" type="button" data-web-newall="0">Untick all</button></div>' +
+        news.slice(0, WEB_.shownNew).map(webNewRowHtml_).join('') + (news.length > WEB_.shownNew ? '<button class="quickbtn" type="button" style="margin:8px 0 0;" data-web-morenew="1">Show more (' + trimNum(news.length - WEB_.shownNew) + ' left)</button>' : '') + '</div>';
+    }
+    if (miss.length) {
+      h += '<div class="card"><details><summary style="cursor:pointer;font-weight:700;color:var(--green-800);">In your product list but not on the website (' + trimNum(miss.length) + ')</summary><p class="hint" style="margin:6px 0;">Only for your information - nothing is changed for these.</p>' +
+        miss.slice(0, 200).map(function (m) { return '<div class="hint" style="margin:2px 0;overflow-wrap:anywhere;"><strong>#' + escapeHtml(m.code) + '</strong> · ' + escapeHtml(m.name) + (m.status && m.status !== 'Active' ? ' · ' + escapeHtml(m.status) : '') + '</div>'; }).join('') + (miss.length > 200 ? '<div class="hint">…and ' + trimNum(miss.length - 200) + ' more</div>' : '') + '</details></div>';
+    }
+    h += '<div class="card"><label class="web-sw" style="margin:0;"><input type="checkbox" id="webInfoTick"' + (WEB_.saveInfo ? ' checked' : '') + '> Keep the photos &amp; details (size, description, benefits…) of the products read from the website</label><p class="hint" style="margin:4px 0 0;">' + trimNum(k.info_new || 0) + ' new · ' + trimNum(k.info_changed || 0) + ' changed. They show in the Find list and in the Edit window.</p></div>';
+    h += '<div class="card web-savebar"><p class="hint" id="webSelText" style="margin:0 0 8px;"></p><button class="btn btn-primary btn-block" type="button" id="webSaveBtn" onclick="webSave_()">Save selected</button></div>';
+    box.innerHTML = h;
+    webWire_(box); webRefreshBar_();
+  }
+  function webWire_(box) {
+    box.onchange = function (e) {
+      const t = e.target;
+      if (t.classList.contains('web-tick')) { WEB_.tickP[t.dataset.code] = t.checked; webRefreshBar_(); }
+      else if (t.classList.contains('web-ntick')) { WEB_.tickN[t.dataset.code] = t.checked; webRefreshBar_(); }
+      else if (t.dataset.webField) { WEB_.fields[t.dataset.webField] = t.checked; webDrawReview_(); }
+      else if (t.id === 'webInfoTick') { WEB_.saveInfo = t.checked; webRefreshBar_(); }
+    };
+    box.onclick = function (e) {
+      const b = e.target.closest ? e.target.closest('button') : null; if (!b) return;
+      if (b.dataset.webFilter) { WEB_.filter = b.dataset.webFilter; WEB_.shown = 60; webDrawReview_(); }
+      else if (b.dataset.webTickall != null) { const on = b.dataset.webTickall === '1'; webVisible_().forEach(function (r) { WEB_.tickP[r.code] = on; }); webDrawReview_(); }
+      else if (b.dataset.webMore) { WEB_.shown += 60; webDrawReview_(); }
+      else if (b.dataset.webNewall != null) { const on = b.dataset.webNewall === '1'; ((WEB_.review && WEB_.review.new_items) || []).forEach(function (r) { WEB_.tickN[r.code] = on && !!r.ok; }); webDrawReview_(); }
+      else if (b.dataset.webMorenew) { WEB_.shownNew += 60; webDrawReview_(); }
+    };
+  }
+
+  // ---- 3. save what was ticked (the database checks the main admin again, saves only these products and fields, and writes the history)
+  async function webSave_() {
+    const R = WEB_.review; if (!R || WEB_.saving || WEB_.running) return;
+    const c = webSel_(), fields = ['name', 'dp', 'mrp', 'sp'].filter(function (x) { return WEB_.fields[x]; });
+    if (!c.rows.length && !c.add.length && !WEB_.saveInfo) { showToast('Nothing is ticked.', true); return; }
+    const lines = [];
+    if (c.rows.length) lines.push(c.rows.length + ' product' + (c.rows.length === 1 ? '' : 's') + ' will be changed (' + [c.name ? 'names ' + c.name : '', c.dp ? 'DP ' + c.dp : '', c.mrp ? 'MRP ' + c.mrp : '', c.sp ? 'SP ' + c.sp : ''].filter(Boolean).join(', ') + ')');
+    if (c.add.length) lines.push(c.add.length + ' new product' + (c.add.length === 1 ? '' : 's') + ' will be added (Active, stock 0)');
+    if (WEB_.saveInfo) lines.push('Photos and details of ' + trimNum(Number((R.counts || {}).with_photos) || 0) + ' products will be kept');
+    if (!confirm('Save the website details?\n\n' + lines.join('\n') + '\n\nBills and purchases that are already saved keep their old names and rates. Every change is written to the product history.')) return;
+    WEB_.saving = true; webRefreshBar_();
+    let res;
+    try { res = await sb.rpc('website_sync_apply', { p_batch: WEB_.batch, p_update_codes: c.rows, p_fields: fields, p_new_codes: c.add, p_save_info: !!WEB_.saveInfo }); } catch (e) { res = { data: null, error: e }; }
+    WEB_.saving = false;
+    if (res.error) { webRefreshBar_(); showToast(res.error.message || String(res.error), true); return; }
+    const d = res.data || {};
+    await loadProducts(); WEB_.photos = null;                 // the searches and the Find list follow at once
+    WEB_.review = null; WEB_.tickP = {}; WEB_.tickN = {};
+    document.getElementById('webReview').innerHTML = '<div class="card" id="webDone"><p style="margin:0;font-weight:800;color:var(--green-800);">✓ Saved</p><p class="hint" style="margin:4px 0 0;">' + trimNum(d.updated || 0) + ' product' + (Number(d.updated) === 1 ? '' : 's') + ' changed · ' + trimNum(d.added || 0) + ' added · photos &amp; details kept for ' + trimNum(d.info_saved || 0) + ' products' + (Number(d.unchanged) ? ' · ' + trimNum(d.unchanged) + ' were already the same' : '') + '.</p>' +
+      ((d.skipped || []).length ? '<p class="hint" style="margin:6px 0 0;color:var(--gold-600);">Not saved: ' + d.skipped.slice(0, 8).map(function (x) { return '#' + escapeHtml(x.code) + ' (' + escapeHtml(x.why) + ')'; }).join(', ') + (d.skipped.length > 8 ? ' …' : '') + '</p>' : '') +
+      '<p class="hint" style="margin:6px 0 0;">Each change is in the product\'s history: Find &amp; edit → ✏️ Edit → Earlier changes.</p></div>';
+    showToast('Saved: ' + (d.updated || 0) + ' changed, ' + (d.added || 0) + ' added.');
+    webOpen_();
   }
 
   // =================== PRODUCT FIX TOOLS (main admin): the bills that used a product, correct them; move stock to the right code ===================
@@ -6704,7 +7011,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     if ((r.oldName || '') !== (r.newName || '')) parts.push('Name: ' + (r.oldName || '-') + ' → ' + (r.newName || '-'));
     num('DP ₹', r.oldDp, r.newDp); num('SP', r.oldSp, r.newSp); num('MRP ₹', r.oldMrp, r.newMrp);
     if ((r.oldCategory || '') !== (r.newCategory || '')) parts.push('Category: ' + (r.oldCategory || '-') + ' → ' + (r.newCategory || '-'));
-    return (parts.join(' · ') || 'No change') + (r.source === 'purchase_bill' && r.billRate != null ? ' (company bill: ₹' + trimNum(r.billRate) + ' per piece)' : '');
+    return (parts.join(' · ') || 'No change') + (r.source === 'purchase_bill' && r.billRate != null ? ' (company bill: ₹' + trimNum(r.billRate) + ' per piece)' : '') + (r.source === 'website' ? ' (from the website)' : '');
   }
   function psOpenEdit_(code) {
     const p = psAllByCode_(code); if (!p) return;
@@ -6715,7 +7022,7 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
     document.getElementById('psEditSp').value = p.sp == null ? '' : String(Number(p.sp));
     document.getElementById('psEditMrp').value = p.mrp == null || p.mrp === '' ? '' : String(Number(p.mrp));
     document.getElementById('psEditCategory').value = p.category || '';
-    document.getElementById('psEditError').textContent = ''; document.getElementById('psEditUse').innerHTML = ''; document.getElementById('psEditLog').innerHTML = '';
+    document.getElementById('psEditError').textContent = ''; document.getElementById('psEditUse').innerHTML = ''; document.getElementById('psEditLog').innerHTML = ''; document.getElementById('psEditWeb').innerHTML = '';
     document.getElementById('psEditGo').textContent = 'Save changes';
     document.getElementById('psEditModal').classList.add('show');
     psEditChanged_();
@@ -6723,8 +7030,9 @@ html.nl .balance-due{background:linear-gradient(90deg,#FFE4E5,#FFF3F3);} html.nl
   }
   function closePsEdit_() { document.getElementById('psEditModal').classList.remove('show'); }
   async function psEditLoadInfo_(st) {           // where the product was used + the earlier changes (a missing database update is told here, before anyone types)
-    const [use, log] = await Promise.all([sb.rpc('get_product_usage', { p_codes: [st.code] }), sb.rpc('get_product_edit_log', { p_code: st.code, p_limit: 6 })]);
+    const [use, log, web] = await Promise.all([sb.rpc('get_product_usage', { p_codes: [st.code] }), sb.rpc('get_product_edit_log', { p_code: st.code, p_limit: 6 }), sb.rpc('get_product_web_info', { p_code: st.code })]);
     if (PSE_ !== st) return;
+    if (web && !web.error && web.data) document.getElementById('psEditWeb').innerHTML = webInfoHtml_(web.data);          // photos and details read from the website (nothing here when the website was never read)
     if (log.error && psServerMissing_(log.error)) { st.missing = true; document.getElementById('psEditError').innerHTML = 'This needs the database update <strong>product_edit.sql</strong>. Please run it in Supabase first.'; psEditChanged_(); }
     const u = use.data && use.data[0];
     if (u) document.getElementById('psEditUse').innerHTML = '<p class="hint" style="margin:6px 0 0;">' + (Number(u.bills) || Number(u.purchases) ? 'Used in <strong>' + trimNum(u.bills) + '</strong> bill' + (Number(u.bills) === 1 ? '' : 's') + ' and <strong>' + trimNum(u.purchases) + '</strong> company purchase' + (Number(u.purchases) === 1 ? '' : 's') + ' - they keep the name and rates they were saved with.' : 'Not used in any bill or company purchase yet.') + '</p>';
