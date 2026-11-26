@@ -102,7 +102,10 @@
 </main>
 <footer><a href="privacy.html">Privacy Policy</a> &nbsp;·&nbsp; <a href="home.html">Home</a></footer>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- MW-LIB-START -->
+<script src="vendor/supabase-2.119.2.js"></script>
+<script>window.supabase||document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
+<!-- MW-LIB-END -->
 <script>
   const SUPABASE_URL = 'https://lrrqdmmugvizkbjfwneb.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP';

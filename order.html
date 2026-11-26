@@ -12,9 +12,124 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MW Order">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- MW-FONTS-START -->
+<link rel="preload" href="vendor/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style id="mwFonts">
+@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url(vendor/fonts/inter-latin-ext-wght-normal.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;}
+@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url(vendor/fonts/inter-latin-wght-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'Fraunces';font-style:normal;font-weight:100 900;font-display:swap;src:url(vendor/fonts/fraunces-latin-wght-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+</style>
+<!-- MW-FONTS-END -->
+<!-- MW-LIB-START -->
+<script src="vendor/supabase-2.119.2.js"></script>
+<script>window.supabase||document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
+<!-- MW-LIB-END -->
+<!-- MW-NET-START -->
+<script id="mwNetJs">
+(function () {
+  if (window.mwNet) return;
+  // Slow / no internet help, the same on every page that asks the database.
+  //  mwNet.read(fn, ms)   runs fn() (a database question) but never waits longer than ms (default 15 s) - the answer is then told as "too slow"
+  //  mwNet.saved(key) / mwNet.save(key, data)   the last good answer, kept on this phone, so a page can show it at once and renew it
+  //  mwNet.onBack(fn)     fn runs when the internet comes back (and every 8 s while it is still missing), so a page renews its data by itself
+  //  a small note "No internet" / "Internet is slow" is shown while a question fails and goes away by itself when one succeeds
+  // Saving something (an order, a payment, a login) is never given a time limit here: the page asks the database as before.
+  var cbs = [], bad = 0, bar = null, retryT = null, backT = null, PRE = 'mwNet.', MAX_SAVE = 1500000;
+  function noop() { /* nothing to do */ }
+  function offline() { return navigator.onLine === false; }
+  function isNetErr(e) {
+    if (!e) return false;
+    var m = String((e && e.message) || e).toLowerCase();
+    return /failed to fetch|networkerror|network request failed|load failed|too slow|timeout|timed out|abort|err_internet|offline/.test(m);
+  }
+  function note() {
+    if (bar || !document.body) return bar;
+    bar = document.createElement('div');
+    bar.id = 'mwNetBar';
+    bar.setAttribute('role', 'status');
+    bar.setAttribute('aria-live', 'polite');
+    bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 76px);max-width:92vw;box-sizing:border-box;' +
+      'background:#1d2b26;color:#fff;font:600 12.5px/1.35 Inter,system-ui,sans-serif;padding:8px 14px;border-radius:999px;z-index:2147483000;' +
+      'box-shadow:0 4px 14px rgba(0,0,0,.28);pointer-events:none;text-align:center;display:none;';
+    document.body.appendChild(bar);
+    return bar;
+  }
+  function show() {
+    var b = note();
+    if (!b) return;
+    b.textContent = offline() ? 'No internet. This page refreshes by itself when the internet is back.' : 'Internet is slow. Trying again.';
+    b.style.display = 'block';
+    if (!retryT) retryT = setInterval(function () { if (bad > 0 && document.visibilityState !== 'hidden') back(0); }, 8000);
+  }
+  function hide() {
+    bad = 0;
+    if (bar) bar.style.display = 'none';
+    if (retryT) { clearInterval(retryT); retryT = null; }
+  }
+  function back(ms) {
+    if (backT) clearTimeout(backT);
+    backT = setTimeout(function () {
+      backT = null;
+      cbs.slice().forEach(function (f) { try { f(); } catch (e) { noop(); } });
+    }, ms == null ? 400 : ms);
+  }
+  function okAnswer(v) {
+    if (v && v.error && isNetErr(v.error)) { bad++; show(); return; }
+    if (bad > 0 || (bar && bar.style.display !== 'none')) hide();
+  }
+  window.mwNet = {
+    online: function () { return !offline() && bad === 0; },
+    isNetErr: isNetErr,
+    read: function (fn, ms) {
+      return new Promise(function (resolve, reject) {
+        var done = false, t = setTimeout(function () {
+          if (done) return;
+          done = true; bad++; show();
+          reject(new Error('too slow'));
+        }, ms || 15000), p;
+        try { p = Promise.resolve(fn()); } catch (e) { p = Promise.reject(e); }
+        p.then(function (v) {
+          if (done) return;
+          done = true; clearTimeout(t); okAnswer(v); resolve(v);
+        }, function (e) {
+          if (done) return;
+          done = true; clearTimeout(t);
+          if (isNetErr(e)) { bad++; show(); }
+          reject(e);
+        });
+      });
+    },
+    saved: function (key) {
+      try {
+        var o = JSON.parse(localStorage.getItem(PRE + key) || 'null');
+        return o && typeof o === 'object' && 'd' in o ? o : null;
+      } catch (e) { return null; }
+    },
+    save: function (key, data) {
+      try {
+        var s = JSON.stringify({ t: Date.now(), d: data });
+        if (s.length <= MAX_SAVE) localStorage.setItem(PRE + key, s);
+      } catch (e) { noop(); }
+    },
+    onBack: function (fn) {
+      cbs.push(fn);
+      return function () { var i = cbs.indexOf(fn); if (i > -1) cbs.splice(i, 1); };
+    }
+  };
+  window.addEventListener('online', function () { hide(); back(400); });
+  window.addEventListener('offline', function () { bad++; show(); });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && (bad > 0 || offline())) back(200); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted && (bad > 0 || offline())) back(200); });
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').then(function () { return navigator.serviceWorker.ready; }).then(function (reg) {
+        if (reg && reg.active) reg.active.postMessage({ type: 'mw-warm' });
+      }).catch(noop);
+    });
+  }
+})();
+</script>
+<!-- MW-NET-END -->
 <script>
 /* QR Code Generator for JavaScript (c) 2009 Kazuhiko Arase - http://www.d-project.com/ - MIT license (http://www.opensource.org/licenses/mit-license.php).
    Used to draw the payment QR that carries the order amount. The word "QR Code" is a registered trademark of DENSO WAVE INCORPORATED. */
@@ -373,17 +488,64 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   }
 
 
-  async function init() {
-    const { data, error } = await sb.rpc('get_public_products_for_order');
-    if (error) {
-      document.getElementById('mainArea').innerHTML = '<div class="empty">Could not load products. Please try again in a moment.</div>';
+  // The product list. The one saved on this phone opens the form AT ONCE (also with a slow or no internet), the newest one is asked for in the background and renews
+  // the prices of the cart (the server counts the real amount when the order is placed: the order only carries the codes + quantities). With nothing saved yet the form
+  // waits for the list - but never more than 15 seconds - and asks again by itself when the internet is back.
+  let ORDER_READY_ = false;
+  function mwAskProducts_() {
+    return window.mwNet ? mwNet.read(function () { return sb.rpc('get_public_products_for_order'); }, 15000) : sb.rpc('get_public_products_for_order');
+  }
+  async function refreshOrderProducts_() {
+    let r = null;
+    try { r = await mwAskProducts_(); } catch (e) { return; }
+    if (!r || r.error || !Array.isArray(r.data) || !r.data.length) return;
+    if (window.mwNet) mwNet.save('order.products', r.data);
+    ALL_PRODUCTS = r.data;
+    let gone = 0;
+    Object.keys(CART).forEach(function (code) {
+      const p = ALL_PRODUCTS.find(function (x) { return x.code === code; });
+      if (!p) { delete CART[code]; gone++; return; }
+      CART[code] = Object.assign({}, CART[code], { name: p.name, mrp: p.mrp, dp: p.dp, sp: p.sp });      // a new object: an order that was placed already keeps the prices it was placed with
+    });
+    if (document.getElementById('cartList') && !lastOrderSnapshot) {
+      renderCart();
+      const eb = document.getElementById('formError');
+      if (gone && eb) eb.textContent = gone + (gone === 1 ? ' product is' : ' products are') + ' not available any more and ' + (gone === 1 ? 'was' : 'were') + ' taken out of your order.';
+    }
+  }
+  async function init(forceFresh) {
+    const seen = window.mwNet ? mwNet.saved('order.products') : null;
+    const haveSaved = !!(seen && Array.isArray(seen.d) && seen.d.length);
+    if (haveSaved && !forceFresh) {
+      ALL_PRODUCTS = seen.d; ORDER_READY_ = true;
+      renderForm();
+      showResumeBanner_();
+      applyProductsHandOff_();
+      refreshOrderProducts_();
       return;
     }
-    ALL_PRODUCTS = data || [];
+    let r = null;
+    try { r = await mwAskProducts_(); } catch (e) { r = { data: null, error: e || new Error('no answer') }; }
+    if (r.error || !Array.isArray(r.data)) {
+      if (haveSaved) {                                                       // the list could not be had now: the saved one is better than an empty screen
+        ALL_PRODUCTS = seen.d; ORDER_READY_ = true;
+        renderForm();
+        showResumeBanner_();
+        applyProductsHandOff_();
+        return;
+      }
+      ORDER_READY_ = false;
+      document.getElementById('mainArea').innerHTML = '<div class="empty">Could not load products. Please try again in a moment.<div style="margin-top:12px;"><button type="button" class="btn btn-gold" onclick="init()">Try again</button></div></div>';
+      return;
+    }
+    if (window.mwNet && r.data.length) mwNet.save('order.products', r.data);
+    ALL_PRODUCTS = r.data || [];
+    ORDER_READY_ = true;
     renderForm();
     showResumeBanner_();
     applyProductsHandOff_();
   }
+  if (window.mwNet) mwNet.onBack(function () { if (ORDER_READY_) refreshOrderProducts_(); else if (document.getElementById('mainArea') && !lastOrderSnapshot) init(); });      // the internet is back
 
   // ---------------- Cart handed over by the Products page ----------------
   // The Products page ("Send to Order Form") writes { v:1, t:when, to:'order', items:[[code, qty], ...] } to this phone under 'mwProdHandOff'.
@@ -430,7 +592,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   async function refreshOrderForm() {
     CART = {};
     document.getElementById('mainArea').innerHTML = '<div class="empty">Refreshing…</div>';
-    await init();
+    await init(true);
   }
 
   // ---------------- Mobile-first auto-fill for returning customers ----------------
@@ -1500,10 +1662,21 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     document.getElementById('notifPanel').style.display = 'none';
   }
 
+  // the newest list of notifications; when there is no answer within 12 s (a slow or missing internet) the last list that was saved on this phone
+  async function mwNotifs_() {
+    let r = null;
+    try { r = await (window.mwNet ? mwNet.read(function () { return sb.rpc('get_recent_notifications', { p_limit: 20 }); }, 12000) : sb.rpc('get_recent_notifications', { p_limit: 20 })); }
+    catch (e) { r = { data: null, error: e || new Error('no answer') }; }
+    if (!r.error && Array.isArray(r.data)) { if (window.mwNet) mwNet.save('notifs', r.data); return r; }
+    const seen = window.mwNet ? mwNet.saved('notifs') : null;
+    if (seen && Array.isArray(seen.d)) return { data: seen.d.slice(0, 20), error: null };
+    return { data: null, error: r.error || new Error('no list') };
+  }
+
   async function loadNotifHistory_() {
     const box = document.getElementById('notifList');
     box.innerHTML = '<div class="empty">Loading…</div>';
-    const { data, error } = await sb.rpc('get_recent_notifications', { p_limit: 20 });
+    const { data, error } = await mwNotifs_();
     if (error) { box.innerHTML = '<div class="empty">Could not load notifications.</div>'; return; }
     const rows = data || [];
     if (!rows.length) { box.innerHTML = '<div class="empty">No notifications yet.</div>'; return; }
