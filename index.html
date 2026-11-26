@@ -59,10 +59,6 @@
   #mainChoices .bento-rate .choice-title{color:#fff;}
   #mainChoices .bento-contact{background:#8A8A8A;}
   #mainChoices .bento-contact .choice-title{color:#fff;}
-  #mainChoices .bento-halladmin{background:var(--gold-600);}
-  #mainChoices .bento-halladmin .choice-title{color:#fff;}
-  #mainChoices .bento-mahakaladmin{background:var(--green-900);}
-  #mainChoices .bento-mahakaladmin .choice-title{color:#fff;}
   @media (min-width:640px){
     .choices{max-width:600px;}
     #mainChoices{gap:16px;}
@@ -90,6 +86,23 @@
   .back-link{background:none; border:none; color:var(--green-800); font-size:13px; font-weight:600; cursor:pointer; padding:0; margin-bottom:14px; display:flex; align-items:center; gap:4px;}
   .qform-input{width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; font-size:14px; font-family:inherit; margin-bottom:10px;}
   .qform-input:focus{outline:none; border-color:var(--gold-500);}
+  /* the Mahakal logo is the way in to the two admin logins (tap it: the login screen below opens) */
+  #mainBrandLogoImg{cursor:pointer; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none;}
+  #mainBrandLogoImg:active{filter:brightness(.9);}
+  #mainBrandLogoImg:focus-visible{outline:3px solid var(--gold-500); outline-offset:4px;}
+  /* LOGIN SCREEN (after a tap on the logo): "Mahakal Admin Login" or "Hall Admin Login" */
+  #loginChooser{gap:0;}
+  #loginChooser .choice-card{padding:20px 18px 18px;}
+  #loginChooser .choice-title{margin-bottom:4px;}
+  .login-sub{margin:0 0 14px; font-size:13px; color:var(--ink-soft); line-height:1.4;}
+  .login-opt{display:flex; align-items:center; gap:14px; width:100%; min-height:64px; margin:0 0 12px; padding:10px 14px; border:none; border-radius:16px; text-decoration:none; text-align:left; font-family:inherit; font-size:16px; font-weight:700; color:#fff; cursor:pointer;}
+  .login-opt:last-child{margin-bottom:0;}
+  .login-opt:active{transform:scale(.98);}
+  .login-opt .login-ic{flex:none; width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; line-height:1; background:rgba(255,255,255,.22);}
+  .login-opt .login-name{flex:1; min-width:0; line-height:1.2; overflow-wrap:anywhere;}
+  .login-opt .login-go{flex:none; font-size:28px; line-height:1; opacity:.9;}
+  .login-opt-mahakal{background:var(--green-900);}
+  .login-opt-hall{background:var(--gold-600);}
 </style>
 <style id="mwPubLook">
 @media screen{
@@ -131,15 +144,22 @@ html.nl #mainChoices .choice-card.bento-hall{--t1:#FFB04D; --t2:#F57C00; --t3:#B
 html.nl #mainChoices .choice-card.bento-rate{--t1:#FFE066; --t2:#FFB300; --t3:#B77E00;}
 html.nl #mainChoices .choice-card.bento-rate .choice-title{color:#4A2B00 !important; text-shadow:0 1px 0 rgba(255,255,255,.5);}
 html.nl #mainChoices .choice-card.bento-contact{--t1:#4DD6E8; --t2:#0E9FB5; --t3:#0A6F80;}
-html.nl #mainChoices .choice-card.bento-halladmin{--t1:#B79BFF; --t2:#7048E8; --t3:#4D2FA8;}
-html.nl #mainChoices .choice-card.bento-mahakaladmin{--t1:#FF7FB0; --t2:#D6336C; --t3:#962350;}
 html.nl #mainChoices .choice-card.primary:not([class*="bento"]){--t1:#3DDC84; --t2:#0FA35A; --t3:#0A7A41;}
 html.nl #mainChoices .choice-card:not(.primary):not([class*="bento"]){--t1:#FF7FB0; --t2:#D6336C; --t3:#962350;}
 html.nl .choice-card.primary{background:linear-gradient(180deg,#8B7BFF,#5B3FE0); border:none; color:#fff; border-radius:18px; text-shadow:0 1px 2px rgba(0,0,0,.25);
   box-shadow:0 5px 0 #3A2BB0, 0 10px 18px rgba(91,63,224,.38), inset 0 2px 0 rgba(255,255,255,.38);}
 html.nl .choice-card.primary:active{transform:translateY(4px); box-shadow:0 1px 0 #3A2BB0, 0 3px 8px rgba(91,63,224,.3);}
-html.nl .code-gate,html.nl #contactUs .choice-card:not(.primary){border:none; border-radius:26px; background:linear-gradient(180deg,#fff,#FAF8FF); box-shadow:inset 0 6px 0 #7C6CFF, 0 8px 0 rgba(150,140,230,.28), 0 18px 28px rgba(82,64,230,.16);}
+html.nl .code-gate,html.nl #contactUs .choice-card:not(.primary),html.nl #loginChooser .choice-card{border:none; border-radius:26px; background:linear-gradient(180deg,#fff,#FAF8FF); box-shadow:inset 0 6px 0 #7C6CFF, 0 8px 0 rgba(150,140,230,.28), 0 18px 28px rgba(82,64,230,.16);}
 html.nl #contactUs{gap:22px;}
+html.nl .login-sub{color:#7B82A8; font-weight:600;}
+html.nl .login-opt{--t1:#8B7BFF; --t2:#5B3FE0; --t3:#3A2BB0; min-height:68px; margin-bottom:20px; border-radius:22px; background:linear-gradient(160deg,var(--t1),var(--t2)); text-shadow:0 2px 3px rgba(0,0,0,.3);
+  box-shadow:0 6px 0 var(--t3), 0 14px 20px rgba(40,30,110,.26), inset 0 3px 0 rgba(255,255,255,.5), inset 0 -4px 0 rgba(0,0,0,.08); transition:transform .12s ease, box-shadow .12s ease;}
+html.nl .login-opt:last-child{margin-bottom:6px;}
+html.nl .login-opt:active{transform:translateY(5px); box-shadow:0 1px 0 var(--t3), 0 5px 9px rgba(40,30,110,.25), inset 0 3px 0 rgba(255,255,255,.4);}
+html.nl .login-opt .login-ic{border-radius:16px; background:rgba(255,255,255,.28); box-shadow:inset 0 2px 0 rgba(255,255,255,.6), 0 3px 0 rgba(0,0,0,.14);}
+html.nl .login-opt-mahakal{--t1:#FF7FB0; --t2:#D6336C; --t3:#962350;}
+html.nl .login-opt-hall{--t1:#B79BFF; --t2:#7048E8; --t3:#4D2FA8;}
+html.nl .login-opt:focus-visible{outline:3px solid #fff; outline-offset:2px;}
 html.nl .code-gate{padding-top:26px;}
 html.nl .code-gate label{color:#4B3FD0; font-weight:800;}
 html.nl .code-gate input,html.nl .qform-input{border:2px solid #DAD6FF; border-radius:14px; background:#FBFAFF; transition:border-color .15s, box-shadow .15s;}
@@ -163,29 +183,22 @@ html.nl #notifPanel > div,html.nl #notifDetailPopup > div{border-radius:28px 28p
 html.nl #notifDetailPopup > div{border-radius:26px !important;}
 html.nl .footer-note{color:#7B82A8; font-weight:600;}
 @media (prefers-reduced-motion:reduce){html.nl #mainBrandLogoImg,html.nl #welcomeLogoImg{animation:none;}
-html.nl #mainChoices .choice-card,html.nl .code-gate button{transition:none;}}
+html.nl #mainChoices .choice-card,html.nl .code-gate button,html.nl .login-opt{transition:none;}}
 }
 </style>
 <style id="mwOneScreen">
-/* MAIN PAGE, NEW LOOK ONLY: everything on ONE screen (no scrolling on a phone). The two admin boxes become round icon buttons beside the notification bell (the boxes stay in the page, only their
-   looks change - the old look still shows the old boxes). The other seven boxes sit in a compact grid whose height follows the height of the screen (--rowH). */
+/* MAIN PAGE, NEW LOOK ONLY: everything on ONE screen (no scrolling on a phone). The two admin logins are not boxes any more: they sit behind a tap on the Mahakal logo (the login screen). The
+   eight boxes sit in a compact grid whose height follows the height of the screen (--rowH). */
 @media screen{
 html.nl{--vh:100vh; --ic:42px; --icTop:12px; --band:calc(var(--icTop) + var(--ic) + 4px); --rowH:clamp(64px, calc((var(--vh) * .718 - 96px - var(--gapY)) / 5), 126px); --gapY:clamp(13px, calc(var(--vh) * .022), 19px);}
 @supports (height:100dvh){html.nl{--vh:100dvh;}}
 html.nl body{min-height:var(--vh); padding:var(--band) 16px 8px;}
 
-/* ---------- the top band: Install pill (left, only when the browser offers it) and the round icons (right) ---------- */
+/* ---------- the top band: Install pill (left, only when the browser offers it) and the notification bell (right) ---------- */
 html.nl #notifBellBtn{top:var(--icTop) !important; right:14px !important; width:var(--ic) !important; height:var(--ic) !important; font-size:calc(var(--ic) * .45) !important; display:flex !important; align-items:center; justify-content:center; padding:0;}
-html.nl #mainChoices .choice-card.bento-halladmin,html.nl #mainChoices .choice-card.bento-mahakaladmin,html.nl #mainChoices #installAppBtn{
+html.nl #mainChoices #installAppBtn{
   position:fixed; top:var(--icTop); z-index:20; height:var(--ic); min-height:0; margin:0; padding:0; overflow:hidden; box-shadow:0 4px 0 var(--t3), 0 8px 14px rgba(40,30,110,.3), inset 0 2px 0 rgba(255,255,255,.55);}
-html.nl #mainChoices .choice-card.bento-halladmin,html.nl #mainChoices .choice-card.bento-mahakaladmin{width:var(--ic); border-radius:50%; flex-direction:row; align-items:center; justify-content:center; gap:0;}
-html.nl #mainChoices .bento-halladmin{right:calc(14px + var(--ic) + 10px);}
-html.nl #mainChoices .bento-mahakaladmin{right:calc(14px + 2 * (var(--ic) + 10px));}
-html.nl #mainChoices .bento-halladmin .choice-icon,html.nl #mainChoices .bento-mahakaladmin .choice-icon{width:100%; height:100%; margin:0; border-radius:50%; background:none; box-shadow:none; font-size:calc(var(--ic) * .45);}
-html.nl #mainChoices .bento-halladmin .choice-title,html.nl #mainChoices .bento-mahakaladmin .choice-title{position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; text-shadow:none;}
-html.nl #mainChoices .bento-halladmin::before,html.nl #mainChoices .bento-mahakaladmin::before,html.nl #mainChoices #installAppBtn::before{display:none;}
-html.nl #mainChoices .bento-halladmin::after,html.nl #mainChoices .bento-mahakaladmin::after{left:-25%; top:-55%; width:100%; height:110%;}
-html.nl #mainChoices .bento-halladmin:active,html.nl #mainChoices .bento-mahakaladmin:active{transform:translateY(3px); box-shadow:0 1px 0 var(--t3), 0 3px 6px rgba(40,30,110,.25), inset 0 2px 0 rgba(255,255,255,.4);}
+html.nl #mainChoices #installAppBtn::before{display:none;}
 html.nl #mainChoices #installAppBtn{left:14px; width:auto; border-radius:calc(var(--ic) / 2); flex-direction:row; align-items:center; justify-content:flex-start; gap:6px; padding:0 12px 0 5px;}
 html.nl #mainChoices #installAppBtn .choice-icon{width:calc(var(--ic) - 14px); height:calc(var(--ic) - 14px); margin:0; border-radius:50%; font-size:15px; flex:none;}
 html.nl #mainChoices #installAppBtn .choice-title{font-size:13px; white-space:nowrap;}
@@ -292,7 +305,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   </div>
 
   <div class="brand" id="mainBrand" style="display:none;">
-    <img id="mainBrandLogoImg" alt="Mahakal Wellness" style="width:84px;height:84px;border-radius:50%;box-shadow:0 0 0 3px var(--gold-500);margin-bottom:12px;object-fit:cover;background:var(--bg);">
+    <img id="mainBrandLogoImg" alt="Mahakal Wellness" role="button" tabindex="0" aria-label="Admin Login" title="Admin Login" draggable="false" onclick="showLoginChooser_()" onkeydown="loginLogoKey_(event)" style="width:84px;height:84px;border-radius:50%;box-shadow:0 0 0 3px var(--gold-500);margin-bottom:12px;object-fit:cover;background:var(--bg);">
     <h1>Mahakal Wellness</h1>
     <p>WELCOME</p>
   </div>
@@ -333,14 +346,6 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
       <div class="choice-icon">📞</div>
       <div class="choice-title">Contact</div>
     </button>
-    <a class="choice-card bento-halladmin" href="hall-admin.html" title="Hall Admin" aria-label="Hall Admin">
-      <div class="choice-icon">🗝️</div>
-      <div class="choice-title">Hall Admin</div>
-    </a>
-    <button class="choice-card bento-mahakaladmin bento-featured" onclick="showCodeGate()" title="Mahakal Admin" aria-label="Mahakal Admin">
-      <div class="choice-icon">🔒</div>
-      <div class="choice-title">Mahakal Admin</div>
-    </button>
   </div>
   <script>
     // Runs immediately, before the browser paints anything below - decides
@@ -374,6 +379,20 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     <div class="btn-row">
       <button class="btn-cancel" onclick="hideCodeGate()">Cancel</button>
       <button class="btn-go" onclick="verifyAdminCode()">Continue</button>
+    </div>
+  </div>
+
+  <div class="choices" id="loginChooser" style="display:none;" role="group" aria-labelledby="loginChooserTitle">
+    <button class="back-link" onclick="hideLoginChooser_()">← Back to Main Page</button>
+    <div class="choice-card">
+      <div class="choice-title" id="loginChooserTitle">Admin Login</div>
+      <p class="login-sub">Which login do you want to open?</p>
+      <button class="login-opt login-opt-mahakal" id="loginOptMahakal" onclick="chooseMahakalAdmin_()">
+        <span class="login-ic">🔒</span><span class="login-name">Mahakal Admin Login</span><span class="login-go">›</span>
+      </button>
+      <a class="login-opt login-opt-hall" id="loginOptHall" href="hall-admin.html">
+        <span class="login-ic">🗝️</span><span class="login-name">Hall Admin Login</span><span class="login-go">›</span>
+      </a>
     </div>
   </div>
 
@@ -453,6 +472,29 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   function hideCodeGate() {
     document.getElementById('codeGate').style.display = 'none';
     document.getElementById('mainChoices').style.display = 'grid';
+  }
+
+  // the Mahakal logo is the way in to both admin logins: a tap opens the login screen, which asks "Mahakal Admin Login" or "Hall Admin Login"
+  function showLoginChooser_() {
+    document.getElementById('mainChoices').style.display = 'none';
+    document.getElementById('codeGate').style.display = 'none';
+    document.getElementById('contactUs').style.display = 'none';
+    document.getElementById('loginChooser').style.display = 'flex';
+  }
+
+  function hideLoginChooser_() {
+    document.getElementById('loginChooser').style.display = 'none';
+    document.getElementById('mainChoices').style.display = 'grid';
+  }
+
+  function loginLogoKey_(e) {                      // the logo works from a keyboard too (Enter or Space)
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showLoginChooser_(); }
+  }
+
+  // "Mahakal Admin Login" = the admin code box, exactly as before; "Hall Admin Login" is a plain link to hall-admin.html
+  function chooseMahakalAdmin_() {
+    document.getElementById('loginChooser').style.display = 'none';
+    showCodeGate();
   }
 
   function showContactUs() {
