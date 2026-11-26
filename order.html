@@ -42,6 +42,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   .field input:focus{outline:none; border-color:var(--gold-500);}
   .field-row{display:flex; gap:10px;}
   .field-row .field{flex:1;}
+  .field-row:has(input[type=date]), .field-row:has(input[type=time]){flex-wrap:wrap;} /* small phone: if the date and time boxes do not fit side by side, the time drops below instead of pushing the page sideways */
   .search-wrap{position:relative;}
   .search-results{margin-top:8px; max-height:280px; overflow-y:auto;}
   .search-row{display:flex; justify-content:space-between; align-items:center; padding:11px 4px; border-bottom:1px solid var(--line); cursor:pointer;}
@@ -242,6 +243,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   </main>
   <main id="trackArea" style="display:none;">
   </main>
+  <p id="legalFoot" style="text-align:center;margin:6px 16px 30px;font-size:12.5px;color:var(--ink-soft);"><a href="privacy.html" style="color:inherit;text-decoration:underline;">Privacy Policy</a></p>
 
 <script>
   const SUPABASE_URL = 'https://lrrqdmmugvizkbjfwneb.supabase.co';
@@ -364,6 +366,49 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     ALL_PRODUCTS = data || [];
     renderForm();
     showResumeBanner_();
+    applyProductsHandOff_();
+  }
+
+  // ---------------- Cart handed over by the Products page ----------------
+  // The Products page ("Send to Order Form") writes { v:1, t:when, to:'order', items:[[code, qty], ...] } to this phone under 'mwProdHandOff'.
+  // It is read ONCE when this page opens (and then removed), only when it is fresh (30 minutes) and meant for the order form. Only products this form can sell are taken
+  // (the prices are always the ones the server gives now), quantities 1..9999. One for the calculator is left where it is.
+  const HANDOFF_KEY_ = 'mwProdHandOff', HANDOFF_KEEP_MS_ = 30 * 60 * 1000;
+  function applyProductsHandOff_() {
+    let raw = null;
+    try { raw = localStorage.getItem(HANDOFF_KEY_); } catch (e) { return; }
+    if (!raw) return;
+    let s = null;
+    try { s = JSON.parse(raw); } catch (e) { s = null; }
+    if (s && typeof s === 'object' && s.to === 'calc') return;
+    try { localStorage.removeItem(HANDOFF_KEY_); } catch (e) { /* nothing to remove */ }
+    const now = Date.now();
+    if (!s || typeof s !== 'object' || s.v !== 1 || s.to !== 'order' || !isFinite(Number(s.t)) || now - Number(s.t) > HANDOFF_KEEP_MS_ || Number(s.t) > now + 86400000 || !Array.isArray(s.items)) return;
+    let added = 0, missing = 0;
+    const seen = Object.create(null);
+    s.items.slice(0, 150).forEach(function (e) {
+      if (!Array.isArray(e)) return;
+      const code = e[0] == null ? '' : String(e[0]).trim(), q = Math.round(Number(e[1]));
+      if (!code || !(q >= 1) || seen[code]) return;
+      seen[code] = 1;
+      const p = ALL_PRODUCTS.find(function (x) { return x.code === code; });
+      if (!p) { missing++; return; }
+      const qty = Math.min(9999, q);
+      if (Object.prototype.hasOwnProperty.call(CART, code)) CART[code].qty += qty;
+      else CART[code] = { code: p.code, name: p.name, mrp: p.mrp, dp: p.dp, sp: p.sp, qty: qty };
+      added++;
+    });
+    const main = document.getElementById('mainArea');
+    if (!main || (!added && !missing)) return;
+    renderCart();
+    const note = document.createElement('div');
+    note.id = 'handOffNote';
+    note.style.cssText = 'background:#E3F1E8;color:#1D5A37;border-radius:12px;padding:11px 13px;font-size:13px;font-weight:600;line-height:1.45;margin-bottom:12px;';
+    note.textContent = added
+      ? '✓ ' + added + (added === 1 ? ' product' : ' products') + ' from the Products page ' + (added === 1 ? 'is' : 'are') + ' in your order below. Fill in your details and place the order.' +
+        (missing ? ' ' + missing + (missing === 1 ? ' product is' : ' products are') + ' not available any more and ' + (missing === 1 ? 'was' : 'were') + ' left out.' : '')
+      : 'The products from the Products page cannot be ordered right now.';
+    main.insertBefore(note, main.firstChild);
   }
 
   async function refreshOrderForm() {

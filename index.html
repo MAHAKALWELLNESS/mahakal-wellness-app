@@ -47,6 +47,8 @@
   #mainChoices .bento-purchase .choice-title, #mainChoices .choice-card.primary .choice-title{color:#fff;}
   #mainChoices .bento-account{background:linear-gradient(135deg,#3D2FB5,#241B6E); border:none;}
   #mainChoices .bento-account .choice-title{color:#fff;}
+  #mainChoices .bento-products{background:linear-gradient(135deg,#C2255C,#7A1038); border:none;}
+  #mainChoices .bento-products .choice-title{color:#fff;}
   #mainChoices .bento-calc{background:linear-gradient(135deg,#2B7BA8,#1B4F72); border:none;}
   #mainChoices .bento-calc .choice-title{color:#fff;}
   #mainChoices .bento-spset{background:linear-gradient(135deg,#D9480F,#9C2F00); border:none;}
@@ -122,6 +124,7 @@ html.nl #mainChoices #installAppBtn[style*="block"]{display:flex !important;}
 html.nl #mainChoices .choice-card.bento-purchase{--t1:#3DDC84; --t2:#0FA35A; --t3:#0A7A41;}
 html.nl #mainChoices #installAppBtn{--t1:#5B9CFF; --t2:#2F6FED; --t3:#1B49B0;}
 html.nl #mainChoices .choice-card.bento-account{--t1:#8B7BFF; --t2:#5B3FE0; --t3:#3A2BB0;}
+html.nl #mainChoices .choice-card.bento-products{--t1:#FF8AD8; --t2:#E040B0; --t3:#9C1F78;}
 html.nl #mainChoices .choice-card.bento-calc{--t1:#6CC8FF; --t2:#1E8FE8; --t3:#0F5FA8;}
 html.nl #mainChoices .choice-card.bento-spset{--t1:#FF8A6B; --t2:#F0532D; --t3:#A8300F;}
 html.nl #mainChoices .choice-card.bento-hall{--t1:#FFB04D; --t2:#F57C00; --t3:#B35A00;}
@@ -167,7 +170,7 @@ html.nl #mainChoices .choice-card,html.nl .code-gate button{transition:none;}}
 /* MAIN PAGE, NEW LOOK ONLY: everything on ONE screen (no scrolling on a phone). The two admin boxes become round icon buttons beside the notification bell (the boxes stay in the page, only their
    looks change - the old look still shows the old boxes). The other seven boxes sit in a compact grid whose height follows the height of the screen (--rowH). */
 @media screen{
-html.nl{--vh:100vh; --ic:42px; --icTop:12px; --band:calc(var(--icTop) + var(--ic) + 4px); --rowH:clamp(64px, calc((var(--vh) * .718 - 96px) / 4), 126px); --gapY:clamp(13px, calc(var(--vh) * .022), 19px);}
+html.nl{--vh:100vh; --ic:42px; --icTop:12px; --band:calc(var(--icTop) + var(--ic) + 4px); --rowH:clamp(64px, calc((var(--vh) * .718 - 96px - var(--gapY)) / 5), 126px); --gapY:clamp(13px, calc(var(--vh) * .022), 19px);}
 @supports (height:100dvh){html.nl{--vh:100dvh;}}
 html.nl body{min-height:var(--vh); padding:var(--band) 16px 8px;}
 
@@ -194,27 +197,27 @@ html.nl #mainBrandLogoImg{width:clamp(50px, calc(var(--vh) * .1), 88px) !importa
 html.nl #mainBrand h1{font-size:clamp(23px, calc(var(--vh) * .038), 31px);}
 html.nl #mainBrand p{margin-top:clamp(3px, calc(var(--vh) * .007), 7px); padding:clamp(3px, calc(var(--vh) * .006), 5px) 18px; font-size:clamp(10px, calc(var(--vh) * .016), 12px);}
 
-/* ---------- the seven boxes: a six-column grid, four rows ---------- */
+/* ---------- the eight boxes: a six-column grid, five rows ---------- */
 html.nl #mainChoices{grid-template-columns:repeat(6, minmax(0, 1fr)); grid-auto-rows:var(--rowH); gap:var(--gapY) 12px; max-width:440px;}
-html.nl #mainChoices .choice-card.bento-purchase,html.nl #mainChoices .choice-card.bento-account{grid-column:1 / -1;}
+html.nl #mainChoices .choice-card.bento-purchase,html.nl #mainChoices .choice-card.bento-products,html.nl #mainChoices .choice-card.bento-account{grid-column:1 / -1;}
 html.nl #mainChoices .choice-card.bento-calc,html.nl #mainChoices .choice-card.bento-spset{grid-column:span 3;}
 html.nl #mainChoices .choice-card.bento-hall,html.nl #mainChoices .choice-card.bento-rate,html.nl #mainChoices .choice-card.bento-contact{grid-column:span 2;}
-html.nl #mainChoices .choice-card.bento-purchase,html.nl #mainChoices .choice-card.bento-calc,html.nl #mainChoices .choice-card.bento-spset,html.nl #mainChoices .choice-card.bento-account,
+html.nl #mainChoices .choice-card.bento-purchase,html.nl #mainChoices .choice-card.bento-products,html.nl #mainChoices .choice-card.bento-calc,html.nl #mainChoices .choice-card.bento-spset,html.nl #mainChoices .choice-card.bento-account,
 html.nl #mainChoices .choice-card.bento-hall,html.nl #mainChoices .choice-card.bento-rate,html.nl #mainChoices .choice-card.bento-contact{
   height:var(--rowH); min-height:0; padding:0 clamp(10px, 4vw, 16px); border-radius:clamp(18px, calc(var(--rowH) * .3), 26px); gap:clamp(8px, 3vw, 14px); flex-direction:row; align-items:center; justify-content:flex-start;
   box-shadow:0 6px 0 var(--t3), 0 14px 20px rgba(40,30,110,.26), inset 0 3px 0 rgba(255,255,255,.5), inset 0 -4px 0 rgba(0,0,0,.08);}
-html.nl #mainChoices .choice-card.bento-purchase:active,html.nl #mainChoices .choice-card.bento-calc:active,html.nl #mainChoices .choice-card.bento-spset:active,html.nl #mainChoices .choice-card.bento-account:active,
+html.nl #mainChoices .choice-card.bento-purchase:active,html.nl #mainChoices .choice-card.bento-products:active,html.nl #mainChoices .choice-card.bento-calc:active,html.nl #mainChoices .choice-card.bento-spset:active,html.nl #mainChoices .choice-card.bento-account:active,
 html.nl #mainChoices .choice-card.bento-hall:active,html.nl #mainChoices .choice-card.bento-rate:active,html.nl #mainChoices .choice-card.bento-contact:active{transform:translateY(5px); box-shadow:0 1px 0 var(--t3), 0 5px 9px rgba(40,30,110,.25), inset 0 3px 0 rgba(255,255,255,.4);}
 html.nl #mainChoices .choice-card::before{right:-22px; top:-22px; width:84px; height:84px;}
-/* the two long boxes (Purchase Product, Customer Login) carry an arrow circle on the right */
-html.nl #mainChoices .choice-card.bento-purchase,html.nl #mainChoices .choice-card.bento-account{padding-right:clamp(50px, calc(var(--rowH) * .5 + 22px), 68px);}
-html.nl #mainChoices .bento-purchase::before,html.nl #mainChoices .bento-account::before{content:'\203A'; display:flex; align-items:center; justify-content:center; right:clamp(10px, 3.4vw, 16px); top:50%; transform:translateY(-50%); width:clamp(28px, calc(var(--rowH) * .4), 40px); height:clamp(28px, calc(var(--rowH) * .4), 40px);
+/* the three long boxes (Purchase Product, Products, Customer Login) carry an arrow circle on the right */
+html.nl #mainChoices .choice-card.bento-purchase,html.nl #mainChoices .choice-card.bento-products,html.nl #mainChoices .choice-card.bento-account{padding-right:clamp(50px, calc(var(--rowH) * .5 + 22px), 68px);}
+html.nl #mainChoices .bento-purchase::before,html.nl #mainChoices .bento-products::before,html.nl #mainChoices .bento-account::before{content:'\203A'; display:flex; align-items:center; justify-content:center; right:clamp(10px, 3.4vw, 16px); top:50%; transform:translateY(-50%); width:clamp(28px, calc(var(--rowH) * .4), 40px); height:clamp(28px, calc(var(--rowH) * .4), 40px);
   background:rgba(255,255,255,.26); box-shadow:inset 0 2px 0 rgba(255,255,255,.5), 0 2px 0 rgba(0,0,0,.12); color:#fff; font-size:clamp(22px, calc(var(--rowH) * .34), 32px); font-weight:700; line-height:1; padding-bottom:.12em; text-shadow:0 1px 2px rgba(0,0,0,.25);}
 html.nl #mainChoices .choice-card .choice-icon{width:clamp(38px, calc(var(--rowH) * .54), 62px); height:clamp(38px, calc(var(--rowH) * .54), 62px); margin:0; flex:none; border-radius:clamp(12px, calc(var(--rowH) * .2), 20px); font-size:clamp(21px, calc(var(--rowH) * .31), 34px); box-shadow:inset 0 2px 0 rgba(255,255,255,.6), 0 3px 0 rgba(0,0,0,.14);}
 html.nl #mainChoices .choice-card .choice-title{font-size:clamp(14px, calc(var(--rowH) * .2), 18px); line-height:1.15; min-width:0; overflow-wrap:anywhere;}
-html.nl #mainChoices .bento-purchase .choice-title{font-size:clamp(16px, calc(var(--rowH) * .24), 23px);}
+html.nl #mainChoices .bento-purchase .choice-title,html.nl #mainChoices .bento-products .choice-title{font-size:clamp(16px, calc(var(--rowH) * .24), 23px);}
 html.nl #mainChoices .bento-account .choice-title{font-size:clamp(15px, calc(var(--rowH) * .2), 21px);}
-html.nl #mainChoices .bento-purchase .choice-title,html.nl #mainChoices .bento-account .choice-title{display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden;}
+html.nl #mainChoices .bento-purchase .choice-title,html.nl #mainChoices .bento-products .choice-title,html.nl #mainChoices .bento-account .choice-title{display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden;}
 /* Product Calculator / SP Set Maker: two half boxes - smaller icon and a name that follows the width, so "Calculator" never breaks in the middle */
 html.nl #mainChoices .choice-card.bento-calc,html.nl #mainChoices .choice-card.bento-spset{padding:0 clamp(8px, 3vw, 14px); gap:clamp(6px, 2vw, 10px);}
 html.nl #mainChoices .bento-calc .choice-icon,html.nl #mainChoices .bento-spset .choice-icon{width:clamp(34px, calc(var(--rowH) * .44), 50px); height:clamp(34px, calc(var(--rowH) * .44), 50px); font-size:clamp(19px, calc(var(--rowH) * .26), 28px); border-radius:clamp(11px, calc(var(--rowH) * .16), 16px);}
@@ -226,8 +229,8 @@ html.nl #mainChoices .bento-hall .choice-title,html.nl #mainChoices .bento-rate 
 html.nl #mainChoices .choice-card:focus-visible{outline:3px solid #fff; outline-offset:2px;}
 html.nl .footer-note{margin:clamp(8px, calc(var(--vh) * .016), 16px) 0 auto;}
 
-@media (max-height:590px){html.nl #mainBrand p{display:none;} html.nl{--ic:38px; --icTop:8px; --rowH:clamp(64px, calc((var(--vh) - 232px) / 4), 126px);}}
-@media (max-height:500px){html.nl .footer-note{display:none;} html.nl{--rowH:clamp(60px, calc((var(--vh) - 206px) / 4), 126px);}}
+@media (max-height:590px){html.nl #mainBrand p{display:none;} html.nl{--ic:38px; --icTop:8px; --rowH:clamp(64px, calc((var(--vh) - 232px - var(--gapY)) / 5), 126px);}}
+@media (max-height:500px){html.nl .footer-note{display:none;} html.nl{--rowH:clamp(52px, calc((var(--vh) - 206px - var(--gapY)) / 5), 126px);}}
 }
 </style>
 <script id="mwLookEarly">(function(){var SU='https://lrrqdmmugvizkbjfwneb.supabase.co',KEY='sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP',d=document.documentElement,m=document.querySelector('meta[name=theme-color]'),orig=m?m.getAttribute('content'):null,cached=null;
@@ -301,6 +304,10 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     <a class="choice-card primary bento-purchase bento-featured" href="order.html">
       <div class="choice-icon">🛒</div>
       <div class="choice-title">Purchase Product</div>
+    </a>
+    <a class="choice-card bento-products bento-featured" href="products.html">
+      <div class="choice-icon">🛍️</div>
+      <div class="choice-title">Products</div>
     </a>
     <a class="choice-card bento-calc bento-featured" href="calculator.html">
       <div class="choice-icon">🧮</div>

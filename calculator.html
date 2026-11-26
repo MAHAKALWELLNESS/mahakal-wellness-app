@@ -1674,6 +1674,47 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     el.textContent = msg; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(function () { el.classList.remove('show'); }, 3000);
   }
 
+  // ---- products sent from the Products page ("Send to Calculator")
+  // That page leaves { v:1, t:when, to:'calc', items:[[code, qty], ...] } on this phone under 'mwProdHandOff' and opens this page. It is read ONCE
+  // (then removed), only if it is for the calculator and not older than 30 minutes; the products are added to the list exactly like the search bar adds them
+  // (prices are always the calculator's own current prices; a product that is not on the price list is left out).
+  const HANDOFF_KEY_ = 'mwProdHandOff', HANDOFF_KEEP_MS_ = 30 * 60 * 1000;
+  function takeProductsHandOff_() {
+    let raw = null;
+    try { raw = localStorage.getItem(HANDOFF_KEY_); } catch (e) { return null; }
+    if (!raw) return null;
+    let s = null;
+    try { s = JSON.parse(raw); } catch (e) { s = null; }
+    if (s && typeof s === 'object' && s.to === 'order') return null;                 // that one is for the order form: left alone
+    try { localStorage.removeItem(HANDOFF_KEY_); } catch (e) { /* nothing to remove */ }
+    const now = Date.now();
+    if (!s || typeof s !== 'object' || s.v !== 1 || s.to !== 'calc' || !isFinite(Number(s.t)) || now - Number(s.t) > HANDOFF_KEEP_MS_ || Number(s.t) > now + 86400000 || !Array.isArray(s.items)) return null;
+    const out = [], seen = Object.create(null);
+    s.items.slice(0, 150).forEach(function (e) {
+      if (!Array.isArray(e)) return;
+      const code = e[0] == null ? '' : String(e[0]).trim(), q = Math.round(Number(e[1]));
+      if (!code || !(q >= 1) || seen[code]) return;
+      seen[code] = 1; out.push([code, Math.min(MAX_QTY, q)]);
+    });
+    return out;
+  }
+  function applyProductsHandOff_() {
+    const items = takeProductsHandOff_();
+    if (!items || !items.length) return;
+    let added = 0, missing = 0;
+    items.forEach(function (it) {
+      if (PRODUCTS.length && !BYCODE[it[0]]) { missing++; return; }                   // (when the price list is still loading, the list drops what it does not know as soon as it arrives)
+      const l = lineOf_(it[0]);
+      if (l) l.qty = Math.min(MAX_QTY, l.qty + it[1]); else CART.push({ code: it[0], qty: it[1] });
+      added++;
+    });
+    if (added) saveState_();
+    renderCart_();
+    toast_(added
+      ? '✓ ' + added + (added === 1 ? ' product' : ' products') + ' Products page se list me jud gaye' + (missing ? ' · ' + missing + (missing === 1 ? ' product' : ' products') + ' price list me nahi mile' : '')
+      : 'Ye products abhi price list me nahi hain');
+  }
+
   // ---- start
   function boot_() {
     loadState_(); loadHist_(); loadBill_();
@@ -1681,6 +1722,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     syncCustUi_(); renderHistBadge_(); setAddQty_(1);
     const c = lsJson_(LS_PRODUCTS), list = (c && c.v === 1 && isFinite(Number(c.t))) ? cleanList_(c.items) : [];
     if (list.length) applyProducts_(list, Number(c.t), 'saved'); else { renderListStatus_(); renderCart_(); }
+    applyProductsHandOff_();                                           // products sent from the Products page (if any)
     if (navigator.onLine !== false || !PRODUCTS.length) refreshProducts_(false);
     const cb = el_('cartBody');
     cb.addEventListener('click', onCartClick_); cb.addEventListener('input', onCartInput_); cb.addEventListener('change', onCartChange_); cb.addEventListener('keydown', onCartKey_);
