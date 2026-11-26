@@ -176,6 +176,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   .pcat{font-size:11.5px; font-weight:700; color:var(--green-700); line-height:1.3; overflow-wrap:anywhere;}
   .pcat .nw{color:var(--ink-faint);}
   .pbuy{margin-top:auto; padding-top:2px;}
+  .noorder{display:inline-block; padding:5px 10px; border-radius:999px; background:#EFEFEA; color:var(--ink-soft); font-size:11.5px; font-weight:700; line-height:1.25;}
   .btn-sm{width:100%; padding:9px 10px; font-size:13px; border-radius:10px;}
   .step{display:flex; align-items:center; gap:6px;}
   .step .qty-btn{width:36px; height:36px;}
@@ -373,7 +374,7 @@ function sameAsName_(desc, name) {
 // one row of the server's answer (an object, or the short list form) -> a clean product, or null when it cannot be shown
 function cleanRow_(r) {
   let o;
-  if (Array.isArray(r)) o = { code: r[0], name: r[1], mrp: r[2], dp: r[3], sp: r[4], category: r[5], category_slug: r[6], size: r[7], images: r[8], description: r[9], benefits: r[10], howtouse: r[11], ingredients: r[12], pdf_url: r[13] };
+  if (Array.isArray(r)) o = { code: r[0], name: r[1], mrp: r[2], dp: r[3], sp: r[4], category: r[5], category_slug: r[6], size: r[7], images: r[8], description: r[9], benefits: r[10], howtouse: r[11], ingredients: r[12], pdf_url: r[13], orderable: r[14] };
   else if (r && typeof r === 'object') o = r;
   else return null;
   const code = o.code == null ? '' : String(o.code).trim().slice(0, 40);
@@ -391,6 +392,7 @@ function cleanRow_(r) {
   const desc = cleanText_(o.description, MAX_TEXT);
   const it = {
     code: code, name: name, mrp: mrp, dp: dp, sp: sp, cat: cat, size: fmtSize_(cleanText_(o.size, 40)), imgs: imgs,
+    orderable: o.orderable !== false,                                           // only a clear false makes a product view-only (an older database / saved list has no such field: every product can be ordered, as before)
     desc: sameAsName_(desc, name) ? '' : desc, ben: cleanText_(o.benefits, MAX_TEXT), how: cleanText_(o.howtouse, MAX_TEXT), ing: cleanText_(o.ingredients, MAX_TEXT),
     pdf: (PDF_OK.test(pdfRaw) && pdfRaw.indexOf('..') < 0) ? pdfRaw : ''
   };
@@ -497,7 +499,9 @@ function readHandOff_(s, to, now, keepMs) {                                     
 // =====================================================================================================================
 // THE PAGE: the product list (from the phone at once, then refreshed), category + search, the photo sheet, the cart and the hand-off
 // =====================================================================================================================
-// What the page asks the server: ONE public list (get_public_product_catalog) = the products the order form can sell, with the website's category, photos and texts.
+// What the page asks the server: ONE public list (get_public_product_catalog, asked with p_all = true) = EVERY product of the website (so the counts are the website's: APPARELS 62 ...) plus the products
+// the order form can sell, with the website's category, photos and texts. Each product says whether it can be ordered (orderable): the others are only to look at (no "Add to cart").
+// A database that was not updated yet does not know p_all: then the page asks the old way (only the products the order form can sell), exactly as before.
 // Nothing here is secret: the key below is the public (publishable) one.
 const SUPABASE_URL = 'https://lrrqdmmugvizkbjfwneb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_3zfx8Ne9j2cX7-UmwjY4yg_FRE2xxrP';
@@ -507,7 +511,8 @@ const LS_HAND = 'mwProdHandOff';           // the cart handed over to the order 
 const FETCH_TIMEOUT_MS = 15000, REFRESH_AFTER_MS = 10 * 60000, STALE_AFTER_MS = 2 * 86400000, CART_KEEP_MS = 3 * 86400000;
 
 let ITEMS = [];                            // the products, in the order the server sent them (by name)
-let BYCODE = Object.create(null);          // code -> product (no prototype: a product code can never clash with a built-in name)
+let BYCODE = Object.create(null);          // code -> product, ONLY the products that can be ordered (no prototype: a product code can never clash with a built-in name); the cart works with these
+let ALLBY = Object.create(null);           // code -> product, every product of the list (the photo sheet shows these)
 let CATS = [], NOWEB = 0;                  // the website categories with their counts, and how many products the website does not know
 let FILTER = 'all', QUERY = '';            // the chosen category ('all' | 'none' | 'c:NAME') and the words typed in the search box
 let CART = [];                             // [{code, qty}] in the order the products were added
@@ -557,17 +562,19 @@ function loadSavedCatalog_() {
 // ---- the list from the server: shown from the phone at once, then refreshed when there is internet
 function fetchCatalog_() {
   const url = SUPABASE_URL + '/rest/v1/rpc/get_public_product_catalog';
-  function post(withAuth) {
+  function post(withAuth, body) {
     const h = { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' };
     if (withAuth) h['Authorization'] = 'Bearer ' + SUPABASE_KEY;
     const ctl = (typeof AbortController === 'function') ? new AbortController() : null;
     const timer = ctl ? setTimeout(function () { ctl.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(url, { method: 'POST', headers: h, body: '{}', cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+    return fetch(url, { method: 'POST', headers: h, body: body, cache: 'no-store', signal: ctl ? ctl.signal : undefined })
       .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .finally(function () { if (timer) clearTimeout(timer); });
   }
   // the same way the order form's database library asks (apikey + Authorization); only if the server answers with an error, once more with the apikey alone
-  return post(true).catch(function (e) { return (e && String(e.message).indexOf('HTTP') === 0) ? post(false) : Promise.reject(e); });
+  function ask(body) { return post(true, body).catch(function (e) { return (e && String(e.message).indexOf('HTTP') === 0) ? post(false, body) : Promise.reject(e); }); }
+  // the WHOLE website first; a database that was not updated yet does not know that way of asking (HTTP 404): then the list of the order form, as before
+  return ask('{"p_all":true}').catch(function (e) { return (e && /^HTTP 404$/.test(String(e.message))) ? ask('{}') : Promise.reject(e); });
 }
 function refresh_(manual) {
   if (FETCHING) return;
@@ -586,15 +593,15 @@ function refresh_(manual) {
   });
 }
 function applyCatalog_(list, at, src) {
-  ITEMS = list; BYCODE = Object.create(null);
-  list.forEach(function (p) { BYCODE[p.code] = p; });
+  ITEMS = list; BYCODE = Object.create(null); ALLBY = Object.create(null);
+  list.forEach(function (p) { ALLBY[p.code] = p; if (p.orderable) BYCODE[p.code] = p; });
   const b = buildCats_(list); CATS = b.cats; NOWEB = b.none;
   CAT_AT = at; CAT_SRC = src; FETCHING = false;
   if (FILTER !== 'all' && !list.some(function (p) { return inFilter_(p, FILTER); })) FILTER = 'all';       // the chosen category is gone
-  const gone = cartPrune_(CART, BYCODE);                                          // a product that is no longer on the list cannot stay in the cart
+  const gone = cartPrune_(CART, BYCODE);                                          // a product that is no longer on the list (or can no longer be ordered) cannot stay in the cart
   if (gone) saveCart_();
   renderChips_(); renderList_(); renderStatus_(); updateCartUi_(true);
-  if (SHEET === 'detail' && DETAIL && !BYCODE[DETAIL]) closeSheet_();
+  if (SHEET === 'detail' && DETAIL && !ALLBY[DETAIL]) closeSheet_();
   if (gone) toast_(plural_(gone, 'product', 'products') + ' removed from your cart (no longer available)');
   return gone;
 }
@@ -643,6 +650,8 @@ function stepHtml_(l) {
     '<button type="button" class="qty-btn" data-act="plus" aria-label="One more">+</button></div>';
 }
 function buyHtml_(code) {
+  const p = ALLBY[code];
+  if (p && !p.orderable) return '<span class="noorder">Not available to order</span>';              // on the website, but not in the order form: only to look at
   const l = cartFind_(CART, code);
   return l ? stepHtml_(l) : '<button type="button" class="btn btn-gold btn-sm" data-act="add">Add to cart</button>';
 }
@@ -711,7 +720,7 @@ function detailHtml_(p) {
     '</div>';
 }
 function openDetail_(code) {
-  const p = BYCODE[code];
+  const p = ALLBY[code];
   if (!p) return;
   el_('pdBody').innerHTML = detailHtml_(p);
   openSheet_('detail'); DETAIL = code;
