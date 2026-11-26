@@ -83,7 +83,6 @@
   .contact-label{font-size:11px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.3px;}
   .contact-value{font-size:14px; font-weight:600; color:var(--green-900);}
   .map-frame{width:100%; height:200px; border:none; border-radius:12px; margin-top:6px;}
-  .back-link{background:none; border:none; color:var(--green-800); font-size:13px; font-weight:600; cursor:pointer; padding:0; margin-bottom:14px; display:flex; align-items:center; gap:4px;}
   .qform-input{width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; font-size:14px; font-family:inherit; margin-bottom:10px;}
   .qform-input:focus{outline:none; border-color:var(--gold-500);}
   /* the Mahakal logo is the way in to the two admin logins (tap it: the login screen below opens) */
@@ -94,6 +93,7 @@
   #loginChooser{gap:0;}
   #loginChooser .choice-card{padding:20px 18px 18px;}
   #loginChooser .choice-title{margin-bottom:4px;}
+  @media (max-height:600px){ html:not(.nl) #loginChooser .mw-back-row{margin-bottom:4px;} html:not(.nl) #loginChooser .mw-back{min-height:36px;} html:not(.nl) #loginChooser .login-opt{min-height:60px; padding:8px 14px; margin-bottom:10px;} html:not(.nl) #loginChooser .login-opt:last-child{margin-bottom:0;} }   /* old look on a very short phone: the login screen still fits without scrolling */
   .login-sub{margin:0 0 14px; font-size:13px; color:var(--ink-soft); line-height:1.4;}
   .login-opt{display:flex; align-items:center; gap:14px; width:100%; min-height:64px; margin:0 0 12px; padding:10px 14px; border:none; border-radius:16px; text-decoration:none; text-align:left; font-family:inherit; font-size:16px; font-weight:700; color:#fff; cursor:pointer;}
   .login-opt:last-child{margin-bottom:0;}
@@ -168,7 +168,6 @@ html.nl .code-gate button{border-radius:16px; font-weight:800; transition:transf
 html.nl .code-gate .btn-go{background:linear-gradient(180deg,#3DDC84,#0FA35A); color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.25); box-shadow:0 5px 0 #0A7A41, 0 10px 16px rgba(15,163,90,.35), inset 0 2px 0 rgba(255,255,255,.4);}
 html.nl .code-gate .btn-cancel{background:#fff; border:2px solid #C9C3FF; color:#4B3FD0; box-shadow:0 4px 0 #D6D1FF;}
 html.nl .code-gate button:active{transform:translateY(4px); box-shadow:0 1px 0 rgba(0,0,0,.18);}
-html.nl .back-link{align-self:flex-start; background:#fff; border-radius:16px; padding:8px 14px; color:#4B3FD0; box-shadow:0 3px 0 #D6D1FF, 0 7px 12px rgba(82,64,230,.1); margin-bottom:18px;}
 html.nl .contact-row{border-bottom:1px dashed #DAD6FF;}
 html.nl .contact-icon{width:42px; height:42px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:20px; background:#EDE9FF; box-shadow:inset 0 2px 0 rgba(255,255,255,.7), 0 3px 0 rgba(0,0,0,.08);}
 html.nl a.contact-row:nth-of-type(1) .contact-icon{background:#D8F7EC;}
@@ -269,6 +268,22 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   .hint,.result-meta,.a-sub,.sub,small,.opt{font-weight:600;}
   .opt{font-size:12px; color:var(--ink-soft,#777);}
 </style>
+<!-- MW-BACKCSS-START (the "Back" button: the same in every page, built by tools/apply_back.py) -->
+<style id="mwBackCss">
+  .mw-back{display:inline-flex; align-items:center; gap:6px; flex:none; box-sizing:border-box; min-height:40px; margin:0; padding:0 16px 0 10px; border-radius:999px; border:1.5px solid rgba(255,255,255,.45); background:rgba(255,255,255,.18); color:#fff; font-family:inherit; font-size:15px; font-weight:700; line-height:1; letter-spacing:0; text-decoration:none; text-transform:none; white-space:nowrap; cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:manipulation; -webkit-user-select:none; user-select:none;}
+  .mw-back svg{width:22px; height:22px; flex:none; fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round;}
+  .mw-back:active{background:rgba(255,255,255,.34);}
+  .mw-back:focus-visible{outline:3px solid #fff; outline-offset:2px;}
+  .mw-back.light{border-color:rgba(19,46,38,.3); background:#E6F1EA; color:#132E26;}
+  .mw-back.light:active{background:#CFE5D8;}
+  .mw-back.light:focus-visible{outline-color:#132E26;}
+  .mw-back-row{display:flex; justify-content:flex-start; align-items:center; margin:0 0 10px; text-align:left;}
+  .mw-back-fixed{position:absolute; top:12px; left:12px; z-index:3;}
+  html.nl .mw-back.light{border-color:rgba(75,63,208,.32); background:#fff; color:#4B3FD0;}
+  html.nl .mw-back.light:active{background:#ECE9FF;}
+  html.nl .mw-back.light:focus-visible{outline-color:#4B3FD0;}
+</style>
+<!-- MW-BACKCSS-END -->
 </head>
 <body>
   <button id="notifBellBtn" onclick="openNotifPanel_()" title="Notifications" aria-label="Notifications" style="position:fixed;top:14px;right:14px;background:var(--surface);border:1.5px solid var(--line);color:var(--green-900);width:38px;height:38px;border-radius:50%;font-size:17px;cursor:pointer;z-index:20;">🔔<span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger, #C0392B);color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:8px;line-height:16px;padding:0 3px;"></span></button>
@@ -369,7 +384,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     (function () { try { var n = localStorage.getItem('mwCustName'), tok = localStorage.getItem('mwCustToken'); if (n && tok) { var t = document.getElementById('accountTileTitle'); if (t) t.textContent = 'My Account · ' + n.split(' ')[0]; } } catch (e) { /* the plain title stays */ } })();
   </script>
   <div class="code-gate" id="codeGate" style="display:none;">
-    <a href="index.html" onclick="hideCodeGate();return false;" style="display:inline-block;margin-bottom:12px;color:var(--ink-soft);font-size:12px;font-weight:600;text-decoration:none;">← Back to Main Page</a>
+    <div class="mw-back-row"><a class="mw-back light back-link" href="index.html" onclick="hideCodeGate();return false;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5M11 5l-7 7 7 7"/></svg><span>Back</span></a></div>
     <label for="adminCodeInput">Enter Admin Link Code</label>
     <div style="position:relative;">
       <input type="text" id="adminCodeInput" placeholder="Code" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" style="width:100%;padding-right:42px;box-sizing:border-box;-webkit-text-security:disc;text-security:disc;" onkeydown="if(event.key==='Enter'){event.preventDefault();verifyAdminCode();}">
@@ -383,7 +398,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   </div>
 
   <div class="choices" id="loginChooser" style="display:none;" role="group" aria-labelledby="loginChooserTitle">
-    <button class="back-link" onclick="hideLoginChooser_()">← Back to Main Page</button>
+    <div class="mw-back-row"><button type="button" class="mw-back light back-link" onclick="hideLoginChooser_()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5M11 5l-7 7 7 7"/></svg><span>Back</span></button></div>
     <div class="choice-card">
       <div class="choice-title" id="loginChooserTitle">Admin Login</div>
       <p class="login-sub">Which login do you want to open?</p>
@@ -397,7 +412,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   </div>
 
   <div class="choices" id="contactUs" style="display:none;">
-    <button class="back-link" onclick="hideContactUs()">← Back</button>
+    <div class="mw-back-row"><button type="button" class="mw-back light back-link" onclick="hideContactUs()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5M11 5l-7 7 7 7"/></svg><span>Back</span></button></div>
     <div class="choice-card">
       <div class="choice-title" style="margin-bottom:10px;">Get in touch</div>
       <a class="contact-row" href="tel:+916265083987">
@@ -709,7 +724,97 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     });
   }
 </script>
-<!-- MW-UX-START (keyboard + back button; the same in every page, built by tools/apply_ux_snippets.py) -->
+<script id="mwPhone">
+/* every mobile / WhatsApp box: digits only and 10 digits at most (a pasted +91 or 0 in front is dropped) */
+(function () {
+  function clean(v) { var d = String(v == null ? '' : v).replace(/\D/g, ''); if (d.length === 12 && d.slice(0, 2) === '91') d = d.slice(2); else if (d.length === 11 && d.charAt(0) === '0') d = d.slice(1); return d.slice(0, 10); }
+  window.phoneClean_ = clean;
+  document.addEventListener('input', function (e) { var el = e.target; if (el && el.tagName === 'INPUT' && (el.type === 'tel' || el.hasAttribute('data-phone'))) { var c = clean(el.value); if (c !== el.value) el.value = c; } }, true);
+  function mark() { Array.prototype.forEach.call(document.querySelectorAll('input[type=tel]'), function (el) { el.setAttribute('inputmode', 'numeric'); }); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mark); else mark();
+})();
+</script>
+<!-- MW-BACK-START (one "Back" for the arrow button and the phone back key: the same in every page, built by tools/apply_back.py) -->
+<script id="mwBackJs">
+/* ONE "Back" for the whole app: the "Back" arrow at the top left and the phone's back key do the same thing.
+     1. Something is open on the page (a popup, a second step, a result screen)? It is closed / the page steps back one step - the page itself says how: window.MW_BACK() (true = done).
+     2. Nothing is open: the visitor goes back to the page he came from; with no such page (the app was opened from the home screen) to the main page.
+   Pages with work in progress may ask "press back once more" before the phone key leaves (window.MW_LEAVE_ASK() = true); the arrow is a deliberate tap and leaves at once.
+   The trap: after the first touch ONE spare history entry sits on top, so a back press lands on it, the page steps back, and the spare entry is put back.
+   Only pages that have something to step back through (window.MW_BACK) use it; on the other pages the browser's own back key is left alone. */
+(function () {
+  var armed = !!(history.state && history.state.mwTrap), exitUntil = 0, leavingUntil = 0, viaArrow = false, popSeen = false, fb = 0;
+  function note(msg) {
+    if (typeof showToast === 'function') { try { showToast(msg); return; } catch (e) {} }
+    var b = document.getElementById('mwBackNote');
+    if (!b) { b = document.createElement('div'); b.id = 'mwBackNote'; b.style.cssText = 'position:fixed;left:50%;bottom:calc(90px + var(--kb,0px));transform:translateX(-50%);background:#132E26;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:500;display:none;max-width:86vw;text-align:center;'; document.body.appendChild(b); }
+    b.textContent = msg; b.style.display = 'block'; clearTimeout(b._t); b._t = setTimeout(function () { b.style.display = 'none'; }, 1800);
+  }
+  function trap() { try { history.pushState({ mwTrap: 1 }, '', location.href); return true; } catch (e) { return false; } }
+  function arm() { if (!armed && typeof window.MW_BACK === 'function' && trap()) armed = true; }
+  ['pointerup', 'touchend', 'keydown', 'click'].forEach(function (n) { window.addEventListener(n, arm, { capture: true, passive: true }); });
+  function step() { try { return typeof window.MW_BACK === 'function' && window.MW_BACK() === true; } catch (e) { return false; } }
+  function ask() { try { return typeof window.MW_LEAVE_ASK === 'function' && window.MW_LEAVE_ASK() === true; } catch (e) { return false; } }
+  function behind(hadSpare) {                                   // is there an earlier page to go back to (an app page, or the site the visitor came from)?
+    var n = window.navigation;
+    if (n && n.canGoBack === true) return true;
+    return history.length > (hadSpare ? 2 : 1);
+  }
+  function home() { try { location.replace('index.html'); } catch (e) { location.href = 'index.html'; } }
+  function leave(hadSpare) {
+    armed = false; leavingUntil = Date.now() + 1600;                 // a second tap / press while the page is being left must not go back one page too many
+    var go = function () {
+      if (!behind(hadSpare)) { home(); return; }
+      clearTimeout(fb); fb = setTimeout(home, 1500);              // nothing happened (no page to go back to after all): the main page
+      history.back();
+    };
+    var p = null;
+    try { if (viaArrow && typeof window.MW_BEFORE_LEAVE === 'function') p = window.MW_BEFORE_LEAVE(); } catch (e) {}
+    if (p && typeof p.then === 'function') { var done = false, once = function () { if (!done) { done = true; go(); } }; p.then(once, once); setTimeout(once, 2000); } else go();
+  }
+  window.addEventListener('pagehide', function () { clearTimeout(fb); });
+  window.addEventListener('pageshow', function () { armed = !!(history.state && history.state.mwTrap); });
+  // one back press (the phone key lands here through popstate, the arrow either through popstate or directly)
+  function onBack(popped, hadSpare) {
+    var arrow = viaArrow;
+    if (step()) { viaArrow = false; if (popped) trap(); return; }  // something was closed / the page stepped back: the spare entry is put back
+    if (!arrow && ask() && Date.now() >= exitUntil) {            // the key, on a page with work in progress: "press back once more" (the second press is the browser's own)
+      exitUntil = Date.now() + 2000; armed = false; note('Bahar jaane ke liye ek baar aur back dabao'); return;
+    }
+    leave(hadSpare); viaArrow = false;
+  }
+  window.addEventListener('popstate', function () { if (!armed || Date.now() < leavingUntil) return; popSeen = true; onBack(true, true); });
+  window.mwBackGo = function (ev) {
+    if (ev && ev.preventDefault) ev.preventDefault();
+    if (Date.now() < leavingUntil) return false;
+    if (armed && history.state && history.state.mwTrap) {        // the spare entry is used up and the same code as for the phone key runs
+      viaArrow = true; popSeen = false; history.back();
+      setTimeout(function () { if (!popSeen && armed) { armed = false; onBack(false, true); } }, 700);   // a browser that sent no popstate: do it directly
+    } else { viaArrow = true; onBack(false, false); }
+    return false;
+  };
+})();
+</script>
+<!-- MW-BACK-END -->
+<!-- MW-BACKPAGE-START (what "Back" closes / steps back on this page) -->
+<script id="mwBackPage">
+(function () {
+  function shown(id) { var e = document.getElementById(id); return !!e && getComputedStyle(e).display !== 'none'; }
+  // a message, the notifications, the admin code box, the login screen and the contact screen close first; the boxes of the main page are what is left
+  window.MW_BACK = function () {
+    if (shown('notifDetailPopup')) { closeNotifDetail_(); return true; }
+    if (shown('notifPanel')) { closeNotifPanel_(); return true; }
+    if (shown('codeGate')) { hideCodeGate(); return true; }
+    if (shown('loginChooser')) { hideLoginChooser_(); return true; }
+    if (shown('contactUs')) { hideContactUs(); return true; }
+    return false;
+  };
+  // the main page is where the app is left: "press back once more" before the phone key leaves it
+  window.MW_LEAVE_ASK = function () { return true; };
+})();
+</script>
+<!-- MW-BACKPAGE-END -->
+<!-- MW-UX-START (keyboard + popup layers; the same in every page, built by tools/apply_ux_snippets.py) -->
 <style id="mwUxCss">
   :root{--kb:0px; --vvh:100vh;}
   .modal-overlay,.qty-modal-overlay,#notifPanel,#notifDetailPopup{bottom:var(--kb) !important;}
@@ -770,15 +875,5 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
 })();
 </script>
 <!-- MW-UX-END -->
-<script id="mwPhone">
-/* every mobile / WhatsApp box: digits only and 10 digits at most (a pasted +91 or 0 in front is dropped) */
-(function () {
-  function clean(v) { var d = String(v == null ? '' : v).replace(/\D/g, ''); if (d.length === 12 && d.slice(0, 2) === '91') d = d.slice(2); else if (d.length === 11 && d.charAt(0) === '0') d = d.slice(1); return d.slice(0, 10); }
-  window.phoneClean_ = clean;
-  document.addEventListener('input', function (e) { var el = e.target; if (el && el.tagName === 'INPUT' && (el.type === 'tel' || el.hasAttribute('data-phone'))) { var c = clean(el.value); if (c !== el.value) el.value = c; } }, true);
-  function mark() { Array.prototype.forEach.call(document.querySelectorAll('input[type=tel]'), function (el) { el.setAttribute('inputmode', 'numeric'); }); }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mark); else mark();
-})();
-</script>
 </body>
 </html>
