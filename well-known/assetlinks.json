@@ -1,13 +1,8 @@
-[
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "com.mahakalwellness.app",
-      "sha256_cert_fingerprints": [
-        "PASTE-THE-PLAY-CONSOLE-APP-SIGNING-SHA256-HERE",
-        "PASTE-THE-PWABUILDER-UPLOAD-KEY-SHA256-HERE"
-      ]
-    }
-  }
-]
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.mahakalwellness.app",
+        "sha256_cert_fingerprints": ["4B:36:6A:54:D9:11:31:95:E8:9B:19:15:11:91:2F:D8:AD:5A:72:31:07:07:D7:7D:CA:20:D6:48:CD:BC:14:23"]
+      }
+    }]
