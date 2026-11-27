@@ -40,6 +40,289 @@
   .hint{color:var(--soft); font-size:14px;}
   footer{max-width:560px; margin:0 auto; padding:0 18px 36px; color:var(--soft); font-size:14px;}
 </style>
+<!-- MW-I18N:BEGIN -->
+<style id="mwLangCss">
+/* EN | हि language switch (CSS vars: --mw-lang-h --mw-lang-line --mw-lang-bg --mw-lang-fg --mw-lang-on --mw-lang-on-fg) (small variant for crowded headers: class="mw-lang one" = ONE square button that shows the OTHER language) (markup:  <span class="mw-lang" translate="no"><button type="button" data-mw-lang="en" aria-label="English">EN</button><button type="button" data-mw-lang="hi" aria-label="हिन्दी">हि</button></span> ) */
+html.mw-wait body{visibility:hidden}
+.mw-lang{display:inline-flex;align-items:stretch;height:var(--mw-lang-h,32px);border-radius:999px;overflow:hidden;border:1.5px solid var(--mw-lang-line,rgba(20,40,30,.28));background:var(--mw-lang-bg,#fff);box-shadow:0 1px 3px rgba(0,0,0,.12);vertical-align:middle;margin:0;padding:0;flex:none;box-sizing:border-box}
+.mw-lang button{margin:0;padding:0 10px;min-width:34px;border:0;border-radius:0;background:transparent;color:var(--mw-lang-fg,#33423b);font-weight:700;font-size:13px;line-height:1;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;display:inline-flex;align-items:center;justify-content:center;box-shadow:none;text-shadow:none;transform:none;letter-spacing:0}
+.mw-lang button:focus-visible{outline:2px solid var(--mw-lang-on,#1f6f4a);outline-offset:-3px}
+html[lang="hi"] .mw-lang [data-mw-lang="hi"],html:not([lang="hi"]) .mw-lang [data-mw-lang="en"]{background:var(--mw-lang-on,#1f6f4a);color:var(--mw-lang-on-fg,#fff)}
+.mw-lang.one{width:var(--mw-lang-h,32px);border-radius:var(--mw-lang-r,10px)}
+.mw-lang.one button{min-width:0;width:100%;padding:0}
+html:not([lang="hi"]) .mw-lang.one [data-mw-lang="en"],html[lang="hi"] .mw-lang.one [data-mw-lang="hi"]{display:none}
+html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
+</style>
+<script id="mwLangJs">
+/* Mahakal Wellness - language switch + Hindi translator (the same code is inlined in every page; the dictionary below belongs to THIS page).
+   English (default): nothing is changed on the page - only the EN | हि switch is listening.
+   Hindi: every visible English text is replaced by its Hindi text (text, placeholder, title, aria-label, alt, <option> labels, alert/confirm/prompt).
+   The switch works LIVE (no reload, so a half-filled bill / cart stays): हि translates the page, EN puts every original text back.
+   The saved choice is localStorage.mwLang ('hi' or 'en'), shared by all pages of the app (and followed by the other open pages / tabs).
+   Data (names, numbers, product names, typed values) is never touched, and a <option> keeps its English text / value (only its label changes),
+   so nothing that is saved or sent changes with the language. */
+(function () {
+  'use strict';
+  var W = window, D = document, root = D.documentElement, KEY = 'mwLang', SVGNS = 'http://www.w3.org/2000/svg';
+  var RAW = {"Aapka account verify ho gaya":"आपका अकाउंट वेरिफाई हो गया","Aapka login band ho gaya":"आपका लॉगिन बंद हो गया","Aapka payment baaki hai":"आपका पेमेंट बाकी है","Aapka registration hamari team ke paas":"आपका रजिस्ट्रेशन हमारी टीम के पास","Aapki details approve ho gayi":"आपकी जानकारी अप्रूव हो गई","Aapki request hamari team ko bhej di gayi. Team aapko":"आपकी रिक्वेस्ट हमारी टीम को भेज दी गई है। टीम आपको","Aapne record ki details badli hain":"आपने रिकॉर्ड की जानकारी बदली है","Abhi poori karo":"अभी पूरी करें","Abhi tak koi bill nahi. Pehla order dene ke liye":"अभी तक कोई बिल नहीं। पहला ऑर्डर देने के लिए","Account":"अकाउंट","Achieved":"पूरा हुआ","Add":"जोड़ें","Admin Login":"एडमिन लॉगिन","All":"सभी","All time":"अब तक","Amount":"राशि","Apna password badal lo":"अपना पासवर्ड बदल लें","Approve ho gaya":"अप्रूव हो गया","At least 6 characters":"कम से कम 6 अक्षर","Baad me":"बाद में","Back":"वापस","Bahar jaane ke liye ek baar aur back dabao":"बाहर जाने के लिए एक बार और बैक दबाएं","Bill no. or amount":"बिल नंबर या राशि","Bills":"बिल","Bills updated":"बिल अपडेट हो गए","Book Hall":"हॉल बुक करें","Cancel":"रद्द करें","Cancelled":"रद्द","Cancelled / declined":"रद्द / नामंजूर","Cash":"कैश","Change password":"पासवर्ड बदलें","Change profile photo":"प्रोफ़ाइल फोटो बदलें","City":"शहर","Clear":"साफ करें","Close":"बंद करें","Code":"कोड","Confirm new password":"नया पासवर्ड दोबारा डालें","Confirm password":"पासवर्ड की पुष्टि करें","Confirm with your mobile number and password":"अपने मोबाइल नंबर और पासवर्ड से पक्का करें","Continue":"आगे बढ़ें","Custom":"अपनी रेंज","Customer":"ग्राहक","Customer Registration":"ग्राहक रजिस्ट्रेशन","Date":"तारीख","Date of birth":"जन्म तिथि","Date of birth add karo":"जन्म तिथि जोड़ें","Delete":"हटाएं","Delete my account":"मेरा अकाउंट डिलीट करें","Delete my account — Mahakal Wellness":"मेरा अकाउंट डिलीट करें — महाकाल वेलनेस","Delivered":"डिलीवर हो गया","Delivery pending":"डिलीवरी बाकी","Delivery pending ({0#})":"डिलीवरी बाकी ({0})","Details":"विवरण","Distributor":"डिस्ट्रीब्यूटर","Done":"हो गया","Due":"बाकी","Due bills dekho":"बाकी बिल देखें","Edit":"बदलें","Email":"ईमेल","Ended · not achieved":"खत्म · पूरा नहीं हुआ","Enter Admin Link Code":"एडमिन लिंक कोड डालें","Forgot password":"पासवर्ड भूल गए","Forgot your password, or need our help":"पासवर्ड भूल गए, या हमारी मदद चाहिए","From":"से","Hall Admin Login":"हॉल एडमिन लॉगिन","Happy Birthday":"हैप्पी बर्थडे","Happy Birthday, {0}":"हैप्पी बर्थडे, {0}","Hide":"छुपाएं","Home":"होम","In approval":"अप्रूवल में","Kripya jaldi clear kar do. Dhanyavaad":"कृपया जल्दी क्लियर कर दें। धन्यवाद","Live status":"लाइव स्टेटस","Live status · {0}":"लाइव स्टेटस · {0}","Loading":"लोड हो रहा है","Login":"लॉगिन","Login karo":"लॉगिन करें","Logout":"लॉगआउट","Logout from this phone":"इस फोन से लॉगआउट करें","Mahakal Admin Login":"महाकाल एडमिन लॉगिन","Mahakal Wellness":"महाकाल वेलनेस","Mahakal Wellness logo":"महाकाल वेलनेस लोगो","Mahakal Wellness me aapke {0#} bill ka payment baaki hai.":"महाकाल वेलनेस में आपके {0} बिल का पेमेंट बाकी है।","Mahakal Wellness me aapke {0#} bills ka payment baaki hai.":"महाकाल वेलनेस में आपके {0} बिल का पेमेंट बाकी है।","Mahakal Wellness · Customer login":"महाकाल वेलनेस · ग्राहक लॉगिन","Mera WhatsApp number wahi hai jo mobile number hai":"मेरा WhatsApp नंबर वही है जो मोबाइल नंबर है","Message us on WhatsApp":"WhatsApp पर हमें मैसेज करें","Message us on WhatsApp from your registered number and our team will help you, or will remove your customer-list entry if you ask. You can also call us on":"अपने रजिस्टर्ड नंबर से हमें WhatsApp पर मैसेज करें, हमारी टीम आपकी मदद करेगी, या आप कहें तो आपकी कस्टमर-लिस्ट की एंट्री हटा देगी। आप हमें इस नंबर पर कॉल भी कर सकते हैं:","Mobile":"मोबाइल","Mobile number":"मोबाइल नंबर","Mobile number daalte hi aapki details hamare record se apne aap aa jayengi":"मोबाइल नंबर डालते ही आपकी जानकारी हमारे रिकॉर्ड से अपने-आप आ जाएगी","My Account":"मेरा अकाउंट","My Account — Mahakal Wellness":"मेरा अकाउंट — महाकाल वेलनेस","My Bills":"मेरे बिल","My details":"मेरी जानकारी","Name":"नाम","Naye ho":"नए हैं","New password":"नया पासवर्ड","Newest first":"नया पहले","Next":"आगे","No":"नहीं","OK":"ठीक है","Offers":"ऑफर","Old password":"पुराना पासवर्ड","Oldest first":"पुराना पहले","Online":"ऑनलाइन","Optional":"वैकल्पिक","Order":"ऑर्डर","Order declined":"ऑर्डर नामंजूर","Order dene ke baad":"ऑर्डर देने के बाद","Order form kholo":"ऑर्डर फॉर्म खोलें","Order request · waiting for approval":"ऑर्डर रिक्वेस्ट · अप्रूवल का इंतज़ार","Paid":"भुगतान हो गया","Partly paid · Due {0}":"आंशिक भुगतान · बाकी {0}","Password":"पासवर्ड","Password changed":"पासवर्ड बदल गया","Payment reminder":"पेमेंट रिमाइंडर","Pehle Register karo":"पहले रजिस्टर करें","Pehle se account hai":"पहले से अकाउंट है","Photo removed":"फोटो हटा दी गई","Please wait":"कृपया रुकें","Previous month":"पिछला महीना","Previous week":"पिछला हफ्ता","Privacy Policy":"प्राइवेसी पॉलिसी","Product Calculator":"प्रोडक्ट कैलकुलेटर","Products":"प्रोडक्ट्स","Profile":"प्रोफ़ाइल","Profile photo":"प्रोफ़ाइल फोटो","Profile photo updated":"प्रोफ़ाइल फोटो अपडेट हो गई","Profile poori karo":"प्रोफ़ाइल पूरी करें","Profile save ho gayi":"प्रोफ़ाइल सेव हो गई","Progress after verification":"वेरिफिकेशन के बाद प्रोग्रेस दिखेगी","Purchase Product":"प्रोडक्ट खरीदें","Quantity":"मात्रा","Quick range":"जल्दी चुनें","Refresh":"रिफ्रेश","Refresh the price list":"प्राइस लिस्ट रिफ्रेश करें","Register":"रजिस्टर","Register & Login":"रजिस्टर और लॉगिन","Register karne par ye hamari team ke paas":"रजिस्टर करने पर यह हमारी टीम के पास","Register karo":"रजिस्टर करें","Remove":"हटाएं","Remove photo":"फोटो हटाएं","Request {0#}":"रिक्वेस्ट {0}","SP Set Maker":"SP सेट मेकर","Save":"सेव करें","Search":"खोजें","Send request to our team":"हमारी टीम को रिक्वेस्ट भेजें","Set your password":"अपना पासवर्ड सेट करें","Show":"दिखाएं","Show more ({0#})":"और दिखाएं ({0})","Show or hide code":"कोड दिखाएं या छुपाएं","Show or hide password":"पासवर्ड दिखाएं या छुपाएं","Submit":"सबमिट करें","Summary of the bills shown (follows your filters":"दिखाए गए बिलों का सारांश (आपके फ़िल्टर के अनुसार","Target {0}":"लक्ष्य {0}","Thank you":"धन्यवाद","This month":"इस महीने","This page lets any customer of the":"यह पेज किसी भी ग्राहक को","This week":"इस हफ्ते","Time":"समय","To":"तक","Today":"आज","Too many wrong attempts. Please try again after {0#} minutes, or use Forgot password.":"बहुत ज़्यादा गलत कोशिशें हो गईं। कृपया {0} मिनट बाद दोबारा कोशिश करें, या पासवर्ड भूल गए का इस्तेमाल करें।","Total":"कुल","Total SP":"कुल SP","Total due (all time":"कुल बाकी (अब तक","Try again":"दोबारा कोशिश करें","Type it again":"दोबारा लिखें","Type your password to confirm":"पक्का करने के लिए अपना पासवर्ड लिखें","Under review by our team":"हमारी टीम चेक कर रही है","Unpaid · Due {0}":"बिना भुगतान · बाकी {0}","Upline":"अपलाइन","Upline mobile":"अपलाइन का मोबाइल","Upline name":"अपलाइन का नाम","Verification pending":"वेरिफिकेशन बाकी","Verified":"वेरिफाई हो गया","WELCOME":"स्वागत है","Wahi jo mera mobile number hai":"वही जो मेरा मोबाइल नंबर है","Welcome to Mahakal Wellness":"महाकाल वेलनेस में आपका स्वागत है","What is deleted":"क्या डिलीट होगा","What we keep":"हम क्या रखते हैं","WhatsApp number":"WhatsApp नंबर","WhatsApp number & date of birth":"WhatsApp नंबर और जन्म तिथि","WhatsApp number add karo":"WhatsApp नंबर जोड़ें","Ye wapas nahi hoga. Aapka":"यह वापस नहीं होगा। आपका","Yes":"हां","Yesterday":"कल","Your DS ID":"आपका DS ID","Your account has been deleted":"आपका अकाउंट डिलीट हो गया है","Your city":"आपका शहर","Your details":"आपकी जानकारी","Your latest order":"आपका आखिरी ऑर्डर","Your mobile number":"आपका मोबाइल नंबर","Your name":"आपका नाम","Your password":"आपका पासवर्ड","Your progress":"आपकी प्रोग्रेस","Your wellness, our priority":"आपका वेलनेस, हमारी प्राथमिकता","approval ke liye":"अप्रूवल के लिए","check ke liye":"चेक के लिए","login, password, profile photo, date of birth aur WhatsApp number":"लॉगिन, पासवर्ड, प्रोफ़ाइल फोटो, जन्म तिथि और WhatsApp नंबर","naya password WhatsApp par":"नया पासवर्ड WhatsApp पर","optional":"वैकल्पिक","your login and password, and every phone where you were logged in":"आपका लॉगिन और पासवर्ड, और हर वह फोन जिसमें आप लॉगिन थे","your name, mobile number, DS ID, city and upline on our customer list. You can ask our team to remove this too (see the end of this page); we will do it unless the law requires us to keep it or you still have a wallet balance":"हमारी कस्टमर लिस्ट में आपका नाम, मोबाइल नंबर, DS ID, शहर और अपलाइन। आप हमारी टीम से इसे भी हटवाने को कह सकते हैं (पेज के आखिर में देखें); हम इसे हटा देंगे, जब तक कि कानून हमें इसे रखने को न कहे या आपका वॉलेट बैलेंस बाकी न हो","your orders, bills, payments and wallet records, because accounting and tax law require us to keep them":"आपके ऑर्डर, बिल, पेमेंट और वॉलेट रिकॉर्ड, क्योंकि हिसाब-किताब और टैक्स कानून के अनुसार हमें इन्हें रखना ज़रूरी है","your profile photo, date of birth and WhatsApp number":"आपकी प्रोफ़ाइल फोटो, जन्म तिथि और WhatsApp नंबर","your registration forms, password-reset requests, and the reminders and birthday wishes shown in the app":"आपके रजिस्ट्रेशन फॉर्म, पासवर्ड-रीसेट अनुरोध, और ऐप में दिखने वाले रिमाइंडर और जन्मदिन की शुभकामनाएं","{0#} bill · approved bills only":"{0} बिल · सिर्फ अप्रूव्ड बिल","{0#} bills · approved bills only":"{0} बिल · सिर्फ अप्रूव्ड बिल","{0#} day left":"{0} दिन बाकी","{0#} days left":"{0} दिन बाकी","{0#} item":"{0} आइटम","{0#} items":"{0} आइटम","{0} more needed":"{0} और चाहिए","~- galat ho to mita kar sahi likh do.":"- गलत हो तो मिटाकर सही लिखें।","~10-digit WhatsApp number":"10 अंकों का WhatsApp नंबर","~10-digit mobile":"10 अंकों का मोबाइल","~10-digit mobile number":"10 अंकों का मोबाइल नंबर","~Aapka account abhi verify ho raha hai. Verify hone ke baad aapke purane bills yahan dikhenge. Jaldi chahiye to hamari team ko call karo.":"आपका अकाउंट अभी वेरिफाई हो रहा है। वेरिफाई होने के बाद आपके पुराने बिल यहां दिखेंगे। जल्दी चाहिए तो हमारी टीम को कॉल करें।","~Aapka account delete ho gaya: login, photo, date of birth aur WhatsApp number hata diye gaye hain.":"आपका अकाउंट डिलीट हो गया: लॉगिन, फोटो, जन्म तिथि और WhatsApp नंबर हटा दिए गए हैं।","~Aapka login band ho gaya hai - phir se login karo.":"आपका लॉगिन बंद हो गया है - फिर से लॉगिन करें।","~Aapka login khatam ho gaya — phir se login karo.":"आपका लॉगिन खत्म हो गया — फिर से लॉगिन करें।","~Aapki kuch details hamare record se alag hain. Hamari team check karke sahi details approve karegi. Aapke bills dikhte rahenge.":"आपकी कुछ जानकारी हमारे रिकॉर्ड से अलग है। हमारी टीम चेक करके सही जानकारी अप्रूव करेगी। आपके बिल दिखते रहेंगे।","~Aapki profile me Date of birth aur WhatsApp number baaki hain. Birthday par hamari team aapko wish karegi 🎂, aur bill / updates isi WhatsApp number par aayenge.":"आपकी प्रोफ़ाइल में जन्म तिथि और WhatsApp नंबर बाकी हैं। बर्थडे पर हमारी टीम आपको विश करेगी 🎂, और बिल / अपडेट इसी WhatsApp नंबर पर आएंगे।","~Aapne temporary password se login kiya hai.":"आपने टेम्पररी पासवर्ड से लॉगिन किया है।","~Abhi koi offer nahi chal raha. Naye offers yahin dikhenge.":"अभी कोई ऑफर नहीं चल रहा। नए ऑफर यहीं दिखेंगे।","~Account ban gaya. Hamari team aapko jaldi verify karegi.":"अकाउंट बन गया। हमारी टीम आपको जल्दी वेरिफाई करेगी।","~Apna login, photo, date of birth aur WhatsApp number hamesha ke liye hatao. Bills aur payments ka record hamare accounts me rehta hai.":"अपना लॉगिन, फोटो, जन्म तिथि और WhatsApp नंबर हमेशा के लिए हटाएं। बिल और पेमेंट का रिकॉर्ड हमारे अकाउंट्स में रहता है।","~Apna mobile number daalo. Hamari team ko aapki request mil jayegi aur wo aapko naya password WhatsApp par bhej degi.":"अपना मोबाइल नंबर डालें। हमारी टीम को आपकी रिक्वेस्ट मिल जाएगी और वह आपको नया पासवर्ड WhatsApp पर भेज देगी।","~Birthday par hamari team aapko wish karegi 🎂. Apni date of birth daalo.":"बर्थडे पर हमारी टीम आपको विश करेगी 🎂। अपनी जन्म तिथि डालें।","~Could not change the password.":"पासवर्ड नहीं बदल पाया।","~Could not delete the account. Please try again.":"अकाउंट डिलीट नहीं हो पाया। कृपया दोबारा कोशिश करें।","~Could not load offers. Please try again.":"ऑफर लोड नहीं हो पाए। कृपया दोबारा कोशिश करें।","~Could not load your bills. Please try again.":"आपके बिल लोड नहीं हो पाए। कृपया दोबारा कोशिश करें।","~Could not register. Please try again.":"रजिस्टर नहीं हो पाया। कृपया दोबारा कोशिश करें।","~Could not use this photo. Please try another one.":"यह फोटो इस्तेमाल नहीं हो पाई। कृपया दूसरी फोटो चुनें।","~Could not verify right now — try again.":"अभी जाँच नहीं हो पाई — दोबारा कोशिश करें।","~DP":"DP","~DS ID":"DS ID","~DS ID No.":"DS ID नंबर","~Deleting cannot be undone. You can register again later, and our team will approve your new account.":"डिलीट करने के बाद वापस नहीं लौटा जा सकता। आप बाद में दोबारा रजिस्टर कर सकते हैं, और हमारी टीम आपका नया अकाउंट मंज़ूर कर देगी।","~Ek baar register karo, phir apne bills, offers aur order ek jagah dekho.":"एक बार रजिस्टर करें, फिर अपने बिल, ऑफर और ऑर्डर एक जगह देखें।","~Enter a WhatsApp number or a date of birth first.":"पहले WhatsApp नंबर या जन्म तिथि डालें।","~Enter a valid 10-digit Upline mobile number (or leave it empty).":"अपलाइन का सही 10 अंकों का मोबाइल नंबर डालें (या खाली छोड़ दें)।","~Enter a valid 10-digit WhatsApp number.":"सही 10 अंकों का WhatsApp नंबर डालें।","~Enter a valid 10-digit mobile number.":"सही 10 अंकों का मोबाइल नंबर डालें।","~Enter the code.":"कोड डालें।","~Enter your 10-digit mobile number.":"अपना 10 अंकों का मोबाइल नंबर डालें।","~Enter your old password.":"अपना पुराना पासवर्ड डालें।","~Enter your password.":"अपना पासवर्ड डालें।","~Hamari team isi WhatsApp number par aapko bill aur updates bhejegi (calling number se alag ho to yahi number do). Birthday par hamari team aapko wish karegi 🎂.":"हमारी टीम इसी WhatsApp नंबर पर आपको बिल और अपडेट भेजेगी (कॉलिंग नंबर से अलग हो तो यही नंबर दें)। बर्थडे पर हमारी टीम आपको विश करेगी 🎂।","~Hamari team isi number par aapko bill aur updates WhatsApp par bhejegi.":"हमारी टीम इसी नंबर पर आपको बिल और अपडेट WhatsApp पर भेजेगी।","~Hamari team isi number par aapko bill aur updates WhatsApp par bhejegi. Calling aur WhatsApp number alag hain to WhatsApp wala number do.":"हमारी टीम इसी नंबर पर आपको बिल और अपडेट WhatsApp पर भेजेगी। कॉलिंग और WhatsApp नंबर अलग हैं तो WhatsApp वाला नंबर दें।","~Hamari team ne aapka account verify kar diya hai. Ab aap apne purane bills aur offer progress dekh sakte ho.":"हमारी टीम ने आपका अकाउंट वेरिफाई कर दिया है। अब आप अपने पुराने बिल और ऑफर प्रोग्रेस देख सकते हैं।","~Hamari team ne aapki details check karke approve kar di hain. Ab aap apne purane bills aur offer progress dekh sakte ho.":"हमारी टीम ने आपकी जानकारी चेक करके अप्रूव कर दी है। अब आप अपने पुराने बिल और ऑफर प्रोग्रेस देख सकते हैं।","~Hamari team ne aapki details check karke approve kar di hain. Ab ye aapki profile, bills aur order form me update ho gayi hain.":"हमारी टीम ने आपकी जानकारी चेक करके अप्रूव कर दी है। अब यह आपकी प्रोफ़ाइल, बिल और ऑर्डर फॉर्म में अपडेट हो गई है।","~Har registration hamari team approve karti hai. Approve hote hi aapko yahin popup aa jayega.":"हर रजिस्ट्रेशन हमारी टीम अप्रूव करती है। अप्रूव होते ही आपको यहीं पॉपअप आ जाएगा।","~I understand that this deletes my account and cannot be undone.":"मुझे पता है कि इससे मेरा अकाउंट डिलीट हो जाएगा और यह वापस नहीं हो सकता।","~Incorrect code.":"गलत कोड।","~Internet is slow. Trying again.":"इंटरनेट धीमा है। दोबारा कोशिश हो रही है।","~Is mobile number se koi account nahi mila.":"इस मोबाइल नंबर से कोई अकाउंट नहीं मिला।","~Kuch bharo (ya \"Baad me\" dabao).":"कुछ भरें (या \"बाद में\" दबाएं)।","~Kuch galat ho to hamari team se kehkar badalwa lo.":"कुछ गलत हो तो हमारी टीम से कहकर बदलवा लें।","~MRP":"MRP","~Mobile number or password is wrong.":"मोबाइल नंबर या पासवर्ड गलत है।","~Network nahi mila. Aapka login safe hai - internet chalu karke dobara koshish karo.":"नेटवर्क नहीं मिला। आपका लॉगिन सुरक्षित है - इंटरनेट चालू करके दोबारा कोशिश करें।","~No bills match these filters.":"इन फ़िल्टर से कोई बिल नहीं मिला।","~No internet connection. Please try again.":"इंटरनेट कनेक्शन नहीं है। कृपया दोबारा कोशिश करें।","~No internet. This page refreshes by itself when the internet is back.":"इंटरनेट नहीं है। इंटरनेट वापस आते ही यह पेज अपने-आप रिफ्रेश हो जाएगा।","~No network. Please try again.":"नेटवर्क नहीं है। कृपया दोबारा कोशिश करें।","~Not logged in.":"लॉगिन नहीं है।","~Password reset hua ho ya registration approve na hua ho sakta hai. Naya password WhatsApp par mila ho to usse login karo, warna hamari team se baat karo.":"हो सकता है पासवर्ड रीसेट हुआ हो या रजिस्ट्रेशन अप्रूव न हुआ हो। नया पासवर्ड WhatsApp पर मिला हो तो उससे लॉगिन करें, वरना हमारी टीम से बात करें।","~Please choose a photo.":"कृपया कोई फोटो चुनें।","~Please enter a valid 10-digit mobile number.":"कृपया सही 10 अंकों का मोबाइल नंबर डालें।","~Please enter a valid date of birth.":"कृपया सही जन्म तिथि डालें।","~Please enter your DS ID No.":"कृपया अपना DS ID नंबर डालें।","~Please enter your Upline name.":"कृपया अपलाइन का नाम डालें।","~Please enter your city.":"कृपया अपना शहर डालें।","~Please enter your name.":"कृपया अपना नाम डालें।","~Please tick the box to confirm.":"पक्का करने के लिए कृपया बॉक्स पर टिक करें।","~Registration ho gaya. Hamari team approve karegi.":"रजिस्ट्रेशन हो गया। हमारी टीम अप्रूव करेगी।","~SP":"SP","~Something went wrong. Please try again.":"कुछ गड़बड़ हो गई। कृपया दोबारा कोशिश करें।","~The new password must have at least 6 characters.":"नया पासवर्ड कम से कम 6 अक्षर का होना चाहिए।","~The old password is wrong.":"पुराना पासवर्ड गलत है।","~The password is too long (60 characters at most).":"पासवर्ड बहुत लंबा है (ज़्यादा से ज़्यादा 60 अक्षर)।","~The password must have at least 6 characters.":"पासवर्ड कम से कम 6 अक्षर का होना चाहिए।","~The picture is too big.":"फोटो बहुत बड़ी है।","~The picture must be a JPEG photo.":"फोटो JPEG होनी चाहिए।","~The two new passwords are not the same.":"दोनों नए पासवर्ड एक जैसे नहीं हैं।","~The two passwords are not the same.":"दोनों पासवर्ड एक जैसे नहीं हैं।","~This mobile number is already registered. Please login, or use Forgot password.":"यह मोबाइल नंबर पहले से रजिस्टर्ड है। कृपया लॉगिन करें, या पासवर्ड भूल गए का इस्तेमाल करें।","~This page could not load. Please check your internet connection and reload.":"यह पेज लोड नहीं हो पाया। कृपया इंटरनेट कनेक्शन चेक करके पेज दोबारा खोलें।","~Too many registrations right now. Please try again after a few minutes.":"अभी बहुत ज़्यादा रजिस्ट्रेशन हो रहे हैं। कृपया कुछ मिनट बाद दोबारा कोशिश करें।","~Too many requests right now. Please try again after a while, or call us.":"अभी बहुत ज़्यादा रिक्वेस्ट आ रही हैं। कृपया कुछ देर बाद दोबारा कोशिश करें, या हमें कॉल करें।","~Too many wrong attempts. Please try again after a while.":"बहुत ज़्यादा गलत कोशिशें हो गईं। कृपया कुछ देर बाद दोबारा कोशिश करें।","~Type your password to confirm.":"पक्का करने के लिए अपना पासवर्ड लिखें।","~Wahi order form, wahi process: products chuno, payment karo, bill WhatsApp par bhejo. Aapki details (naam, mobile, city, DS ID, upline) pehle se bhari hongi.":"वही ऑर्डर फॉर्म, वही प्रोसेस: प्रोडक्ट चुनें, पेमेंट करें, बिल WhatsApp पर भेजें। आपकी जानकारी (नाम, मोबाइल, शहर, DS ID, अपलाइन) पहले से भरी होगी।","~Welcome! Aapka account ban gaya.":"स्वागत है! आपका अकाउंट बन गया।","~WhatsApp":"WhatsApp","~WhatsApp Business":"WhatsApp Business","~Ye mobile number hamare record me nahi mila - apni details khud bharo.":"यह मोबाइल नंबर हमारे रिकॉर्ड में नहीं मिला - अपनी जानकारी खुद भरें।","~Your login, password, profile photo, date of birth and WhatsApp number have been removed, and you are logged out on every phone. Thank you for being with Mahakal Wellness.":"आपका लॉगिन, पासवर्ड, प्रोफ़ाइल फोटो, जन्म तिथि और WhatsApp नंबर हटा दिए गए हैं, और आप हर फोन पर लॉग आउट हो गए हैं। महाकाल वेलनेस के साथ रहने के लिए धन्यवाद।","~app delete his or her account. You do not need the app installed.":"ऐप का अपना अकाउंट डिलीट करने देता है। इसके लिए ऐप इंस्टॉल होना ज़रूरी नहीं है।","~bhej degi - thoda intezaar karo.":"भेज देगी - थोड़ा इंतज़ार करें।","~hai. Approve hote hi yahin popup aa jayega. Tab tak aap order de sakte ho; purane bills aur offer progress approve hone ke baad dikhenge.":"है। अप्रूव होते ही यहीं पॉपअप आ जाएगा। तब तक आप ऑर्डर दे सकते हैं; पुराने बिल और ऑफर प्रोग्रेस अप्रूव होने के बाद दिखेंगे।","~hamesha ke liye hat jayega aur aap logout ho jaoge. Bills, payments aur orders ka record hamare accounts me rehta hai (kanoon ke hisaab se).":"हमेशा के लिए हट जाएगा और आप लॉगआउट हो जाएंगे। बिल, पेमेंट और ऑर्डर का रिकॉर्ड हमारे अकाउंट्स में रहता है (कानून के हिसाब से)।","~jayengi.":"जाएगी।","~me uska live status link milta hai.":"में उसका लाइव स्टेटस लिंक मिलता है।","~tab kholo.":"टैब खोलें।","~✓ Aapki details hamare record se aa gayi hain. Kuch galat ho to ✕ dabakar use mita do aur sahi likh do - badli hui details hamari team ke paas check ke liye jayengi.":"✓ आपकी जानकारी हमारे रिकॉर्ड से आ गई है। कुछ गलत हो तो ✕ दबाकर उसे मिटाएं और सही लिखें - बदली हुई जानकारी हमारी टीम के पास चेक के लिए जाएगी।","~✓ Details hamare record se match karti hain.":"✓ जानकारी हमारे रिकॉर्ड से मेल खाती है।","~🎂 Birthday par hamari team aapko wish karegi.":"🎂 बर्थडे पर हमारी टीम आपको विश करेगी।","~📝 Aapki profile adhoori hai.":"📝 आपकी प्रोफ़ाइल अधूरी है।","~📝 Aapki profile adhoori hai: Date of birth aur WhatsApp number hamare paas nahi hai.":"📝 आपकी प्रोफ़ाइल अधूरी है: जन्म तिथि और WhatsApp नंबर हमारे पास नहीं है।","~📝 Aapki profile adhoori hai: Date of birth hamare paas nahi hai.":"📝 आपकी प्रोफ़ाइल अधूरी है: जन्म तिथि हमारे पास नहीं है।","~📝 Aapki profile adhoori hai: WhatsApp number hamare paas nahi hai.":"📝 आपकी प्रोफ़ाइल अधूरी है: WhatsApp नंबर हमारे पास नहीं है।","💰 Baaki (due): {0} · {1#} bill ›":"💰 बाकी: {0} · {1} बिल ›","💰 Baaki (due): {0} · {1#} bills ›":"💰 बाकी: {0} · {1} बिल ›","🗓 Starts {0}":"🗓 {0} से शुरू"};
+  var lang = 'en', started = false, running = false, patched = false, domReady = D.readyState !== 'loading', waitT = 0;
+  var origLang = root.getAttribute('lang');
+  var FULL, CORE, PATS, REV = null, compiled = false;
+
+  function stored() { try { return W.localStorage.getItem(KEY) === 'hi' ? 'hi' : 'en'; } catch (e) { return 'en'; } }
+  W.mwLang = 'en';
+  W.mwEn = function (s) { return lang === 'hi' && started ? rev(s) : s; };   // the English source of a text that is shown in Hindi (English mode: the text itself)
+
+  /* ---------------------------------------------------------------- the switch */
+  function syncSwitch() {
+    var bs = D.querySelectorAll('[data-mw-lang]');
+    for (var i = 0; i < bs.length; i++) bs[i].setAttribute('aria-pressed', bs[i].getAttribute('data-mw-lang') === lang ? 'true' : 'false');
+  }
+  function apply(l) {
+    if (l === lang) return;
+    lang = l; W.mwLang = l;
+    if (l === 'hi') startHi(); else stopHi();
+    syncSwitch();
+  }
+  function setLang(l) {
+    l = l === 'hi' ? 'hi' : 'en';
+    try { W.localStorage.setItem(KEY, l); } catch (e) {}
+    apply(l);
+  }
+  W.mwSetLang = setLang;
+  D.addEventListener('click', function (ev) {
+    var t = ev.target, b = t && t.closest ? t.closest('[data-mw-lang]') : null;
+    if (!b) return;
+    ev.preventDefault(); setLang(b.getAttribute('data-mw-lang'));
+  }, true);
+  W.addEventListener('storage', function (e) { if (e.key === KEY || e.key === null) apply(stored()); });          // another page / tab changed the language
+  W.addEventListener('pageshow', function (e) { if (e.persisted) apply(stored()); });                              // coming back to a kept page
+  if (!domReady) D.addEventListener('DOMContentLoaded', function () { domReady = true; if (lang === 'hi') run(); syncSwitch(); });
+  else syncSwitch();
+
+  /* ---------------------------------------------------------------- the dictionary */
+  function compile() {
+    if (compiled) return; compiled = true;
+    FULL = Object.create(null); CORE = Object.create(null); PATS = [];
+    for (var k in RAW) {
+      if (!Object.prototype.hasOwnProperty.call(RAW, k)) continue;
+      var v = RAW[k];
+      if (k.indexOf('{') < 0) { if (k.charAt(0) === '~') FULL[k.slice(1)] = v; else CORE[k] = v; continue; }   // '~key' = a whole text (its own punctuation)
+      var lit = '', parts = k.split(/\{\d+#?\}/), toks = k.match(/\{\d+#?\}/g), rxs = '^';       // {0} = any text, {0#} = a number (5, 12.5, 1,250) only
+      for (var i = 0; i < parts.length; i++) {
+        rxs += parts[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        if (parts[i].length > lit.length) lit = parts[i];
+        if (i < parts.length - 1) rxs += toks[i].indexOf('#') > 0 ? '(\\d+(?:,\\d+)*(?:\\.\\d+)?)' : '([\\s\\S]+?)';
+      }
+      PATS.push({ re: new RegExp(rxs + '$'), lit: lit, to: v, n: k.length });
+    }
+    PATS.sort(function (a, b) { return b.n - a.n; });          // the most specific (longest) pattern first
+  }
+  var DEBUG = false; try { DEBUG = W.localStorage.getItem('mwLangDebug') === '1'; } catch (e) {}
+  var HAS_LATIN = /[A-Za-z]{2}/, ANY_LATIN = /[A-Za-z]/, SEPS = /( \/ | \| | · | • | – | — )/; var LEAD = /^[^A-Za-z0-9\u0900-\u097F]+/;
+  var cache = Object.create(null), cacheN = 0;
+  function splitCore(s) {                                       // prefix / core / suffix: the core runs from the first to the last Latin letter
+    var a = s.search(/[A-Za-z]/); if (a < 0) return null;
+    var b = s.length; while (b > a && !/[A-Za-z]/.test(s.charAt(b - 1))) b--;
+    return [s.slice(0, a), s.slice(a, b), s.slice(b)];
+  }
+  function fill(tpl, m) {
+    return tpl.replace(/\{(\d+)\}/g, function (x, i) { var g = m[+i + 1]; if (g === undefined) return x; var t = trCore(g); return t === null ? g : t; });
+  }
+  function trPat(s) {
+    for (var i = 0; i < PATS.length; i++) {
+      var p = PATS[i];
+      if (s.indexOf(p.lit) < 0) continue;
+      var m = p.re.exec(s);
+      if (m) return fill(p.to, m);
+    }
+    return null;
+  }
+  function trSeg(s) {                                           // "Cash / Online" -> every piece on its own (pieces without a Hindi text stay as they are)
+    var parts = s.split(SEPS); if (parts.length < 3) return null;
+    var any = false;
+    for (var i = 0; i < parts.length; i += 2) { var t = trCore(parts[i]); if (t !== null) { parts[i] = t; any = true; } }
+    return any ? parts.join('') : null;
+  }
+  function trCore(s) {                                          // one trimmed piece (no outer spaces): full text, then pattern, then core with its prefix / suffix kept
+    var h = FULL[s]; if (h !== undefined) return h;
+    h = CORE[s]; if (h !== undefined) return h;
+    h = trPat(s); if (h !== null) return h;
+    var sp = splitCore(s);
+    if (sp && !(sp[0] === '' && sp[2] === '')) {
+      h = CORE[sp[1]]; if (h === undefined) h = trPat(sp[1]);
+      if (h !== undefined && h !== null) return sp[0] + h + sp[2];
+      var cuts = [(LEAD.exec(s) || [''])[0].length, sp[0].length];   // a sign (or sign + number) in front of a sentence that has its own ending / its own number ("⚠ Saved.", "⚠ 3 files."): the rest may be a whole text of its own
+      for (var ci = 0; ci < 2; ci++) {
+        if (cuts[ci] > 0 && (ci === 0 || cuts[1] !== cuts[0])) {
+          var rest = s.slice(cuts[ci]);
+          h = FULL[rest]; if (h === undefined) h = trPat(rest);
+          if (h !== undefined && h !== null) return s.slice(0, cuts[ci]) + h;
+        }
+      }
+    }
+    return trSeg(s);
+  }
+  function tr1(s) {                                             // a text node / attribute value -> Hindi, or null when there is nothing to translate
+    if (typeof s !== 'string' || !ANY_LATIN.test(s)) return null;
+    var c = cache[s]; if (c !== undefined) return c;
+    var lead = /^\s*/.exec(s)[0], trail = /\s*$/.exec(s)[0], core = s.slice(lead.length, s.length - trail.length).replace(/\s+/g, ' ');
+    var h = core ? trCore(core) : null;
+    var out = h === null ? null : lead + h + trail;
+    if (cacheN > 20000) { cache = Object.create(null); cacheN = 0; }
+    cache[s] = out; cacheN++;
+    return out;
+  }
+  function nLat(t) { var m = t.match(/[A-Za-z]/g); return m ? m.length : 0; }
+  function tr(s) {                                              // also handles a message of several lines (alert / confirm): the lines each on their own (the line breaks stay), unless the whole text as one gets MORE of it into Hindi
+    var h = tr1(s);
+    if (typeof s !== 'string' || s.indexOf('\n') < 0) return h;
+    var parts = s.split(/(\n+)/), any = false;
+    for (var i = 0; i < parts.length; i += 2) { var t = tr1(parts[i]); if (t !== null) { parts[i] = t; any = true; } }
+    if (!any) return h;
+    var p = parts.join('');
+    return h === null || nLat(p) <= nLat(h) ? p : h;
+  }
+  function rev(s) {                                             // Hindi text on the screen -> its English source (for the few places where the code reads what is shown)
+    if (typeof s !== 'string') return s;
+    if (!REV) {
+      REV = Object.create(null);
+      for (var k in FULL) if (!(FULL[k] in REV)) REV[FULL[k]] = k;
+      for (var c in CORE) if (!(CORE[c] in REV)) REV[CORE[c]] = c;
+    }
+    var t = s.replace(/\s+/g, ' ').trim(), r = REV[t];
+    if (r !== undefined) return r;
+    for (var cut = 1; cut <= 6; cut++) {                       // a few punctuation marks / emoji / digits around it (their spaces are kept)
+      var a = t.slice(cut), b = t.slice(0, t.length - cut);
+      if (a && REV[a.trim()] !== undefined) return t.slice(0, cut) + /^\s*/.exec(a)[0] + REV[a.trim()];
+      if (b && REV[b.trim()] !== undefined) return REV[b.trim()] + /\s*$/.exec(b)[0] + t.slice(t.length - cut);
+    }
+    return s;
+  }
+
+  /* ---------------------------------------------------------------- walking the page */
+  var TAGOFF = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEMPLATE: 1, IFRAME: 1, CANVAS: 1 };   // nothing in here is page text
+  var TAGTEXT = { TEXTAREA: 1, CODE: 1, PRE: 1 };                                       // the text inside is data / code (attributes like placeholder are still translated)
+  var ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
+  var NOTR = '[translate="no"],.notranslate,[contenteditable=""],[contenteditable="true"],textarea,code,pre,svg,script,style,noscript,template,iframe,canvas';
+  var doneText = new WeakMap(), origText = new WeakMap();
+  var misses = W.__mwMiss = [], missSeen = Object.create(null);
+  function miss(kind, s) {
+    if (!DEBUG) return;
+    var t = s.replace(/\s+/g, ' ').trim(); if (!t || missSeen[kind + t]) return; missSeen[kind + t] = 1; misses.push([kind, t]);
+    try { console.debug('__MWMISS__' + JSON.stringify([kind, t])); } catch (e) {}
+  }
+  function noTr(el) { return !!(el && el.closest && el.closest(NOTR)); }
+  function noTrAttr(el) { return !!(el && el.closest && el.closest('[translate="no"],.notranslate')); }
+  function text(n) {
+    var p = n.parentNode; if (!p) return;
+    if (p.nodeType === 1 && p.tagName === 'OPTION') { opt(p); return; }
+    var v = n.nodeValue; if (doneText.get(n) === v) return;     // our own output
+    var h = tr(v);
+    if (h === null) { if (HAS_LATIN.test(v)) miss('text', v); return; }
+    if (h !== v) { origText.set(n, v); n.nodeValue = h; doneText.set(n, h); }
+  }
+  function opt(o) {                                             // <option>: only the label changes; the text (= value when there is no value attribute) stays English
+    if (noTr(o)) return;
+    var t = o.textContent || '', h = tr(t);
+    if (h === null) { if (o.__mwL) unlabel(o); else if (HAS_LATIN.test(t)) miss('option', t); return; }
+    h = h.replace(/^\s+|\s+$/g, '');
+    if (!o.__mwL) { o.__mwL0 = o.getAttribute('label'); o.__mwL = 1; }
+    if (o.getAttribute('label') !== h) o.setAttribute('label', h);
+  }
+  function unlabel(o) { if (o.__mwL0 === null || o.__mwL0 === undefined) o.removeAttribute('label'); else o.setAttribute('label', o.__mwL0); o.__mwL = 0; }
+  function attr1(el, name) {
+    if (name === 'value' && !(el.tagName === 'INPUT' && /^(button|submit|reset)$/i.test(el.getAttribute('type') || ''))) return;   // a typed / saved value is data, never translated
+    var v = el.getAttribute(name); if (v === null) return;
+    var d = el.__mwA || (el.__mwA = {}); if (d[name] === v) return;
+    var h = tr(v);
+    if (h === null) { if (HAS_LATIN.test(v)) miss('attr:' + name, v); return; }
+    if (h !== v) { (el.__mwO || (el.__mwO = {}))[name] = v; el.setAttribute(name, h); d[name] = h; }
+  }
+  function attrs(el) {
+    for (var i = 0; i < ATTRS.length; i++) if (el.hasAttribute(ATTRS[i])) attr1(el, ATTRS[i]);
+    if (el.tagName === 'INPUT') { var t = (el.getAttribute('type') || '').toLowerCase(); if (t === 'button' || t === 'submit' || t === 'reset') attr1(el, 'value'); }
+    else if (el.tagName === 'OPTGROUP') attr1(el, 'label');
+  }
+  function blocked(n) {
+    return n.getAttribute('translate') === 'no' || n.classList.contains('notranslate') || (n.hasAttribute('contenteditable') && n.getAttribute('contenteditable') !== 'false');
+  }
+  function walk(n) {
+    if (n.nodeType === 3) { text(n); return; }
+    if (n.nodeType !== 1 || TAGOFF[n.tagName] || n.namespaceURI === SVGNS || blocked(n)) return;
+    attrs(n);
+    if (n.tagName === 'OPTION') { opt(n); return; }
+    if (TAGTEXT[n.tagName]) return;
+    for (var c = n.firstChild; c; c = c.nextSibling) walk(c);
+  }
+  function unwalk(n) {                                          // English again: every text / attribute that is still exactly what we wrote gets its original back
+    if (n.nodeType === 3) {
+      var d = doneText.get(n);
+      if (d !== undefined) { if (n.nodeValue === d) n.nodeValue = origText.get(n); doneText.delete(n); }
+      return;
+    }
+    if (n.nodeType !== 1 || TAGOFF[n.tagName]) return;
+    var A = n.__mwA;
+    if (A) { var O = n.__mwO || {}; for (var k in A) if (n.getAttribute(k) === A[k] && O[k] !== undefined) n.setAttribute(k, O[k]); n.__mwA = n.__mwO = null; }
+    if (n.__mwL) unlabel(n);
+    for (var c = n.firstChild; c; c = c.nextSibling) unwalk(c);
+  }
+  function onMut(list) {
+    for (var i = 0; i < list.length; i++) {
+      var m = list[i], t = m.target;
+      if (m.type === 'characterData') { if (!noTr(t.parentNode)) text(t); }
+      else if (m.type === 'attributes') { if (t.nodeType === 1 && !noTrAttr(t)) attr1(t, m.attributeName); }
+      else {
+        for (var j = 0; j < m.addedNodes.length; j++) {
+          var a = m.addedNodes[j];
+          if (!a.parentNode || noTr(a.nodeType === 1 ? a.parentNode : t)) continue;
+          walk(a);
+        }
+        if (t.nodeType === 1 && t.tagName === 'OPTION') opt(t);
+      }
+    }
+  }
+  var obs = new MutationObserver(onMut), OBS = { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTRS.concat(['value']) };
+
+  /* alert / confirm / prompt (installed once, the first time Hindi is switched on; in English they pass everything through) */
+  function patchDialogs() {
+    if (patched) return; patched = true;
+    ['alert', 'confirm', 'prompt'].forEach(function (name) {
+      var orig = W[name]; if (typeof orig !== 'function') return;
+      W[name] = function (m) {
+        var a = arguments;
+        if (lang === 'hi' && typeof m === 'string') { var h = tr(m); if (h !== null) { a = Array.prototype.slice.call(a); a[0] = h; } }
+        return orig.apply(W, a);
+      };
+    });
+  }
+
+  /* ---------------------------------------------------------------- Hindi on / off */
+  function unwait() { if (waitT) { W.clearTimeout(waitT); waitT = 0; } root.classList.remove('mw-wait'); }
+  function run() {                                              // the first translation of the whole page (then the observer keeps up with later changes)
+    if (running || lang !== 'hi') return;
+    running = true;
+    try { walk(root); } catch (e) { try { console.error('mwLang', e); } catch (x) {} }
+    unwait();
+    obs.observe(root, OBS);
+  }
+  function startHi() {
+    compile(); started = true; W.mwTr = tr;
+    root.setAttribute('lang', 'hi');
+    patchDialogs();
+    if (domReady) run();
+    else { root.classList.add('mw-wait'); if (!waitT) waitT = W.setTimeout(unwait, 1500); }   // while the page is still being read the first paint waits for the first translation (no English flash)
+  }
+  function stopHi() {
+    unwait();
+    if (running) { obs.disconnect(); try { unwalk(root); } catch (e) { try { console.error('mwLang', e); } catch (x) {} } running = false; }
+    if (origLang === null) root.removeAttribute('lang'); else root.setAttribute('lang', origLang);
+  }
+  if (stored() === 'hi') { lang = 'hi'; W.mwLang = 'hi'; startHi(); }
+})();
+</script>
+<!-- MW-I18N:END -->
+<style id="mwLangPg">header .mw-lang{margin-left:auto;--mw-lang-h:30px;--mw-lang-bg:rgba(255,255,255,.12);--mw-lang-fg:#fff;--mw-lang-line:rgba(255,255,255,.55);--mw-lang-on:#fff;--mw-lang-on-fg:#132E26}</style>
 <!-- MW-BACKCSS-START (the "Back" button: the same in every page, built by tools/apply_back.py) -->
 <style id="mwBackCss">
   .mw-back{display:inline-flex; align-items:center; gap:6px; flex:none; box-sizing:border-box; min-height:40px; margin:0; padding:0 16px 0 10px; border-radius:999px; border:1.5px solid rgba(255,255,255,.45); background:rgba(255,255,255,.18); color:#fff; font-family:inherit; font-size:15px; font-weight:700; line-height:1; letter-spacing:0; text-decoration:none; text-transform:none; white-space:nowrap; cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:manipulation; -webkit-user-select:none; user-select:none;}
@@ -58,7 +341,7 @@
 <!-- MW-BACKCSS-END -->
 </head>
 <body>
-<header><img src="icon-192.png" alt="Mahakal Wellness logo" width="40" height="40"><strong>Mahakal Wellness</strong></header>
+<header><img src="icon-192.png" alt="Mahakal Wellness logo" width="40" height="40"><strong>Mahakal Wellness</strong><span class="mw-lang" id="mwLangPill" translate="no"><button type="button" data-mw-lang="en" aria-label="English">EN</button><button type="button" data-mw-lang="hi" aria-label="हिन्दी">हि</button></span></header>
 <main>
 <div class="mw-back-row"><a class="mw-back light" href="index.html" onclick="return window.mwBackGo ? mwBackGo(event) : true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5M11 5l-7 7 7 7"/></svg><span>Back</span></a></div>
   <h1>Delete my account</h1>

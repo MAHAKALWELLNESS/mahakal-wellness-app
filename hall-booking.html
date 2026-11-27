@@ -139,6 +139,289 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
   .hint,.result-meta,.a-sub,.sub,small,.opt{font-weight:600;}
   .opt{font-size:12px; color:var(--ink-soft,#777);}
 </style>
+<!-- MW-I18N:BEGIN -->
+<style id="mwLangCss">
+/* EN | हि language switch (CSS vars: --mw-lang-h --mw-lang-line --mw-lang-bg --mw-lang-fg --mw-lang-on --mw-lang-on-fg) (small variant for crowded headers: class="mw-lang one" = ONE square button that shows the OTHER language) (markup:  <span class="mw-lang" translate="no"><button type="button" data-mw-lang="en" aria-label="English">EN</button><button type="button" data-mw-lang="hi" aria-label="हिन्दी">हि</button></span> ) */
+html.mw-wait body{visibility:hidden}
+.mw-lang{display:inline-flex;align-items:stretch;height:var(--mw-lang-h,32px);border-radius:999px;overflow:hidden;border:1.5px solid var(--mw-lang-line,rgba(20,40,30,.28));background:var(--mw-lang-bg,#fff);box-shadow:0 1px 3px rgba(0,0,0,.12);vertical-align:middle;margin:0;padding:0;flex:none;box-sizing:border-box}
+.mw-lang button{margin:0;padding:0 10px;min-width:34px;border:0;border-radius:0;background:transparent;color:var(--mw-lang-fg,#33423b);font-weight:700;font-size:13px;line-height:1;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;display:inline-flex;align-items:center;justify-content:center;box-shadow:none;text-shadow:none;transform:none;letter-spacing:0}
+.mw-lang button:focus-visible{outline:2px solid var(--mw-lang-on,#1f6f4a);outline-offset:-3px}
+html[lang="hi"] .mw-lang [data-mw-lang="hi"],html:not([lang="hi"]) .mw-lang [data-mw-lang="en"]{background:var(--mw-lang-on,#1f6f4a);color:var(--mw-lang-on-fg,#fff)}
+.mw-lang.one{width:var(--mw-lang-h,32px);border-radius:var(--mw-lang-r,10px)}
+.mw-lang.one button{min-width:0;width:100%;padding:0}
+html:not([lang="hi"]) .mw-lang.one [data-mw-lang="en"],html[lang="hi"] .mw-lang.one [data-mw-lang="hi"]{display:none}
+html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
+</style>
+<script id="mwLangJs">
+/* Mahakal Wellness - language switch + Hindi translator (the same code is inlined in every page; the dictionary below belongs to THIS page).
+   English (default): nothing is changed on the page - only the EN | हि switch is listening.
+   Hindi: every visible English text is replaced by its Hindi text (text, placeholder, title, aria-label, alt, <option> labels, alert/confirm/prompt).
+   The switch works LIVE (no reload, so a half-filled bill / cart stays): हि translates the page, EN puts every original text back.
+   The saved choice is localStorage.mwLang ('hi' or 'en'), shared by all pages of the app (and followed by the other open pages / tabs).
+   Data (names, numbers, product names, typed values) is never touched, and a <option> keeps its English text / value (only its label changes),
+   so nothing that is saved or sent changes with the language. */
+(function () {
+  'use strict';
+  var W = window, D = document, root = D.documentElement, KEY = 'mwLang', SVGNS = 'http://www.w3.org/2000/svg';
+  var RAW = {"Add":"जोड़ें","Admin Login":"एडमिन लॉगिन","Advance Amount":"एडवांस राशि","Advance Paid":"एडवांस दिया","Advance cannot be more than the total hall charge of {0}.":"एडवांस कुल हॉल शुल्क {0} से ज़्यादा नहीं हो सकता।","Advance payment":"एडवांस पेमेंट","All":"सभी","Amount":"राशि","As shown in your UPI app after payment":"पेमेंट के बाद आपके UPI ऐप में जैसा दिखे","Awaiting confirmation from our team":"हमारी टीम की पुष्टि का इंतज़ार है","Back":"वापस","Bahar jaane ke liye ek baar aur back dabao":"बाहर जाने के लिए एक बार और बैक दबाएं","Balance Due":"बाकी रकम","Book Hall":"हॉल बुक करें","Cancel":"रद्द करें","Capacity: 100 people · 1 Projector · 2 AC available":"क्षमता: 100 लोग · 1 प्रोजेक्टर · 2 AC उपलब्ध","Cash":"कैश","Cash at office":"ऑफिस में कैश","Clear":"साफ करें","Close":"बंद करें","Code":"कोड","Continue":"आगे बढ़ें","Date":"तारीख","Delete":"हटाएं","Delete my account":"मेरा अकाउंट डिलीट करें","Done":"हो गया","Edit":"बदलें","Email":"ईमेल","Enter Admin Link Code":"एडमिन लिंक कोड डालें","Evening (2:30 - 6:30 PM":"शाम (2:30 - 6:30 PM","Evening (2:30 PM - 6:30 PM":"शाम (2:30 PM - 6:30 PM","Hall Admin Login":"हॉल एडमिन लॉगिन","Hall Booking Request":"हॉल बुकिंग रिक्वेस्ट","Hall Booking Request — Mahakal Wellness":"हॉल बुकिंग रिक्वेस्ट — महाकाल वेलनेस","Hall details":"हॉल की जानकारी","Hide":"छुपाएं","Home":"होम","I've completed the payment":"मैंने पेमेंट कर दिया है","Loading":"लोड हो रहा है","Mahakal Admin Login":"महाकाल एडमिन लॉगिन","Mahakal Wellness":"महाकाल वेलनेस","Mahakal Wellness logo":"महाकाल वेलनेस लोगो","Message us on WhatsApp":"WhatsApp पर हमें मैसेज करें","Mobile":"मोबाइल","Mobile number":"मोबाइल नंबर","Morning (10 AM - 2 PM":"सुबह (10 AM - 2 PM","Morning (10:00 AM - 2:00 PM":"सुबह (10:00 AM - 2:00 PM","Name":"नाम","Next":"आगे","No":"नहीं","OK":"ठीक है","Online":"ऑनलाइन","Online (UPI":"ऑनलाइन (UPI","Or tap here to open your UPI app":"या अपना UPI ऐप खोलने के लिए यहां टैप करें","Password":"पासवर्ड","Pay advance via UPI":"UPI से एडवांस दें","Payment Method":"पेमेंट का तरीका","Please wait":"कृपया रुकें","Privacy Policy":"प्राइवेसी पॉलिसी","Product Calculator":"प्रोडक्ट कैलकुलेटर","Products":"प्रोडक्ट्स","Projector":"प्रोजेक्टर","Purchase Product":"प्रोडक्ट खरीदें","Quantity":"मात्रा","Refresh":"रिफ्रेश","Refresh the price list":"प्राइस लिस्ट रिफ्रेश करें","Remove":"हटाएं","Request Another Slot":"दूसरा स्लॉट बुक करें","Request Submitted":"रिक्वेस्ट भेज दी गई","SP Set Maker":"SP सेट मेकर","Save":"सेव करें","Search":"खोजें","Sending your request":"आपकी रिक्वेस्ट भेजी जा रही है","Show":"दिखाएं","Show or hide code":"कोड दिखाएं या छुपाएं","Show or hide password":"पासवर्ड दिखाएं या छुपाएं","Submit":"सबमिट करें","Submit Request":"रिक्वेस्ट भेजें","Submitting this request requires an advance payment. The advance is":"यह रिक्वेस्ट भेजने के लिए एडवांस पेमेंट ज़रूरी है। एडवांस","Time":"समय","Time Slot":"समय स्लॉट","Total":"कुल","Total Hall Charge":"हॉल का कुल शुल्क","Total SP":"कुल SP","Try Again":"दोबारा कोशिश करें","Try again":"दोबारा कोशिश करें","UPI QR code":"UPI QR कोड","WELCOME":"स्वागत है","Welcome to Mahakal Wellness":"महाकाल वेलनेस में आपका स्वागत है","What do you need":"आपको क्या चाहिए","Yes":"हां","Your UPI transaction ref. (UTR) — required":"आपका UPI ट्रांज़ैक्शन रेफ. (UTR) — ज़रूरी","Your details":"आपकी जानकारी","Your mobile number":"आपका मोबाइल नंबर","Your name":"आपका नाम","Your password":"आपका पासवर्ड","Your wellness, our priority":"आपका वेलनेस, हमारी प्राथमिकता","non-refundable":"वापस नहीं होता","{0#} item":"{0} आइटम","{0#} items":"{0} आइटम","~10-digit mobile":"10 अंकों का मोबाइल नंबर","~Could not verify right now — try again.":"अभी जाँच नहीं हो पाई — दोबारा कोशिश करें।","~DP":"DP","~Enter an advance amount.":"एडवांस राशि डालें।","~Enter the code.":"कोड डालें।","~Incorrect code.":"गलत कोड।","~Internet is slow. Trying again.":"इंटरनेट धीमा है। दोबारा कोशिश हो रही है।","~MRP":"MRP","~Mobile number is required.":"मोबाइल नंबर ज़रूरी है।","~Name is required.":"नाम ज़रूरी है।","~No internet connection. Please try again.":"इंटरनेट कनेक्शन नहीं है। कृपया दोबारा कोशिश करें।","~No internet. This page refreshes by itself when the internet is back.":"इंटरनेट नहीं है। इंटरनेट वापस आते ही यह पेज अपने-आप रिफ्रेश हो जाएगा।","~Please choose a date.":"कृपया तारीख चुनें।","~Please enter a valid 10-digit mobile number.":"कृपया सही 10 अंकों का मोबाइल नंबर डालें।","~Please enter an advance amount.":"कृपया एडवांस राशि डालें।","~Please enter your UPI transaction reference (UTR).":"कृपया अपना UPI ट्रांज़ैक्शन रेफरेंस (UTR) डालें।","~Please enter your name.":"कृपया अपना नाम लिखें।","~SP":"SP","~Something went wrong. Please try again.":"कुछ गड़बड़ हो गई। कृपया दोबारा कोशिश करें।","~This page could not load. Please check your internet connection and reload.":"यह पेज लोड नहीं हो पाया। कृपया इंटरनेट कनेक्शन चेक करके पेज दोबारा खोलें।","~This slot is already booked. Please choose another date or time.":"यह स्लॉट पहले से बुक है। कृपया कोई दूसरी तारीख या समय चुनें।","~This slot is now reserved for you while we review your request. We'll confirm your booking on WhatsApp shortly. The balance can be paid before or on the day of the event.":"जब तक हम आपकी रिक्वेस्ट देख रहे हैं, यह स्लॉट आपके लिए रिज़र्व है। हम जल्द ही WhatsApp पर आपकी बुकिंग कन्फर्म करेंगे। बाकी रकम कार्यक्रम से पहले या कार्यक्रम के दिन दी जा सकती है।","~UTR is required for online payment.":"ऑनलाइन पेमेंट के लिए UTR ज़रूरी है।","~WhatsApp":"WhatsApp","~WhatsApp Business":"WhatsApp Business","~and is adjusted against your total hall charge. Your request will then be reviewed and confirmed by our team — the rest of the amount can be paid before or on the day of the event.":"और आपके कुल हॉल शुल्क में जोड़ा जाता है। इसके बाद हमारी टीम आपकी रिक्वेस्ट देखकर कन्फर्म करेगी — बाकी रकम कार्यक्रम से पहले या कार्यक्रम के दिन दी जा सकती है।","~e.g. 500":"जैसे 500","~⚠️ This slot is already booked — please choose another date or slot.":"⚠️ यह स्लॉट पहले से बुक है — कृपया कोई दूसरी तारीख या स्लॉट चुनें।","~✓ This slot is available.":"✓ यह स्लॉट उपलब्ध है।","~❄️ AC":"❄️ AC"};
+  var lang = 'en', started = false, running = false, patched = false, domReady = D.readyState !== 'loading', waitT = 0;
+  var origLang = root.getAttribute('lang');
+  var FULL, CORE, PATS, REV = null, compiled = false;
+
+  function stored() { try { return W.localStorage.getItem(KEY) === 'hi' ? 'hi' : 'en'; } catch (e) { return 'en'; } }
+  W.mwLang = 'en';
+  W.mwEn = function (s) { return lang === 'hi' && started ? rev(s) : s; };   // the English source of a text that is shown in Hindi (English mode: the text itself)
+
+  /* ---------------------------------------------------------------- the switch */
+  function syncSwitch() {
+    var bs = D.querySelectorAll('[data-mw-lang]');
+    for (var i = 0; i < bs.length; i++) bs[i].setAttribute('aria-pressed', bs[i].getAttribute('data-mw-lang') === lang ? 'true' : 'false');
+  }
+  function apply(l) {
+    if (l === lang) return;
+    lang = l; W.mwLang = l;
+    if (l === 'hi') startHi(); else stopHi();
+    syncSwitch();
+  }
+  function setLang(l) {
+    l = l === 'hi' ? 'hi' : 'en';
+    try { W.localStorage.setItem(KEY, l); } catch (e) {}
+    apply(l);
+  }
+  W.mwSetLang = setLang;
+  D.addEventListener('click', function (ev) {
+    var t = ev.target, b = t && t.closest ? t.closest('[data-mw-lang]') : null;
+    if (!b) return;
+    ev.preventDefault(); setLang(b.getAttribute('data-mw-lang'));
+  }, true);
+  W.addEventListener('storage', function (e) { if (e.key === KEY || e.key === null) apply(stored()); });          // another page / tab changed the language
+  W.addEventListener('pageshow', function (e) { if (e.persisted) apply(stored()); });                              // coming back to a kept page
+  if (!domReady) D.addEventListener('DOMContentLoaded', function () { domReady = true; if (lang === 'hi') run(); syncSwitch(); });
+  else syncSwitch();
+
+  /* ---------------------------------------------------------------- the dictionary */
+  function compile() {
+    if (compiled) return; compiled = true;
+    FULL = Object.create(null); CORE = Object.create(null); PATS = [];
+    for (var k in RAW) {
+      if (!Object.prototype.hasOwnProperty.call(RAW, k)) continue;
+      var v = RAW[k];
+      if (k.indexOf('{') < 0) { if (k.charAt(0) === '~') FULL[k.slice(1)] = v; else CORE[k] = v; continue; }   // '~key' = a whole text (its own punctuation)
+      var lit = '', parts = k.split(/\{\d+#?\}/), toks = k.match(/\{\d+#?\}/g), rxs = '^';       // {0} = any text, {0#} = a number (5, 12.5, 1,250) only
+      for (var i = 0; i < parts.length; i++) {
+        rxs += parts[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        if (parts[i].length > lit.length) lit = parts[i];
+        if (i < parts.length - 1) rxs += toks[i].indexOf('#') > 0 ? '(\\d+(?:,\\d+)*(?:\\.\\d+)?)' : '([\\s\\S]+?)';
+      }
+      PATS.push({ re: new RegExp(rxs + '$'), lit: lit, to: v, n: k.length });
+    }
+    PATS.sort(function (a, b) { return b.n - a.n; });          // the most specific (longest) pattern first
+  }
+  var DEBUG = false; try { DEBUG = W.localStorage.getItem('mwLangDebug') === '1'; } catch (e) {}
+  var HAS_LATIN = /[A-Za-z]{2}/, ANY_LATIN = /[A-Za-z]/, SEPS = /( \/ | \| | · | • | – | — )/; var LEAD = /^[^A-Za-z0-9\u0900-\u097F]+/;
+  var cache = Object.create(null), cacheN = 0;
+  function splitCore(s) {                                       // prefix / core / suffix: the core runs from the first to the last Latin letter
+    var a = s.search(/[A-Za-z]/); if (a < 0) return null;
+    var b = s.length; while (b > a && !/[A-Za-z]/.test(s.charAt(b - 1))) b--;
+    return [s.slice(0, a), s.slice(a, b), s.slice(b)];
+  }
+  function fill(tpl, m) {
+    return tpl.replace(/\{(\d+)\}/g, function (x, i) { var g = m[+i + 1]; if (g === undefined) return x; var t = trCore(g); return t === null ? g : t; });
+  }
+  function trPat(s) {
+    for (var i = 0; i < PATS.length; i++) {
+      var p = PATS[i];
+      if (s.indexOf(p.lit) < 0) continue;
+      var m = p.re.exec(s);
+      if (m) return fill(p.to, m);
+    }
+    return null;
+  }
+  function trSeg(s) {                                           // "Cash / Online" -> every piece on its own (pieces without a Hindi text stay as they are)
+    var parts = s.split(SEPS); if (parts.length < 3) return null;
+    var any = false;
+    for (var i = 0; i < parts.length; i += 2) { var t = trCore(parts[i]); if (t !== null) { parts[i] = t; any = true; } }
+    return any ? parts.join('') : null;
+  }
+  function trCore(s) {                                          // one trimmed piece (no outer spaces): full text, then pattern, then core with its prefix / suffix kept
+    var h = FULL[s]; if (h !== undefined) return h;
+    h = CORE[s]; if (h !== undefined) return h;
+    h = trPat(s); if (h !== null) return h;
+    var sp = splitCore(s);
+    if (sp && !(sp[0] === '' && sp[2] === '')) {
+      h = CORE[sp[1]]; if (h === undefined) h = trPat(sp[1]);
+      if (h !== undefined && h !== null) return sp[0] + h + sp[2];
+      var cuts = [(LEAD.exec(s) || [''])[0].length, sp[0].length];   // a sign (or sign + number) in front of a sentence that has its own ending / its own number ("⚠ Saved.", "⚠ 3 files."): the rest may be a whole text of its own
+      for (var ci = 0; ci < 2; ci++) {
+        if (cuts[ci] > 0 && (ci === 0 || cuts[1] !== cuts[0])) {
+          var rest = s.slice(cuts[ci]);
+          h = FULL[rest]; if (h === undefined) h = trPat(rest);
+          if (h !== undefined && h !== null) return s.slice(0, cuts[ci]) + h;
+        }
+      }
+    }
+    return trSeg(s);
+  }
+  function tr1(s) {                                             // a text node / attribute value -> Hindi, or null when there is nothing to translate
+    if (typeof s !== 'string' || !ANY_LATIN.test(s)) return null;
+    var c = cache[s]; if (c !== undefined) return c;
+    var lead = /^\s*/.exec(s)[0], trail = /\s*$/.exec(s)[0], core = s.slice(lead.length, s.length - trail.length).replace(/\s+/g, ' ');
+    var h = core ? trCore(core) : null;
+    var out = h === null ? null : lead + h + trail;
+    if (cacheN > 20000) { cache = Object.create(null); cacheN = 0; }
+    cache[s] = out; cacheN++;
+    return out;
+  }
+  function nLat(t) { var m = t.match(/[A-Za-z]/g); return m ? m.length : 0; }
+  function tr(s) {                                              // also handles a message of several lines (alert / confirm): the lines each on their own (the line breaks stay), unless the whole text as one gets MORE of it into Hindi
+    var h = tr1(s);
+    if (typeof s !== 'string' || s.indexOf('\n') < 0) return h;
+    var parts = s.split(/(\n+)/), any = false;
+    for (var i = 0; i < parts.length; i += 2) { var t = tr1(parts[i]); if (t !== null) { parts[i] = t; any = true; } }
+    if (!any) return h;
+    var p = parts.join('');
+    return h === null || nLat(p) <= nLat(h) ? p : h;
+  }
+  function rev(s) {                                             // Hindi text on the screen -> its English source (for the few places where the code reads what is shown)
+    if (typeof s !== 'string') return s;
+    if (!REV) {
+      REV = Object.create(null);
+      for (var k in FULL) if (!(FULL[k] in REV)) REV[FULL[k]] = k;
+      for (var c in CORE) if (!(CORE[c] in REV)) REV[CORE[c]] = c;
+    }
+    var t = s.replace(/\s+/g, ' ').trim(), r = REV[t];
+    if (r !== undefined) return r;
+    for (var cut = 1; cut <= 6; cut++) {                       // a few punctuation marks / emoji / digits around it (their spaces are kept)
+      var a = t.slice(cut), b = t.slice(0, t.length - cut);
+      if (a && REV[a.trim()] !== undefined) return t.slice(0, cut) + /^\s*/.exec(a)[0] + REV[a.trim()];
+      if (b && REV[b.trim()] !== undefined) return REV[b.trim()] + /\s*$/.exec(b)[0] + t.slice(t.length - cut);
+    }
+    return s;
+  }
+
+  /* ---------------------------------------------------------------- walking the page */
+  var TAGOFF = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEMPLATE: 1, IFRAME: 1, CANVAS: 1 };   // nothing in here is page text
+  var TAGTEXT = { TEXTAREA: 1, CODE: 1, PRE: 1 };                                       // the text inside is data / code (attributes like placeholder are still translated)
+  var ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
+  var NOTR = '[translate="no"],.notranslate,[contenteditable=""],[contenteditable="true"],textarea,code,pre,svg,script,style,noscript,template,iframe,canvas';
+  var doneText = new WeakMap(), origText = new WeakMap();
+  var misses = W.__mwMiss = [], missSeen = Object.create(null);
+  function miss(kind, s) {
+    if (!DEBUG) return;
+    var t = s.replace(/\s+/g, ' ').trim(); if (!t || missSeen[kind + t]) return; missSeen[kind + t] = 1; misses.push([kind, t]);
+    try { console.debug('__MWMISS__' + JSON.stringify([kind, t])); } catch (e) {}
+  }
+  function noTr(el) { return !!(el && el.closest && el.closest(NOTR)); }
+  function noTrAttr(el) { return !!(el && el.closest && el.closest('[translate="no"],.notranslate')); }
+  function text(n) {
+    var p = n.parentNode; if (!p) return;
+    if (p.nodeType === 1 && p.tagName === 'OPTION') { opt(p); return; }
+    var v = n.nodeValue; if (doneText.get(n) === v) return;     // our own output
+    var h = tr(v);
+    if (h === null) { if (HAS_LATIN.test(v)) miss('text', v); return; }
+    if (h !== v) { origText.set(n, v); n.nodeValue = h; doneText.set(n, h); }
+  }
+  function opt(o) {                                             // <option>: only the label changes; the text (= value when there is no value attribute) stays English
+    if (noTr(o)) return;
+    var t = o.textContent || '', h = tr(t);
+    if (h === null) { if (o.__mwL) unlabel(o); else if (HAS_LATIN.test(t)) miss('option', t); return; }
+    h = h.replace(/^\s+|\s+$/g, '');
+    if (!o.__mwL) { o.__mwL0 = o.getAttribute('label'); o.__mwL = 1; }
+    if (o.getAttribute('label') !== h) o.setAttribute('label', h);
+  }
+  function unlabel(o) { if (o.__mwL0 === null || o.__mwL0 === undefined) o.removeAttribute('label'); else o.setAttribute('label', o.__mwL0); o.__mwL = 0; }
+  function attr1(el, name) {
+    if (name === 'value' && !(el.tagName === 'INPUT' && /^(button|submit|reset)$/i.test(el.getAttribute('type') || ''))) return;   // a typed / saved value is data, never translated
+    var v = el.getAttribute(name); if (v === null) return;
+    var d = el.__mwA || (el.__mwA = {}); if (d[name] === v) return;
+    var h = tr(v);
+    if (h === null) { if (HAS_LATIN.test(v)) miss('attr:' + name, v); return; }
+    if (h !== v) { (el.__mwO || (el.__mwO = {}))[name] = v; el.setAttribute(name, h); d[name] = h; }
+  }
+  function attrs(el) {
+    for (var i = 0; i < ATTRS.length; i++) if (el.hasAttribute(ATTRS[i])) attr1(el, ATTRS[i]);
+    if (el.tagName === 'INPUT') { var t = (el.getAttribute('type') || '').toLowerCase(); if (t === 'button' || t === 'submit' || t === 'reset') attr1(el, 'value'); }
+    else if (el.tagName === 'OPTGROUP') attr1(el, 'label');
+  }
+  function blocked(n) {
+    return n.getAttribute('translate') === 'no' || n.classList.contains('notranslate') || (n.hasAttribute('contenteditable') && n.getAttribute('contenteditable') !== 'false');
+  }
+  function walk(n) {
+    if (n.nodeType === 3) { text(n); return; }
+    if (n.nodeType !== 1 || TAGOFF[n.tagName] || n.namespaceURI === SVGNS || blocked(n)) return;
+    attrs(n);
+    if (n.tagName === 'OPTION') { opt(n); return; }
+    if (TAGTEXT[n.tagName]) return;
+    for (var c = n.firstChild; c; c = c.nextSibling) walk(c);
+  }
+  function unwalk(n) {                                          // English again: every text / attribute that is still exactly what we wrote gets its original back
+    if (n.nodeType === 3) {
+      var d = doneText.get(n);
+      if (d !== undefined) { if (n.nodeValue === d) n.nodeValue = origText.get(n); doneText.delete(n); }
+      return;
+    }
+    if (n.nodeType !== 1 || TAGOFF[n.tagName]) return;
+    var A = n.__mwA;
+    if (A) { var O = n.__mwO || {}; for (var k in A) if (n.getAttribute(k) === A[k] && O[k] !== undefined) n.setAttribute(k, O[k]); n.__mwA = n.__mwO = null; }
+    if (n.__mwL) unlabel(n);
+    for (var c = n.firstChild; c; c = c.nextSibling) unwalk(c);
+  }
+  function onMut(list) {
+    for (var i = 0; i < list.length; i++) {
+      var m = list[i], t = m.target;
+      if (m.type === 'characterData') { if (!noTr(t.parentNode)) text(t); }
+      else if (m.type === 'attributes') { if (t.nodeType === 1 && !noTrAttr(t)) attr1(t, m.attributeName); }
+      else {
+        for (var j = 0; j < m.addedNodes.length; j++) {
+          var a = m.addedNodes[j];
+          if (!a.parentNode || noTr(a.nodeType === 1 ? a.parentNode : t)) continue;
+          walk(a);
+        }
+        if (t.nodeType === 1 && t.tagName === 'OPTION') opt(t);
+      }
+    }
+  }
+  var obs = new MutationObserver(onMut), OBS = { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTRS.concat(['value']) };
+
+  /* alert / confirm / prompt (installed once, the first time Hindi is switched on; in English they pass everything through) */
+  function patchDialogs() {
+    if (patched) return; patched = true;
+    ['alert', 'confirm', 'prompt'].forEach(function (name) {
+      var orig = W[name]; if (typeof orig !== 'function') return;
+      W[name] = function (m) {
+        var a = arguments;
+        if (lang === 'hi' && typeof m === 'string') { var h = tr(m); if (h !== null) { a = Array.prototype.slice.call(a); a[0] = h; } }
+        return orig.apply(W, a);
+      };
+    });
+  }
+
+  /* ---------------------------------------------------------------- Hindi on / off */
+  function unwait() { if (waitT) { W.clearTimeout(waitT); waitT = 0; } root.classList.remove('mw-wait'); }
+  function run() {                                              // the first translation of the whole page (then the observer keeps up with later changes)
+    if (running || lang !== 'hi') return;
+    running = true;
+    try { walk(root); } catch (e) { try { console.error('mwLang', e); } catch (x) {} }
+    unwait();
+    obs.observe(root, OBS);
+  }
+  function startHi() {
+    compile(); started = true; W.mwTr = tr;
+    root.setAttribute('lang', 'hi');
+    patchDialogs();
+    if (domReady) run();
+    else { root.classList.add('mw-wait'); if (!waitT) waitT = W.setTimeout(unwait, 1500); }   // while the page is still being read the first paint waits for the first translation (no English flash)
+  }
+  function stopHi() {
+    unwait();
+    if (running) { obs.disconnect(); try { unwalk(root); } catch (e) { try { console.error('mwLang', e); } catch (x) {} } running = false; }
+    if (origLang === null) root.removeAttribute('lang'); else root.setAttribute('lang', origLang);
+  }
+  if (stored() === 'hi') { lang = 'hi'; W.mwLang = 'hi'; startHi(); }
+})();
+</script>
+<!-- MW-I18N:END -->
+<style id="mwLangPg">.topbar{position:relative}.topbar .mw-lang{position:absolute;top:20px;right:12px;z-index:3;--mw-lang-h:28px;--mw-lang-bg:rgba(255,255,255,.14);--mw-lang-fg:#fff;--mw-lang-line:rgba(255,255,255,.55);--mw-lang-on:#fff;--mw-lang-on-fg:#132E26}html.nl .topbar .mw-lang{--mw-lang-on-fg:#3D2FB5}html[lang="hi"] .topbar p{font-size:12.5px}</style>
 <!-- MW-BACKCSS-START (the "Back" button: the same in every page, built by tools/apply_back.py) -->
 <style id="mwBackCss">
   .mw-back{display:inline-flex; align-items:center; gap:6px; flex:none; box-sizing:border-box; min-height:40px; margin:0; padding:0 16px 0 10px; border-radius:999px; border:1.5px solid rgba(255,255,255,.45); background:rgba(255,255,255,.18); color:#fff; font-family:inherit; font-size:15px; font-weight:700; line-height:1; letter-spacing:0; text-decoration:none; text-transform:none; white-space:nowrap; cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:manipulation; -webkit-user-select:none; user-select:none;}
@@ -161,6 +444,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     <div class="mw-back-row"><a class="mw-back" href="index.html" onclick="return window.mwBackGo ? mwBackGo(event) : true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5M11 5l-7 7 7 7"/></svg><span>Back</span></a></div>
     <h1>Mahakal Wellness</h1>
     <p>Hall Booking Request</p>
+  <span class="mw-lang" id="mwLangPill" translate="no"><button type="button" data-mw-lang="en" aria-label="English">EN</button><button type="button" data-mw-lang="hi" aria-label="हिन्दी">हि</button></span>
   </header>
 
   <main id="mainArea"></main>

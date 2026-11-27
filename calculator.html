@@ -439,6 +439,289 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
     @keyframes crFlashNl{0%{background:#EEEAFF;} 100%{background:transparent;}}
   }
 </style>
+<!-- MW-I18N:BEGIN -->
+<style id="mwLangCss">
+/* EN | हि language switch (CSS vars: --mw-lang-h --mw-lang-line --mw-lang-bg --mw-lang-fg --mw-lang-on --mw-lang-on-fg) (small variant for crowded headers: class="mw-lang one" = ONE square button that shows the OTHER language) (markup:  <span class="mw-lang" translate="no"><button type="button" data-mw-lang="en" aria-label="English">EN</button><button type="button" data-mw-lang="hi" aria-label="हिन्दी">हि</button></span> ) */
+html.mw-wait body{visibility:hidden}
+.mw-lang{display:inline-flex;align-items:stretch;height:var(--mw-lang-h,32px);border-radius:999px;overflow:hidden;border:1.5px solid var(--mw-lang-line,rgba(20,40,30,.28));background:var(--mw-lang-bg,#fff);box-shadow:0 1px 3px rgba(0,0,0,.12);vertical-align:middle;margin:0;padding:0;flex:none;box-sizing:border-box}
+.mw-lang button{margin:0;padding:0 10px;min-width:34px;border:0;border-radius:0;background:transparent;color:var(--mw-lang-fg,#33423b);font-weight:700;font-size:13px;line-height:1;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;display:inline-flex;align-items:center;justify-content:center;box-shadow:none;text-shadow:none;transform:none;letter-spacing:0}
+.mw-lang button:focus-visible{outline:2px solid var(--mw-lang-on,#1f6f4a);outline-offset:-3px}
+html[lang="hi"] .mw-lang [data-mw-lang="hi"],html:not([lang="hi"]) .mw-lang [data-mw-lang="en"]{background:var(--mw-lang-on,#1f6f4a);color:var(--mw-lang-on-fg,#fff)}
+.mw-lang.one{width:var(--mw-lang-h,32px);border-radius:var(--mw-lang-r,10px)}
+.mw-lang.one button{min-width:0;width:100%;padding:0}
+html:not([lang="hi"]) .mw-lang.one [data-mw-lang="en"],html[lang="hi"] .mw-lang.one [data-mw-lang="hi"]{display:none}
+html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
+</style>
+<script id="mwLangJs">
+/* Mahakal Wellness - language switch + Hindi translator (the same code is inlined in every page; the dictionary below belongs to THIS page).
+   English (default): nothing is changed on the page - only the EN | हि switch is listening.
+   Hindi: every visible English text is replaced by its Hindi text (text, placeholder, title, aria-label, alt, <option> labels, alert/confirm/prompt).
+   The switch works LIVE (no reload, so a half-filled bill / cart stays): हि translates the page, EN puts every original text back.
+   The saved choice is localStorage.mwLang ('hi' or 'en'), shared by all pages of the app (and followed by the other open pages / tabs).
+   Data (names, numbers, product names, typed values) is never touched, and a <option> keeps its English text / value (only its label changes),
+   so nothing that is saved or sent changes with the language. */
+(function () {
+  'use strict';
+  var W = window, D = document, root = D.documentElement, KEY = 'mwLang', SVGNS = 'http://www.w3.org/2000/svg';
+  var RAW = {"Aapka bill abhi khali hai":"आपका बिल अभी खाली है","Aapki list taiyaar ho rahi hai":"आपकी लिस्ट तैयार हो रही है","Abhi ki list replace ho jayegi — Edit dobara dabao":"अभी की लिस्ट रिप्लेस हो जाएगी — बदलें दोबारा दबाएं","Abhi koi bill nahi hai":"अभी कोई बिल नहीं है","Action":"एक्शन","Add":"जोड़ें","Add the product to the list":"प्रोडक्ट को लिस्ट में जोड़ें","Add {0}":"{0} जोड़ें","Admin Login":"एडमिन लॉगिन","All":"सभी","Amount":"राशि","Back":"वापस","Back / Edit":"वापस / बदलें","Bahar jaane ke liye ek baar aur back dabao":"बाहर जाने के लिए एक बार और बैक दबाएं","Bill Preview":"बिल प्रीव्यू","Bill bahut lambi hai — PDF se bhej rahe hain":"बिल बहुत लंबा है — PDF से भेज रहे हैं","Bill edit ke liye khul gayi":"बिल बदलने के लिए खुल गया","Bill edit ke liye khul gayi — {0#} item ab price list me nahi hain":"बिल बदलने के लिए खुल गया — {0} आइटम अब प्राइस लिस्ट में नहीं हैं","Bill edit ke liye khul gayi — {0#} items ab price list me nahi hain":"बिल बदलने के लिए खुल गया — {0} आइटम अब प्राइस लिस्ट में नहीं हैं","Bill hata di":"बिल हटा दिया","Bill ka type chuno aur PDF preview dekho":"बिल का टाइप चुनें और PDF प्रीव्यू देखें","Bill seedha {0#} ko jayegi. Jo app aapke phone me hai wahi chuno.":"बिल सीधे {0} को जाएगा। जो ऐप आपके फोन में है वही चुनें।","Bill type":"बिल का टाइप","Bill view":"बिल व्यू","Billing Options":"बिलिंग ऑप्शन","Book Hall":"हॉल बुक करें","Business wala app":"बिज़नेस वाला ऐप","Calculator":"कैलकुलेटर","Calculator, product list and history":"कैलकुलेटर, प्रोडक्ट लिस्ट और हिस्ट्री","Cancel":"रद्द करें","Cash":"कैश","Chune hue products ({0#})":"चुने हुए प्रोडक्ट्स ({0})","Clear":"साफ करें","Clear List":"लिस्ट साफ करें","Close":"बंद करें","Code":"कोड","Continue":"आगे बढ़ें","Could not update":"अपडेट नहीं हो पाया","Customer details":"कस्टमर की जानकारी","Customer ka naam likho":"कस्टमर का नाम लिखें","DISCOUNT":"डिस्काउंट","DISCOUNT BILL":"डिस्काउंट बिल","DP BILL":"DP बिल","DP Price Bill (Distributor":"DP प्राइस बिल (डिस्ट्रीब्यूटर","DS / customer ID":"DS / कस्टमर ID","Date":"तारीख","Decrease quantity":"मात्रा घटाएं","Delete":"हटाएं","Delete my account":"मेरा अकाउंट डिलीट करें","Delete this bill":"यह बिल हटाएं","Digital Invoice":"डिजिटल इनवॉइस","Discount amount (₹ mein":"डिस्काउंट की राशि (₹ में","Discount profit ({0}) se zyada nahi ho sakta":"डिस्काउंट प्रॉफिट ({0}) से ज़्यादा नहीं हो सकता","Done":"हो गया","Download Bill":"बिल डाउनलोड करें","Download PDF":"PDF डाउनलोड करें","Download this bill":"यह बिल डाउनलोड करें","Edit":"बदलें","Edit this bill":"यह बिल बदलें","Email":"ईमेल","Enter Admin Link Code":"एडमिन लिंक कोड डालें","GRAND TOTAL":"कुल राशि","Hall Admin Login":"हॉल एडमिन लॉगिन","Hide":"छुपाएं","History":"हिस्ट्री","History save nahi ho payi — phone me jagah kam hai":"हिस्ट्री सेव नहीं हो पाई — फोन में जगह कम है","History, {0#} bill":"हिस्ट्री, {0} बिल","History, {0#} bills":"हिस्ट्री, {0} बिल","Home":"होम","ID number":"ID नंबर","ID number aur remark (optional":"ID नंबर और रिमार्क (ज़रूरी नहीं","Increase quantity":"मात्रा बढ़ाएं","Is bill me discount nahi de sakte (profit ₹0 hai":"इस बिल में डिस्काउंट नहीं दे सकते (प्रॉफिट ₹0 है","Is phone me seedha share nahi ho sakta — PDF download ho gayi":"इस फोन में सीधे शेयर नहीं हो सकता — PDF डाउनलोड हो गई","Items Count":"आइटम","Kaun sa WhatsApp":"कौन सा WhatsApp","List nahi aayi — internet check karo":"लिस्ट नहीं आई — इंटरनेट चेक करें","List pehle se khali hai":"लिस्ट पहले से खाली है","Live billing":"लाइव बिलिंग","Loading":"लोड हो रहा है","Loading the product list":"प्रोडक्ट लिस्ट लोड हो रही है","MRP BILL":"MRP बिल","MRP Price Bill (Customer":"MRP प्राइस बिल (कस्टमर","MRP with Custom Discount":"MRP के साथ अपना डिस्काउंट","Mahakal Admin Login":"महाकाल एडमिन लॉगिन","Mahakal Wellness":"महाकाल वेलनेस","Mahakal Wellness logo":"महाकाल वेलनेस लोगो","Matching products":"मिलते-जुलते प्रोडक्ट्स","Maximum amount: {0}":"ज़्यादा से ज़्यादा राशि: {0}","Message us on WhatsApp":"WhatsApp पर हमें मैसेज करें","Mobile":"मोबाइल","Mobile number":"मोबाइल नंबर","Naam ya code":"नाम या कोड","Name":"नाम","Name / naam":"नाम","Nayi bill ready":"नया बिल तैयार","Next":"आगे","No":"नहीं","No products found for \"{0}\".":"“{0}” के लिए कोई प्रोडक्ट नहीं मिला।","Normal WhatsApp":"नॉर्मल WhatsApp","OK":"ठीक है","Offline":"ऑफलाइन","Online":"ऑनलाइन","PDF File View":"PDF फाइल व्यू","PDF ban rahi hai":"PDF बन रही है","PDF bhejo / doosre app se (Share":"PDF भेजें / दूसरे ऐप से (शेयर","PDF download ho gayi · {0}":"PDF डाउनलोड हो गई · {0}","PDF nahi ban payi — dobara try karo":"PDF नहीं बन पाई — दोबारा कोशिश करें","Password":"पासवर्ड","Pehle preview dekho":"पहले प्रीव्यू देखें","Pehle product ka naam ya code likho":"पहले प्रोडक्ट का नाम या कोड लिखें","Pehle products jodo":"पहले प्रोडक्ट्स जोड़ें","Pehle products jodo, phir bill banao":"पहले प्रोडक्ट्स जोड़ें, फिर बिल बनाएं","Please wait":"कृपया रुकें","Points":"पॉइंट्स","Price list update ho gayi":"प्राइस लिस्ट अपडेट हो गई","Privacy Policy":"प्राइवेसी पॉलिसी","Product Calculator":"प्रोडक्ट कैलकुलेटर","Product Calculator — Mahakal Wellness":"प्रोडक्ट कैलकुलेटर — महाकाल वेलनेस","Product List":"प्रोडक्ट लिस्ट","Product list":"प्रोडक्ट लिस्ट","Product list ({0#} of {1#})":"प्रोडक्ट लिस्ट ({1} में से {0})","Product list ({0#})":"प्रोडक्ट लिस्ट ({0})","Product name":"प्रोडक्ट का नाम","Products":"प्रोडक्ट्स","Purane bills":"पुराने बिल","Purchase Product":"प्रोडक्ट खरीदें","Qty":"मात्रा","Quantity":"मात्रा","Quantity of {0}":"{0} की मात्रा","Quantity to add":"जोड़ने की मात्रा","RETAIL":"रिटेल","Refresh":"रिफ्रेश","Refresh the price list":"प्राइस लिस्ट रिफ्रेश करें","Remark":"रिमार्क","Remove":"हटाएं","Remove {0}":"{0} हटाएं","Replace":"रिप्लेस करें","SP Set Maker":"SP सेट मेकर","Save":"सेव करें","Search":"खोजें","Search by name or code":"नाम या कोड से खोजें","Search products by code or name":"कोड या नाम से प्रोडक्ट खोजें","Search the product list":"प्रोडक्ट लिस्ट में खोजें","Seedha share karo":"सीधे शेयर करें","Share":"शेयर","Share this bill":"यह बिल शेयर करें","Shop / business name":"शॉप / बिज़नेस का नाम","Show":"दिखाएं","Show or hide code":"कोड दिखाएं या छुपाएं","Show or hide password":"पासवर्ड दिखाएं या छुपाएं","Showing the first {0#} of {1#} — type more to narrow down.":"{1} में से पहले {0} दिख रहे हैं — और टाइप करके छांटें।","Submit":"सबमिट करें","Tap again: sab saaf":"दोबारा टैप करें: सब साफ","These prices were saved {0#} days ago and may have changed. Connect to the internet once to get the latest prices.":"ये प्राइस {0} दिन पहले सेव हुए थे और बदल गए हो सकते हैं। नए प्राइस पाने के लिए एक बार इंटरनेट से कनेक्ट करें।","Time":"समय","Total":"कुल","Total DP":"कुल DP","Total DP price":"कुल DP प्राइस","Total MRP price":"कुल MRP प्राइस","Total SP":"कुल SP","Total net profit":"कुल नेट प्रॉफिट","Total points (SP":"कुल पॉइंट्स (SP","Try again":"दोबारा कोशिश करें","Update nahi ho paya — saved list chal rahi hai":"अपडेट नहीं हो पाया — सेव की हुई लिस्ट चल रही है","View this bill":"यह बिल देखें","WELCOME":"स्वागत है","Walk-in Customer":"वॉक-इन कस्टमर","Welcome to Mahakal Wellness":"महाकाल वेलनेस में आपका स्वागत है","WhatsApp / Share":"WhatsApp / शेयर","WhatsApp par seedha share karo":"WhatsApp पर सीधे शेयर करें","Ye products abhi price list me nahi hain":"ये प्रोडक्ट्स अभी प्राइस लिस्ट में नहीं हैं","Yes":"हां","Your details":"आपकी जानकारी","Your mobile":"आपका मोबाइल","Your mobile number":"आपका मोबाइल नंबर","Your name":"आपका नाम","Your password":"आपका पासवर्ड","Your wellness, our priority":"आपका वेलनेस, हमारी प्राथमिकता","e.g. delivery on Friday":"जैसे: शुक्रवार को डिलीवरी","saved list from {0}":"सेव की हुई लिस्ट {0} की","updated {0}":"अपडेट हुआ {0}","updating":"अपडेट हो रहा है","{0#} bill":"{0} बिल","{0#} bills":"{0} बिल","{0#} item":"{0} आइटम","{0#} item hata diye (ab price list me nahi hain)":"{0} आइटम हटा दिए (अब प्राइस लिस्ट में नहीं हैं)","{0#} items":"{0} आइटम","{0#} items hata diye (ab price list me nahi hain)":"{0} आइटम हटा दिए (अब प्राइस लिस्ट में नहीं हैं)","{0#} product price list me nahi mile":"{0} प्रोडक्ट प्राइस लिस्ट में नहीं मिला","{0#} products":"{0} प्रोडक्ट्स","{0#} products price list me nahi mile":"{0} प्रोडक्ट्स प्राइस लिस्ट में नहीं मिले","~10-digit mobile":"10 अंकों का मोबाइल","~10-digit mobile number":"10 अंकों का मोबाइल नंबर","~Bill download ya share karte hi wo yahan save ho jayegi (sirf is phone me).":"बिल डाउनलोड या शेयर करते ही वह यहां सेव हो जाएगा (सिर्फ इसी फोन में)।","~Bill no.":"बिल नंबर","~Could not verify right now — try again.":"अभी जाँच नहीं हो पाई — दोबारा कोशिश करें।","~DP":"DP","~Enter the code.":"कोड डालें।","~Incorrect code.":"गलत कोड।","~Internet is slow. Trying again.":"इंटरनेट धीमा है। दोबारा कोशिश हो रही है।","~Jo app aapke phone me hai wahi chuno. Dono hain to jisse bhejna ho.":"जो ऐप आपके फोन में है वही चुनें। दोनों हों तो जिससे भेजना हो उसे चुनें।","~MRP":"MRP","~Mobile / मोबाइल":"मोबाइल","~No internet connection. Please try again.":"इंटरनेट कनेक्शन नहीं है। कृपया दोबारा कोशिश करें।","~No internet. This page refreshes by itself when the internet is back.":"इंटरनेट नहीं है। इंटरनेट वापस आते ही यह पेज अपने-आप रिफ्रेश हो जाएगा।","~PDF nahi ban payi. Digital Invoice dekho ya dobara try karo.":"PDF नहीं बन पाई। डिजिटल इनवॉइस देखें या दोबारा कोशिश करें।","~Please enter a valid 10-digit mobile number.":"कृपया सही 10 अंकों का मोबाइल नंबर डालें।","~Price list load hote hi list yahan dikhegi.":"प्राइस लिस्ट लोड होते ही लिस्ट यहां दिखेगी।","~Profit se kam discount dene ke liye.":"प्रॉफिट से कम डिस्काउंट देने के लिए।","~SP":"SP","~SP, Total SP, MRP aur DP price ki poori jaankari.":"SP, कुल SP, MRP और DP प्राइस की पूरी जानकारी।","~Shop naam, mobile aur bill no.":"शॉप का नाम, मोबाइल और बिल नंबर","~Sirf MRP rate par based retail bill.":"सिर्फ MRP रेट पर बना रिटेल बिल।","~Something went wrong. Please try again.":"कुछ गड़बड़ हो गई। कृपया दोबारा कोशिश करें।","~The product list could not be loaded. Check the internet and tap the refresh button.":"प्रोडक्ट लिस्ट लोड नहीं हो पाई। इंटरनेट जाँचें और रिफ्रेश बटन दबाएं।","~The product list is not loaded yet.":"प्रोडक्ट लिस्ट अभी लोड नहीं हुई है।","~This page could not load. Please check your internet connection and reload.":"यह पेज लोड नहीं हो पाया। कृपया इंटरनेट कनेक्शन चेक करके पेज दोबारा खोलें।","~Upar search bar se product jodo.":"ऊपर सर्च बार से प्रोडक्ट जोड़ें।","~WhatsApp":"WhatsApp","~WhatsApp Business":"WhatsApp Business","~You are offline and no price list is saved on this phone yet. Connect to the internet once to load it.":"आप ऑफलाइन हैं और इस फोन में अभी कोई प्राइस लिस्ट सेव नहीं है। लोड करने के लिए एक बार इंटरनेट से कनेक्ट करें।","✓ {0#} product Products page se list me jud gaye":"✓ प्रोडक्ट्स पेज से {0} प्रोडक्ट लिस्ट में जुड़ गया","✓ {0#} products Products page se list me jud gaye":"✓ प्रोडक्ट्स पेज से {0} प्रोडक्ट्स लिस्ट में जुड़ गए"};
+  var lang = 'en', started = false, running = false, patched = false, domReady = D.readyState !== 'loading', waitT = 0;
+  var origLang = root.getAttribute('lang');
+  var FULL, CORE, PATS, REV = null, compiled = false;
+
+  function stored() { try { return W.localStorage.getItem(KEY) === 'hi' ? 'hi' : 'en'; } catch (e) { return 'en'; } }
+  W.mwLang = 'en';
+  W.mwEn = function (s) { return lang === 'hi' && started ? rev(s) : s; };   // the English source of a text that is shown in Hindi (English mode: the text itself)
+
+  /* ---------------------------------------------------------------- the switch */
+  function syncSwitch() {
+    var bs = D.querySelectorAll('[data-mw-lang]');
+    for (var i = 0; i < bs.length; i++) bs[i].setAttribute('aria-pressed', bs[i].getAttribute('data-mw-lang') === lang ? 'true' : 'false');
+  }
+  function apply(l) {
+    if (l === lang) return;
+    lang = l; W.mwLang = l;
+    if (l === 'hi') startHi(); else stopHi();
+    syncSwitch();
+  }
+  function setLang(l) {
+    l = l === 'hi' ? 'hi' : 'en';
+    try { W.localStorage.setItem(KEY, l); } catch (e) {}
+    apply(l);
+  }
+  W.mwSetLang = setLang;
+  D.addEventListener('click', function (ev) {
+    var t = ev.target, b = t && t.closest ? t.closest('[data-mw-lang]') : null;
+    if (!b) return;
+    ev.preventDefault(); setLang(b.getAttribute('data-mw-lang'));
+  }, true);
+  W.addEventListener('storage', function (e) { if (e.key === KEY || e.key === null) apply(stored()); });          // another page / tab changed the language
+  W.addEventListener('pageshow', function (e) { if (e.persisted) apply(stored()); });                              // coming back to a kept page
+  if (!domReady) D.addEventListener('DOMContentLoaded', function () { domReady = true; if (lang === 'hi') run(); syncSwitch(); });
+  else syncSwitch();
+
+  /* ---------------------------------------------------------------- the dictionary */
+  function compile() {
+    if (compiled) return; compiled = true;
+    FULL = Object.create(null); CORE = Object.create(null); PATS = [];
+    for (var k in RAW) {
+      if (!Object.prototype.hasOwnProperty.call(RAW, k)) continue;
+      var v = RAW[k];
+      if (k.indexOf('{') < 0) { if (k.charAt(0) === '~') FULL[k.slice(1)] = v; else CORE[k] = v; continue; }   // '~key' = a whole text (its own punctuation)
+      var lit = '', parts = k.split(/\{\d+#?\}/), toks = k.match(/\{\d+#?\}/g), rxs = '^';       // {0} = any text, {0#} = a number (5, 12.5, 1,250) only
+      for (var i = 0; i < parts.length; i++) {
+        rxs += parts[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        if (parts[i].length > lit.length) lit = parts[i];
+        if (i < parts.length - 1) rxs += toks[i].indexOf('#') > 0 ? '(\\d+(?:,\\d+)*(?:\\.\\d+)?)' : '([\\s\\S]+?)';
+      }
+      PATS.push({ re: new RegExp(rxs + '$'), lit: lit, to: v, n: k.length });
+    }
+    PATS.sort(function (a, b) { return b.n - a.n; });          // the most specific (longest) pattern first
+  }
+  var DEBUG = false; try { DEBUG = W.localStorage.getItem('mwLangDebug') === '1'; } catch (e) {}
+  var HAS_LATIN = /[A-Za-z]{2}/, ANY_LATIN = /[A-Za-z]/, SEPS = /( \/ | \| | · | • | – | — )/; var LEAD = /^[^A-Za-z0-9\u0900-\u097F]+/;
+  var cache = Object.create(null), cacheN = 0;
+  function splitCore(s) {                                       // prefix / core / suffix: the core runs from the first to the last Latin letter
+    var a = s.search(/[A-Za-z]/); if (a < 0) return null;
+    var b = s.length; while (b > a && !/[A-Za-z]/.test(s.charAt(b - 1))) b--;
+    return [s.slice(0, a), s.slice(a, b), s.slice(b)];
+  }
+  function fill(tpl, m) {
+    return tpl.replace(/\{(\d+)\}/g, function (x, i) { var g = m[+i + 1]; if (g === undefined) return x; var t = trCore(g); return t === null ? g : t; });
+  }
+  function trPat(s) {
+    for (var i = 0; i < PATS.length; i++) {
+      var p = PATS[i];
+      if (s.indexOf(p.lit) < 0) continue;
+      var m = p.re.exec(s);
+      if (m) return fill(p.to, m);
+    }
+    return null;
+  }
+  function trSeg(s) {                                           // "Cash / Online" -> every piece on its own (pieces without a Hindi text stay as they are)
+    var parts = s.split(SEPS); if (parts.length < 3) return null;
+    var any = false;
+    for (var i = 0; i < parts.length; i += 2) { var t = trCore(parts[i]); if (t !== null) { parts[i] = t; any = true; } }
+    return any ? parts.join('') : null;
+  }
+  function trCore(s) {                                          // one trimmed piece (no outer spaces): full text, then pattern, then core with its prefix / suffix kept
+    var h = FULL[s]; if (h !== undefined) return h;
+    h = CORE[s]; if (h !== undefined) return h;
+    h = trPat(s); if (h !== null) return h;
+    var sp = splitCore(s);
+    if (sp && !(sp[0] === '' && sp[2] === '')) {
+      h = CORE[sp[1]]; if (h === undefined) h = trPat(sp[1]);
+      if (h !== undefined && h !== null) return sp[0] + h + sp[2];
+      var cuts = [(LEAD.exec(s) || [''])[0].length, sp[0].length];   // a sign (or sign + number) in front of a sentence that has its own ending / its own number ("⚠ Saved.", "⚠ 3 files."): the rest may be a whole text of its own
+      for (var ci = 0; ci < 2; ci++) {
+        if (cuts[ci] > 0 && (ci === 0 || cuts[1] !== cuts[0])) {
+          var rest = s.slice(cuts[ci]);
+          h = FULL[rest]; if (h === undefined) h = trPat(rest);
+          if (h !== undefined && h !== null) return s.slice(0, cuts[ci]) + h;
+        }
+      }
+    }
+    return trSeg(s);
+  }
+  function tr1(s) {                                             // a text node / attribute value -> Hindi, or null when there is nothing to translate
+    if (typeof s !== 'string' || !ANY_LATIN.test(s)) return null;
+    var c = cache[s]; if (c !== undefined) return c;
+    var lead = /^\s*/.exec(s)[0], trail = /\s*$/.exec(s)[0], core = s.slice(lead.length, s.length - trail.length).replace(/\s+/g, ' ');
+    var h = core ? trCore(core) : null;
+    var out = h === null ? null : lead + h + trail;
+    if (cacheN > 20000) { cache = Object.create(null); cacheN = 0; }
+    cache[s] = out; cacheN++;
+    return out;
+  }
+  function nLat(t) { var m = t.match(/[A-Za-z]/g); return m ? m.length : 0; }
+  function tr(s) {                                              // also handles a message of several lines (alert / confirm): the lines each on their own (the line breaks stay), unless the whole text as one gets MORE of it into Hindi
+    var h = tr1(s);
+    if (typeof s !== 'string' || s.indexOf('\n') < 0) return h;
+    var parts = s.split(/(\n+)/), any = false;
+    for (var i = 0; i < parts.length; i += 2) { var t = tr1(parts[i]); if (t !== null) { parts[i] = t; any = true; } }
+    if (!any) return h;
+    var p = parts.join('');
+    return h === null || nLat(p) <= nLat(h) ? p : h;
+  }
+  function rev(s) {                                             // Hindi text on the screen -> its English source (for the few places where the code reads what is shown)
+    if (typeof s !== 'string') return s;
+    if (!REV) {
+      REV = Object.create(null);
+      for (var k in FULL) if (!(FULL[k] in REV)) REV[FULL[k]] = k;
+      for (var c in CORE) if (!(CORE[c] in REV)) REV[CORE[c]] = c;
+    }
+    var t = s.replace(/\s+/g, ' ').trim(), r = REV[t];
+    if (r !== undefined) return r;
+    for (var cut = 1; cut <= 6; cut++) {                       // a few punctuation marks / emoji / digits around it (their spaces are kept)
+      var a = t.slice(cut), b = t.slice(0, t.length - cut);
+      if (a && REV[a.trim()] !== undefined) return t.slice(0, cut) + /^\s*/.exec(a)[0] + REV[a.trim()];
+      if (b && REV[b.trim()] !== undefined) return REV[b.trim()] + /\s*$/.exec(b)[0] + t.slice(t.length - cut);
+    }
+    return s;
+  }
+
+  /* ---------------------------------------------------------------- walking the page */
+  var TAGOFF = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEMPLATE: 1, IFRAME: 1, CANVAS: 1 };   // nothing in here is page text
+  var TAGTEXT = { TEXTAREA: 1, CODE: 1, PRE: 1 };                                       // the text inside is data / code (attributes like placeholder are still translated)
+  var ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
+  var NOTR = '[translate="no"],.notranslate,[contenteditable=""],[contenteditable="true"],textarea,code,pre,svg,script,style,noscript,template,iframe,canvas';
+  var doneText = new WeakMap(), origText = new WeakMap();
+  var misses = W.__mwMiss = [], missSeen = Object.create(null);
+  function miss(kind, s) {
+    if (!DEBUG) return;
+    var t = s.replace(/\s+/g, ' ').trim(); if (!t || missSeen[kind + t]) return; missSeen[kind + t] = 1; misses.push([kind, t]);
+    try { console.debug('__MWMISS__' + JSON.stringify([kind, t])); } catch (e) {}
+  }
+  function noTr(el) { return !!(el && el.closest && el.closest(NOTR)); }
+  function noTrAttr(el) { return !!(el && el.closest && el.closest('[translate="no"],.notranslate')); }
+  function text(n) {
+    var p = n.parentNode; if (!p) return;
+    if (p.nodeType === 1 && p.tagName === 'OPTION') { opt(p); return; }
+    var v = n.nodeValue; if (doneText.get(n) === v) return;     // our own output
+    var h = tr(v);
+    if (h === null) { if (HAS_LATIN.test(v)) miss('text', v); return; }
+    if (h !== v) { origText.set(n, v); n.nodeValue = h; doneText.set(n, h); }
+  }
+  function opt(o) {                                             // <option>: only the label changes; the text (= value when there is no value attribute) stays English
+    if (noTr(o)) return;
+    var t = o.textContent || '', h = tr(t);
+    if (h === null) { if (o.__mwL) unlabel(o); else if (HAS_LATIN.test(t)) miss('option', t); return; }
+    h = h.replace(/^\s+|\s+$/g, '');
+    if (!o.__mwL) { o.__mwL0 = o.getAttribute('label'); o.__mwL = 1; }
+    if (o.getAttribute('label') !== h) o.setAttribute('label', h);
+  }
+  function unlabel(o) { if (o.__mwL0 === null || o.__mwL0 === undefined) o.removeAttribute('label'); else o.setAttribute('label', o.__mwL0); o.__mwL = 0; }
+  function attr1(el, name) {
+    if (name === 'value' && !(el.tagName === 'INPUT' && /^(button|submit|reset)$/i.test(el.getAttribute('type') || ''))) return;   // a typed / saved value is data, never translated
+    var v = el.getAttribute(name); if (v === null) return;
+    var d = el.__mwA || (el.__mwA = {}); if (d[name] === v) return;
+    var h = tr(v);
+    if (h === null) { if (HAS_LATIN.test(v)) miss('attr:' + name, v); return; }
+    if (h !== v) { (el.__mwO || (el.__mwO = {}))[name] = v; el.setAttribute(name, h); d[name] = h; }
+  }
+  function attrs(el) {
+    for (var i = 0; i < ATTRS.length; i++) if (el.hasAttribute(ATTRS[i])) attr1(el, ATTRS[i]);
+    if (el.tagName === 'INPUT') { var t = (el.getAttribute('type') || '').toLowerCase(); if (t === 'button' || t === 'submit' || t === 'reset') attr1(el, 'value'); }
+    else if (el.tagName === 'OPTGROUP') attr1(el, 'label');
+  }
+  function blocked(n) {
+    return n.getAttribute('translate') === 'no' || n.classList.contains('notranslate') || (n.hasAttribute('contenteditable') && n.getAttribute('contenteditable') !== 'false');
+  }
+  function walk(n) {
+    if (n.nodeType === 3) { text(n); return; }
+    if (n.nodeType !== 1 || TAGOFF[n.tagName] || n.namespaceURI === SVGNS || blocked(n)) return;
+    attrs(n);
+    if (n.tagName === 'OPTION') { opt(n); return; }
+    if (TAGTEXT[n.tagName]) return;
+    for (var c = n.firstChild; c; c = c.nextSibling) walk(c);
+  }
+  function unwalk(n) {                                          // English again: every text / attribute that is still exactly what we wrote gets its original back
+    if (n.nodeType === 3) {
+      var d = doneText.get(n);
+      if (d !== undefined) { if (n.nodeValue === d) n.nodeValue = origText.get(n); doneText.delete(n); }
+      return;
+    }
+    if (n.nodeType !== 1 || TAGOFF[n.tagName]) return;
+    var A = n.__mwA;
+    if (A) { var O = n.__mwO || {}; for (var k in A) if (n.getAttribute(k) === A[k] && O[k] !== undefined) n.setAttribute(k, O[k]); n.__mwA = n.__mwO = null; }
+    if (n.__mwL) unlabel(n);
+    for (var c = n.firstChild; c; c = c.nextSibling) unwalk(c);
+  }
+  function onMut(list) {
+    for (var i = 0; i < list.length; i++) {
+      var m = list[i], t = m.target;
+      if (m.type === 'characterData') { if (!noTr(t.parentNode)) text(t); }
+      else if (m.type === 'attributes') { if (t.nodeType === 1 && !noTrAttr(t)) attr1(t, m.attributeName); }
+      else {
+        for (var j = 0; j < m.addedNodes.length; j++) {
+          var a = m.addedNodes[j];
+          if (!a.parentNode || noTr(a.nodeType === 1 ? a.parentNode : t)) continue;
+          walk(a);
+        }
+        if (t.nodeType === 1 && t.tagName === 'OPTION') opt(t);
+      }
+    }
+  }
+  var obs = new MutationObserver(onMut), OBS = { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTRS.concat(['value']) };
+
+  /* alert / confirm / prompt (installed once, the first time Hindi is switched on; in English they pass everything through) */
+  function patchDialogs() {
+    if (patched) return; patched = true;
+    ['alert', 'confirm', 'prompt'].forEach(function (name) {
+      var orig = W[name]; if (typeof orig !== 'function') return;
+      W[name] = function (m) {
+        var a = arguments;
+        if (lang === 'hi' && typeof m === 'string') { var h = tr(m); if (h !== null) { a = Array.prototype.slice.call(a); a[0] = h; } }
+        return orig.apply(W, a);
+      };
+    });
+  }
+
+  /* ---------------------------------------------------------------- Hindi on / off */
+  function unwait() { if (waitT) { W.clearTimeout(waitT); waitT = 0; } root.classList.remove('mw-wait'); }
+  function run() {                                              // the first translation of the whole page (then the observer keeps up with later changes)
+    if (running || lang !== 'hi') return;
+    running = true;
+    try { walk(root); } catch (e) { try { console.error('mwLang', e); } catch (x) {} }
+    unwait();
+    obs.observe(root, OBS);
+  }
+  function startHi() {
+    compile(); started = true; W.mwTr = tr;
+    root.setAttribute('lang', 'hi');
+    patchDialogs();
+    if (domReady) run();
+    else { root.classList.add('mw-wait'); if (!waitT) waitT = W.setTimeout(unwait, 1500); }   // while the page is still being read the first paint waits for the first translation (no English flash)
+  }
+  function stopHi() {
+    unwait();
+    if (running) { obs.disconnect(); try { unwalk(root); } catch (e) { try { console.error('mwLang', e); } catch (x) {} } running = false; }
+    if (origLang === null) root.removeAttribute('lang'); else root.setAttribute('lang', origLang);
+  }
+  if (stored() === 'hi') { lang = 'hi'; W.mwLang = 'hi'; startHi(); }
+})();
+</script>
+<!-- MW-I18N:END -->
+<style id="mwLangPg">.hdr-top .mw-lang.one{--mw-lang-h:38px;--mw-lang-r:12px;--mw-lang-bg:rgba(255,255,255,.14);--mw-lang-fg:#fff;--mw-lang-line:rgba(255,255,255,.3)}.hdr-title h1,html.nl .hdr-title h1{font-size:clamp(15px,5vw,19px)}html[lang="hi"] .hdr-title p{font-size:12.5px}</style>
 <!-- MW-BACKCSS-START (the "Back" button: the same in every page, built by tools/apply_back.py) -->
 <style id="mwBackCss">
   .mw-back{display:inline-flex; align-items:center; gap:6px; flex:none; box-sizing:border-box; min-height:40px; margin:0; padding:0 16px 0 10px; border-radius:999px; border:1.5px solid rgba(255,255,255,.45); background:rgba(255,255,255,.18); color:#fff; font-family:inherit; font-size:15px; font-weight:700; line-height:1; letter-spacing:0; text-decoration:none; text-transform:none; white-space:nowrap; cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:manipulation; -webkit-user-select:none; user-select:none;}
@@ -486,7 +769,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
       <a class="mw-back" id="backLink" href="index.html" onclick="return window.mwBackGo ? mwBackGo(event) : true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5M11 5l-7 7 7 7"/></svg><span>Back</span></a>
       <div class="hdr-title"><h1>Mahakal Wellness</h1><p>Product Calculator</p></div>
       <button type="button" class="hdr-btn" id="refreshBtn" aria-label="Refresh the price list" onclick="refreshProducts_(true)"><svg class="i"><use href="#i-refresh"/></svg></button>
-    </header>
+    <span class="mw-lang one" id="mwLangPill" translate="no"><button type="button" data-mw-lang="en" aria-label="English">EN</button><button type="button" data-mw-lang="hi" aria-label="हिन्दी">हि</button></span></header>
     <div class="acts">
       <button type="button" class="act-btn" id="btnClear" onclick="clearAll_()">Clear List</button>
       <button type="button" class="act-btn go" id="btnBill" onclick="openBill_()"><svg class="i"><use href="#i-download"/></svg>Download Bill</button>
@@ -515,7 +798,7 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
         <summary>Shop naam, mobile aur bill no.</summary>
         <div class="field">
           <label for="bShopName">Shop / business name</label>
-          <input type="text" id="bShopName" maxlength="60" autocomplete="off" placeholder="Mahakal Wellness" enterkeyhint="next" oninput="onShopField_(this)">
+          <input type="text" id="bShopName" translate="no" maxlength="60" autocomplete="off" placeholder="Mahakal Wellness" enterkeyhint="next" oninput="onShopField_(this)">
         </div>
         <div class="row2">
           <div class="field">
@@ -548,11 +831,11 @@ setInterval(function(){if(document.visibilityState==='visible')ask();},window.__
       <div class="pv-tabs" role="tablist" aria-label="Bill view">
         <button type="button" class="pv-tab on" id="pvTabDigital" role="tab" aria-selected="true" onclick="pvTab_('digital')">Digital Invoice</button>
         <button type="button" class="pv-tab" id="pvTabPdf" role="tab" aria-selected="false" onclick="pvTab_('pdf')">PDF File View</button>
-        <span class="pv-file" id="pvFile"></span>
+        <span class="pv-file" id="pvFile" translate="no"></span>
       </div>
       <div class="pv-body" id="pvBody">
-        <div id="pvDigital"></div>
-        <div id="pvPdf" class="pv-pages" hidden></div>
+        <div id="pvDigital" translate="no"></div>
+        <div id="pvPdf" class="pv-pages" translate="no" hidden></div>
       </div>
       <div class="pv-foot">
         <button type="button" class="pv-back" id="pvBack" onclick="closePreview_()">← Back / Edit</button>

@@ -8,7 +8,7 @@
 // Everything that is not a file of this app (the database, pictures of other sites, saving something) is NOT touched: it goes straight to the network.
 // (If offline.html or one of the lists of files below is changed, change VERSION too, so every phone picks the new files up.
 //  If the saved pages ever have to be thrown away on every phone, change SHELL_CACHE to a new name: the old one is deleted when the worker starts.)
-const VERSION = '3';
+const VERSION = '4';
 const OFFLINE_CACHE = 'mw-offline-v1';
 // the app's own pages + libraries + fonts + icons: only added to / renewed (a page is renewed every time it is opened with internet)
 const SHELL_CACHE = 'mw-shell-v1';
