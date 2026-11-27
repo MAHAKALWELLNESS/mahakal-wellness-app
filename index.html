@@ -779,8 +779,17 @@ html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
       const wImg = document.getElementById('welcomeLogoImg'); if (wImg) wImg.src = LOGO_URI;
       const bImg = document.getElementById('mainBrandLogoImg'); if (bImg) bImg.src = LOGO_URI;
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-      document.getElementById(isStandalone ? 'installWelcome' : 'mainBrand').style.display = isStandalone ? 'flex' : 'block';
-      if (!isStandalone) document.getElementById('mainChoices').style.display = 'grid';
+      // The Google Play app (a Trusted Web Activity, package com.mahakalwellness.app) opens straight on the options: no "Welcome / Continue" screen.
+      // Chrome sets document.referrer to android-app://<package> when the app is launched; the mark is kept for this tab, so "Back" from another page lands on the options too.
+      // The web app installed from the browser (home-screen icon) is not touched: it still shows the Welcome screen.
+      let fromPlayApp = false;
+      try {
+        if ((document.referrer || '').indexOf('android-app://com.mahakalwellness.app') === 0) sessionStorage.setItem('mwPlayApp', '1');
+        fromPlayApp = sessionStorage.getItem('mwPlayApp') === '1';
+      } catch (e) { /* no storage here: the plain behaviour */ }
+      const showWelcome = isStandalone && !fromPlayApp;
+      document.getElementById(showWelcome ? 'installWelcome' : 'mainBrand').style.display = showWelcome ? 'flex' : 'block';
+      if (!showWelcome) document.getElementById('mainChoices').style.display = 'grid';
     })();
   </script>
   <script>
