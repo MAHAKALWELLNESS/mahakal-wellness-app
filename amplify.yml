@@ -1,0 +1,17 @@
+# AWS Amplify Hosting - this is a plain website, there is nothing to build.
+# The commands below copy ONLY the website files into a folder called "public", and Amplify publishes that folder.
+# So the .sql / .zip / .xlsx / .ts / .gs / .md files and the old Index.html that sit in this repository are NOT put on the internet.
+# (A new page of the app, such as xyz.html, is picked up by itself. Only if a NEW KIND of file is ever added - a .css, .js, .jpg ... - this file needs one more word.)
+version: 1
+frontend:
+  phases:
+    build:
+      commands:
+        - rm -rf public
+        - mkdir public
+        - find . -maxdepth 1 -type f \( -name '*.html' -o -name 'manifest-*.json' -o -name 'icon-*.png' -o -name 'badge-*.png' -o -name 'sw.js' \) ! -name 'Index.html' -exec cp {} public/ \;
+        - for d in vendor well-known admin order; do if [ -d "$d" ]; then cp -r "$d" public/; fi; done
+  artifacts:
+    baseDirectory: public
+    files:
+      - '**/*'
