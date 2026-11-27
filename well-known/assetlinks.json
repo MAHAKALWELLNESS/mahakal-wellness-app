@@ -1,8 +1,15 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "com.mahakalwellness.app",
-        "sha256_cert_fingerprints": ["4B:36:6A:54:D9:11:31:95:E8:9B:19:15:11:91:2F:D8:AD:5A:72:31:07:07:D7:7D:CA:20:D6:48:CD:BC:14:23"]
-      }
-    }]
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.mahakalwellness.app",
+      "sha256_cert_fingerprints": [
+        "B0:8F:1D:2C:D1:11:85:69:2B:53:C9:52:E9:D7:B1:90:58:92:7E:15:04:7D:EE:2A:F4:4A:B8:FA:F4:24:D9:BC",
+        "60:AE:3B:8A:86:B3:F2:63:9F:16:95:01:22:6B:2A:C8:6C:7D:25:E3:CF:5F:6E:02:1B:31:2D:79:BB:2C:37:E1",
+        "3E:D4:E6:5D:F4:B0:C8:B7:87:3F:4E:3B:66:93:2B:0C:8B:C9:12:A3:31:3B:3F:9D:BF:34:F8:CE:56:C8:07:16",
+        "4B:36:6A:54:D9:11:31:95:E8:9B:19:15:11:91:2F:D8:AD:5A:72:31:07:07:D7:7D:CA:20:D6:48:CD:BC:14:23"
+      ]
+    }
+  }
+]
