@@ -326,8 +326,8 @@ html.nl #mainBrand p{margin-top:clamp(3px, calc(var(--vh) * .007), 7px); padding
 
 /* ---------- the eight boxes: a six-column grid, five rows ---------- */
 html.nl #mainChoices{grid-template-columns:repeat(6, minmax(0, 1fr)); grid-auto-rows:var(--rowH); gap:var(--gapY) 12px; max-width:440px;}
-html.nl #mainChoices .choice-card.bento-purchase,html.nl #mainChoices .choice-card.bento-products,html.nl #mainChoices .choice-card.bento-account{grid-column:1 / -1;}
-html.nl #mainChoices .choice-card.bento-calc,html.nl #mainChoices .choice-card.bento-spset{grid-column:span 3;}
+html.nl #mainChoices .choice-card.bento-purchase,html.nl #mainChoices .choice-card.bento-calc,html.nl #mainChoices .choice-card.bento-account{grid-column:1 / -1;}
+html.nl #mainChoices .choice-card.bento-products,html.nl #mainChoices .choice-card.bento-spset{grid-column:span 3;}
 html.nl #mainChoices .choice-card.bento-hall,html.nl #mainChoices .choice-card.bento-rate,html.nl #mainChoices .choice-card.bento-contact{grid-column:span 2;}
 html.nl #mainChoices .choice-card.bento-purchase,html.nl #mainChoices .choice-card.bento-products,html.nl #mainChoices .choice-card.bento-calc,html.nl #mainChoices .choice-card.bento-spset,html.nl #mainChoices .choice-card.bento-account,
 html.nl #mainChoices .choice-card.bento-hall,html.nl #mainChoices .choice-card.bento-rate,html.nl #mainChoices .choice-card.bento-contact{
@@ -336,19 +336,19 @@ html.nl #mainChoices .choice-card.bento-hall,html.nl #mainChoices .choice-card.b
 html.nl #mainChoices .choice-card.bento-purchase:active,html.nl #mainChoices .choice-card.bento-products:active,html.nl #mainChoices .choice-card.bento-calc:active,html.nl #mainChoices .choice-card.bento-spset:active,html.nl #mainChoices .choice-card.bento-account:active,
 html.nl #mainChoices .choice-card.bento-hall:active,html.nl #mainChoices .choice-card.bento-rate:active,html.nl #mainChoices .choice-card.bento-contact:active{transform:translateY(5px); box-shadow:0 1px 0 var(--t3), 0 5px 9px rgba(40,30,110,.25), inset 0 3px 0 rgba(255,255,255,.4);}
 html.nl #mainChoices .choice-card::before{right:-22px; top:-22px; width:84px; height:84px;}
-/* the three long boxes (Purchase Product, Products, Customer Login) carry an arrow circle on the right */
-html.nl #mainChoices .choice-card.bento-purchase,html.nl #mainChoices .choice-card.bento-products,html.nl #mainChoices .choice-card.bento-account{padding-right:clamp(50px, calc(var(--rowH) * .5 + 22px), 68px);}
-html.nl #mainChoices .bento-purchase::before,html.nl #mainChoices .bento-products::before,html.nl #mainChoices .bento-account::before{content:'\203A'; display:flex; align-items:center; justify-content:center; right:clamp(10px, 3.4vw, 16px); top:50%; transform:translateY(-50%); width:clamp(28px, calc(var(--rowH) * .4), 40px); height:clamp(28px, calc(var(--rowH) * .4), 40px);
+/* the three long boxes (Purchase Product, Product Calculator, Customer Login) carry an arrow circle on the right */
+html.nl #mainChoices .choice-card.bento-purchase,html.nl #mainChoices .choice-card.bento-calc,html.nl #mainChoices .choice-card.bento-account{padding-right:clamp(50px, calc(var(--rowH) * .5 + 22px), 68px);}
+html.nl #mainChoices .bento-purchase::before,html.nl #mainChoices .bento-calc::before,html.nl #mainChoices .bento-account::before{content:'\203A'; display:flex; align-items:center; justify-content:center; right:clamp(10px, 3.4vw, 16px); top:50%; transform:translateY(-50%); width:clamp(28px, calc(var(--rowH) * .4), 40px); height:clamp(28px, calc(var(--rowH) * .4), 40px);
   background:rgba(255,255,255,.26); box-shadow:inset 0 2px 0 rgba(255,255,255,.5), 0 2px 0 rgba(0,0,0,.12); color:#fff; font-size:clamp(22px, calc(var(--rowH) * .34), 32px); font-weight:700; line-height:1; padding-bottom:.12em; text-shadow:0 1px 2px rgba(0,0,0,.25);}
 html.nl #mainChoices .choice-card .choice-icon{width:clamp(38px, calc(var(--rowH) * .54), 62px); height:clamp(38px, calc(var(--rowH) * .54), 62px); margin:0; flex:none; border-radius:clamp(12px, calc(var(--rowH) * .2), 20px); font-size:clamp(21px, calc(var(--rowH) * .31), 34px); box-shadow:inset 0 2px 0 rgba(255,255,255,.6), 0 3px 0 rgba(0,0,0,.14);}
 html.nl #mainChoices .choice-card .choice-title{font-size:clamp(14px, calc(var(--rowH) * .2), 18px); line-height:1.15; min-width:0; overflow-wrap:anywhere;}
-html.nl #mainChoices .bento-purchase .choice-title,html.nl #mainChoices .bento-products .choice-title{font-size:clamp(16px, calc(var(--rowH) * .24), 23px);}
+html.nl #mainChoices .bento-purchase .choice-title,html.nl #mainChoices .bento-calc .choice-title{font-size:clamp(16px, calc(var(--rowH) * .24), 23px);}
 html.nl #mainChoices .bento-account .choice-title{font-size:clamp(15px, calc(var(--rowH) * .2), 21px);}
-html.nl #mainChoices .bento-purchase .choice-title,html.nl #mainChoices .bento-products .choice-title,html.nl #mainChoices .bento-account .choice-title{display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden;}
-/* Product Calculator / SP Set Maker: two half boxes - smaller icon and a name that follows the width, so "Calculator" never breaks in the middle */
-html.nl #mainChoices .choice-card.bento-calc,html.nl #mainChoices .choice-card.bento-spset{padding:0 clamp(8px, 3vw, 14px); gap:clamp(6px, 2vw, 10px);}
-html.nl #mainChoices .bento-calc .choice-icon,html.nl #mainChoices .bento-spset .choice-icon{width:clamp(34px, calc(var(--rowH) * .44), 50px); height:clamp(34px, calc(var(--rowH) * .44), 50px); font-size:clamp(19px, calc(var(--rowH) * .26), 28px); border-radius:clamp(11px, calc(var(--rowH) * .16), 16px);}
-html.nl #mainChoices .bento-calc .choice-title,html.nl #mainChoices .bento-spset .choice-title{font-size:clamp(11.5px, 3.75vw, 17px); overflow-wrap:break-word;}
+html.nl #mainChoices .bento-purchase .choice-title,html.nl #mainChoices .bento-calc .choice-title,html.nl #mainChoices .bento-account .choice-title{display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden;}
+/* Products / SP Set Maker: two half boxes - smaller icon and a name that follows the width, so a longer name never breaks in the middle */
+html.nl #mainChoices .choice-card.bento-products,html.nl #mainChoices .choice-card.bento-spset{padding:0 clamp(8px, 3vw, 14px); gap:clamp(6px, 2vw, 10px);}
+html.nl #mainChoices .bento-products .choice-icon,html.nl #mainChoices .bento-spset .choice-icon{width:clamp(34px, calc(var(--rowH) * .44), 50px); height:clamp(34px, calc(var(--rowH) * .44), 50px); font-size:clamp(19px, calc(var(--rowH) * .26), 28px); border-radius:clamp(11px, calc(var(--rowH) * .16), 16px);}
+html.nl #mainChoices .bento-products .choice-title,html.nl #mainChoices .bento-spset .choice-title{font-size:clamp(11.5px, 3.75vw, 17px); overflow-wrap:break-word;}
 /* Book Hall / Rate Us / Contact: the small three, the icon above the name */
 html.nl #mainChoices .choice-card.bento-hall,html.nl #mainChoices .choice-card.bento-rate,html.nl #mainChoices .choice-card.bento-contact{flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:clamp(3px, calc(var(--rowH) * .05), 6px); padding:0 4px;}
 html.nl #mainChoices .bento-hall .choice-icon,html.nl #mainChoices .bento-rate .choice-icon,html.nl #mainChoices .bento-contact .choice-icon{width:clamp(32px, calc(var(--rowH) * .46), 46px); height:clamp(32px, calc(var(--rowH) * .46), 46px); font-size:clamp(18px, calc(var(--rowH) * .27), 26px); border-radius:clamp(10px, calc(var(--rowH) * .16), 15px);}
@@ -733,6 +733,10 @@ html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
       <div class="choice-icon">📲</div>
       <div class="choice-title" style="color:#fff;">Install App</div>
     </button>
+    <a class="choice-card bento-calc bento-featured" href="calculator.html">
+      <div class="choice-icon">🧮</div>
+      <div class="choice-title">Product Calculator</div>
+    </a>
     <a class="choice-card primary bento-purchase bento-featured" href="order.html">
       <div class="choice-icon">🛒</div>
       <div class="choice-title">Purchase Product</div>
@@ -740,10 +744,6 @@ html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
     <a class="choice-card bento-products bento-featured" href="products.html">
       <div class="choice-icon">🛍️</div>
       <div class="choice-title">Products</div>
-    </a>
-    <a class="choice-card bento-calc bento-featured" href="calculator.html">
-      <div class="choice-icon">🧮</div>
-      <div class="choice-title">Product Calculator</div>
     </a>
     <a class="choice-card bento-spset bento-featured" href="sp-set.html">
       <div class="choice-icon">🎯</div>
