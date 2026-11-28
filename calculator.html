@@ -798,7 +798,7 @@ html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
         <summary>Shop naam, mobile aur bill no.</summary>
         <div class="field">
           <label for="bShopName">Shop / business name</label>
-          <input type="text" id="bShopName" translate="no" maxlength="60" autocomplete="off" placeholder="Mahakal Wellness" enterkeyhint="next" oninput="onShopField_(this)">
+          <input type="text" id="bShopName" translate="no" maxlength="60" autocomplete="off" placeholder="AWPL Product Calculator &amp; Bill" enterkeyhint="next" oninput="onShopField_(this)">
         </div>
         <div class="row2">
           <div class="field">
@@ -807,7 +807,7 @@ html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
           </div>
           <div class="field">
             <label for="bNo">Bill no.</label>
-            <input type="text" id="bNo" maxlength="20" autocomplete="off" placeholder="MW-0001" enterkeyhint="done" oninput="onShopField_(this)">
+            <input type="text" id="bNo" maxlength="20" autocomplete="off" placeholder="AWPL-0001" enterkeyhint="done" oninput="onShopField_(this)">
           </div>
         </div>
       </details>
@@ -977,6 +977,7 @@ html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
   const TYPE_BADGE = { dp: 'DP BILL', mrp: 'MRP BILL', disc: 'DISCOUNT BILL' };   // the badge on the preview
   const TYPE_TAG = { dp: 'DP BILL', mrp: 'RETAIL', disc: 'DISCOUNT' };            // the badge on a History card
   const TYPE_FILE = { dp: 'DP-Bill', mrp: 'MRP-Bill', disc: 'Discount-Bill' };
+  const BILL_BRAND = 'AWPL Product Calculator & Bill';                          // the title of a bill when no shop name is typed (preview, PDF and WhatsApp text)
 
   let PRODUCTS = [];                         // [{code, name, mrp, dp, sp}] in the order the server sent them
   let BYCODE = Object.create(null);          // code -> product (no prototype: a product code can never clash with a built-in name)
@@ -988,7 +989,7 @@ html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
   let VIEW = 'calc';                         // which tab is open: calc / list / hist
   let PL_SIG = '', PL_DIRTY = true, LIST_EL = Object.create(null), LIST_Q = Object.create(null);   // Product List tab: what the list was built from, the row of each code, the quantity each row shows
   const BILL_MAX = { sname: 60, smobile: 10, name: 80, mobile: 10, id: 30, remark: 160, no: 20 };
-  let BILL = { seller: { name: '', mobile: '' }, cust: { name: '', mobile: '', id: '', remark: '' }, no: 'MW-0001', next: 'MW-0001', cur: null };   // cur = the History bill being edited
+  let BILL = { seller: { name: '', mobile: '' }, cust: { name: '', mobile: '', id: '', remark: '' }, no: 'AWPL-0001', next: 'AWPL-0001', cur: null };   // cur = the History bill being edited
   let HIST = [];                             // the saved bills, newest first
   let PV = { snap: null, live: false, tab: 'digital', urls: [] };   // the bill shown in the preview
   let SHARE = null;                          // the bill the "which WhatsApp" pop-up is for
@@ -1053,6 +1054,7 @@ html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
   function saveState_() {
     lsSet_(LS_STATE, JSON.stringify({ v: 2, type: BTYPE, disc: BDISC, cart: CART.map(function (l) { return [l.code, l.qty]; }) }));
   }
+  function awplNo_(n) { const m = /^MW-(\d{1,12})$/i.exec(String(n || '').trim()); return m ? 'AWPL-' + m[1] : n; }   // the old series MW-0007 -> AWPL-0007
   function loadBill_() {
     const s = lsJson_(LS_BILL);
     if (!s || typeof s !== 'object') return;
@@ -1060,8 +1062,9 @@ html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
     BILL.seller.name = str_(sl.name, BILL_MAX.sname); BILL.seller.mobile = phone_(sl.mobile);
     BILL.cust.name = str_(cu.name, BILL_MAX.name); BILL.cust.mobile = phone_(cu.mobile);
     BILL.cust.id = str_(cu.id, BILL_MAX.id); BILL.cust.remark = str_(cu.remark, BILL_MAX.remark);
-    BILL.no = (typeof s.no === 'string' && s.no.trim()) ? str_(s.no, BILL_MAX.no) : 'MW-0001';
+    BILL.no = (typeof s.no === 'string' && s.no.trim()) ? str_(s.no, BILL_MAX.no) : 'AWPL-0001';
     BILL.next = (typeof s.next === 'string' && s.next.trim()) ? str_(s.next, BILL_MAX.no) : BILL.no;
+    BILL.no = awplNo_(BILL.no); BILL.next = awplNo_(BILL.next);
     BILL.cur = (typeof s.cur === 'string' && s.cur) ? s.cur.slice(0, 40) : null;
   }
   function saveBill_() {
@@ -1082,7 +1085,7 @@ html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
     });
     if (!items.length) return null;
     const cu = (e.cust && typeof e.cust === 'object') ? e.cust : {}, sh = (e.shop && typeof e.shop === 'object') ? e.shop : {}, d = Number(e.disc), la = Number(e.listAt);
-    return { id: id, no: str_(e.no, BILL_MAX.no).trim() || 'MW-0001', t: t, type: type, disc: (isFinite(d) && d > 0) ? r2_(d) : 0,
+    return { id: id, no: str_(e.no, BILL_MAX.no).trim() || 'AWPL-0001', t: t, type: type, disc: (isFinite(d) && d > 0) ? r2_(d) : 0,
       cust: { name: str_(cu.name, BILL_MAX.name), mobile: phone_(cu.mobile), id: str_(cu.id, BILL_MAX.id), remark: str_(cu.remark, BILL_MAX.remark) },
       shop: { name: str_(sh.name, BILL_MAX.sname), mobile: phone_(sh.mobile) }, items: items, listAt: isFinite(la) ? la : 0 };
   }
@@ -1466,7 +1469,7 @@ html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
     const items = [];
     lines_().forEach(function (l) { items.push([l.p.code, l.p.name, l.qty, l.p.mrp, l.p.dp, l.p.sp]); });
     const cu = BILL.cust;
-    return { id: BILL.cur || newId_(), no: BILL.no.trim() || BILL.next || 'MW-0001', t: Date.now(), type: BTYPE, disc: BTYPE === 'disc' ? BDISC : 0,
+    return { id: BILL.cur || newId_(), no: BILL.no.trim() || BILL.next || 'AWPL-0001', t: Date.now(), type: BTYPE, disc: BTYPE === 'disc' ? BDISC : 0,
       cust: { name: cu.name.trim(), mobile: cu.mobile, id: cu.id.trim(), remark: cu.remark.trim() },
       shop: { name: BILL.seller.name.trim(), mobile: BILL.seller.mobile }, items: items, listAt: LIST_AT || 0 };
   }
@@ -1500,10 +1503,10 @@ html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
     }
     const cu = s.cust, cust = [['Customer', cu.name.trim() || 'Walk-in Customer'], ['Mobile', cu.mobile.trim() || 'Not Provided']];
     if (cu.id.trim()) cust.push(['ID no', cu.id.trim()]);
-    const title = s.shop.name.trim() || 'Mahakal Wellness';
-    return { type: s.type, badge: TYPE_BADGE[s.type], title: title, shopMobile: s.shop.mobile.trim(), sub: dp ? 'Detailed Internal Business Report' : 'Retail Sales Invoice',
+    const shopName = s.shop.name.trim(), title = shopName || BILL_BRAND;
+    return { type: s.type, badge: TYPE_BADGE[s.type], title: title, thanks: shopName ? 'Thank you for choosing ' + shopName + '!' : 'Thank you!', shopMobile: s.shop.mobile.trim(), sub: dp ? 'Detailed Internal Business Report' : 'Retail Sales Invoice',
              no: s.no, date: fmtDate_(s.t), cust: cust, remark: cu.remark.trim(), cols: cols, rows: rows, tot: tot, t: t, listDate: s.listAt ? fmtDate_(s.listAt) : '',
-             file: (slug_(s.shop.name) || 'Mahakal-Wellness') + '_' + TYPE_FILE[s.type] + '_' + (slug_(s.no) || 'bill') + '.pdf' };
+             file: (slug_(s.shop.name) || 'AWPL-Product-Calculator') + '_' + TYPE_FILE[s.type] + '_' + (slug_(s.no) || 'bill') + '.pdf' };
   }
   function invoiceHtml_(m) {                                           // the digital invoice in the preview
     const th = m.cols.map(function (c) { return '<th' + (c.r ? ' class="r"' : '') + '>' + escapeHtml(c.h) + '</th>'; }).join('');
@@ -1520,7 +1523,7 @@ html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
     h += '<div class="iv-tw"><table class="iv-tb' + (m.type === 'dp' ? ' dp' : '') + '"><thead><tr>' + th + '</tr></thead><tbody>' + trs + '</tbody></table></div>';
     h += '<div class="iv-sum">' + m.tot.map(function (t) { return '<div class="iv-r' + (t[2] ? ' ' + escapeHtml(t[2]) : '') + '"><span>' + escapeHtml(t[0]) + '</span><b>' + escapeHtml(t[1]) + '</b></div>'; }).join('') + '</div>';
     if (m.remark) h += '<p class="iv-rem"><b>Remark:</b> ' + escapeHtml(m.remark) + '</p>';
-    h += '<p class="iv-note">Thank you for choosing ' + escapeHtml(m.title) + '!</p></div>';
+    h += '<p class="iv-note">' + escapeHtml(m.thanks) + '</p></div>';
     return h;
   }
   function billTextOf_(s) {                                            // the same bill as WhatsApp text
@@ -1541,14 +1544,14 @@ html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
     o.push('');
     m.tot.forEach(function (t) { const line = t[0].replace(/:$/, '') + ': ' + t[1]; o.push(t[2] === 'pay' ? '*' + line + '*' : line); });
     if (m.remark) { o.push(''); o.push('Remark: ' + m.remark); }
-    o.push(''); o.push('Thank you for choosing ' + m.title + '!');
+    o.push(''); o.push(m.thanks);
     return o.join('\n');
   }
 
   // ---- History: a bill is saved when it is downloaded or shared (a bill made again after Edit replaces its own entry and keeps its number)
-  function nextNo_(no) {                                               // MW-0007 -> MW-0008, 0007 -> 0008, nothing -> MW-0001
+  function nextNo_(no) {                                               // AWPL-0007 -> AWPL-0008, 0007 -> 0008, nothing -> AWPL-0001
     no = String(no || '').trim();
-    if (!no) return 'MW-0001';
+    if (!no) return 'AWPL-0001';
     const m = /^(.*?)(\d{1,12})$/.exec(no);
     if (!m) return (no + '1').slice(0, BILL_MAX.no);
     const n = String(Number(m[2]) + 1);
@@ -1815,7 +1818,7 @@ html[lang="hi"] body,html[lang="hi"] body *{letter-spacing:normal !important}
     m.tot.forEach(function (t) { const pay = t[2] === 'pay'; need = Math.max(need, MW(t[0], F(pay ? 700 : 600, pay ? 12.5 : 11.5)) + MW(t[1], F(700, pay ? 14.5 : 11.5)) + 44); });
     const TW = Math.min(IW, Math.max(272, Math.ceil(need))), tx = PG.W - PG.M - TW;
     const th = 14 + m.tot.reduce(function (a, t) { return a + rowH(t); }, 0);
-    const remLines = m.remark ? WR('Remark: ' + m.remark, F(500, 11), IW) : [], thanks = WR('Thank you for choosing ' + m.title + '!', F(600, 11), IW);
+    const remLines = m.remark ? WR('Remark: ' + m.remark, F(500, 11), IW) : [], thanks = WR(m.thanks, F(600, 11), IW);
     const tail = th + 6 + (remLines.length ? remLines.length * 15 + 6 : 0) + 26 + (thanks.length - 1) * 14 + 14 + 20;
     y += 16;
     if (y + tail > LIM) page(false);
